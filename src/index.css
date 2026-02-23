@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-fivem-orange: #f27d26;
+  --color-fivem-dark: #0f1115;
+  --color-fivem-card: #1a1d23;
+}
+
+@layer base {
+  :root {
+    --color-text: #ffffff;
+  }
+  
+  body {
+    @apply bg-fivem-dark font-sans antialiased;
+    color: var(--color-text);
+  }
+}
+
+.glass {
+  @apply bg-white/5 backdrop-blur-md border border-white/10;
+}
+
+.neon-border {
+  box-shadow: 0 0 10px rgba(242, 125, 38, 0.2);
+}
+
+.neon-text {
+  text-shadow: 0 0 8px rgba(242, 125, 38, 0.5);
+}

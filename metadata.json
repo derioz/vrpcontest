@@ -1,0 +1,5 @@
+{
+  "name": "FiveM Photo Contest",
+  "description": "A community photo contest platform for FiveM servers with category-based uploads and admin-controlled voting.",
+  "requestFramePermissions": []
+}
