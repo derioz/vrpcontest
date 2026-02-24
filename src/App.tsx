@@ -144,28 +144,47 @@ export default function App() {
         return;
       }
 
-      // Check for Discord admin using Firebase UID
+      // Check for Discord admin using multiple lookup strategies
       try {
-        // Try Firebase UID first (most reliable)
-        const adminByUid = await getDoc(doc(db, 'admins', currentUser.uid));
-        if (adminByUid.exists()) {
-          console.log('Admin matched by Firebase UID:', currentUser.uid);
-          setIsAdmin(true);
-          return;
+        const discordProfile = currentUser.providerData.find(p => p.providerId === 'oidc.discord');
+        const idsToCheck = [currentUser.uid];
+        if (discordProfile?.uid && discordProfile.uid !== currentUser.uid) {
+          idsToCheck.push(discordProfile.uid);
         }
 
-        // Also try the OIDC provider UID
-        const discordProfile = currentUser.providerData.find(p => p.providerId === 'oidc.discord');
-        if (discordProfile && discordProfile.uid !== currentUser.uid) {
-          const adminByProvider = await getDoc(doc(db, 'admins', discordProfile.uid));
-          if (adminByProvider.exists()) {
-            console.log('Admin matched by Discord provider UID:', discordProfile.uid);
+        console.log('Admin check - trying document IDs:', idsToCheck);
+
+        // Strategy 1: Check if any of our IDs match a document ID in admins
+        for (const id of idsToCheck) {
+          const adminDoc = await getDoc(doc(db, 'admins', id));
+          if (adminDoc.exists()) {
+            console.log('Admin matched by document ID:', id);
             setIsAdmin(true);
             return;
           }
         }
 
-        console.log('No admin match found. Check your admins collection for:', currentUser.uid, discordProfile?.uid);
+        // Strategy 2: Query admins where discordId field matches any of our IDs
+        for (const id of idsToCheck) {
+          const q = query(collection(db, 'admins'), where('discordId', '==', id));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            console.log('Admin matched by discordId field:', id);
+            setIsAdmin(true);
+            return;
+          }
+        }
+
+        // Strategy 3: Query admins where uid field matches Firebase UID
+        const qUid = query(collection(db, 'admins'), where('uid', '==', currentUser.uid));
+        const snapUid = await getDocs(qUid);
+        if (!snapUid.empty) {
+          console.log('Admin matched by uid field:', currentUser.uid);
+          setIsAdmin(true);
+          return;
+        }
+
+        console.log('No admin match found. To grant admin access, create a document in the "admins" collection with one of these as the document ID:', idsToCheck);
         setIsAdmin(false);
       } catch (error) {
         console.error("Error checking admin status:", error);
