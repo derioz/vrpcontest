@@ -1392,7 +1392,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
   if (!activeContest) return null;
 
   return (
-    <div className="space-y-6 p-6 bg-fivem-card/50 rounded-2xl border border-white/10 relative overflow-hidden">
+    <div className="space-y-6 p-6 bg-fivem-card/50 rounded-2xl border border-white/10 relative">
       <div className="space-y-2 relative z-10">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
         <Input
@@ -1655,7 +1655,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-fivem-dark to-fivem-dark/80 rounded-2xl border border-white/10 relative overflow-hidden">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-fivem-dark to-fivem-dark/80 rounded-2xl border border-white/10 relative">
       {/* Decorative Glow */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[100px] rounded-full pointer-events-none" />
 
