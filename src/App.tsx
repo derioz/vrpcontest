@@ -787,7 +787,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <AnimatePresence mode="popLayout">
                   {sortedPhotos.map((photo, index) => {
-                    const rankEmoji = sortBy === 'top' ? (index === 0 ? 'ðŸ¥‡' : index === 1 ? 'ðŸ¥ˆ' : index === 2 ? 'ðŸ¥‰' : null) : null;
+                    const rankEmoji = sortBy === 'top' ? (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null) : null;
                     return (
                       <motion.div
                         layout
@@ -810,49 +810,43 @@ export default function App() {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
-                          {/* Rank badge */}
-                          {rankEmoji && (
-                            <div className="absolute top-4 left-4 z-10 text-3xl drop-shadow-lg">
-                              {rankEmoji}
+                          {/* Top-left: rank badge + player name in one row */}
+                          <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+                            {rankEmoji && (
+                              <span className="text-2xl drop-shadow-lg leading-none">{rankEmoji}</span>
+                            )}
+                            <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5 max-w-[160px]">
+                              <User size={10} className="text-fivem-orange shrink-0" />
+                              <span className="text-[10px] font-bold uppercase tracking-wider truncate">{photo.player_name}</span>
                             </div>
-                          )}
+                          </div>
 
-                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                          {/* Top-right: action buttons (hover) */}
+                          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                             {(isAdmin || (user && (user.displayName === photo.discord_name || user.providerData.some(p => p.displayName === photo.discord_name)))) && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
                                 className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
                                 title="Delete Photo"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                               </button>
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); handleShare(photo); }}
                               className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-fivem-orange transition-colors"
                             >
-                              <Share2 size={16} />
+                              <Share2 size={14} />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setLightboxPhoto(photo); }}
                               className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-white/20 transition-colors"
                             >
-                              <Maximize2 size={16} />
+                              <Maximize2 size={14} />
                             </button>
                           </div>
 
-                          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10" style={{ left: rankEmoji ? '3.5rem' : '1rem' }}>
-                            <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                              <User size={12} className="text-fivem-orange" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider">{photo.player_name}</span>
-                            </div>
-                            <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                              <Info size={12} className="text-zinc-400" />
-                              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{photo.discord_name}</span>
-                            </div>
-                          </div>
-
-                          <div className="absolute bottom-4 right-4 z-20">
+                          <div className="absolute bottom-3 right-3 z-20">
                             <button
                               onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
                               disabled={!votingOpen}
