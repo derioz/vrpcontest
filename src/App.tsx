@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Camera, 
-  Upload, 
-  Vote, 
-  Settings, 
-  Trophy, 
-  Image as ImageIcon, 
-  User, 
-  ChevronRight, 
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  Camera,
+  Upload,
+  Vote,
+  Settings,
+  Trophy,
+  Image as ImageIcon,
+  User,
+  ChevronRight,
   X,
   Plus,
   Lock,
@@ -21,30 +21,41 @@ import {
   FileText,
   Trash2,
   Edit3,
-  Info
+  Info,
+  Share2,
+  Maximize2,
+  Share
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
 import { Toaster, toast } from 'sonner';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { cn } from './lib/utils';
+import { ShimmeringText } from './components/ui/shimmering-text';
+import { Orb } from './components/ui/orb';
+import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+// Firebase Integrations
+import { auth, discordProvider, db, storage } from './lib/firebase';
+import { signInWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
   description: string;
 }
 
 interface Photo {
-  id: number;
-  category_id: number;
+  id: string;
+  category_id: string;
   player_name: string;
   discord_name: string;
-  image_data: string;
+  image_url: string;
   caption: string;
   created_at: string;
   vote_count: number;
@@ -74,54 +85,92 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [rules, setRules] = useState<Rule[]>([]);
-  const [view, setView] = useState<'gallery' | 'rules'>('gallery');
+  const [rulesMarkdown, setRulesMarkdown] = useState('');
   const [votingOpen, setVotingOpen] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('admin_token'));
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
+  const [sortBy, setSortBy] = useState<'top' | 'newest'>('top');
 
-  // Check auth token validity on load
-  useEffect(() => {
-    if (authToken) {
-      setIsAdmin(true);
-    }
-  }, [authToken]);
+  const [activeContest, setActiveContest] = useState<{ id: string; name: string } | null>(null);
 
-  // Fetch initial data
+  const sortedPhotos = useMemo(() => {
+    return [...photos].sort((a, b) => {
+      if (sortBy === 'top') return (b.vote_count || 0) - (a.vote_count || 0);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [photos, sortBy]);
+
+  const handleShare = (photo: Photo) => {
+    const url = `${window.location.origin}/?photo=${photo.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link copied to clipboard!');
+  };
+
+  // Listen for Firebase Auth state changes
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [catRes, statusRes, rulesRes, themeRes] = await Promise.all([
-          fetch('/api/categories'),
-          fetch('/api/status'),
-          fetch('/api/rules'),
-          fetch('/api/theme')
-        ]);
-        const cats = await catRes.json();
-        const status = await statusRes.json();
-        const rulesData = await rulesRes.json();
-        const themeData = await themeRes.json();
-        
-        setCategories(cats);
-        setVotingOpen(status.votingOpen);
-        setRules(rulesData);
-        if (themeData.theme) {
-          setCurrentTheme(themeData.theme);
-        }
-        if (cats.length > 0) setSelectedCategory(cats[0]);
-      } catch (error) {
-        toast.error('Failed to load contest data');
-      } finally {
-        setIsInitialLoad(false);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      // For now, if they are logged in via email (password), they are an admin.
+      // Discord users will be handled separately (but also generate a currentUser).
+      // We check if the login provider is password to determine admin vs standard discord user.
+      const isEmailUser = currentUser?.providerData.some(p => p.providerId === 'password');
+      setIsAdmin(!!isEmailUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch initial data (Real-time Firestore listeners)
+  useEffect(() => {
+    // 1. Listen to Global Settings (rules, theme, votingOpen)
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setVotingOpen(!!data.votingOpen);
+        setRulesMarkdown(data.rulesMarkdown || '');
+        if (data.theme) setCurrentTheme(data.theme);
       }
+      setIsInitialLoad(false);
+    }, (err) => {
+      console.error("Settings listener error:", err);
+      setIsInitialLoad(false);
+    });
+
+    // 2. Listen to Active Contest
+    const qContest = query(collection(db, 'contests'), where('is_active', '==', true), limit(1));
+    const unsubContest = onSnapshot(qContest, async (snapshot) => {
+      if (!snapshot.empty) {
+        const activeDoc = snapshot.docs[0];
+        const contestData = { id: activeDoc.id, name: activeDoc.data().name };
+        setActiveContest(contestData);
+
+        // 3. Once we have an active contest, fetch its categories
+        const qCats = query(collection(db, 'categories'), where('contest_id', '==', activeDoc.id));
+        const catSnap = await getDocs(qCats);
+        const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[];
+        setCategories(cats);
+        setSelectedCategory(prev => {
+          if (!prev && cats.length > 0) return cats[0];
+          if (prev && cats.find(c => c.id === prev.id)) return prev;
+          return cats.length > 0 ? cats[0] : null;
+        });
+      } else {
+        setActiveContest(null);
+        setCategories([]);
+        setSelectedCategory(null);
+      }
+    });
+
+    return () => {
+      unsubSettings();
+      unsubContest();
     };
-    fetchData();
   }, []);
 
   // Apply theme
@@ -132,11 +181,11 @@ export default function App() {
       root.style.setProperty('--color-fivem-dark', currentTheme.colors.background);
       root.style.setProperty('--color-fivem-card', currentTheme.colors.card);
       root.style.setProperty('--color-fivem-orange', currentTheme.colors.primary);
-      
+
       // Also set some utility variables for text if needed, though we mostly use white
       // We can use the text color for body if we want
       root.style.setProperty('--color-text', currentTheme.colors.text);
-      
+
       // Update font if needed
       if (currentTheme.font === 'serif') {
         root.style.setProperty('--font-display', 'serif');
@@ -150,18 +199,31 @@ export default function App() {
 
   // Fetch photos when category changes
   useEffect(() => {
-    if (selectedCategory) {
-      fetch(`/api/photos/${selectedCategory.id}`)
-        .then(res => res.json())
-        .then(setPhotos)
-        .catch(() => toast.error('Failed to load photos'));
-    }
+    if (!selectedCategory) return;
+
+    const q = query(collection(db, 'photos'), where('category_id', '==', selectedCategory.id));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const fetchedPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Photo[];
+      setPhotos(fetchedPhotos);
+    }, (err) => {
+      console.error("Photos listener error", err);
+      toast.error('Failed to load photos');
+    });
+
+    return () => unsub();
   }, [selectedCategory]);
 
-  const handleVote = async (photoId: number) => {
-    if (!playerName) {
-      toast.error('Please set your player name first');
-      return;
+  const handleVote = async (photoId: string) => {
+    let currentName = playerName;
+    if (!currentName) {
+      const promptedName = window.prompt("Please enter your Vital RP Character Name to vote:");
+      if (!promptedName) {
+        toast.error('Player name is required to vote');
+        return;
+      }
+      currentName = promptedName;
+      setPlayerName(currentName);
+      localStorage.setItem('fivem_player_name', currentName);
     }
     if (!votingOpen) {
       toast.error('Voting is currently closed');
@@ -169,65 +231,68 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/votes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoId, voterName: playerName })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('Vote recorded!');
-        // Refresh photos to update vote count
-        if (selectedCategory) {
-          const updatedPhotos = await fetch(`/api/photos/${selectedCategory.id}`).then(r => r.json());
-          setPhotos(updatedPhotos);
-        }
-      } else {
-        toast.error(data.error || 'Failed to vote');
+      const voteRef = doc(db, 'votes', `${photoId}_${currentName}`);
+      const voteSnap = await getDoc(voteRef);
+
+      if (voteSnap.exists()) {
+        toast.error('You have already voted for this photo');
+        return;
       }
+
+      await setDoc(voteRef, { photoId, voterName: currentName, timestamp: new Date().toISOString() });
+
+      const photoRef = doc(db, 'photos', photoId);
+      await updateDoc(photoRef, { vote_count: increment(1) });
+
+      toast.success('Vote recorded!');
     } catch (error) {
-      toast.error('Network error');
+      console.error("Vote Error:", error);
+      toast.error('Network error or vote failed');
     }
   };
 
-  const handleUpload = async (imageData: string, caption: string, discordName: string) => {
-    if (!selectedCategory || !playerName || !discordName) return;
+  const handleUpload = async (imageData: string, caption: string, discordName: string, formPlayerName: string) => {
+    if (!selectedCategory || !formPlayerName || !discordName) return;
 
     try {
-      const res = await fetch('/api/photos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          categoryId: selectedCategory.id,
-          playerName,
-          discordName,
-          imageData,
-          caption
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('Photo uploaded successfully!');
-        setShowUploadModal(false);
-        // Refresh photos
-        const updatedPhotos = await fetch(`/api/photos/${selectedCategory.id}`).then(r => r.json());
-        setPhotos(updatedPhotos);
-      } else {
-        toast.error(data.error || 'Failed to upload photo');
-      }
+      const uniquePath = `entries/${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      const storageRef = ref(storage, uniquePath);
+
+      await uploadString(storageRef, imageData, 'data_url');
+      const downloadURL = await getDownloadURL(storageRef);
+
+      const newPhoto = {
+        category_id: selectedCategory.id,
+        player_name: formPlayerName,
+        discord_name: discordName,
+        image_url: downloadURL,
+        caption: caption || '',
+        created_at: new Date().toISOString(),
+        vote_count: 0
+      };
+
+      await addDoc(collection(db, 'photos'), newPhoto);
+
+      toast.success('Photo uploaded successfully!');
+      setShowUploadModal(false);
+
+      setPlayerName(formPlayerName);
+      localStorage.setItem('fivem_player_name', formPlayerName);
+      localStorage.setItem('fivem_discord_name', discordName);
     } catch (error) {
-      toast.error('Network error');
+      console.error("Upload Error:", error);
+      toast.error('Failed to upload photo');
     }
   };
 
   const toggleVoting = async (open: boolean) => {
-    if (!authToken) return;
+    if (!isAdmin) return;
     try {
       const res = await fetch('/api/admin/toggle-voting', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          'Authorization': `Bearer temp`
         },
         body: JSON.stringify({ open })
       });
@@ -242,14 +307,37 @@ export default function App() {
     }
   };
 
+  const handleUploadClick = async () => {
+    if (!playerName) {
+      toast.error('Set your player name first');
+      return;
+    }
+
+    const isDiscordUser = user?.providerData.some(p => p.providerId === 'discord.com');
+
+    if (user && isDiscordUser) {
+      setShowUploadModal(true);
+      return;
+    }
+
+    try {
+      await signInWithPopup(auth, discordProvider);
+      setShowUploadModal(true);
+    } catch (error: any) {
+      console.error("Discord Auth Error:", error);
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error('Discord authentication failed');
+      }
+    }
+  };
+
   if (isInitialLoad) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-fivem-dark">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-fivem-orange border-t-transparent rounded-full"
-        />
+      <div className="min-h-screen flex flex-col gap-8 items-center justify-center bg-fivem-dark">
+        <div className="w-64 h-64 relative">
+          <Orb colors={['#ea580c', '#fb923c']} />
+        </div>
+        <ShimmeringText text="Connecting to Vital RP..." duration={2} className="text-xl font-bold tracking-widest uppercase font-mono" />
       </div>
     );
   }
@@ -257,40 +345,29 @@ export default function App() {
   return (
     <div className="min-h-screen pb-20">
       <Toaster position="top-right" theme="dark" />
-      
+
       {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-white/10 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-fivem-orange p-2 rounded-lg">
-              <Camera className="text-white" size={24} />
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 shrink-0">
+              <img src="/vital_logo.svg" alt="Vital RP" className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(234,88,12,0.4)]" />
             </div>
             <div>
-              <h1 className="font-display text-xl font-bold tracking-tight neon-text uppercase">FiveM Contest</h1>
-              <p className="text-xs text-white/50 font-mono uppercase tracking-widest">Community Gallery</p>
+              <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight neon-text uppercase">
+                <ShimmeringText text={activeContest?.name || "VITAL RP - PHOTO CONTEST"} duration={3} shimmerColor="#ffffff" color="#ea580c" spread={1} />
+              </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-              <User size={14} className="text-fivem-orange" />
-              <input 
-                type="text" 
-                placeholder="Player Name..."
-                value={playerName}
-                onChange={(e) => {
-                  setPlayerName(e.target.value);
-                  localStorage.setItem('fivem_player_name', e.target.value);
-                }}
-                className="bg-transparent border-none outline-none text-sm w-32 focus:ring-0 placeholder:text-white/30"
-              />
-            </div>
-            
-            <button 
-              onClick={() => authToken ? setShowAdminModal(true) : setShowLoginModal(true)}
+
+
+            <button
+              onClick={() => isAdmin ? setShowAdminModal(true) : setShowLoginModal(true)}
               className={cn(
                 "p-2 rounded-lg transition-colors",
-                authToken ? "bg-fivem-orange text-white" : "bg-white/5 text-white/50 hover:text-white"
+                isAdmin ? "bg-fivem-orange text-white" : "bg-white/5 text-white/50 hover:text-white"
               )}
             >
               <Settings size={20} />
@@ -303,71 +380,37 @@ export default function App() {
         {/* Sidebar - Categories */}
         <aside className="lg:col-span-1 space-y-6">
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em]">Navigation</h2>
-            </div>
+            <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Categories</h2>
             <div className="space-y-2">
-              <button
-                onClick={() => setView('gallery')}
-                className={cn(
-                  "w-full flex items-center gap-3 p-4 rounded-xl transition-all",
-                  view === 'gallery' 
-                    ? "bg-white/10 text-white border border-white/20" 
-                    : "text-white/50 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <ImageIcon size={18} />
-                <span className="font-medium">Gallery</span>
-              </button>
-              <button
-                onClick={() => setView('rules')}
-                className={cn(
-                  "w-full flex items-center gap-3 p-4 rounded-xl transition-all",
-                  view === 'rules' 
-                    ? "bg-white/10 text-white border border-white/20" 
-                    : "text-white/50 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <FileText size={18} />
-                <span className="font-medium">Contest Rules</span>
-              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-4 rounded-xl transition-all group relative overflow-hidden",
+                    selectedCategory?.id === cat.id
+                      ? "text-white shadow-lg shadow-fivem-orange/20"
+                      : "bg-fivem-card border border-white/5 hover:border-white/20 text-white/70 hover:text-white"
+                  )}
+                >
+                  {selectedCategory?.id === cat.id && (
+                    <motion.div
+                      layoutId="activeCategory"
+                      className="absolute inset-0 bg-fivem-orange z-0"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <div className="text-left relative z-10">
+                    <p className="font-medium">{cat.name}</p>
+                    <p className={cn("text-xs transition-colors", selectedCategory?.id === cat.id ? "text-white/80" : "text-white/50")}>
+                      {cat.description}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className={cn("transition-transform relative z-10", selectedCategory?.id === cat.id ? "translate-x-1" : "group-hover:translate-x-1")} />
+                </button>
+              ))}
             </div>
           </section>
-
-          {view === 'gallery' && (
-            <section>
-              <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Categories</h2>
-              <div className="space-y-2">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "w-full flex items-center justify-between p-4 rounded-xl transition-all group relative overflow-hidden",
-                      selectedCategory?.id === cat.id 
-                        ? "text-white shadow-lg shadow-fivem-orange/20" 
-                        : "bg-fivem-card border border-white/5 hover:border-white/20 text-white/70 hover:text-white"
-                    )}
-                  >
-                    {selectedCategory?.id === cat.id && (
-                      <motion.div
-                        layoutId="activeCategory"
-                        className="absolute inset-0 bg-fivem-orange z-0"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                    <div className="text-left relative z-10">
-                      <p className="font-medium">{cat.name}</p>
-                      <p className={cn("text-xs transition-colors", selectedCategory?.id === cat.id ? "text-white/80" : "text-white/50")}>
-                        {cat.description}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className={cn("transition-transform relative z-10", selectedCategory?.id === cat.id ? "translate-x-1" : "group-hover:translate-x-1")} />
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
 
           <section className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-4">
             <div className="flex items-center justify-between">
@@ -383,12 +426,12 @@ export default function App() {
               )}
             </div>
             <p className="text-xs text-white/50 leading-relaxed">
-              {votingOpen 
-                ? "Browse the entries and cast your votes for your favorites!" 
+              {votingOpen
+                ? "Browse the entries and cast your votes for your favorites!"
                 : "Submit your best shots now. Voting will open soon."}
             </p>
-            <button 
-              onClick={() => playerName ? setShowUploadModal(true) : toast.error('Set your player name first')}
+            <button
+              onClick={handleUploadClick}
               className="w-full bg-white text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-fivem-orange hover:text-white transition-colors"
             >
               <Upload size={18} />
@@ -398,276 +441,285 @@ export default function App() {
         </aside>
 
         {/* Main Content */}
-        <div className="lg:col-span-3">
-          {view === 'gallery' ? (
-            <>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-display font-bold">{selectedCategory?.name}</h2>
-                  <p className="text-sm text-white/50">{photos.length} entries submitted</p>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-mono text-white/30">
-                  <Trophy size={14} />
-                  <span>TOP ENTRIES SHOWN FIRST</span>
-                </div>
+        <div className="lg:col-span-3 space-y-24">
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-display font-bold">{selectedCategory?.name}</h2>
+                <p className="text-sm text-white/50">{photos.length} entries submitted</p>
               </div>
-
-              {photos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 bg-fivem-card rounded-3xl border border-dashed border-white/10">
-                  <ImageIcon size={48} className="text-white/10 mb-4" />
-                  <p className="text-white/40 font-medium">No entries yet in this category</p>
-                  <p className="text-xs text-white/20 mt-1">Be the first to upload a photo!</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <AnimatePresence mode="popLayout">
-                    {photos.map((photo) => (
-                      <motion.div
-                        layout
-                        key={photo.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="group bg-fivem-card rounded-2xl overflow-hidden border border-white/5 hover:border-fivem-orange/30 transition-all"
-                      >
-                        <div className="aspect-video relative overflow-hidden">
-                          <img 
-                            src={photo.image_data} 
-                            alt={photo.caption} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          
-                          <div className="absolute top-4 left-4 flex flex-col gap-2">
-                            <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                              <User size={12} className="text-fivem-orange" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider">{photo.player_name}</span>
-                            </div>
-                            <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                              <Info size={12} className="text-blue-400" />
-                              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">{photo.discord_name}</span>
-                            </div>
-                          </div>
-
-                          <div className="absolute bottom-4 right-4">
-                            <button
-                              onClick={() => handleVote(photo.id)}
-                              disabled={!votingOpen}
-                              className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
-                                votingOpen 
-                                  ? "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-lg shadow-fivem-orange/40" 
-                                  : "bg-white/10 text-white/40 cursor-not-allowed"
-                              )}
-                            >
-                              <Vote size={16} />
-                              {photo.vote_count}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="p-4">
-                          <p className="text-sm font-medium line-clamp-2">{photo.caption || "No caption provided"}</p>
-                          <p className="text-[10px] text-white/30 font-mono mt-2 uppercase">
-                            {new Date(photo.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="space-y-8">
-              <div className="mb-8">
-                <h2 className="text-3xl font-display font-bold mb-2">Contest Rules</h2>
-                <p className="text-white/50">Please read carefully before submitting your entries.</p>
+              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
+                <button
+                  onClick={() => setSortBy('top')}
+                  className={cn(
+                    "flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-lg transition-all",
+                    sortBy === 'top' ? "bg-fivem-orange text-white shadow-lg shadow-fivem-orange/20" : "text-white/40 hover:text-white"
+                  )}
+                >
+                  <Trophy size={14} /> TOP VOTED
+                </button>
+                <button
+                  onClick={() => setSortBy('newest')}
+                  className={cn(
+                    "flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-lg transition-all",
+                    sortBy === 'newest' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
+                  )}
+                >
+                  NEWEST
+                </button>
               </div>
+            </div>
 
-              {rules.length === 0 ? (
-                <div className="p-12 bg-fivem-card rounded-3xl border border-dashed border-white/10 text-center">
-                  <FileText size={48} className="mx-auto text-white/10 mb-4" />
-                  <p className="text-white/40">No rules have been posted yet.</p>
-                </div>
-              ) : (
-                <div className="grid gap-6">
-                  {rules.map((rule) => (
+            {photos.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-32 bg-fivem-card rounded-3xl border border-dashed border-white/10">
+                <ImageIcon size={48} className="text-white/10 mb-4" />
+                <p className="text-white/40 font-medium">No entries yet in this category</p>
+                <p className="text-xs text-white/20 mt-1">Be the first to upload a photo!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <AnimatePresence mode="popLayout">
+                  {sortedPhotos.map((photo, index) => (
                     <motion.div
-                      key={rule.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      layout
+                      key={photo.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
                       className={cn(
-                        "p-6 rounded-2xl border bg-fivem-card",
-                        rule.importance === 'Critical' ? "border-red-500/30 bg-red-500/5" : 
-                        rule.importance === 'High' ? "border-fivem-orange/30 bg-fivem-orange/5" : 
-                        "border-white/5"
+                        "group bg-fivem-card rounded-2xl overflow-hidden border border-white/5 hover:border-fivem-orange/30 transition-all",
+                        sortBy === 'top' && index === 0 ? "md:col-span-2 ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10" : ""
                       )}
                     >
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "p-2 rounded-lg",
-                            rule.importance === 'Critical' ? "bg-red-500/20 text-red-400" : 
-                            rule.importance === 'High' ? "bg-fivem-orange/20 text-fivem-orange" : 
-                            "bg-white/5 text-white/40"
-                          )}>
-                            <Info size={18} />
+                      <div className={cn("relative overflow-hidden cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
+                        <img
+                          src={photo.image_url}
+                          alt={photo.caption}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleShare(photo); }}
+                            className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-fivem-orange transition-colors"
+                          >
+                            <Share2 size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setLightboxPhoto(photo); }}
+                            className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-white/20 transition-colors"
+                          >
+                            <Maximize2 size={16} />
+                          </button>
+                        </div>
+                        <div className="absolute top-4 left-4 flex flex-col gap-2">
+                          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+                            <User size={12} className="text-fivem-orange" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{photo.player_name}</span>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-lg">{rule.title}</h3>
-                            <span className="text-[10px] font-mono uppercase tracking-widest text-white/30">{rule.category}</span>
+                          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+                            <Info size={12} className="text-zinc-400" />
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{photo.discord_name}</span>
                           </div>
                         </div>
-                        {rule.importance !== 'Normal' && (
-                          <span className={cn(
-                            "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                            rule.importance === 'Critical' ? "bg-red-500 text-white" : "bg-fivem-orange text-white"
-                          )}>
-                            {rule.importance}
-                          </span>
-                        )}
+
+                        <div className="absolute bottom-4 right-4">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
+                            disabled={!votingOpen}
+                            className={cn(
+                              "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
+                              votingOpen
+                                ? "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-lg shadow-fivem-orange/40"
+                                : "bg-white/10 text-white/40 cursor-not-allowed"
+                            )}
+                          >
+                            <Vote size={16} />
+                            {photo.vote_count || 0}
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-white/70 leading-relaxed whitespace-pre-wrap">{rule.content}</p>
+                      <div className="p-4 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <p className="text-sm font-medium line-clamp-2">{photo.caption || "No caption provided"}</p>
+                        <p className="text-[10px] text-white/30 font-mono mt-2 uppercase">
+                          {new Date(photo.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
                     </motion.div>
                   ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </section>
+
+          {/* Rules Section (Integrated Below Gallery) */}
+          <section className="pt-12 border-t border-white/10">
+            <div className="mb-8">
+              <h2 className="text-3xl font-display font-bold mb-2">Contest Rules & Details</h2>
+              <p className="text-white/50">Please read carefully before submitting your entries.</p>
+            </div>
+            <div className="p-8 md:p-12 glass rounded-3xl border border-white/10 relative overflow-hidden">
+              {/* Premium Glow Aesthetic behind rules */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[120px] rounded-full pointer-events-none" />
+
+              {rulesMarkdown ? (
+                <div className="prose prose-invert prose-headings:font-display prose-headings:font-bold prose-a:text-fivem-orange prose-a:no-underline hover:prose-a:underline prose-p:text-white/70 prose-li:text-white/70 max-w-none relative z-10">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {rulesMarkdown}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-center relative z-10">
+                  <FileText size={48} className="text-white/10 mb-4" />
+                  <p className="text-white/40 font-medium">No rules have been posted yet.</p>
                 </div>
               )}
             </div>
-          )}
+          </section>
         </div>
-      </main>
+      </main >
 
-      {/* Upload Modal */}
-      <Modal show={showUploadModal} onClose={() => setShowUploadModal(false)} title="Upload Entry">
-        <UploadForm 
-          categoryName={selectedCategory?.name || ''} 
-          onUpload={handleUpload} 
-          onClose={() => setShowUploadModal(false)} 
-        />
-      </Modal>
-
-      {/* Login Modal */}
-      <Modal show={showLoginModal} onClose={() => setShowLoginModal(false)} title="Admin Login">
-        <LoginForm 
-          onLogin={(token) => {
-            setAuthToken(token);
-            localStorage.setItem('admin_token', token);
-            setShowLoginModal(false);
-            setShowAdminModal(true);
-            toast.success('Logged in successfully');
-          }} 
-        />
-      </Modal>
-
-      {/* Admin Modal */}
-      <Modal show={showAdminModal} onClose={() => setShowAdminModal(false)} title="Admin Controls">
-        <div className="space-y-6">
-          <div className="flex justify-end">
-             <button 
-               onClick={() => {
-                 setAuthToken(null);
-                 localStorage.removeItem('admin_token');
-                 setShowAdminModal(false);
-                 toast.success('Logged out');
-               }}
-               className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
-             >
-               Log Out
-             </button>
-          </div>
-
-          <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold">Voting Status</p>
-                <p className="text-xs text-white/50">Toggle public voting for all categories</p>
-              </div>
-              <button
-                onClick={() => toggleVoting(!votingOpen)}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-bold text-xs transition-all",
-                  votingOpen 
-                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" 
-                    : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                )}
-              >
-                {votingOpen ? "Close Voting" : "Open Voting"}
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-             <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Archive Contest</h4>
-             <ArchiveContest authToken={authToken!} onArchived={() => {
-               window.location.reload();
-             }} />
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Theme Generator</h4>
-            <ThemeGenerator authToken={authToken!} onThemeApplied={(theme) => {
-              setCurrentTheme(theme);
-              toast.success('Theme applied!');
-            }} />
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Manage Rules</h4>
-            <AdminRulesManager authToken={authToken!} rules={rules} onRefresh={() => {
-              fetch('/api/rules').then(r => r.json()).then(setRules);
-            }} />
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Add Category</h4>
-            <AddCategoryForm authToken={authToken!} onAdded={() => {
-              fetch('/api/categories').then(r => r.json()).then(setCategories);
-            }} />
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-}
-
-function Modal({ show, onClose, title, children }: { show: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
-  return (
-    <AnimatePresence>
-      {show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="sm:max-w-lg bg-fivem-card border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="font-display">Upload Entry</DialogTitle>
+          </DialogHeader>
+          <UploadForm
+            categoryName={selectedCategory?.name || 'Category'}
+            discordName={user?.displayName || 'Authenticated User'}
+            onClose={() => setShowUploadModal(false)}
+            onUpload={async (imageData, caption, discordName, formPlayerName) => {
+              await handleUpload(imageData, caption, discordName, formPlayerName);
+            }}
           />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-lg bg-fivem-card border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
-          >
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
-              <h3 className="text-xl font-display font-bold">{title}</h3>
-              <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-                <X size={20} />
-              </button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto bg-fivem-card border-white/10 text-white p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="font-display">Admin Settings</DialogTitle>
+          </DialogHeader>
+
+          {!isAdmin ? (
+            <LoginForm />
+          ) : (
+            <div className="space-y-8">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <span className="text-emerald-400 text-xs font-mono font-bold flex items-center gap-2">
+                  <Unlock size={14} /> Admin Authenticated
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => signOut(auth)}
+                  className="text-white/40 hover:text-white"
+                >
+                  Logout
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Live Status</h4>
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                  <div>
+                    <p className="font-bold">Voting Status</p>
+                    <p className="text-xs text-white/50">Toggle public voting for all categories</p>
+                  </div>
+                  <Button
+                    onClick={() => toggleVoting(!votingOpen)}
+                    variant={votingOpen ? "destructive" : "default"}
+                    className={cn(
+                      "px-4 py-2 font-bold text-xs transition-all",
+                      !votingOpen && "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                    )}
+                  >
+                    {votingOpen ? "Close Voting" : "Open Voting"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Create New Contest</h4>
+                <CreateContestManager onCreated={() => window.location.reload()} />
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Manage Rules</h4>
+                <AdminRulesManager authToken={""} rulesMarkdown={rulesMarkdown} onRefresh={() => {
+                  fetch('/api/rules/markdown').then(r => r.json()).then(data => setRulesMarkdown(data.content || ''));
+                }} />
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Manage Categories</h4>
+                <AdminCategoryManager activeContestId={activeContest?.id || ''} categories={categories} onRefresh={() => { }} />
+              </div>
+              <div className="pt-8 mt-8 border-t border-red-500/20 space-y-4">
+                <h4 className="text-xs font-mono text-red-500/60 uppercase tracking-wider">Danger Zone</h4>
+                <ArchiveContest onArchived={() => window.location.reload()} />
+              </div>
             </div>
-            <div className="p-6 max-h-[80vh] overflow-y-auto">
-              {children}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxPhoto && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute inset-0"
+            />
+
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+
+            <motion.div
+              layoutId={lightboxPhoto.id.toString()}
+              className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
+            >
+              <img
+                src={lightboxPhoto.image_url}
+                alt={lightboxPhoto.caption}
+                className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
+              />
+
+              <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
+                <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                    <User size={14} className="text-fivem-orange" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                    <Vote size={14} className="text-emerald-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div >
   );
 }
 
-function UploadForm({ categoryName, onUpload, onClose }: { categoryName: string, onUpload: (data: string, caption: string, discord: string) => void, onClose: () => void }) {
+
+function UploadForm({ categoryName, discordName, onUpload, onClose }: { categoryName: string, discordName: string, onUpload: (imageData: string, caption: string, discordName: string, playerName: string) => Promise<void>, onClose: () => void }) {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [discordName, setDiscordName] = useState(localStorage.getItem('fivem_discord_name') || '');
+  const [formPlayerName, setFormPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isUploading, setIsUploading] = useState(false);
   const [resolution, setResolution] = useState<{ w: number, h: number } | null>(null);
 
@@ -696,7 +748,7 @@ function UploadForm({ categoryName, onUpload, onClose }: { categoryName: string,
   } as any);
 
   const handleSubmit = async () => {
-    if (!image || !discordName) {
+    if (!image || !discordName || !formPlayerName) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -704,10 +756,10 @@ function UploadForm({ categoryName, onUpload, onClose }: { categoryName: string,
       toast.error(`Resolution too low: ${resolution.w}x${resolution.h}. Minimum is 1920x1080.`);
       return;
     }
-    
-    localStorage.setItem('fivem_discord_name', discordName);
+
+    localStorage.setItem('fivem_player_name', formPlayerName);
     setIsUploading(true);
-    await onUpload(image, caption, discordName);
+    await onUpload(image, caption, discordName, formPlayerName);
     setIsUploading(false);
   };
 
@@ -715,13 +767,13 @@ function UploadForm({ categoryName, onUpload, onClose }: { categoryName: string,
     <div className="space-y-6">
       <div className="p-4 bg-fivem-orange/10 border border-fivem-orange/20 rounded-xl flex flex-col gap-3">
         <div className="flex items-start gap-3">
-          <AlertCircle className="text-fivem-orange shrink-0" size={18} />
+          <Info className="text-fivem-orange shrink-0" size={18} />
           <p className="text-xs text-fivem-orange/90 leading-relaxed">
-            You are uploading to <strong>{categoryName}</strong>.
+            We need your <strong>Discord Name</strong> and <strong>Character Name</strong> to securely verify your identity and easily distribute any contest rewards you might win!
           </p>
         </div>
         <div className="flex items-start gap-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <Info className="text-red-400 shrink-0" size={14} />
+          <AlertCircle className="text-red-400 shrink-0" size={14} />
           <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
             WARNING: You can only submit ONE photo across all categories. Choose wisely!
           </p>
@@ -729,21 +781,30 @@ function UploadForm({ categoryName, onUpload, onClose }: { categoryName: string,
       </div>
 
       <div className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Discord Name (Required)</label>
-          <input 
-            type="text"
-            value={discordName}
-            onChange={(e) => setDiscordName(e.target.value)}
-            placeholder="e.g. Username#1234"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-fivem-orange transition-colors"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Character Name (Required)</label>
+            <Input
+              type="text"
+              value={formPlayerName}
+              onChange={(e) => setFormPlayerName(e.target.value)}
+              placeholder="e.g. John Doe"
+              className="bg-white/5 border-white/10 h-10"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Discord Account</label>
+            <div className="bg-emerald-500/10 border border-emerald-500/20 h-10 rounded-md px-3 flex items-center text-emerald-400 font-mono text-sm">
+              <User size={14} className="mr-2" />
+              {discordName}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Photo (Min 1920x1080)</label>
-          <div 
-            {...getRootProps()} 
+          <div
+            {...getRootProps()}
             className={cn(
               "aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative",
               isDragActive ? "border-fivem-orange bg-fivem-orange/5" : "border-white/10 hover:border-white/20 bg-white/5",
@@ -780,7 +841,7 @@ function UploadForm({ categoryName, onUpload, onClose }: { categoryName: string,
 
         <div className="space-y-2">
           <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Caption (Optional)</label>
-          <textarea 
+          <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Describe your shot..."
@@ -790,25 +851,27 @@ function UploadForm({ categoryName, onUpload, onClose }: { categoryName: string,
       </div>
 
       <div className="flex gap-3 pt-2">
-        <button 
+        <Button
+          variant="secondary"
           onClick={onClose}
-          className="flex-1 px-6 py-3 rounded-xl font-bold text-sm bg-white/5 hover:bg-white/10 transition-colors"
+          className="flex-1 h-12 rounded-xl"
         >
           Cancel
-        </button>
-        <button 
+        </Button>
+        <Button
           onClick={handleSubmit}
           disabled={!image || !discordName || isUploading}
-          className="flex-1 px-6 py-3 rounded-xl font-bold text-sm bg-fivem-orange text-white disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-fivem-orange/20"
+          className="flex-1 h-12 bg-fivem-orange hover:bg-fivem-orange/90 text-white rounded-xl"
         >
           {isUploading ? "Uploading..." : "Submit Entry"}
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
 
-function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
+function LoginForm() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -819,20 +882,9 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        onLogin(data.token);
-      } else {
-        setError(data.error || 'Login failed');
-      }
-    } catch (err) {
-      setError('Network error');
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -841,319 +893,361 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
+        <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Admin Email</label>
+        <div className="relative">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="bg-white/5 border-white/10 pl-10 h-12"
+            placeholder="admin@vitalrp.com"
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
         <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Admin Password</label>
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-          <input 
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:border-fivem-orange outline-none transition-colors"
+            className="bg-white/5 border-white/10 pl-10 h-12"
             placeholder="Enter password..."
           />
         </div>
       </div>
       {error && <p className="text-red-400 text-xs">{error}</p>}
-      <button 
+      <Button
         type="submit"
-        disabled={loading || !password}
-        className="w-full bg-fivem-orange text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        disabled={loading || !password || !email}
+        className="w-full h-12 bg-fivem-orange hover:bg-fivem-orange/90 text-white rounded-xl"
       >
-        {loading ? 'Logging in...' : 'Login'}
-      </button>
+        {loading ? 'Authenticating...' : 'Secure Login'}
+      </Button>
     </form>
   );
 }
 
-function ArchiveContest({ authToken, onArchived }: { authToken: string, onArchived: () => void }) {
+function ArchiveContest({ onArchived }: { onArchived: () => void }) {
   const [nextName, setNextName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const handleArchive = async () => {
-    if (!confirm('Are you sure? This will hide current entries and start a fresh contest.')) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/contest/archive', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ nextContestName: nextName })
+      const batch = writeBatch(db);
+
+      const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
+      const activeSnaps = await getDocs(qActive);
+      activeSnaps.forEach(d => {
+        batch.update(d.ref, { is_active: false });
       });
-      if (res.ok) {
-        toast.success('Contest archived');
-        onArchived();
-      } else {
-        toast.error('Failed to archive');
+
+      batch.update(doc(db, 'settings', 'global'), { votingOpen: false });
+
+      if (nextName) {
+        const newContestRef = doc(collection(db, 'contests'));
+        batch.set(newContestRef, {
+          name: nextName,
+          is_active: true,
+          created_at: new Date().toISOString()
+        });
       }
+
+      await batch.commit();
+
+      toast.success('Contest archived');
+      onArchived();
+      setConfirming(false);
+      setNextName('');
     } catch (e) {
-      toast.error('Network error');
+      console.error("Archive Error:", e);
+      toast.error('Network error or permission denied');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (confirming) {
+    return (
+      <div className="p-6 bg-red-500/10 rounded-xl border border-red-500/30 space-y-4">
+        <div className="flex items-center gap-3 text-red-400">
+          <AlertCircle size={24} />
+          <h4 className="font-bold">Are you absolutely sure?</h4>
+        </div>
+        <p className="text-xs text-red-400/80 leading-relaxed">
+          This action will immediately archive the current contest, locking all submissions and votes. It cannot be undone. Are you sure you want to proceed?
+        </p>
+        <div className="flex gap-3 pt-2">
+          <Button variant="secondary" onClick={() => setConfirming(false)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
+          <Button onClick={handleArchive} disabled={loading} variant="destructive" className="flex-1 bg-red-500 hover:bg-red-600 text-white">
+            {loading ? 'Archiving...' : 'Yes, Archive Now'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
+      <p className="text-xs text-white/60">Quickly archive the current contest and wipe the slate clean.</p>
+      <Input
+        placeholder="Next Contest Name (Optional)"
+        value={nextName}
+        onChange={(e) => setNextName(e.target.value)}
+        className="bg-white/5 border-white/10"
+      />
+      <Button
+        onClick={() => setConfirming(true)}
+        disabled={loading}
+        variant="destructive"
+        className="w-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
+      >
+        Archive Current Contest
+      </Button>
+    </div>
+  );
+}
+
+function CreateContestManager({ onCreated }: { onCreated: () => void }) {
+  const [title, setTitle] = useState('');
+  const [rules, setRules] = useState('');
+  const [categories, setCategories] = useState<{ id: number, name: string, desc: string }[]>([]);
+
+  const [catName, setCatName] = useState('');
+  const [catDesc, setCatDesc] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const addCategory = () => {
+    if (!catName || !catDesc) {
+      toast.error('Please enter name and description');
+      return;
+    }
+    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc }]);
+    setCatName('');
+    setCatDesc('');
+  };
+
+  const removeCategory = (id: number) => {
+    setCategories(prev => prev.filter(c => c.id !== id));
+  };
+
+  const handleLaunch = async () => {
+    if (!title) return toast.error('Contest title is required');
+    if (categories.length === 0) return toast.error('At least one category is required');
+
+    setLoading(true);
+    try {
+      const batch = writeBatch(db);
+
+      // 1. Archive current active contest(s)
+      const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
+      const activeSnaps = await getDocs(qActive);
+      activeSnaps.forEach((dSnap) => {
+        batch.update(dSnap.ref, { is_active: false });
+      });
+
+      // 2. Create new Contest Document
+      const newContestRef = doc(collection(db, 'contests'));
+      batch.set(newContestRef, {
+        name: title,
+        is_active: true,
+        created_at: new Date().toISOString()
+      });
+
+      // 3. Create embedded Category references
+      categories.forEach(cat => {
+        const catRef = doc(collection(db, 'categories'));
+        batch.set(catRef, {
+          contest_id: newContestRef.id,
+          name: cat.name,
+          description: cat.desc
+        });
+      });
+
+      // 4. Overwrite global Rules if provided
+      if (rules) {
+        batch.update(doc(db, 'settings', 'global'), { rulesMarkdown: rules });
+      }
+
+      await batch.commit();
+
+      toast.success(`Successfully deployed ${title}!`);
+      setTitle('');
+      setCategories([]);
+      setRules('');
+      onCreated();
+    } catch (e) {
+      console.error("Launch Error:", e);
+      toast.error('Failed to create contest');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
-      <p className="text-xs text-white/60">Archive the current contest and start a new one.</p>
-      <input 
-        placeholder="Next Contest Name (Optional)"
-        value={nextName}
-        onChange={(e) => setNextName(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-fivem-orange"
-      />
-      <button 
-        onClick={handleArchive}
+    <div className="space-y-6 p-6 bg-gradient-to-br from-fivem-dark to-fivem-dark/80 rounded-2xl border border-white/10 relative overflow-hidden">
+      {/* Decorative Glow */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[100px] rounded-full pointer-events-none" />
+
+      <div className="space-y-2 relative z-10">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
+        <Input
+          placeholder="e.g. Cyberpunk Nights V2"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="bg-white/5 border-white/10 h-14 text-lg font-display"
+        />
+      </div>
+
+      <div className="space-y-4 relative z-10">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Define Categories</label>
+
+        {/* Current Categories List */}
+        {categories.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {categories.map((c, i) => (
+              <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                <div>
+                  <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
+                  <p className="text-xs text-white/50">{c.desc}</p>
+                </div>
+                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Builder Row */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3" />
+          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1" />
+          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white">
+            <Plus size={16} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2 relative z-10">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
+          <span className="text-[10px] text-white/40">Optional - can be edited later</span>
+        </div>
+        <textarea
+          placeholder="Define the rules for this new contest..."
+          value={rules}
+          onChange={(e) => setRules(e.target.value)}
+          className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
+        />
+      </div>
+
+      <Button
+        onClick={handleLaunch}
         disabled={loading}
-        className="w-full bg-red-500/20 text-red-400 hover:bg-red-500/30 py-2 rounded-lg text-xs font-bold transition-colors"
+        className="w-full h-14 bg-fivem-orange hover:bg-fivem-orange/90 text-white font-display text-lg tracking-wide rounded-xl mt-4 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all relative z-10"
       >
-        {loading ? 'Archiving...' : 'Archive Current Contest'}
-      </button>
+        {loading ? 'Initializing Core Systems...' : '🚀 Launch New Contest'}
+      </Button>
     </div>
   );
 }
 
-function AddCategoryForm({ authToken, onAdded }: { authToken: string, onAdded: () => void }) {
+function AdminCategoryManager({ activeContestId, categories, onRefresh }: { activeContestId: string, categories: Category[], onRefresh: () => void }) {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-
-  const handleAdd = async () => {
-    if (!name || !authToken) return;
-    try {
-      const res = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ name, description: desc })
-      });
-      if (res.ok) {
-        toast.success('Category added');
-        setName('');
-        setDesc('');
-        onAdded();
-      } else {
-        toast.error('Failed to add category');
-      }
-    } catch (e) {
-      toast.error('Network error');
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <input 
-        placeholder="Category Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-fivem-orange"
-      />
-      <input 
-        placeholder="Description"
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-fivem-orange"
-      />
-      <button 
-        onClick={handleAdd}
-        className="w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
-      >
-        <Plus size={14} /> Add Category
-      </button>
-    </div>
-  );
-}
-
-function ThemeGenerator({ authToken, onThemeApplied }: { authToken: string, onThemeApplied: (theme: Theme) => void }) {
-  const [description, setDescription] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const handleGenerate = async () => {
-    if (!description || !authToken) return;
-    setIsGenerating(true);
-    try {
-      const res = await fetch('/api/admin/generate-theme', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ description })
-      });
-      const theme = await res.json();
-      if (res.ok) {
-        onThemeApplied(theme);
-        // Save theme
-        await fetch('/api/admin/save-theme', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({ theme })
-        });
-        toast.success('Theme generated and applied!');
-      } else {
-        toast.error('Failed to generate theme');
-      }
-    } catch (e) {
-      toast.error('Network error');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <textarea 
-        placeholder="Describe your theme (e.g. 'Neon Cyberpunk Night', 'Vintage Western', 'Spooky Halloween')"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-fivem-orange min-h-[80px] resize-none"
-      />
-      <button 
-        onClick={handleGenerate}
-        disabled={isGenerating || !description}
-        className="w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isGenerating ? (
-          <>Generating...</>
-        ) : (
-          <>
-            <Settings size={14} /> Generate Theme
-          </>
-        )}
-      </button>
-    </div>
-  );
-}
-
-function AdminRulesManager({ authToken, rules, onRefresh }: { authToken: string, rules: Rule[], onRefresh: () => void }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('General');
-  const [importance, setImportance] = useState<'Normal' | 'High' | 'Critical'>('Normal');
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleSave = async () => {
-    if (!title || !content || !authToken) return;
-    const url = editingId ? `/api/admin/rules/${editingId}` : '/api/admin/rules';
-    const method = editingId ? 'PUT' : 'POST';
-
+    if (!name || !activeContestId) return;
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ title, content, category, importance })
-      });
-      if (res.ok) {
-        toast.success(editingId ? 'Rule updated' : 'Rule added');
-        setTitle('');
-        setContent('');
-        setEditingId(null);
-        onRefresh();
+      if (editingId) {
+        await updateDoc(doc(db, 'categories', editingId), { name, description: desc });
+        toast.success('Category updated');
       } else {
-        toast.error('Failed to save rule');
+        await addDoc(collection(db, 'categories'), { contest_id: activeContestId, name, description: desc });
+        toast.success('Category added');
       }
+      setName('');
+      setDesc('');
+      setEditingId(null);
     } catch (e) {
-      toast.error('Network error');
+      console.error("Category Error:", e);
+      toast.error('Network error or permission denied');
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure?')) return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure? Ensure no photos belong to this category first.')) return;
     try {
-      const res = await fetch(`/api/admin/rules/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({})
-      });
-      if (res.ok) {
-        toast.success('Rule deleted');
-        onRefresh();
+      const qSnap = await getDocs(query(collection(db, 'photos'), where('category_id', '==', id), limit(1)));
+      if (!qSnap.empty) {
+        toast.error('Photos exist in this category. Delete them first.');
+        return;
       }
+      await deleteDoc(doc(db, 'categories', id));
+      toast.success('Category deleted');
     } catch (e) {
-      toast.error('Network error');
+      console.error("Category Delete Error:", e);
+      toast.error('Network error or permission denied');
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
-        <input 
-          placeholder="Rule Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-fivem-orange"
+        <Input
+          placeholder="Category Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="bg-white/5 border-white/10"
         />
-        <textarea 
-          placeholder="Rule Content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-fivem-orange min-h-[80px]"
+        <Input
+          placeholder="Description"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          className="bg-white/5 border-white/10"
         />
-        <div className="grid grid-cols-2 gap-2">
-          <select 
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none"
-          >
-            <option value="General">General</option>
-            <option value="Submission">Submission</option>
-            <option value="Voting">Voting</option>
-            <option value="Prizes">Prizes</option>
-          </select>
-          <select 
-            value={importance}
-            onChange={(e) => setImportance(e.target.value as any)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none"
-          >
-            <option value="Normal">Normal</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
-          </select>
-        </div>
         <div className="flex gap-2">
           {editingId && (
-            <button onClick={() => { setEditingId(null); setTitle(''); setContent(''); }} className="flex-1 bg-white/5 py-2 rounded-lg text-xs">Cancel</button>
+            <Button variant="secondary" onClick={() => { setEditingId(null); setName(''); setDesc(''); }} className="flex-1">
+              Cancel
+            </Button>
           )}
-          <button onClick={handleSave} className="flex-1 bg-fivem-orange py-2 rounded-lg text-xs font-bold">
-            {editingId ? 'Update Rule' : 'Add Rule'}
-          </button>
+          <Button
+            onClick={handleSave}
+            className="flex-1 bg-fivem-orange hover:bg-fivem-orange/90 text-white flex items-center justify-center gap-2"
+          >
+            {editingId ? 'Update Category' : <><Plus size={14} /> Add Category</>}
+          </Button>
         </div>
       </div>
 
       <div className="space-y-2">
-        {rules.map(rule => (
-          <div key={rule.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+        {categories.map(cat => (
+          <div key={cat.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 gap-2">
             <div className="min-w-0">
-              <p className="text-sm font-medium truncate">{rule.title}</p>
-              <p className="text-[10px] text-white/30 uppercase">{rule.category} • {rule.importance}</p>
+              <p className="text-sm font-medium truncate">{cat.name}</p>
+              <p className="text-[10px] text-white/50 truncate">{cat.description}</p>
             </div>
-            <div className="flex gap-1">
-              <button 
+            <div className="flex gap-1 shrink-0">
+              <button
                 onClick={() => {
-                  setEditingId(rule.id);
-                  setTitle(rule.title);
-                  setContent(rule.content);
-                  setCategory(rule.category);
-                  setImportance(rule.importance);
+                  setEditingId(cat.id);
+                  setName(cat.name);
+                  setDesc(cat.description);
                 }}
-                className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white"
+                className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
               >
                 <Edit3 size={14} />
               </button>
-              <button 
-                onClick={() => handleDelete(rule.id)}
-                className="p-1.5 hover:bg-red-500/20 rounded-lg text-white/50 hover:text-red-400"
+              <button
+                onClick={() => handleDelete(cat.id)}
+                className="p-1.5 hover:bg-red-500/20 rounded-lg text-white/50 hover:text-red-400 transition-colors"
               >
                 <Trash2 size={14} />
               </button>
@@ -1161,6 +1255,50 @@ function AdminRulesManager({ authToken, rules, onRefresh }: { authToken: string,
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function AdminRulesManager({ authToken, rulesMarkdown, onRefresh }: { authToken: string, rulesMarkdown: string, onRefresh: () => void }) {
+  const [content, setContent] = useState(rulesMarkdown);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { rulesMarkdown: content });
+      toast.success('Rules updated successfully');
+      onRefresh();
+    } catch (e) {
+      console.error("Rules Error:", e);
+      toast.error('Network error or permission denied');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 h-full flex flex-col min-h-[500px]">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h3 className="text-lg font-display font-medium text-white">Contest Rules Engine</h3>
+          <p className="text-xs text-white/50">Write the unified contest rules using standard Markdown (supports # headers, **bold**, *italics*, [links](), etc).</p>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="bg-fivem-orange hover:bg-fivem-orange/90 text-white shrink-0"
+        >
+          {isSaving ? 'Saving...' : 'Publish Rules'}
+        </Button>
+      </div>
+
+      <textarea
+        placeholder="Write your markdown rules here..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="w-full flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20"
+      />
     </div>
   );
 }
