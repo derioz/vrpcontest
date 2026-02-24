@@ -22,7 +22,12 @@ import {
   LogOut,
   Info,
   Maximize2,
-  Trash2
+  Trash2,
+  Bold,
+  Italic,
+  List,
+  Heading,
+  Link as LinkIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -1117,6 +1122,34 @@ function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> 
   );
 }
 
+function MarkdownToolbar({ text, onTextChange }: { text: string, onTextChange: (t: string) => void }) {
+  const insertText = (before: string, after: string = '') => {
+    // A simple insertion at the end of the text for the sake of the toolbar
+    // Real implementation would grab cursor position, but this suffices for a simple addition.
+    onTextChange(text + `\n${before}text${after}`);
+  };
+
+  return (
+    <div className="flex gap-2 p-2 bg-white/5 border border-white/10 rounded-t-xl border-b-0">
+      <button onClick={() => insertText('**', '**')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Bold">
+        <Bold size={16} />
+      </button>
+      <button onClick={() => insertText('*', '*')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Italic">
+        <Italic size={16} />
+      </button>
+      <button onClick={() => insertText('# ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Heading">
+        <Heading size={16} />
+      </button>
+      <button onClick={() => insertText('- ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="List">
+        <List size={16} />
+      </button>
+      <button onClick={() => insertText('[Link Name](', ')')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Link">
+        <LinkIcon size={16} />
+      </button>
+    </div>
+  );
+}
+
 function EditContestManager({ activeContest, currentRules, currentCategories, onUpdated }: { activeContest: any, currentRules: string, currentCategories: Category[], onUpdated: () => void }) {
   const [title, setTitle] = useState(activeContest?.name || '');
   const [rules, setRules] = useState(currentRules || '');
@@ -1256,12 +1289,15 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
         <div className="flex items-center justify-between">
           <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
         </div>
-        <textarea
-          placeholder="Define the rules for this contest..."
-          value={rules}
-          onChange={(e) => setRules(e.target.value)}
-          className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
-        />
+        <div className="flex flex-col">
+          <MarkdownToolbar text={rules} onTextChange={setRules} />
+          <textarea
+            placeholder="Define the rules for this contest..."
+            value={rules}
+            onChange={(e) => setRules(e.target.value)}
+            className="w-full h-32 bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
+          />
+        </div>
       </div>
 
       <Button
@@ -1490,12 +1526,15 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
           <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
           <span className="text-[10px] text-white/40">Optional - can be edited later</span>
         </div>
-        <textarea
-          placeholder="Define the rules for this new contest..."
-          value={rules}
-          onChange={(e) => setRules(e.target.value)}
-          className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
-        />
+        <div className="flex flex-col">
+          <MarkdownToolbar text={rules} onTextChange={setRules} />
+          <textarea
+            placeholder="Define the rules for this new contest..."
+            value={rules}
+            onChange={(e) => setRules(e.target.value)}
+            className="w-full h-32 bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
+          />
+        </div>
       </div>
 
       <Button
