@@ -708,13 +708,13 @@ export default function App() {
       {categories.length > 0 && (
         <div className="sticky top-[68px] z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10 shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar py-3">
+            <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar py-4">
 
               {/* Left anchor label */}
-              <div className="shrink-0 flex flex-col justify-center gap-0.5 pr-5 border-r border-white/10">
-                <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-fivem-orange font-mono leading-none">Browse</span>
-                <span className="text-[13px] font-black text-white font-display whitespace-nowrap leading-tight">Categories</span>
-                <span className="text-[9px] font-mono text-white/30 leading-none">{categories.length} topics</span>
+              <div className="shrink-0 flex flex-col justify-center gap-1 pr-5 border-r border-white/10">
+                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-fivem-orange font-mono leading-none">Browse</span>
+                <span className="text-base font-black text-white font-display whitespace-nowrap leading-tight">Categories</span>
+                <span className="text-[11px] font-mono text-white/30 leading-none">{categories.length} topics</span>
               </div>
 
               {/* Category pill strip — position:relative so the layoutId indicator can be absolute */}
@@ -727,7 +727,7 @@ export default function App() {
                     <button
                       key={cat.id}
                       onClick={() => setSelectedCategory(cat)}
-                      className="relative z-10 flex flex-col gap-1 px-4 py-2.5 rounded-xl transition-colors duration-150 text-left shrink-0 min-w-[118px]"
+                      className="relative z-10 flex flex-col gap-1.5 px-5 py-3.5 rounded-xl transition-colors duration-150 text-left shrink-0"
                     >
                       {/* Spring sliding indicator behind the active button */}
                       {isActive && (
@@ -739,14 +739,14 @@ export default function App() {
                       )}
                       {/* Content always above the indicator */}
                       <div className="relative flex items-center gap-2">
-                        <span className="text-lg leading-none">{cat.emoji || '✨'}</span>
-                        <span className={cn("text-xs font-bold truncate max-w-[80px] transition-colors", isActive ? "text-white" : "text-white/65 group-hover:text-white")}>{cat.name}</span>
+                        <span className="text-xl leading-none">{cat.emoji || '✨'}</span>
+                        <span className={cn("text-sm font-bold whitespace-nowrap transition-colors", isActive ? "text-white" : "text-white/65 group-hover:text-white")}>{cat.name}</span>
                       </div>
                       <div className="relative flex items-center justify-between gap-2">
-                        <span className={cn("text-[10px] font-mono leading-none transition-colors", isActive ? "text-white/80" : "text-white/35")}>
+                        <span className={cn("text-xs font-mono leading-none transition-colors", isActive ? "text-white/80" : "text-white/40")}>
                           {entryCount} {entryCount === 1 ? 'entry' : 'entries'}
                         </span>
-                        <span className={cn("text-[9px] font-mono leading-none px-1.5 py-0.5 rounded-full transition-colors", isActive ? "bg-white/20 text-white/70" : "bg-white/8 text-white/25")}>
+                        <span className={cn("text-[10px] font-mono leading-none px-1.5 py-0.5 rounded-full transition-colors", isActive ? "bg-white/20 text-white/80" : "bg-white/8 text-white/30")}>
                           {pct}%
                         </span>
                       </div>
