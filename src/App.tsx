@@ -21,7 +21,8 @@ import {
   Share2,
   LogOut,
   Info,
-  Maximize2
+  Maximize2,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -308,8 +309,20 @@ export default function App() {
     }
   };
 
-  const handleUpload = async (imageData: string, caption: string, discordName: string, formPlayerName: string) => {
-    if (!selectedCategory || !formPlayerName || !discordName) return;
+  const handleDeletePhoto = async (photoId: string) => {
+    if (!window.confirm("Are you sure you want to delete this photo?")) return;
+    try {
+      await deleteDoc(doc(db, 'photos', photoId));
+      if (lightboxPhoto?.id === photoId) setLightboxPhoto(null);
+      toast.success('Photo deleted successfully!');
+    } catch (error) {
+      console.error("Delete Error:", error);
+      toast.error('Failed to delete photo');
+    }
+  };
+
+  const handleUpload = async (imageData: string, caption: string, discordName: string, formPlayerName: string, categoryId: string) => {
+    if (!categoryId || !formPlayerName || !discordName) return;
 
     try {
       // Convert base64 data URL to Blob
@@ -335,7 +348,7 @@ export default function App() {
       const downloadURL = uploadData.url;
 
       const newPhoto = {
-        category_id: selectedCategory.id,
+        category_id: categoryId,
         player_name: formPlayerName,
         discord_name: discordName,
         image_url: downloadURL,
@@ -606,7 +619,7 @@ export default function App() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       className={cn(
-                        "group bg-fivem-card rounded-2xl overflow-hidden border border-white/5 hover:border-fivem-orange/30 transition-all",
+                        "relative group bg-fivem-card rounded-2xl overflow-hidden border border-white/5 hover:border-fivem-orange/30 transition-all",
                         sortBy === 'top' && index === 0 ? "md:col-span-2 ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10" : ""
                       )}
                     >
@@ -619,6 +632,15 @@ export default function App() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                          {(isAdmin || (user && (user.displayName === photo.discord_name || user.providerData.some(p => p.displayName === photo.discord_name)))) && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
+                              className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                              title="Delete Photo"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                           <button
                             onClick={(e) => { e.stopPropagation(); handleShare(photo); }}
                             className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-fivem-orange transition-colors"
@@ -705,11 +727,12 @@ export default function App() {
             <DialogTitle className="font-display">Upload Entry</DialogTitle>
           </DialogHeader>
           <UploadForm
-            categoryName={selectedCategory?.name || 'Category'}
+            categories={categories}
+            initialCategoryId={selectedCategory?.id || ''}
             discordName={user?.displayName || user?.providerData?.[0]?.displayName || user?.email || 'Authenticated User'}
             onClose={() => setShowUploadModal(false)}
-            onUpload={async (imageData, caption, discordName, formPlayerName) => {
-              await handleUpload(imageData, caption, discordName, formPlayerName);
+            onUpload={async (imageData, caption, discordName, formPlayerName, categoryId) => {
+              await handleUpload(imageData, caption, discordName, formPlayerName, categoryId);
             }}
           />
         </DialogContent>
@@ -847,9 +870,10 @@ export default function App() {
 }
 
 
-function UploadForm({ categoryName, discordName, onUpload, onClose }: { categoryName: string, discordName: string, onUpload: (imageData: string, caption: string, discordName: string, playerName: string) => Promise<void>, onClose: () => void }) {
+function UploadForm({ categories, initialCategoryId, discordName, onUpload, onClose }: { categories: Category[], initialCategoryId: string, discordName: string, onUpload: (imageData: string, caption: string, discordName: string, playerName: string, categoryId: string) => Promise<void>, onClose: () => void }) {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
   const [formPlayerName, setFormPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isUploading, setIsUploading] = useState(false);
   const [resolution, setResolution] = useState<{ w: number, h: number } | null>(null);
@@ -879,7 +903,7 @@ function UploadForm({ categoryName, discordName, onUpload, onClose }: { category
   } as any);
 
   const handleSubmit = async () => {
-    if (!image || !discordName || !formPlayerName) {
+    if (!image || !discordName || !formPlayerName || !selectedCategoryId) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -890,7 +914,7 @@ function UploadForm({ categoryName, discordName, onUpload, onClose }: { category
 
     localStorage.setItem('fivem_player_name', formPlayerName);
     setIsUploading(true);
-    await onUpload(image, caption, discordName, formPlayerName);
+    await onUpload(image, caption, discordName, formPlayerName, selectedCategoryId);
     setIsUploading(false);
   };
 
@@ -912,6 +936,20 @@ function UploadForm({ categoryName, discordName, onUpload, onClose }: { category
       </div>
 
       <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Category (Required)</label>
+          <select
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl h-10 px-3 text-sm outline-none focus:border-fivem-orange text-white appearance-none"
+          >
+            <option value="" disabled className="bg-fivem-dark text-white/50">Select a Category...</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id} className="bg-fivem-dark">{c.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Character Name (Required)</label>
