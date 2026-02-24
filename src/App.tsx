@@ -26,7 +26,8 @@ import {
   Bold,
   Italic,
   List,
-  Heading,
+  Calendar,
+  Smile,
   Link as LinkIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -34,6 +35,7 @@ import { useDropzone } from 'react-dropzone';
 import { Toaster, toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { cn } from './lib/utils';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
@@ -50,6 +52,7 @@ interface Category {
   id: string;
   name: string;
   description: string;
+  emoji?: string;
 }
 
 interface Photo {
@@ -510,24 +513,40 @@ export default function App() {
                   className={cn(
                     "w-full flex items-center justify-between p-4 rounded-xl transition-all group relative overflow-hidden",
                     selectedCategory?.id === cat.id
-                      ? "text-white shadow-lg shadow-fivem-orange/20"
+                      ? "text-white shadow-[0_0_30px_rgba(255,255,255,0.1)] border border-white/20"
                       : "bg-fivem-card border border-white/5 hover:border-white/20 text-white/70 hover:text-white"
                   )}
                 >
+                  {/* Themed blurred emoji background */}
+                  {(cat.emoji || '✨') && (
+                    <div className="absolute -right-8 -bottom-8 text-8xl opacity-[0.15] blur-xl group-hover:blur-md group-hover:opacity-25 transition-all pointer-events-none z-0">
+                      {cat.emoji || '✨'}
+                    </div>
+                  )}
+
                   {selectedCategory?.id === cat.id && (
                     <motion.div
                       layoutId="activeCategory"
-                      className="absolute inset-0 bg-fivem-orange z-0"
+                      className="absolute inset-0 bg-white/10 z-0 backdrop-blur-sm"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
-                  <div className="text-left relative z-10">
-                    <p className="font-medium">{cat.name}</p>
-                    <p className={cn("text-xs transition-colors", selectedCategory?.id === cat.id ? "text-white/80" : "text-white/50")}>
-                      {cat.description}
-                    </p>
+
+                  <div className="flex items-center gap-4 relative z-10 w-full">
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 transition-all shadow-inner",
+                      selectedCategory?.id === cat.id ? "bg-white/20 scale-110" : "bg-black/20 group-hover:bg-black/40 group-hover:scale-105"
+                    )}>
+                      {cat.emoji || '✨'}
+                    </div>
+                    <div className="text-left overflow-hidden flex-1">
+                      <p className="font-bold text-sm truncate">{cat.name}</p>
+                      <p className={cn("text-[10px] font-mono uppercase tracking-wider truncate mt-0.5 transition-colors", selectedCategory?.id === cat.id ? "text-white/80" : "text-white/40 group-hover:text-white/60")}>
+                        {cat.description}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className={cn("transition-all shrink-0", selectedCategory?.id === cat.id ? "translate-x-1" : "opacity-50 group-hover:opacity-100 group-hover:translate-x-1")} />
                   </div>
-                  <ChevronRight size={16} className={cn("transition-transform relative z-10", selectedCategory?.id === cat.id ? "translate-x-1" : "group-hover:translate-x-1")} />
                 </button>
               ))}
             </div>
@@ -1175,6 +1194,8 @@ function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> 
 }
 
 function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, textareaRef: React.RefObject<HTMLTextAreaElement | null>, onTextChange: (t: string) => void }) {
+  const [showEmoji, setShowEmoji] = useState(false);
+
   const insertText = (before: string, after: string = '') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -1215,6 +1236,22 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
       <button onClick={() => insertText('[Link Name](', ')')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Link">
         <LinkIcon size={16} />
       </button>
+      <div className="relative">
+        <button onClick={() => setShowEmoji(!showEmoji)} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Emoji">
+          <Smile size={16} />
+        </button>
+        {showEmoji && (
+          <div className="absolute top-10 right-0 z-50 shadow-2xl">
+            <EmojiPicker
+              theme={EmojiTheme.DARK}
+              onEmojiClick={(e) => {
+                insertText(e.emoji);
+                setShowEmoji(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1222,12 +1259,14 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
 function EditContestManager({ activeContest, currentRules, currentCategories, onUpdated }: { activeContest: any, currentRules: string, currentCategories: Category[], onUpdated: () => void }) {
   const [title, setTitle] = useState(activeContest?.name || '');
   const [rules, setRules] = useState(currentRules || '');
-  const [categories, setCategories] = useState<{ id: string | number, name: string, desc: string }[]>(
-    currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description }))
+  const [categories, setCategories] = useState<{ id: string | number, name: string, desc: string, emoji?: string }[]>(
+    currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji }))
   );
 
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
+  const [catEmoji, setCatEmoji] = useState('✨');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1235,7 +1274,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
   useEffect(() => {
     setTitle(activeContest?.name || '');
     setRules(currentRules || '');
-    setCategories(currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description })));
+    setCategories(currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji })));
   }, [activeContest, currentRules, currentCategories]);
 
   const addCategory = () => {
@@ -1243,9 +1282,10 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
       toast.error('Please enter name and description');
       return;
     }
-    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc }]);
+    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
+    setCatEmoji('✨');
   };
 
   const removeCategory = (id: string | number) => {
@@ -1258,7 +1298,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
 
     let finalCategories = [...categories];
     if (catName && catDesc) {
-      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc });
+      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji });
     }
 
     if (finalCategories.length === 0) return toast.error('At least one category is required');
@@ -1288,14 +1328,16 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
         if (typeof cat.id === 'string' && currentCatMap.has(cat.id)) {
           batch.update(doc(db, 'categories', cat.id), {
             name: cat.name,
-            description: cat.desc
+            description: cat.desc,
+            emoji: cat.emoji || '✨'
           });
         } else {
           const catRef = doc(collection(db, 'categories'));
           batch.set(catRef, {
             contest_id: activeContest.id,
             name: cat.name,
-            description: cat.desc
+            description: cat.desc,
+            emoji: cat.emoji || '✨'
           });
         }
       });
@@ -1305,6 +1347,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
       toast.success(`Successfully updated ${title}!`);
       setCatName('');
       setCatDesc('');
+      setCatEmoji('✨');
       onUpdated();
     } catch (e) {
       console.error("Update Error:", e);
@@ -1335,9 +1378,14 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
           <div className="space-y-2 mb-4">
             {categories.map((c, i) => (
               <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                <div>
-                  <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
-                  <p className="text-xs text-white/50">{c.desc}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl">
+                    {c.emoji || '✨'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
+                    <p className="text-xs text-white/50">{c.desc}</p>
+                  </div>
                 </div>
                 <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors">
                   <X size={16} />
@@ -1347,10 +1395,26 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3" />
-          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1" />
-          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white">
+        <div className="flex flex-col sm:flex-row gap-2 relative">
+          <div className="relative shrink-0">
+            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+              {catEmoji}
+            </Button>
+            {showEmojiPicker && (
+              <div className="absolute top-12 left-0 z-50">
+                <EmojiPicker
+                  theme={EmojiTheme.DARK}
+                  onEmojiClick={(e) => {
+                    setCatEmoji(e.emoji);
+                    setShowEmojiPicker(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3 h-10" />
+          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10" />
+          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white h-10">
             <Plus size={16} />
           </Button>
         </div>
@@ -1379,7 +1443,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
       >
         {loading ? 'Saving Changes...' : 'Save Contest Changes'}
       </Button>
-    </div>
+    </div >
   );
 }
 
@@ -1468,10 +1532,12 @@ function ArchiveContest({ onArchived }: { onArchived: () => void }) {
 function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState('');
   const [rules, setRules] = useState('');
-  const [categories, setCategories] = useState<{ id: number, name: string, desc: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: number, name: string, desc: string, emoji?: string }[]>([]);
 
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
+  const [catEmoji, setCatEmoji] = useState('✨');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1481,9 +1547,10 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       toast.error('Please enter name and description');
       return;
     }
-    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc }]);
+    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
+    setCatEmoji('✨');
   };
 
   const removeCategory = (id: number) => {
@@ -1495,7 +1562,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
 
     let finalCategories = [...categories];
     if (catName && catDesc) {
-      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc });
+      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji });
     }
 
     if (finalCategories.length === 0) return toast.error('At least one category is required');
@@ -1525,7 +1592,8 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         batch.set(catRef, {
           contest_id: newContestRef.id,
           name: cat.name,
-          description: cat.desc
+          description: cat.desc,
+          emoji: cat.emoji || '✨'
         });
       });
 
@@ -1540,6 +1608,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       setCategories([]);
       setCatName('');
       setCatDesc('');
+      setCatEmoji('✨');
       setRules('');
       onCreated();
     } catch (e) {
@@ -1573,9 +1642,14 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
           <div className="space-y-2 mb-4">
             {categories.map((c, i) => (
               <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                <div>
-                  <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
-                  <p className="text-xs text-white/50">{c.desc}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl">
+                    {c.emoji || '✨'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
+                    <p className="text-xs text-white/50">{c.desc}</p>
+                  </div>
                 </div>
                 <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors">
                   <X size={16} />
@@ -1586,10 +1660,26 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         )}
 
         {/* Builder Row */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3" />
-          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1" />
-          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white">
+        <div className="flex flex-col sm:flex-row gap-2 relative">
+          <div className="relative shrink-0">
+            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+              {catEmoji}
+            </Button>
+            {showEmojiPicker && (
+              <div className="absolute top-12 left-0 z-50">
+                <EmojiPicker
+                  theme={EmojiTheme.DARK}
+                  onEmojiClick={(e) => {
+                    setCatEmoji(e.emoji);
+                    setShowEmojiPicker(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3 h-10" />
+          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10" />
+          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white h-10">
             <Plus size={16} />
           </Button>
         </div>
