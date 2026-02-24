@@ -745,7 +745,7 @@ export default function App() {
                   <Unlock size={14} /> Admin Authenticated
                 </span>
                 <span className="text-[10px] text-white/40 font-mono italic">
-                  Logged in as {user.displayName}
+                  Logged in as {user?.displayName || user?.email || 'Admin'}
                 </span>
               </div>
 
@@ -774,17 +774,6 @@ export default function App() {
                 <CreateContestManager onCreated={() => window.location.reload()} />
               </div>
 
-              <div className="space-y-4">
-                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Manage Rules</h4>
-                <AdminRulesManager authToken={""} rulesMarkdown={rulesMarkdown} onRefresh={() => {
-                  fetch('/api/rules/markdown').then(r => r.json()).then(data => setRulesMarkdown(data.content || ''));
-                }} />
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Manage Categories</h4>
-                <AdminCategoryManager activeContestId={activeContest?.id || ''} categories={categories} onRefresh={() => { }} />
-              </div>
               <div className="pt-8 mt-8 border-t border-red-500/20 space-y-4">
                 <h4 className="text-xs font-mono text-red-500/60 uppercase tracking-wider">Danger Zone</h4>
                 <ArchiveContest onArchived={() => window.location.reload()} />
