@@ -816,7 +816,7 @@ export default function App() {
       </Dialog>
 
       <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
-        <DialogContent className="w-full max-w-[95vw] md:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto bg-fivem-card/95 backdrop-blur-xl border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-white p-0 overflow-x-hidden">
+        <DialogContent className="w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl max-h-[95vh] overflow-y-auto bg-fivem-card/95 backdrop-blur-xl border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-white p-0 overflow-x-hidden">
           {/* Decorative Admin Glow */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-fivem-orange/10 blur-[150px] rounded-full pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-fivem-orange/5 blur-[150px] rounded-full pointer-events-none" />
@@ -857,49 +857,65 @@ export default function App() {
                   </span>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Live Status</h4>
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                    <div>
-                      <p className="font-bold">Voting Status</p>
-                      <p className="text-xs text-white/50">Toggle public voting for all categories</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                  {/* Left Column: Quick Controls & Active Contest */}
+                  <div className="space-y-8 lg:block">
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Live Status</h4>
+                      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div>
+                          <p className="font-bold">Voting Status</p>
+                          <p className="text-xs text-white/50">Toggle public voting for all categories</p>
+                        </div>
+                        <Button
+                          onClick={() => toggleVoting(!votingOpen)}
+                          variant={votingOpen ? "destructive" : "default"}
+                          className={cn(
+                            "px-4 py-2 font-bold text-xs transition-all",
+                            !votingOpen && "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                          )}
+                        >
+                          {votingOpen ? "Close Voting" : "Open Voting"}
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      onClick={() => toggleVoting(!votingOpen)}
-                      variant={votingOpen ? "destructive" : "default"}
-                      className={cn(
-                        "px-4 py-2 font-bold text-xs transition-all",
-                        !votingOpen && "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                      )}
-                    >
-                      {votingOpen ? "Close Voting" : "Open Voting"}
-                    </Button>
+
+                    {activeContest && (
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider flex items-center gap-2">
+                          <Settings size={14} /> Edit Current Contest
+                        </h4>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                          <EditContestManager
+                            activeContest={activeContest}
+                            currentRules={rulesMarkdown}
+                            currentCategories={categories}
+                            onUpdated={() => window.location.reload()}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {activeContest && (
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Edit Current Contest</h4>
-                    <EditContestManager
-                      activeContest={activeContest}
-                      currentRules={rulesMarkdown}
-                      currentCategories={categories}
-                      onUpdated={() => window.location.reload()}
-                    />
+                  {/* Right Column: Creation & Destructive Actions */}
+                  <div className="space-y-8 h-full flex flex-col">
+                    <div className="space-y-4 flex-1">
+                      <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider flex items-center gap-2">
+                        <Plus size={14} /> Create New Contest
+                      </h4>
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-full border-dashed">
+                        <CreateContestManager onCreated={() => window.location.reload()} />
+                      </div>
+                    </div>
+
+                    <div className="pt-8 mt-auto border-t border-red-500/20 space-y-4 relative bg-red-500/5 p-6 rounded-2xl border border-red-500/10">
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] rounded-full opacity-30" />
+                      <h4 className="text-xs font-mono text-red-500 uppercase tracking-wider font-bold flex items-center gap-2">
+                        <AlertCircle size={16} /> Danger Zone
+                      </h4>
+                      <ArchiveContest onArchived={() => window.location.reload()} />
+                    </div>
                   </div>
-                )}
-
-                <div className="space-y-4">
-                  <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Create New Contest</h4>
-                  <CreateContestManager onCreated={() => window.location.reload()} />
-                </div>
-
-                <div className="pt-10 mt-10 border-t border-red-500/20 space-y-4 relative">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-1 bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] rounded-full opacity-50" />
-                  <h4 className="text-xs font-mono text-red-500 uppercase tracking-wider font-bold flex items-center gap-2">
-                    <AlertCircle size={16} /> Danger Zone
-                  </h4>
-                  <ArchiveContest onArchived={() => window.location.reload()} />
                 </div>
               </div>
             )}
