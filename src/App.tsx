@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Upload,
   Vote,
@@ -710,7 +710,7 @@ export default function App() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[120px] rounded-full pointer-events-none" />
 
               {rulesMarkdown ? (
-                <div className="prose prose-invert prose-headings:font-display prose-headings:font-bold prose-a:text-fivem-orange prose-a:no-underline hover:prose-a:underline prose-p:text-white/70 prose-li:text-white/70 max-w-none relative z-10">
+                <div className="prose prose-invert prose-headings:font-display prose-headings:font-bold prose-a:text-fivem-orange prose-a:no-underline hover:prose-a:underline prose-p:text-white/70 prose-p:whitespace-pre-wrap prose-li:text-white/70 max-w-none relative z-10">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {rulesMarkdown}
                   </ReactMarkdown>
@@ -1122,11 +1122,28 @@ function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> 
   );
 }
 
-function MarkdownToolbar({ text, onTextChange }: { text: string, onTextChange: (t: string) => void }) {
+function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, textareaRef: React.RefObject<HTMLTextAreaElement | null>, onTextChange: (t: string) => void }) {
   const insertText = (before: string, after: string = '') => {
-    // A simple insertion at the end of the text for the sake of the toolbar
-    // Real implementation would grab cursor position, but this suffices for a simple addition.
-    onTextChange(text + `\n${before}text${after}`);
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    if (start === undefined || end === undefined) {
+      onTextChange(text + `\n${before}text${after}`);
+      return;
+    }
+
+    const selectedText = text.substring(start, end);
+    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
+
+    onTextChange(newText);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, start + before.length + selectedText.length);
+    }, 0);
   };
 
   return (
@@ -1160,6 +1177,8 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setTitle(activeContest?.name || '');
@@ -1290,8 +1309,9 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
           <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
         </div>
         <div className="flex flex-col">
-          <MarkdownToolbar text={rules} onTextChange={setRules} />
+          <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
           <textarea
+            ref={textareaRef}
             placeholder="Define the rules for this contest..."
             value={rules}
             onChange={(e) => setRules(e.target.value)}
@@ -1401,6 +1421,8 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const addCategory = () => {
     if (!catName || !catDesc) {
@@ -1527,8 +1549,9 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
           <span className="text-[10px] text-white/40">Optional - can be edited later</span>
         </div>
         <div className="flex flex-col">
-          <MarkdownToolbar text={rules} onTextChange={setRules} />
+          <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
           <textarea
+            ref={textareaRef}
             placeholder="Define the rules for this new contest..."
             value={rules}
             onChange={(e) => setRules(e.target.value)}
