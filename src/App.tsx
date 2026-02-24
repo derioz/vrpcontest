@@ -536,136 +536,155 @@ export default function App() {
 
       {/* Hero Banner */}
       {activeContest ? (
-        <section className="relative overflow-hidden border-b border-white/10 min-h-[540px] flex items-center">
-          {/* Dark gradient base */}
-          <div className="absolute inset-0 bg-gradient-to-br from-fivem-dark via-[#0f0f0f] to-fivem-card" />
-          {/* Subtle dot grid */}
-          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #ea580c 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
-          {/* Orange glow spots */}
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-fivem-orange/10 blur-[150px] rounded-full pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-700/10 blur-[120px] rounded-full pointer-events-none" />
+        <section className="relative overflow-hidden border-b border-white/10" style={{ minHeight: '520px' }}>
+          {/* Deep dark base */}
+          <div className="absolute inset-0 bg-[#080808]" />
 
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-16 md:py-20">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Diagonal photo-frame strips — decorative, right half */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none hidden lg:block">
+            {/* Strip 1 */}
+            <div className="absolute right-0 top-0 w-[55%] h-full" style={{ clipPath: 'polygon(8% 0, 100% 0, 100% 100%, 0% 100%)' }}>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#080808] via-transparent to-transparent z-10" />
+              <div className="w-full h-full grid grid-rows-3 gap-0.5 opacity-25">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-white/5 border-y border-white/5 overflow-hidden flex items-center justify-center">
+                    <div className="w-full h-full" style={{
+                      background: i === 0 ? 'linear-gradient(135deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)' :
+                        i === 1 ? 'linear-gradient(135deg, #222 25%, #333 50%, #222 75%)' :
+                          'linear-gradient(135deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)'
+                    }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Camera aperture watermark */}
+            <div className="absolute right-8 top-1/2 -translate-y-1/2 w-72 h-72 opacity-[0.03]">
+              <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="98" stroke="white" strokeWidth="2" />
+                <circle cx="100" cy="100" r="50" stroke="white" strokeWidth="1.5" />
+                {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+                  <line key={i}
+                    x1={100 + 55 * Math.cos((deg * Math.PI) / 180)}
+                    y1={100 + 55 * Math.sin((deg * Math.PI) / 180)}
+                    x2={100 + 96 * Math.cos(((deg + 50) * Math.PI) / 180)}
+                    y2={100 + 96 * Math.sin(((deg + 50) * Math.PI) / 180)}
+                    stroke="white" strokeWidth="1.5"
+                  />
+                ))}
+              </svg>
+            </div>
+          </div>
 
-              {/* Left: text content */}
-              <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }}>
-                {/* Badges */}
-                <div className="flex flex-wrap items-center gap-2 mb-6">
-                  <span className="flex items-center gap-2 bg-fivem-orange/15 border border-fivem-orange/40 text-fivem-orange text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
-                    <span className="w-1.5 h-1.5 bg-fivem-orange rounded-full animate-pulse" />
-                    🏆 Live Contest
-                  </span>
-                  <span className={cn(
-                    "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest border",
-                    votingOpen
-                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                      : "bg-amber-500/15 border-amber-500/30 text-amber-400"
-                  )}>
-                    {votingOpen ? <><Unlock size={10} /> Voting Open</> : <><Upload size={10} /> Submit Now</>}
-                  </span>
+          {/* Left orange spotlight */}
+          <div className="absolute top-0 left-0 w-[600px] h-full bg-gradient-to-r from-fivem-orange/8 to-transparent pointer-events-none" />
+          <div className="absolute -top-40 -left-40 w-96 h-96 bg-fivem-orange/15 blur-[140px] rounded-full pointer-events-none" />
+
+          {/* Film grain texture overlay */}
+          <div className="absolute inset-0 opacity-[0.025] pointer-events-none" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
+            backgroundSize: '128px 128px'
+          }} />
+
+          {/* Main content */}
+          <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-20">
+            <div className="max-w-2xl">
+
+              {/* Label */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-center gap-3 mb-8"
+              >
+                {/* Camera icon */}
+                <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-lg">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
                 </div>
-
-                {/* Contest title */}
-                <h2 className="font-display text-4xl md:text-5xl xl:text-6xl font-black tracking-tight text-white mb-4 leading-[1.05]">
-                  {activeContest.name}
-                </h2>
-                <p className="text-base text-white/50 mb-8 leading-relaxed max-w-lg">
-                  Showcase your best in-game screenshots, pick your category, and let the community vote for the most impressive entries.
-                </p>
-
-                {/* CTAs */}
-                <div className="flex flex-wrap gap-3 mb-10">
-                  <button
-                    onClick={handleUploadClick}
-                    className="flex items-center gap-2 bg-fivem-orange hover:bg-orange-500 text-white font-bold px-7 py-3.5 rounded-xl transition-all shadow-[0_0_25px_rgba(234,88,12,0.4)] hover:shadow-[0_0_40px_rgba(234,88,12,0.6)] hover:-translate-y-0.5 text-sm"
-                  >
-                    <Upload size={18} />
-                    Submit Entry
-                  </button>
-                  <a
-                    href="#rules"
-                    className="flex items-center gap-2 bg-white/8 hover:bg-white/15 border border-white/15 text-white font-bold px-7 py-3.5 rounded-xl transition-all hover:-translate-y-0.5 text-sm"
-                  >
-                    <FileText size={18} />
-                    View Rules
-                  </a>
-                </div>
-
-                {/* Animated stat pills */}
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    { label: 'Categories', value: categories.length, icon: '🗂️', color: 'border-white/10 bg-white/5 text-white' },
-                    { label: 'Entries', value: photos.length, icon: '📷', color: 'border-white/10 bg-white/5 text-white' },
-                    { label: 'Total Votes', value: photos.reduce((s, p) => s + (p.vote_count || 0), 0), icon: '🗳️', color: 'border-fivem-orange/20 bg-fivem-orange/10 text-fivem-orange' },
-                  ].map((stat) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={cn('flex items-center gap-2 border rounded-xl px-4 py-2', stat.color)}
-                    >
-                      <span className="text-lg">{stat.icon}</span>
-                      <div>
-                        <p className="text-lg font-display font-black leading-none">{stat.value}</p>
-                        <p className="text-[9px] uppercase tracking-widest text-white/40 font-mono">{stat.label}</p>
-                      </div>
-                    </motion.div>
-                  ))}
+                <span className="text-fivem-orange text-xs font-bold uppercase tracking-[0.2em] font-mono">Photo Contest</span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <span className="w-1.5 h-1.5 bg-fivem-orange rounded-full animate-pulse" />
+                  <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Live</span>
                 </div>
               </motion.div>
 
-              {/* Right: Category cards panel */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.7, delay: 0.15 }}
-                className="hidden lg:block"
+              {/* Contest name */}
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-5xl md:text-6xl xl:text-7xl font-black font-display tracking-tight text-white leading-[0.95] mb-6"
               >
-                <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[11px] font-mono uppercase tracking-widest text-white/40">Contest Categories</p>
-                    <span className="text-[10px] font-bold text-fivem-orange font-mono">{categories.length} active</span>
-                  </div>
+                {activeContest.name}
+              </motion.h2>
 
-                  <div className="space-y-2">
-                    {categories.slice(0, 5).map((cat, i) => {
-                      const catPhotos = photos.filter(p => p.category_id === cat.id);
-                      return (
-                        <motion.button
-                          key={cat.id}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + i * 0.07 }}
-                          onClick={() => setSelectedCategory(cat)}
-                          className={cn(
-                            "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group",
-                            selectedCategory?.id === cat.id
-                              ? "bg-fivem-orange/20 border border-fivem-orange/30"
-                              : "bg-white/5 border border-white/5 hover:border-white/15 hover:bg-white/10"
-                          )}
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-black/30 flex items-center justify-center text-xl shrink-0 border border-white/10">
-                            {cat.emoji || '✨'}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white truncate">{cat.name}</p>
-                            <p className="text-[10px] text-white/40 font-mono">{catPhotos.length} entries</p>
-                          </div>
-                          <ChevronRight size={16} className={cn("shrink-0 transition-transform", selectedCategory?.id === cat.id ? "text-fivem-orange translate-x-0.5" : "text-white/20 group-hover:text-white/50")} />
-                        </motion.button>
-                      );
-                    })}
-                    {categories.length === 0 && (
-                      <div className="text-center py-8 text-white/20 text-sm">No categories yet</div>
-                    )}
-                  </div>
+              {/* Tagline */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-white/40 text-base leading-relaxed mb-10 max-w-lg"
+              >
+                Capture the moment. Submit your best in-game screenshot,
+                let the community pick their favorite.
+              </motion.p>
 
-                  {/* V logo watermark */}
-                  <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
-                    <img src="/vital_v_logo.png" alt="" className="w-6 h-6 object-contain opacity-30" />
-                    <span className="text-[10px] text-white/20 font-mono uppercase tracking-widest">Vital RP Community Contest</span>
+              {/* CTAs */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="flex flex-wrap gap-3 mb-12"
+              >
+                <button
+                  onClick={handleUploadClick}
+                  className="group relative flex items-center gap-2.5 bg-fivem-orange text-white font-bold px-8 py-4 rounded-2xl text-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(234,88,12,0.5)]"
+                >
+                  <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  Submit Your Shot
+                </button>
+                <a
+                  href="#rules"
+                  className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-bold px-7 py-4 rounded-2xl transition-all hover:-translate-y-0.5 text-sm"
+                >
+                  <FileText size={16} />
+                  Rules
+                </a>
+              </motion.div>
+
+              {/* Stats strip */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.45 }}
+                className="flex items-center gap-0 border border-white/8 rounded-2xl overflow-hidden w-fit"
+              >
+                {[
+                  { value: categories.length, label: 'Categories', accent: false },
+                  { value: photos.length, label: 'Entries', accent: false },
+                  { value: photos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Votes Cast', accent: true },
+                ].map((stat, i) => (
+                  <div key={stat.label} className={cn(
+                    'flex flex-col items-center px-6 py-3 border-r border-white/8 last:border-r-0',
+                    stat.accent ? 'bg-fivem-orange/10' : 'bg-white/[0.02]'
+                  )}>
+                    <span className={cn('text-2xl font-black font-display leading-none', stat.accent ? 'text-fivem-orange' : 'text-white')}>{stat.value}</span>
+                    <span className="text-[9px] uppercase tracking-widest text-white/30 font-mono mt-1">{stat.label}</span>
                   </div>
+                ))}
+                <div className={cn(
+                  'flex flex-col items-center px-5 py-3 bg-emerald-500/10',
+                )}>
+                  <span className={cn('text-xs font-bold leading-none', votingOpen ? 'text-emerald-400' : 'text-amber-400')}>
+                    {votingOpen ? '🟢 Voting Open' : '🟡 Submit Now'}
+                  </span>
+                  <span className="text-[9px] uppercase tracking-widest text-white/30 font-mono mt-1">Status</span>
                 </div>
               </motion.div>
 
@@ -674,42 +693,43 @@ export default function App() {
         </section>
       ) : (
         <section className="relative overflow-hidden border-b border-white/10 py-28 flex flex-col items-center justify-center text-center px-6">
+          <div className="absolute inset-0 bg-[#080808]" />
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative mb-6">
             <div className="absolute inset-0 bg-white/5 blur-3xl scale-150 rounded-full" />
             <img src="/vital_v_logo.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
           </motion.div>
-          <h2 className="text-3xl font-display font-black text-white/30 mb-3">No Active Contest</h2>
-          <p className="text-white/20 max-w-sm">Check back soon — the next contest is being prepared by the admins.</p>
+          <h2 className="text-3xl font-display font-black text-white/30 mb-3 relative z-10">No Active Contest</h2>
+          <p className="text-white/20 max-w-sm relative z-10">Check back soon — the next contest is being prepared by the admins.</p>
         </section>
       )}
 
-      {/* Category Tab Bar */}
-      {
-        categories.length > 0 && (
-          <div className="sticky top-[68px] z-30 bg-fivem-dark/95 backdrop-blur-xl border-b border-white/10">
-            <div className="max-w-7xl mx-auto px-6">
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
-                      selectedCategory?.id === cat.id
-                        ? "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
-                        : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
-                    )}
-                  >
-                    <span className="text-base">{cat.emoji || 'âœ¨'}</span>
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      }
+{/* Category Tab Bar */ }
+{
+  categories.length > 0 && (
+    <div className="sticky top-[68px] z-30 bg-fivem-dark/95 backdrop-blur-xl border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat)}
+              className={cn(
+                "flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                selectedCategory?.id === cat.id
+                  ? "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                  : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <span className="text-base">{cat.emoji || 'âœ¨'}</span>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
       <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
@@ -1040,6 +1060,12 @@ export default function App() {
               <DialogTitle className="font-display text-2xl flex items-center gap-3">
                 <Settings className="text-fivem-orange" size={24} /> Admin Settings
               </DialogTitle>
+              <button
+                onClick={() => setShowAdminModal(false)}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-white/50 hover:text-white transition-all"
+              >
+                <X size={20} />
+              </button>
             </DialogHeader>
 
             {!isAdmin ? (
@@ -1137,52 +1163,52 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-      {/* Lightbox Modal */}
-      <AnimatePresence>
-        {lightboxPhoto && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setLightboxPhoto(null)}
-              className="absolute inset-0"
-            />
+{/* Lightbox Modal */ }
+<AnimatePresence>
+  {lightboxPhoto && (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={() => setLightboxPhoto(null)}
+        className="absolute inset-0"
+      />
 
-            <button
-              onClick={() => setLightboxPhoto(null)}
-              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
-            >
-              <X size={24} />
-            </button>
+      <button
+        onClick={() => setLightboxPhoto(null)}
+        className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
+      >
+        <X size={24} />
+      </button>
 
-            <motion.div
-              layoutId={lightboxPhoto.id.toString()}
-              className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
-            >
-              <img
-                src={lightboxPhoto.image_url}
-                alt={lightboxPhoto.caption}
-                className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
-              />
+      <motion.div
+        layoutId={lightboxPhoto.id.toString()}
+        className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
+      >
+        <img
+          src={lightboxPhoto.image_url}
+          alt={lightboxPhoto.caption}
+          className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
+        />
 
-              <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
-                <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                    <User size={14} className="text-fivem-orange" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                    <Vote size={14} className="text-emerald-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+        <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
+          <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+              <User size={14} className="text-fivem-orange" />
+              <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
+            </div>
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+              <Vote size={14} className="text-emerald-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </motion.div>
+    </div>
+  )}
+</AnimatePresence>
     </div >
   );
 }
@@ -1428,7 +1454,10 @@ function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> 
         onClick={() => onDiscordLogin()}
         className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
       >
-        <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-5 h-5 invert" alt="" />
+        <svg role="img" viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0" xmlns="http://www.w3.org/2000/svg">
+          <title>Discord</title>
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.014.043.031.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+        </svg>
         Login with Discord
       </button>
     </form>
