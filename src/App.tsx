@@ -99,6 +99,8 @@ export default function App() {
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
   const [sortBy, setSortBy] = useState<'top' | 'newest'>('top');
+  const [userSubmissionCount, setUserSubmissionCount] = useState(0);
+  const [userTotalVotes, setUserTotalVotes] = useState(0);
 
   const [activeContest, setActiveContest] = useState<{ id: string; name: string } | null>(null);
 
@@ -171,6 +173,30 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Track User Submissions and Votes
+  useEffect(() => {
+    if (!user || !user.displayName) {
+      setUserSubmissionCount(0);
+      setUserTotalVotes(0);
+      return;
+    }
+
+    const q = query(collection(db, 'photos'), where('discord_name', '==', user.displayName));
+    const unsub = onSnapshot(q, (snapshot) => {
+      setUserSubmissionCount(snapshot.size);
+      let votes = 0;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        votes += (data.vote_count || 0);
+      });
+      setUserTotalVotes(votes);
+    }, (err) => {
+      console.error("User submissions listener error", err);
+    });
+
+    return () => unsub();
+  }, [user]);
 
   // Fetch initial data (Real-time Firestore listeners)
   useEffect(() => {
@@ -508,45 +534,71 @@ export default function App() {
           </section>
 
           <section>
-            <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Account</h2>
-            <div className="p-4 bg-fivem-card rounded-xl border border-white/5">
-              {user ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-fivem-orange/10 border border-fivem-orange/20 flex items-center justify-center text-fivem-orange">
-                      {user.photoURL ? (
-                        <img src={user.photoURL} alt="" className="w-full h-full rounded-full" />
-                      ) : (
-                        <User size={20} />
-                      )}
+            <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Your Profile</h2>
+            {user ? (
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-md">
+                <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-fivem-orange/10 blur-[50px] pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full border-2 border-fivem-orange/30 p-1">
+                        {user.photoURL ? (
+                          <img src={user.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-fivem-orange/10 flex items-center justify-center text-fivem-orange">
+                            <User size={24} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-[#ea580c]/20 bg-emerald-500" />
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold truncate">{user.displayName || 'Anonymous'}</p>
-                      <p className="text-[10px] text-white/40 font-mono uppercase truncate">
-                        {user.providerData.some(p => p.providerId === 'password') ? 'Admin Account' : 'Discord Account'}
+
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{user.displayName || 'Anonymous Explorer'}</h3>
+                      <p className="text-xs text-fivem-orange/80 font-mono uppercase tracking-wider mt-0.5">
+                        {user.providerData.some(p => p.providerId === 'password') ? 'System Admin' : 'Verified Member'}
                       </p>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-3 pb-2">
+                    <div className="rounded-xl bg-black/20 p-3 border border-white/5 flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors cursor-default">
+                      <span className="text-2xl font-display font-bold text-white">{userSubmissionCount}</span>
+                      <span className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Submissions</span>
+                    </div>
+                    <div className="rounded-xl bg-fivem-orange/10 p-3 border border-fivem-orange/20 flex flex-col items-center justify-center text-center hover:bg-fivem-orange/20 transition-colors cursor-default">
+                      <span className="text-2xl font-display font-bold text-fivem-orange">{userTotalVotes}</span>
+                      <span className="text-[10px] text-fivem-orange/60 uppercase tracking-widest mt-1">Total Votes</span>
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => signOut(auth)}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/5 hover:bg-red-500/10 hover:text-red-400 border border-white/5 transition-all text-xs font-bold uppercase tracking-wider"
+                    className="w-full group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:shadow-[0_0_20px_rgba(239,68,68,0.15)]"
                   >
-                    <LogOut size={14} /> Logout
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/10 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <LogOut size={16} className="text-white/50 group-hover:text-red-400 transition-colors" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-white/70 group-hover:text-red-400 transition-colors">Disconnect</span>
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider text-center">Login to submit photos & vote</p>
-                  <button
-                    onClick={handleDiscordLogin}
-                    className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
-                  >
-                    <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-5 h-5 invert" alt="" />
-                    Login with Discord
-                  </button>
+              </div>
+            ) : (
+              <div className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-4 text-center">
+                <div className="w-16 h-16 mx-auto rounded-full bg-white/5 flex items-center justify-center text-white/20 mb-2">
+                  <User size={24} />
                 </div>
-              )}
-            </div>
+                <h3 className="text-sm font-bold text-white">Guest Access</h3>
+                <p className="text-xs text-white/40 leading-relaxed">Login to submit photos, vote on entries, <br />and track your community ranking.</p>
+                <button
+                  onClick={handleDiscordLogin}
+                  className="w-full mt-4 bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_20px_rgba(88,101,242,0.4)] hover:-translate-y-0.5"
+                >
+                  <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-5 h-5 invert" alt="" />
+                  Login with Discord
+                </button>
+              </div>
+            )}
           </section>
 
           <section className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-4">
