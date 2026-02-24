@@ -557,7 +557,7 @@ export default function App() {
                     <div>
                       <h3 className="text-lg font-bold text-white">{user.displayName || 'Anonymous Explorer'}</h3>
                       <p className="text-xs text-fivem-orange/80 font-mono uppercase tracking-wider mt-0.5">
-                        {user.providerData.some(p => p.providerId === 'password') ? 'System Admin' : 'Verified Member'}
+                        {isAdmin ? 'System Admin' : 'Verified Member'}
                       </p>
                     </div>
                   </div>
