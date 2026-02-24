@@ -816,83 +816,94 @@ export default function App() {
       </Dialog>
 
       <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
-        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto bg-fivem-card border-white/10 text-white p-6">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="font-display">Admin Settings</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="w-full max-w-[95vw] md:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto bg-fivem-card/95 backdrop-blur-xl border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-white p-0 overflow-x-hidden">
+          {/* Decorative Admin Glow */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-fivem-orange/10 blur-[150px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-fivem-orange/5 blur-[150px] rounded-full pointer-events-none" />
 
-          {!isAdmin ? (
-            <div className="space-y-6">
-              {user ? (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center space-y-2">
-                  <Lock className="mx-auto text-red-400" size={24} />
-                  <p className="text-sm font-bold text-red-400">Access Denied</p>
-                  <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
-                  <button
-                    onClick={() => signOut(auth)}
-                    className="text-xs text-white/30 hover:text-white underline mt-2"
-                  >
-                    Logout to switch accounts
-                  </button>
-                </div>
-              ) : (
-                <LoginForm onDiscordLogin={handleDiscordLogin} />
-              )}
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                <span className="text-emerald-400 text-xs font-mono font-bold flex items-center gap-2">
-                  <Unlock size={14} /> Admin Authenticated
-                </span>
-                <span className="text-[10px] text-white/40 font-mono italic">
-                  Logged in as {user?.displayName || user?.email || 'Admin'}
-                </span>
-              </div>
+          <div className="p-6 md:p-10 relative z-10 w-full h-full">
+            <DialogHeader className="mb-6 flex flex-row justify-between items-center border-b border-white/10 pb-4">
+              <DialogTitle className="font-display text-2xl flex items-center gap-3">
+                <Settings className="text-fivem-orange" size={24} /> Admin Settings
+              </DialogTitle>
+            </DialogHeader>
 
-              <div className="space-y-4">
-                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Live Status</h4>
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                  <div>
-                    <p className="font-bold">Voting Status</p>
-                    <p className="text-xs text-white/50">Toggle public voting for all categories</p>
+            {!isAdmin ? (
+              <div className="space-y-6">
+                {user ? (
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center space-y-2">
+                    <Lock className="mx-auto text-red-400" size={24} />
+                    <p className="text-sm font-bold text-red-400">Access Denied</p>
+                    <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
+                    <button
+                      onClick={() => signOut(auth)}
+                      className="text-xs text-white/30 hover:text-white underline mt-2"
+                    >
+                      Logout to switch accounts
+                    </button>
                   </div>
-                  <Button
-                    onClick={() => toggleVoting(!votingOpen)}
-                    variant={votingOpen ? "destructive" : "default"}
-                    className={cn(
-                      "px-4 py-2 font-bold text-xs transition-all",
-                      !votingOpen && "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                    )}
-                  >
-                    {votingOpen ? "Close Voting" : "Open Voting"}
-                  </Button>
-                </div>
+                ) : (
+                  <LoginForm onDiscordLogin={handleDiscordLogin} />
+                )}
               </div>
+            ) : (
+              <div className="space-y-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 pt-2">
+                  <span className="text-emerald-400 text-sm font-mono font-bold flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 w-fit">
+                    <Unlock size={16} /> Admin Authenticated
+                  </span>
+                  <span className="text-[11px] text-white/40 font-mono italic mt-2 sm:mt-0 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 w-fit">
+                    Logged in as <span className="text-white/80 font-bold">{user?.displayName || user?.email || 'Admin'}</span>
+                  </span>
+                </div>
 
-              {activeContest && (
                 <div className="space-y-4">
-                  <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Edit Current Contest</h4>
-                  <EditContestManager
-                    activeContest={activeContest}
-                    currentRules={rulesMarkdown}
-                    currentCategories={categories}
-                    onUpdated={() => window.location.reload()}
-                  />
+                  <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Live Status</h4>
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                    <div>
+                      <p className="font-bold">Voting Status</p>
+                      <p className="text-xs text-white/50">Toggle public voting for all categories</p>
+                    </div>
+                    <Button
+                      onClick={() => toggleVoting(!votingOpen)}
+                      variant={votingOpen ? "destructive" : "default"}
+                      className={cn(
+                        "px-4 py-2 font-bold text-xs transition-all",
+                        !votingOpen && "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                      )}
+                    >
+                      {votingOpen ? "Close Voting" : "Open Voting"}
+                    </Button>
+                  </div>
                 </div>
-              )}
 
-              <div className="space-y-4">
-                <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Create New Contest</h4>
-                <CreateContestManager onCreated={() => window.location.reload()} />
-              </div>
+                {activeContest && (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Edit Current Contest</h4>
+                    <EditContestManager
+                      activeContest={activeContest}
+                      currentRules={rulesMarkdown}
+                      currentCategories={categories}
+                      onUpdated={() => window.location.reload()}
+                    />
+                  </div>
+                )}
 
-              <div className="pt-8 mt-8 border-t border-red-500/20 space-y-4">
-                <h4 className="text-xs font-mono text-red-500/60 uppercase tracking-wider">Danger Zone</h4>
-                <ArchiveContest onArchived={() => window.location.reload()} />
+                <div className="space-y-4">
+                  <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Create New Contest</h4>
+                  <CreateContestManager onCreated={() => window.location.reload()} />
+                </div>
+
+                <div className="pt-10 mt-10 border-t border-red-500/20 space-y-4 relative">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-1 bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] rounded-full opacity-50" />
+                  <h4 className="text-xs font-mono text-red-500 uppercase tracking-wider font-bold flex items-center gap-2">
+                    <AlertCircle size={16} /> Danger Zone
+                  </h4>
+                  <ArchiveContest onArchived={() => window.location.reload()} />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1402,13 +1413,14 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
               {catEmoji}
             </Button>
             {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-50 shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1">
+              <div className="absolute top-12 left-0 z-[100] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
                 <EmojiPicker
                   theme={EmojiTheme.DARK}
                   onEmojiClick={(e) => {
                     setCatEmoji(e.emoji);
                     setShowEmojiPicker(false);
                   }}
+                  width="100%"
                 />
               </div>
             )}
@@ -1667,13 +1679,14 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
               {catEmoji}
             </Button>
             {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-50">
+              <div className="absolute top-12 left-0 z-[100] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
                 <EmojiPicker
                   theme={EmojiTheme.DARK}
                   onEmojiClick={(e) => {
                     setCatEmoji(e.emoji);
                     setShowEmojiPicker(false);
                   }}
+                  width="100%"
                 />
               </div>
             )}
