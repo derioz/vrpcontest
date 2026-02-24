@@ -722,14 +722,14 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="absolute bottom-4 right-4">
+                        <div className="absolute bottom-4 right-4 z-20">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
                             disabled={!votingOpen}
                             className={cn(
                               "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
                               votingOpen
-                                ? "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-lg shadow-fivem-orange/40"
+                                ? "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
                                 : "bg-white/10 text-white/40 cursor-not-allowed"
                             )}
                           >
@@ -738,9 +738,9 @@ export default function App() {
                           </button>
                         </div>
                       </div>
-                      <div className="p-4 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <p className="text-sm font-medium line-clamp-2">{photo.caption || "No caption provided"}</p>
-                        <p className="text-[10px] text-white/30 font-mono mt-2 uppercase">
+                      <div className="p-4 pr-32 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
+                        <p className="text-sm font-medium line-clamp-2 text-white">{photo.caption || "No caption provided"}</p>
+                        <p className="text-[10px] text-white/40 font-mono mt-2 uppercase tracking-widest">
                           {new Date(photo.created_at).toLocaleDateString()}
                         </p>
                       </div>
