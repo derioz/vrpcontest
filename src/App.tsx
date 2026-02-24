@@ -26,6 +26,7 @@ import {
   Bold,
   Italic,
   List,
+  Heading,
   Calendar,
   Smile,
   Link as LinkIcon
