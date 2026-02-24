@@ -1455,7 +1455,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
         </div>
       </div>
 
-      <div className="space-y-2 relative z-10">
+      <div className="space-y-2 relative z-20">
         <div className="flex items-center justify-between">
           <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
         </div>
@@ -1474,7 +1474,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
       <Button
         onClick={handleUpdate}
         disabled={loading}
-        className="w-full h-12 bg-white/10 hover:bg-fivem-orange hover:text-white text-white font-display text-sm tracking-wide rounded-xl mt-4 transition-all relative z-10"
+        className="w-full h-12 bg-white/10 hover:bg-fivem-orange hover:text-white text-white font-display text-sm tracking-wide rounded-xl mt-4 transition-all relative z-0"
       >
         {loading ? 'Saving Changes...' : 'Save Contest Changes'}
       </Button>
@@ -1723,7 +1723,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         </div>
       </div>
 
-      <div className="space-y-2 relative z-10">
+      <div className="space-y-2 relative z-20">
         <div className="flex items-center justify-between">
           <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
           <span className="text-[10px] text-white/40">Optional - can be edited later</span>
@@ -1743,7 +1743,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       <Button
         onClick={handleLaunch}
         disabled={loading}
-        className="w-full h-14 bg-fivem-orange hover:bg-fivem-orange/90 text-white font-display text-lg tracking-wide rounded-xl mt-4 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all relative z-10"
+        className="w-full h-14 bg-fivem-orange hover:bg-fivem-orange/90 text-white font-display text-lg tracking-wide rounded-xl mt-4 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all relative z-0"
       >
         {loading ? 'Initializing Core Systems...' : '🚀 Launch New Contest'}
       </Button>
