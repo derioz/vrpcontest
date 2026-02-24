@@ -705,61 +705,74 @@ export default function App() {
       )}
 
       {/* Category Tab Bar */}
-      {
-        categories.length > 0 && (
-          <div className="sticky top-[68px] z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10">
-            <div className="max-w-7xl mx-auto px-6">
-              <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-0">
+      {categories.length > 0 && (
+        <div className="sticky top-[68px] z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-3">
 
-                {/* Left label */}
-                <div className="shrink-0 flex items-center gap-2 pr-4 border-r border-white/10 py-3">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 font-mono whitespace-nowrap">Categories</span>
-                </div>
-
-                {/* Category tabs */}
-                <div className="flex items-center gap-2 py-3">
-                  {categories.map((cat) => {
-                    const entryCount = photos.filter(p => p.category_id === cat.id).length;
-                    const isActive = selectedCategory?.id === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={cn(
-                          "group relative flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200",
-                          isActive
-                            ? "bg-fivem-orange text-white shadow-[0_0_18px_rgba(234,88,12,0.45)] scale-[1.03]"
-                            : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20"
-                        )}
-                      >
-                        <span className="text-base leading-none">{cat.emoji || '✨'}</span>
-                        <span>{cat.name}</span>
-                        {/* Entry count badge */}
-                        <span className={cn(
-                          "text-[9px] font-bold px-1.5 py-0.5 rounded-full font-mono leading-none",
-                          isActive ? "bg-white/20 text-white" : "bg-white/10 text-white/40 group-hover:bg-white/15 group-hover:text-white/60"
-                        )}>
-                          {entryCount}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Right: total entries count */}
-                <div className="ml-auto shrink-0 pl-4 border-l border-white/10 py-3">
-                  <span className="text-[10px] font-mono text-white/30">{photos.length} total entries</span>
-                </div>
-
+              {/* Left label */}
+              <div className="shrink-0 flex flex-col gap-0.5 pr-4 border-r border-white/10 mr-1">
+                <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-fivem-orange font-mono">Browse</span>
+                <span className="text-[11px] font-bold text-white whitespace-nowrap">Categories</span>
               </div>
+
+              {/* Category cards */}
+              {categories.map((cat) => {
+                const entryCount = photos.filter(p => p.category_id === cat.id).length;
+                const isActive = selectedCategory?.id === cat.id;
+                const pct = photos.length > 0 ? Math.round((entryCount / photos.length) * 100) : 0;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "group relative shrink-0 flex flex-col gap-1 px-4 py-2.5 rounded-2xl transition-all duration-200 text-left min-w-[120px]",
+                      isActive
+                        ? "bg-fivem-orange text-white shadow-[0_0_22px_rgba(234,88,12,0.5)] scale-[1.03] border border-fivem-orange/60"
+                        : "bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:border-white/25 hover:text-white hover:scale-[1.01]"
+                    )}
+                  >
+                    {/* Top row: emoji + name */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg leading-none">{cat.emoji || '✨'}</span>
+                      <span className="text-xs font-bold truncate max-w-[90px]">{cat.name}</span>
+                    </div>
+                    {/* Bottom row: entry count + progress */}
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "text-[10px] font-mono font-bold leading-none",
+                        isActive ? "text-white/80" : "text-white/40 group-hover:text-white/60"
+                      )}>
+                        {entryCount} {entryCount === 1 ? 'entry' : 'entries'}
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className={cn(
+                      "absolute bottom-0 left-0 right-0 h-[3px] rounded-b-2xl overflow-hidden",
+                      isActive ? "bg-white/20" : "bg-white/5"
+                    )}>
+                      <div
+                        className={cn("h-full transition-all duration-500", isActive ? "bg-white/60" : "bg-white/20")}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* Right: totals */}
+              <div className="ml-auto shrink-0 pl-4 border-l border-white/10 flex flex-col gap-0.5 text-right">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-white/30">Total</span>
+                <span className="text-sm font-black font-display text-white">{photos.length}</span>
+                <span className="text-[9px] font-mono text-white/30">entries</span>
+              </div>
+
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
+
+
 
       <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
