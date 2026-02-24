@@ -470,7 +470,7 @@ export default function App() {
           <div className="absolute inset-0 rounded-full bg-fivem-orange/20 blur-3xl scale-150 animate-pulse" />
           <div className="absolute inset-0 rounded-full bg-orange-400/10 blur-2xl scale-125" />
           <img
-            src="/vital_v_logo.png"
+            src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png"
             alt="Vital RP"
             className="w-40 h-40 object-contain relative z-10 drop-shadow-[0_0_30px_rgba(234,88,12,0.7)]"
           />
@@ -495,7 +495,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 shrink-0">
-              <img src="/vital_v_logo.png" alt="Vital RP" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.5)]" />
+              <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.5)]" />
             </div>
             <div>
               <h1 className="font-display text-base sm:text-lg font-black tracking-tight uppercase text-white">
@@ -697,7 +697,7 @@ export default function App() {
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative mb-6">
             <div className="absolute inset-0 bg-white/5 blur-3xl scale-150 rounded-full" />
-            <img src="/vital_v_logo.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
+            <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
           </motion.div>
           <h2 className="text-3xl font-display font-black text-white/30 mb-3 relative z-10">No Active Contest</h2>
           <p className="text-white/20 max-w-sm relative z-10">Check back soon — the next contest is being prepared by the admins.</p>
@@ -2016,3 +2016,4 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
     </div>
   );
 }
+
