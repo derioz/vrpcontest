@@ -1242,7 +1242,7 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
           <Smile size={16} />
         </button>
         {showEmoji && (
-          <div className="absolute top-10 right-0 z-50 shadow-2xl">
+          <div className="absolute top-10 right-0 z-50 shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1">
             <EmojiPicker
               theme={EmojiTheme.DARK}
               onEmojiClick={(e) => {
@@ -1402,7 +1402,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
               {catEmoji}
             </Button>
             {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-50">
+              <div className="absolute top-12 left-0 z-50 shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1">
                 <EmojiPicker
                   theme={EmojiTheme.DARK}
                   onEmojiClick={(e) => {
@@ -1432,7 +1432,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
             placeholder="Define the rules for this contest..."
             value={rules}
             onChange={(e) => setRules(e.target.value)}
-            className="w-full h-32 bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
+            className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
           />
         </div>
       </div>
@@ -1698,7 +1698,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
             placeholder="Define the rules for this new contest..."
             value={rules}
             onChange={(e) => setRules(e.target.value)}
-            className="w-full h-32 bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
+            className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
           />
         </div>
       </div>
