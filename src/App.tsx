@@ -460,10 +460,28 @@ export default function App() {
   if (isInitialLoad) {
     return (
       <div className="min-h-screen flex flex-col gap-8 items-center justify-center bg-fivem-dark">
-        <div className="w-64 h-64 relative">
-          <Orb colors={['#ea580c', '#fb923c']} />
-        </div>
-        <ShimmeringText text="Connecting to Vital RP..." duration={2} className="text-xl font-bold tracking-widest uppercase font-mono" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="relative"
+        >
+          {/* Glow rings */}
+          <div className="absolute inset-0 rounded-full bg-fivem-orange/20 blur-3xl scale-150 animate-pulse" />
+          <div className="absolute inset-0 rounded-full bg-orange-400/10 blur-2xl scale-125" />
+          <img
+            src="/vital_v_logo.png"
+            alt="Vital RP"
+            className="w-40 h-40 object-contain relative z-10 drop-shadow-[0_0_30px_rgba(234,88,12,0.7)]"
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
+          <ShimmeringText text="Connecting to Vital RP..." duration={2} className="text-xl font-bold tracking-widest uppercase font-mono" />
+        </motion.div>
       </div>
     );
   }
@@ -473,15 +491,17 @@ export default function App() {
       <Toaster position="top-right" theme="dark" />
 
       {/* Header */}
-      <header className="sticky top-0 z-40 glass border-b border-white/10 px-6 py-4">
+      <header className="sticky top-0 z-40 glass border-b border-white/10 px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 shrink-0">
-              <img src="/vital_logo.svg" alt="Vital RP" className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(234,88,12,0.4)]" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 shrink-0">
+              <img src="/vital_v_logo.png" alt="Vital RP" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.5)]" />
             </div>
             <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight neon-text uppercase">
-                <ShimmeringText text={activeContest?.name || "VITAL RP - PHOTO CONTEST"} duration={3} shimmerColor="#ffffff" color="#ea580c" spread={1} />
+              <h1 className="font-display text-base sm:text-lg font-black tracking-tight uppercase text-white">
+                <span className="text-fivem-orange">VITAL RP</span>
+                <span className="text-white/30 mx-2">—</span>
+                <span className="text-white">{activeContest?.name || 'PHOTO CONTEST'}</span>
               </h1>
             </div>
           </div>
@@ -516,108 +536,180 @@ export default function App() {
 
       {/* Hero Banner */}
       {activeContest ? (
-        <section className="relative overflow-hidden border-b border-white/10">
-          {/* Background gradient + orb */}
-          <div className="absolute inset-0 bg-gradient-to-br from-fivem-dark via-fivem-dark to-fivem-card pointer-events-none" />
-          <div className="absolute -top-20 -right-20 w-96 h-96 opacity-30 pointer-events-none">
-            <Orb colors={['#ea580c', '#fbbf24']} />
-          </div>
-          <div className="absolute top-0 left-1/3 w-64 h-64 bg-fivem-orange/5 blur-[120px] rounded-full pointer-events-none" />
+        <section className="relative overflow-hidden border-b border-white/10 min-h-[540px] flex items-center">
+          {/* Dark gradient base */}
+          <div className="absolute inset-0 bg-gradient-to-br from-fivem-dark via-[#0f0f0f] to-fivem-card" />
+          {/* Subtle dot grid */}
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #ea580c 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          {/* Orange glow spots */}
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-fivem-orange/10 blur-[150px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-700/10 blur-[120px] rounded-full pointer-events-none" />
 
-          <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-20">
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl">
-              {/* Live badge */}
-              <div className="flex items-center gap-2 mb-6">
-                <span className="flex items-center gap-2 bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
-                  <span className="w-2 h-2 bg-fivem-orange rounded-full animate-pulse" />
-                  ðŸ† Live Contest
-                </span>
-                <span className={cn(
-                  "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest",
-                  votingOpen ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" : "bg-red-500/15 border border-red-500/30 text-red-400"
-                )}>
-                  {votingOpen ? <><Unlock size={10} /> Voting Open</> : <><Lock size={10} /> Submissions Open</>}
-                </span>
-              </div>
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-16 md:py-20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-              <h2 className="font-display text-4xl md:text-6xl font-black tracking-tight text-white mb-4 leading-tight">
-                <ShimmeringText text={activeContest.name} duration={4} shimmerColor="#fb923c" color="#ffffff" spread={2} />
-              </h2>
-              <p className="text-lg text-white/50 mb-8 leading-relaxed max-w-xl">
-                Submit your best screenshots, represent your categories, and let the community vote for their favorites.
-              </p>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={handleUploadClick}
-                  className="flex items-center gap-2 bg-fivem-orange hover:bg-orange-500 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_30px_rgba(234,88,12,0.6)] hover:-translate-y-0.5 text-sm"
-                >
-                  <Upload size={18} />
-                  Submit Entry
-                </button>
-                <a
-                  href="#rules"
-                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold px-6 py-3 rounded-xl transition-all hover:-translate-y-0.5 text-sm"
-                >
-                  <FileText size={18} />
-                  View Rules
-                </a>
-              </div>
-
-              {/* Quick stats */}
-              <div className="flex items-center gap-6 mt-10 pt-8 border-t border-white/10">
-                <div>
-                  <p className="text-2xl font-display font-black text-white">{categories.length}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-mono mt-0.5">Categories</p>
+              {/* Left: text content */}
+              <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }}>
+                {/* Badges */}
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                  <span className="flex items-center gap-2 bg-fivem-orange/15 border border-fivem-orange/40 text-fivem-orange text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
+                    <span className="w-1.5 h-1.5 bg-fivem-orange rounded-full animate-pulse" />
+                    🏆 Live Contest
+                  </span>
+                  <span className={cn(
+                    "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest border",
+                    votingOpen
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                      : "bg-amber-500/15 border-amber-500/30 text-amber-400"
+                  )}>
+                    {votingOpen ? <><Unlock size={10} /> Voting Open</> : <><Upload size={10} /> Submit Now</>}
+                  </span>
                 </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div>
-                  <p className="text-2xl font-display font-black text-white">{photos.length}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-mono mt-0.5">Entries</p>
+
+                {/* Contest title */}
+                <h2 className="font-display text-4xl md:text-5xl xl:text-6xl font-black tracking-tight text-white mb-4 leading-[1.05]">
+                  {activeContest.name}
+                </h2>
+                <p className="text-base text-white/50 mb-8 leading-relaxed max-w-lg">
+                  Showcase your best in-game screenshots, pick your category, and let the community vote for the most impressive entries.
+                </p>
+
+                {/* CTAs */}
+                <div className="flex flex-wrap gap-3 mb-10">
+                  <button
+                    onClick={handleUploadClick}
+                    className="flex items-center gap-2 bg-fivem-orange hover:bg-orange-500 text-white font-bold px-7 py-3.5 rounded-xl transition-all shadow-[0_0_25px_rgba(234,88,12,0.4)] hover:shadow-[0_0_40px_rgba(234,88,12,0.6)] hover:-translate-y-0.5 text-sm"
+                  >
+                    <Upload size={18} />
+                    Submit Entry
+                  </button>
+                  <a
+                    href="#rules"
+                    className="flex items-center gap-2 bg-white/8 hover:bg-white/15 border border-white/15 text-white font-bold px-7 py-3.5 rounded-xl transition-all hover:-translate-y-0.5 text-sm"
+                  >
+                    <FileText size={18} />
+                    View Rules
+                  </a>
                 </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div>
-                  <p className="text-2xl font-display font-black text-fivem-orange">{photos.reduce((s, p) => s + (p.vote_count || 0), 0)}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-mono mt-0.5">Total Votes</p>
+
+                {/* Animated stat pills */}
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { label: 'Categories', value: categories.length, icon: '🗂️', color: 'border-white/10 bg-white/5 text-white' },
+                    { label: 'Entries', value: photos.length, icon: '📷', color: 'border-white/10 bg-white/5 text-white' },
+                    { label: 'Total Votes', value: photos.reduce((s, p) => s + (p.vote_count || 0), 0), icon: '🗳️', color: 'border-fivem-orange/20 bg-fivem-orange/10 text-fivem-orange' },
+                  ].map((stat) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn('flex items-center gap-2 border rounded-xl px-4 py-2', stat.color)}
+                    >
+                      <span className="text-lg">{stat.icon}</span>
+                      <div>
+                        <p className="text-lg font-display font-black leading-none">{stat.value}</p>
+                        <p className="text-[9px] uppercase tracking-widest text-white/40 font-mono">{stat.label}</p>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+
+              {/* Right: Category cards panel */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, delay: 0.15 }}
+                className="hidden lg:block"
+              >
+                <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[11px] font-mono uppercase tracking-widest text-white/40">Contest Categories</p>
+                    <span className="text-[10px] font-bold text-fivem-orange font-mono">{categories.length} active</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {categories.slice(0, 5).map((cat, i) => {
+                      const catPhotos = photos.filter(p => p.category_id === cat.id);
+                      return (
+                        <motion.button
+                          key={cat.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 + i * 0.07 }}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={cn(
+                            "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group",
+                            selectedCategory?.id === cat.id
+                              ? "bg-fivem-orange/20 border border-fivem-orange/30"
+                              : "bg-white/5 border border-white/5 hover:border-white/15 hover:bg-white/10"
+                          )}
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-black/30 flex items-center justify-center text-xl shrink-0 border border-white/10">
+                            {cat.emoji || '✨'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{cat.name}</p>
+                            <p className="text-[10px] text-white/40 font-mono">{catPhotos.length} entries</p>
+                          </div>
+                          <ChevronRight size={16} className={cn("shrink-0 transition-transform", selectedCategory?.id === cat.id ? "text-fivem-orange translate-x-0.5" : "text-white/20 group-hover:text-white/50")} />
+                        </motion.button>
+                      );
+                    })}
+                    {categories.length === 0 && (
+                      <div className="text-center py-8 text-white/20 text-sm">No categories yet</div>
+                    )}
+                  </div>
+
+                  {/* V logo watermark */}
+                  <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
+                    <img src="/vital_v_logo.png" alt="" className="w-6 h-6 object-contain opacity-30" />
+                    <span className="text-[10px] text-white/20 font-mono uppercase tracking-widest">Vital RP Community Contest</span>
+                  </div>
+                </div>
+              </motion.div>
+
+            </div>
           </div>
         </section>
       ) : (
-        <section className="relative overflow-hidden border-b border-white/10 py-24 flex flex-col items-center justify-center text-center px-6">
-          <div className="w-48 h-48 mb-8 mx-auto">
-            <Orb colors={['#27272a', '#3f3f46']} />
-          </div>
+        <section className="relative overflow-hidden border-b border-white/10 py-28 flex flex-col items-center justify-center text-center px-6">
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative mb-6">
+            <div className="absolute inset-0 bg-white/5 blur-3xl scale-150 rounded-full" />
+            <img src="/vital_v_logo.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
+          </motion.div>
           <h2 className="text-3xl font-display font-black text-white/30 mb-3">No Active Contest</h2>
-          <p className="text-white/20 max-w-sm">Check back soon â€” the next contest is being prepared by the admins.</p>
+          <p className="text-white/20 max-w-sm">Check back soon — the next contest is being prepared by the admins.</p>
         </section>
       )}
 
-      {/* Category Tab Bar */}
-      {categories.length > 0 && (
-        <div className="sticky top-[68px] z-30 bg-fivem-dark/95 backdrop-blur-xl border-b border-white/10">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={cn(
-                    "flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
-                    selectedCategory?.id === cat.id
-                      ? "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
-                      : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
-                  )}
-                >
-                  <span className="text-base">{cat.emoji || 'âœ¨'}</span>
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
+{/* Category Tab Bar */ }
+{
+  categories.length > 0 && (
+    <div className="sticky top-[68px] z-30 bg-fivem-dark/95 backdrop-blur-xl border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat)}
+              className={cn(
+                "flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                selectedCategory?.id === cat.id
+                  ? "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                  : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <span className="text-base">{cat.emoji || 'âœ¨'}</span>
+              {cat.name}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
+    </div>
+  )
+}
 
       <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
