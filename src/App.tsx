@@ -36,10 +36,9 @@ import { Input } from './components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
 
 // Firebase Integrations
-import { auth, discordProvider, db, storage } from './lib/firebase';
+import { auth, discordProvider, db } from './lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 interface Category {
   id: string;
@@ -313,11 +312,27 @@ export default function App() {
     if (!selectedCategory || !formPlayerName || !discordName) return;
 
     try {
-      const uniquePath = `entries/${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      const storageRef = ref(storage, uniquePath);
+      // Convert base64 data URL to Blob
+      const res = await fetch(imageData);
+      const blob = await res.blob();
 
-      await uploadString(storageRef, imageData, 'data_url');
-      const downloadURL = await getDownloadURL(storageRef);
+      const formData = new FormData();
+      formData.append('file', blob, `entry_${Date.now()}.png`);
+
+      const uploadRes = await fetch('https://api.fivemanage.com/api/image', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'IHo5KJCgcYdVYCqAZsnYokzPAYoUnTsK'
+        },
+        body: formData
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image to Fivemanage');
+      }
+
+      const uploadData = await uploadRes.json();
+      const downloadURL = uploadData.url;
 
       const newPhoto = {
         category_id: selectedCategory.id,
