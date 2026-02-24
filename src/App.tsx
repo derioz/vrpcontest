@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -152,7 +152,7 @@ export default function App() {
         return;
       }
 
-      // Check for Discord admin — look up by document ID
+      // Check for Discord admin â€” look up by document ID
       try {
         const discordProfile = currentUser.providerData.find(p => p.providerId === 'oidc.discord');
         const idsToCheck = new Set([currentUser.uid]);
@@ -163,13 +163,13 @@ export default function App() {
         for (const id of idsToCheck) {
           const adminDoc = await getDoc(doc(db, 'admins', id));
           if (adminDoc.exists()) {
-            console.log('✅ Admin matched:', id);
+            console.log('âœ… Admin matched:', id);
             setIsAdmin(true);
             return;
           }
         }
 
-        console.log('❌ No admin match. Add one of these IDs to the "admins" collection:', [...idsToCheck]);
+        console.log('âŒ No admin match. Add one of these IDs to the "admins" collection:', [...idsToCheck]);
         setIsAdmin(false);
       } catch (error) {
         console.error("Error checking admin status:", error);
@@ -486,9 +486,21 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-
-
+          <div className="flex items-center gap-3">
+            {user ? (
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
+                {user.photoURL && <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full" />}
+                <span className="text-xs font-bold text-white/70 hidden sm:block">{user.displayName || user.email}</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleDiscordLogin}
+                className="flex items-center gap-2 bg-[#5865F2]/20 border border-[#5865F2]/30 text-white/80 hover:text-white hover:bg-[#5865F2]/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              >
+                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-4 h-4 invert" alt="" />
+                Login
+              </button>
+            )}
             <button
               onClick={() => isAdmin ? setShowAdminModal(true) : setShowLoginModal(true)}
               className={cn(
@@ -502,58 +514,292 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar - Categories */}
-        <aside className="lg:col-span-1 space-y-6">
-          <section>
-            <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Categories</h2>
-            <div className="space-y-2">
+      {/* Hero Banner */}
+      {activeContest ? (
+        <section className="relative overflow-hidden border-b border-white/10">
+          {/* Background gradient + orb */}
+          <div className="absolute inset-0 bg-gradient-to-br from-fivem-dark via-fivem-dark to-fivem-card pointer-events-none" />
+          <div className="absolute -top-20 -right-20 w-96 h-96 opacity-30 pointer-events-none">
+            <Orb colors={['#ea580c', '#fbbf24']} />
+          </div>
+          <div className="absolute top-0 left-1/3 w-64 h-64 bg-fivem-orange/5 blur-[120px] rounded-full pointer-events-none" />
+
+          <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-20">
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl">
+              {/* Live badge */}
+              <div className="flex items-center gap-2 mb-6">
+                <span className="flex items-center gap-2 bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
+                  <span className="w-2 h-2 bg-fivem-orange rounded-full animate-pulse" />
+                  ðŸ† Live Contest
+                </span>
+                <span className={cn(
+                  "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest",
+                  votingOpen ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" : "bg-red-500/15 border border-red-500/30 text-red-400"
+                )}>
+                  {votingOpen ? <><Unlock size={10} /> Voting Open</> : <><Lock size={10} /> Submissions Open</>}
+                </span>
+              </div>
+
+              <h2 className="font-display text-4xl md:text-6xl font-black tracking-tight text-white mb-4 leading-tight">
+                <ShimmeringText text={activeContest.name} duration={4} shimmerColor="#fb923c" color="#ffffff" spread={2} />
+              </h2>
+              <p className="text-lg text-white/50 mb-8 leading-relaxed max-w-xl">
+                Submit your best screenshots, represent your categories, and let the community vote for their favorites.
+              </p>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleUploadClick}
+                  className="flex items-center gap-2 bg-fivem-orange hover:bg-orange-500 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_30px_rgba(234,88,12,0.6)] hover:-translate-y-0.5 text-sm"
+                >
+                  <Upload size={18} />
+                  Submit Entry
+                </button>
+                <a
+                  href="#rules"
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold px-6 py-3 rounded-xl transition-all hover:-translate-y-0.5 text-sm"
+                >
+                  <FileText size={18} />
+                  View Rules
+                </a>
+              </div>
+
+              {/* Quick stats */}
+              <div className="flex items-center gap-6 mt-10 pt-8 border-t border-white/10">
+                <div>
+                  <p className="text-2xl font-display font-black text-white">{categories.length}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-mono mt-0.5">Categories</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div>
+                  <p className="text-2xl font-display font-black text-white">{photos.length}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-mono mt-0.5">Entries</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div>
+                  <p className="text-2xl font-display font-black text-fivem-orange">{photos.reduce((s, p) => s + (p.vote_count || 0), 0)}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-mono mt-0.5">Total Votes</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      ) : (
+        <section className="relative overflow-hidden border-b border-white/10 py-24 flex flex-col items-center justify-center text-center px-6">
+          <div className="w-48 h-48 mb-8 mx-auto">
+            <Orb colors={['#27272a', '#3f3f46']} />
+          </div>
+          <h2 className="text-3xl font-display font-black text-white/30 mb-3">No Active Contest</h2>
+          <p className="text-white/20 max-w-sm">Check back soon â€” the next contest is being prepared by the admins.</p>
+        </section>
+      )}
+
+      {/* Category Tab Bar */}
+      {categories.length > 0 && (
+        <div className="sticky top-[68px] z-30 bg-fivem-dark/95 backdrop-blur-xl border-b border-white/10">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
               {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat)}
                   className={cn(
-                    "w-full flex items-center justify-between p-4 rounded-xl transition-all group relative overflow-hidden",
+                    "flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
                     selectedCategory?.id === cat.id
-                      ? "text-white shadow-[0_0_30px_rgba(255,255,255,0.1)] border border-white/20"
-                      : "bg-fivem-card border border-white/5 hover:border-white/20 text-white/70 hover:text-white"
+                      ? "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                      : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
                   )}
                 >
-                  {/* Themed blurred emoji background */}
-                  {(cat.emoji || '✨') && (
-                    <div className="absolute -right-8 -bottom-8 text-8xl opacity-[0.15] blur-xl group-hover:blur-md group-hover:opacity-25 transition-all pointer-events-none z-0">
-                      {cat.emoji || '✨'}
-                    </div>
-                  )}
-
-                  {selectedCategory?.id === cat.id && (
-                    <motion.div
-                      layoutId="activeCategory"
-                      className="absolute inset-0 bg-white/10 z-0 backdrop-blur-sm"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-
-                  <div className="flex items-center gap-4 relative z-10 w-full">
-                    <div className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 transition-all shadow-inner",
-                      selectedCategory?.id === cat.id ? "bg-white/20 scale-110" : "bg-black/20 group-hover:bg-black/40 group-hover:scale-105"
-                    )}>
-                      {cat.emoji || '✨'}
-                    </div>
-                    <div className="text-left overflow-hidden flex-1">
-                      <p className="font-bold text-sm truncate">{cat.name}</p>
-                      <p className={cn("text-[10px] font-mono uppercase tracking-wider truncate mt-0.5 transition-colors", selectedCategory?.id === cat.id ? "text-white/80" : "text-white/40 group-hover:text-white/60")}>
-                        {cat.description}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className={cn("transition-all shrink-0", selectedCategory?.id === cat.id ? "translate-x-1" : "opacity-50 group-hover:opacity-100 group-hover:translate-x-1")} />
-                  </div>
+                  <span className="text-base">{cat.emoji || 'âœ¨'}</span>
+                  {cat.name}
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+        {/* Main Content â€” 3 cols */}
+        <div className="lg:col-span-3 space-y-24 min-w-0">
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="text-3xl">{selectedCategory?.emoji || 'ðŸ“·'}</span>
+                  <h2 className="text-2xl font-display font-bold">{selectedCategory?.name || 'Entries'}</h2>
+                </div>
+                <p className="text-sm text-white/40">{selectedCategory?.description}</p>
+                <p className="text-xs text-white/30 mt-1 font-mono">{photos.length} entries submitted</p>
+              </div>
+              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shrink-0">
+                <button
+                  onClick={() => setSortBy('top')}
+                  className={cn(
+                    "flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-lg transition-all",
+                    sortBy === 'top' ? "bg-fivem-orange text-white shadow-lg shadow-fivem-orange/20" : "text-white/40 hover:text-white"
+                  )}
+                >
+                  <Trophy size={14} /> TOP VOTED
+                </button>
+                <button
+                  onClick={() => setSortBy('newest')}
+                  className={cn(
+                    "flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-lg transition-all",
+                    sortBy === 'newest' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
+                  )}
+                >
+                  NEWEST
+                </button>
+              </div>
+            </div>
+
+            {photos.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-32 bg-fivem-card rounded-3xl border border-dashed border-white/10"
+              >
+                <ImageIcon size={48} className="text-white/10 mb-4" />
+                <p className="text-white/40 font-medium">No entries yet in this category</p>
+                <p className="text-xs text-white/20 mt-1">Be the first to upload a photo!</p>
+                <button
+                  onClick={handleUploadClick}
+                  className="mt-6 flex items-center gap-2 bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-fivem-orange hover:text-white transition-all"
+                >
+                  <Upload size={16} /> Submit Entry
+                </button>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <AnimatePresence mode="popLayout">
+                  {sortedPhotos.map((photo, index) => {
+                    const rankEmoji = sortBy === 'top' ? (index === 0 ? 'ðŸ¥‡' : index === 1 ? 'ðŸ¥ˆ' : index === 2 ? 'ðŸ¥‰' : null) : null;
+                    return (
+                      <motion.div
+                        layout
+                        key={photo.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className={cn(
+                          "relative group bg-fivem-card rounded-2xl overflow-hidden border transition-all",
+                          sortBy === 'top' && index === 0
+                            ? "md:col-span-2 ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
+                            : "border-white/5 hover:border-fivem-orange/30"
+                        )}
+                      >
+                        <div className={cn("relative overflow-hidden cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
+                          <img
+                            src={photo.image_url}
+                            alt={photo.caption}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+
+                          {/* Rank badge */}
+                          {rankEmoji && (
+                            <div className="absolute top-4 left-4 z-10 text-3xl drop-shadow-lg">
+                              {rankEmoji}
+                            </div>
+                          )}
+
+                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                            {(isAdmin || (user && (user.displayName === photo.discord_name || user.providerData.some(p => p.displayName === photo.discord_name)))) && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
+                                className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                                title="Delete Photo"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleShare(photo); }}
+                              className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-fivem-orange transition-colors"
+                            >
+                              <Share2 size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setLightboxPhoto(photo); }}
+                              className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-white/20 transition-colors"
+                            >
+                              <Maximize2 size={16} />
+                            </button>
+                          </div>
+
+                          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10" style={{ left: rankEmoji ? '3.5rem' : '1rem' }}>
+                            <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+                              <User size={12} className="text-fivem-orange" />
+                              <span className="text-[10px] font-bold uppercase tracking-wider">{photo.player_name}</span>
+                            </div>
+                            <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+                              <Info size={12} className="text-zinc-400" />
+                              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{photo.discord_name}</span>
+                            </div>
+                          </div>
+
+                          <div className="absolute bottom-4 right-4 z-20">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
+                              disabled={!votingOpen}
+                              className={cn(
+                                "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
+                                votingOpen
+                                  ? "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
+                                  : "bg-white/10 text-white/40 cursor-not-allowed"
+                              )}
+                            >
+                              <Vote size={16} />
+                              {photo.vote_count || 0}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="p-4 pr-32 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
+                          <p className="text-sm font-medium line-clamp-2 text-white">{photo.caption || "No caption provided"}</p>
+                          <p className="text-[10px] text-white/40 font-mono mt-2 uppercase tracking-widest">
+                            {new Date(photo.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
           </section>
 
+          {/* Rules Section */}
+          <section id="rules" className="pt-12 border-t border-white/10">
+            <div className="mb-8">
+              <h2 className="text-3xl font-display font-bold mb-2">Contest Rules & Details</h2>
+              <p className="text-white/50">Please read carefully before submitting your entries.</p>
+            </div>
+            <div className="p-8 md:p-12 glass rounded-3xl border border-white/10 relative overflow-hidden">
+              {/* Premium Glow Aesthetic behind rules */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[120px] rounded-full pointer-events-none" />
+
+              {rulesMarkdown ? (
+                <div className="prose prose-invert prose-headings:font-display prose-headings:font-bold prose-a:text-fivem-orange prose-a:no-underline hover:prose-a:underline prose-p:text-white/70 prose-p:whitespace-pre-wrap prose-li:text-white/70 max-w-none relative z-10">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {rulesMarkdown}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-center relative z-10">
+                  <FileText size={48} className="text-white/10 mb-4" />
+                  <p className="text-white/40 font-medium">No rules have been posted yet.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* Right Sidebar â€” 1 col */}
+        <aside className="lg:col-span-1 space-y-6 lg:sticky lg:top-36 self-start">
+
+          {/* Profile */}
           <section>
             <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Your Profile</h2>
             {user ? (
@@ -622,6 +868,7 @@ export default function App() {
             )}
           </section>
 
+          {/* Contest Status + Submit CTA */}
           <section className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">Contest Status</h3>
@@ -648,155 +895,29 @@ export default function App() {
               Upload Photo
             </button>
           </section>
+
+          {/* Contest Quick Facts */}
+          {activeContest && (
+            <section className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-3">
+              <h3 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em]">Contest Info</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Trophy size={14} className="text-fivem-orange shrink-0" />
+                  <p className="text-xs text-white/70 font-medium truncate">{activeContest.name}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar size={14} className="text-white/30 shrink-0" />
+                  <p className="text-xs text-white/40">{categories.length} categories active</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <ImageIcon size={14} className="text-white/30 shrink-0" />
+                  <p className="text-xs text-white/40">{photos.length} total entries</p>
+                </div>
+              </div>
+            </section>
+          )}
+
         </aside>
-
-        {/* Main Content */}
-        <div className="lg:col-span-3 space-y-24">
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-display font-bold">{selectedCategory?.name}</h2>
-                <p className="text-sm text-white/50">{photos.length} entries submitted</p>
-              </div>
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
-                <button
-                  onClick={() => setSortBy('top')}
-                  className={cn(
-                    "flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-lg transition-all",
-                    sortBy === 'top' ? "bg-fivem-orange text-white shadow-lg shadow-fivem-orange/20" : "text-white/40 hover:text-white"
-                  )}
-                >
-                  <Trophy size={14} /> TOP VOTED
-                </button>
-                <button
-                  onClick={() => setSortBy('newest')}
-                  className={cn(
-                    "flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-lg transition-all",
-                    sortBy === 'newest' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
-                  )}
-                >
-                  NEWEST
-                </button>
-              </div>
-            </div>
-
-            {photos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-32 bg-fivem-card rounded-3xl border border-dashed border-white/10">
-                <ImageIcon size={48} className="text-white/10 mb-4" />
-                <p className="text-white/40 font-medium">No entries yet in this category</p>
-                <p className="text-xs text-white/20 mt-1">Be the first to upload a photo!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <AnimatePresence mode="popLayout">
-                  {sortedPhotos.map((photo, index) => (
-                    <motion.div
-                      layout
-                      key={photo.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className={cn(
-                        "relative group bg-fivem-card rounded-2xl overflow-hidden border border-white/5 hover:border-fivem-orange/30 transition-all",
-                        sortBy === 'top' && index === 0 ? "md:col-span-2 ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10" : ""
-                      )}
-                    >
-                      <div className={cn("relative overflow-hidden cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
-                        <img
-                          src={photo.image_url}
-                          alt={photo.caption}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
-
-                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                          {(isAdmin || (user && (user.displayName === photo.discord_name || user.providerData.some(p => p.displayName === photo.discord_name)))) && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
-                              className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
-                              title="Delete Photo"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleShare(photo); }}
-                            className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-fivem-orange transition-colors"
-                          >
-                            <Share2 size={16} />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setLightboxPhoto(photo); }}
-                            className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-white/20 transition-colors"
-                          >
-                            <Maximize2 size={16} />
-                          </button>
-                        </div>
-                        <div className="absolute top-4 left-4 flex flex-col gap-2">
-                          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                            <User size={12} className="text-fivem-orange" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">{photo.player_name}</span>
-                          </div>
-                          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                            <Info size={12} className="text-zinc-400" />
-                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{photo.discord_name}</span>
-                          </div>
-                        </div>
-
-                        <div className="absolute bottom-4 right-4 z-20">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
-                            disabled={!votingOpen}
-                            className={cn(
-                              "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
-                              votingOpen
-                                ? "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
-                                : "bg-white/10 text-white/40 cursor-not-allowed"
-                            )}
-                          >
-                            <Vote size={16} />
-                            {photo.vote_count || 0}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="p-4 pr-32 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
-                        <p className="text-sm font-medium line-clamp-2 text-white">{photo.caption || "No caption provided"}</p>
-                        <p className="text-[10px] text-white/40 font-mono mt-2 uppercase tracking-widest">
-                          {new Date(photo.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </section>
-
-          {/* Rules Section (Integrated Below Gallery) */}
-          <section className="pt-12 border-t border-white/10">
-            <div className="mb-8">
-              <h2 className="text-3xl font-display font-bold mb-2">Contest Rules & Details</h2>
-              <p className="text-white/50">Please read carefully before submitting your entries.</p>
-            </div>
-            <div className="p-8 md:p-12 glass rounded-3xl border border-white/10 relative overflow-hidden">
-              {/* Premium Glow Aesthetic behind rules */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[120px] rounded-full pointer-events-none" />
-
-              {rulesMarkdown ? (
-                <div className="prose prose-invert prose-headings:font-display prose-headings:font-bold prose-a:text-fivem-orange prose-a:no-underline hover:prose-a:underline prose-p:text-white/70 prose-p:whitespace-pre-wrap prose-li:text-white/70 max-w-none relative z-10">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {rulesMarkdown}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center relative z-10">
-                  <FileText size={48} className="text-white/10 mb-4" />
-                  <p className="text-white/40 font-medium">No rules have been posted yet.</p>
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
       </main >
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
@@ -924,52 +1045,52 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-      {/* Lightbox Modal */}
-      <AnimatePresence>
-        {lightboxPhoto && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setLightboxPhoto(null)}
-              className="absolute inset-0"
-            />
+{/* Lightbox Modal */ }
+<AnimatePresence>
+  {lightboxPhoto && (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={() => setLightboxPhoto(null)}
+        className="absolute inset-0"
+      />
 
-            <button
-              onClick={() => setLightboxPhoto(null)}
-              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
-            >
-              <X size={24} />
-            </button>
+      <button
+        onClick={() => setLightboxPhoto(null)}
+        className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
+      >
+        <X size={24} />
+      </button>
 
-            <motion.div
-              layoutId={lightboxPhoto.id.toString()}
-              className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
-            >
-              <img
-                src={lightboxPhoto.image_url}
-                alt={lightboxPhoto.caption}
-                className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
-              />
+      <motion.div
+        layoutId={lightboxPhoto.id.toString()}
+        className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
+      >
+        <img
+          src={lightboxPhoto.image_url}
+          alt={lightboxPhoto.caption}
+          className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
+        />
 
-              <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
-                <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                    <User size={14} className="text-fivem-orange" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                    <Vote size={14} className="text-emerald-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+        <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
+          <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+              <User size={14} className="text-fivem-orange" />
+              <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
+            </div>
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+              <Vote size={14} className="text-emerald-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </motion.div>
+    </div>
+  )}
+</AnimatePresence>
     </div >
   );
 }
@@ -1297,7 +1418,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
 
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
-  const [catEmoji, setCatEmoji] = useState('✨');
+  const [catEmoji, setCatEmoji] = useState('âœ¨');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -1317,7 +1438,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
     setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
-    setCatEmoji('✨');
+    setCatEmoji('âœ¨');
   };
 
   const removeCategory = (id: string | number) => {
@@ -1361,7 +1482,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
           batch.update(doc(db, 'categories', cat.id), {
             name: cat.name,
             description: cat.desc,
-            emoji: cat.emoji || '✨'
+            emoji: cat.emoji || 'âœ¨'
           });
         } else {
           const catRef = doc(collection(db, 'categories'));
@@ -1369,7 +1490,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
             contest_id: activeContest.id,
             name: cat.name,
             description: cat.desc,
-            emoji: cat.emoji || '✨'
+            emoji: cat.emoji || 'âœ¨'
           });
         }
       });
@@ -1379,7 +1500,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
       toast.success(`Successfully updated ${title}!`);
       setCatName('');
       setCatDesc('');
-      setCatEmoji('✨');
+      setCatEmoji('âœ¨');
       onUpdated();
     } catch (e) {
       console.error("Update Error:", e);
@@ -1412,7 +1533,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
               <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl">
-                    {c.emoji || '✨'}
+                    {c.emoji || 'âœ¨'}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
@@ -1571,7 +1692,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
 
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
-  const [catEmoji, setCatEmoji] = useState('✨');
+  const [catEmoji, setCatEmoji] = useState('âœ¨');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -1585,7 +1706,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
     setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
-    setCatEmoji('✨');
+    setCatEmoji('âœ¨');
   };
 
   const removeCategory = (id: number) => {
@@ -1628,7 +1749,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
           contest_id: newContestRef.id,
           name: cat.name,
           description: cat.desc,
-          emoji: cat.emoji || '✨'
+          emoji: cat.emoji || 'âœ¨'
         });
       });
 
@@ -1643,7 +1764,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       setCategories([]);
       setCatName('');
       setCatDesc('');
-      setCatEmoji('✨');
+      setCatEmoji('âœ¨');
       setRules('');
       onCreated();
     } catch (e) {
@@ -1679,7 +1800,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
               <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl">
-                    {c.emoji || '✨'}
+                    {c.emoji || 'âœ¨'}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
@@ -1745,7 +1866,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         disabled={loading}
         className="w-full h-14 bg-fivem-orange hover:bg-fivem-orange/90 text-white font-display text-lg tracking-wide rounded-xl mt-4 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all relative z-0"
       >
-        {loading ? 'Initializing Core Systems...' : '🚀 Launch New Contest'}
+        {loading ? 'Initializing Core Systems...' : 'ðŸš€ Launch New Contest'}
       </Button>
     </div>
   );
