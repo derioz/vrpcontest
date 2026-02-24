@@ -753,6 +753,18 @@ export default function App() {
                 </div>
               </div>
 
+              {activeContest && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Edit Current Contest</h4>
+                  <EditContestManager
+                    activeContest={activeContest}
+                    currentRules={rulesMarkdown}
+                    currentCategories={categories}
+                    onUpdated={() => window.location.reload()}
+                  />
+                </div>
+              )}
+
               <div className="space-y-4">
                 <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Create New Contest</h4>
                 <CreateContestManager onCreated={() => window.location.reload()} />
@@ -1050,6 +1062,164 @@ function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> 
   );
 }
 
+function EditContestManager({ activeContest, currentRules, currentCategories, onUpdated }: { activeContest: any, currentRules: string, currentCategories: Category[], onUpdated: () => void }) {
+  const [title, setTitle] = useState(activeContest?.name || '');
+  const [rules, setRules] = useState(currentRules || '');
+  const [categories, setCategories] = useState<{ id: string | number, name: string, desc: string }[]>(
+    currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description }))
+  );
+
+  const [catName, setCatName] = useState('');
+  const [catDesc, setCatDesc] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setTitle(activeContest?.name || '');
+    setRules(currentRules || '');
+    setCategories(currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description })));
+  }, [activeContest, currentRules, currentCategories]);
+
+  const addCategory = () => {
+    if (!catName || !catDesc) {
+      toast.error('Please enter name and description');
+      return;
+    }
+    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc }]);
+    setCatName('');
+    setCatDesc('');
+  };
+
+  const removeCategory = (id: string | number) => {
+    setCategories(prev => prev.filter(c => c.id !== id));
+  };
+
+  const handleUpdate = async () => {
+    if (!activeContest) return;
+    if (!title) return toast.error('Contest title is required');
+
+    let finalCategories = [...categories];
+    if (catName && catDesc) {
+      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc });
+    }
+
+    if (finalCategories.length === 0) return toast.error('At least one category is required');
+
+    setLoading(true);
+    try {
+      const batch = writeBatch(db);
+
+      if (title !== activeContest.name) {
+        batch.update(doc(db, 'contests', activeContest.id), { name: title });
+      }
+
+      if (rules !== currentRules) {
+        batch.set(doc(db, 'settings', 'global'), { rulesMarkdown: rules }, { merge: true });
+      }
+
+      const currentCatMap = new Map(currentCategories.map(c => [c.id, c]));
+      const finalCatIds = new Set(finalCategories.map(c => c.id));
+
+      currentCategories.forEach(oldCat => {
+        if (!finalCatIds.has(oldCat.id)) {
+          batch.delete(doc(db, 'categories', oldCat.id));
+        }
+      });
+
+      finalCategories.forEach(cat => {
+        if (typeof cat.id === 'string' && currentCatMap.has(cat.id)) {
+          batch.update(doc(db, 'categories', cat.id), {
+            name: cat.name,
+            description: cat.desc
+          });
+        } else {
+          const catRef = doc(collection(db, 'categories'));
+          batch.set(catRef, {
+            contest_id: activeContest.id,
+            name: cat.name,
+            description: cat.desc
+          });
+        }
+      });
+
+      await batch.commit();
+
+      toast.success(`Successfully updated ${title}!`);
+      setCatName('');
+      setCatDesc('');
+      onUpdated();
+    } catch (e) {
+      console.error("Update Error:", e);
+      toast.error('Failed to update contest');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!activeContest) return null;
+
+  return (
+    <div className="space-y-6 p-6 bg-fivem-card/50 rounded-2xl border border-white/10 relative overflow-hidden">
+      <div className="space-y-2 relative z-10">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
+        <Input
+          placeholder="e.g. Cyberpunk Nights V2"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="bg-white/5 border-white/10 h-10 text-sm font-display"
+        />
+      </div>
+
+      <div className="space-y-4 relative z-10">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Edit Categories</label>
+
+        {categories.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {categories.map((c, i) => (
+              <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                <div>
+                  <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
+                  <p className="text-xs text-white/50">{c.desc}</p>
+                </div>
+                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3" />
+          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1" />
+          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white">
+            <Plus size={16} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2 relative z-10">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
+        </div>
+        <textarea
+          placeholder="Define the rules for this contest..."
+          value={rules}
+          onChange={(e) => setRules(e.target.value)}
+          className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20 text-white"
+        />
+      </div>
+
+      <Button
+        onClick={handleUpdate}
+        disabled={loading}
+        className="w-full h-12 bg-white/10 hover:bg-fivem-orange hover:text-white text-white font-display text-sm tracking-wide rounded-xl mt-4 transition-all relative z-10"
+      >
+        {loading ? 'Saving Changes...' : 'Save Contest Changes'}
+      </Button>
+    </div>
+  );
+}
+
 function ArchiveContest({ onArchived }: { onArchived: () => void }) {
   const [nextName, setNextName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1157,7 +1327,13 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
 
   const handleLaunch = async () => {
     if (!title) return toast.error('Contest title is required');
-    if (categories.length === 0) return toast.error('At least one category is required');
+
+    let finalCategories = [...categories];
+    if (catName && catDesc) {
+      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc });
+    }
+
+    if (finalCategories.length === 0) return toast.error('At least one category is required');
 
     setLoading(true);
     try {
@@ -1179,7 +1355,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       });
 
       // 3. Create embedded Category references
-      categories.forEach(cat => {
+      finalCategories.forEach(cat => {
         const catRef = doc(collection(db, 'categories'));
         batch.set(catRef, {
           contest_id: newContestRef.id,
@@ -1197,6 +1373,8 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       toast.success(`Successfully deployed ${title}!`);
       setTitle('');
       setCategories([]);
+      setCatName('');
+      setCatDesc('');
       setRules('');
       onCreated();
     } catch (e) {
