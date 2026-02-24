@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Camera,
   Upload,
   Vote,
   Settings,
@@ -19,12 +18,7 @@ import {
   Unlock,
   AlertCircle,
   FileText,
-  Trash2,
-  Edit3,
-  Info,
   Share2,
-  Maximize2,
-  Share,
   LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -350,22 +344,12 @@ export default function App() {
   const toggleVoting = async (open: boolean) => {
     if (!isAdmin) return;
     try {
-      const res = await fetch('/api/admin/toggle-voting', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer temp`
-        },
-        body: JSON.stringify({ open })
-      });
-      if (res.ok) {
-        setVotingOpen(open);
-        toast.success(`Voting ${open ? 'opened' : 'closed'}`);
-      } else {
-        toast.error('Failed to toggle voting');
-      }
+      await updateDoc(doc(db, 'settings', 'global'), { votingOpen: open });
+      setVotingOpen(open);
+      toast.success(`Voting ${open ? 'opened' : 'closed'}`);
     } catch (error) {
-      toast.error('Network error');
+      console.error("Toggle Voting Error:", error);
+      toast.error('Failed to toggle voting');
     }
   };
 
@@ -1293,148 +1277,4 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function AdminCategoryManager({ activeContestId, categories, onRefresh }: { activeContestId: string, categories: Category[], onRefresh: () => void }) {
-  const [name, setName] = useState('');
-  const [desc, setDesc] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleSave = async () => {
-    if (!name || !activeContestId) return;
-    try {
-      if (editingId) {
-        await updateDoc(doc(db, 'categories', editingId), { name, description: desc });
-        toast.success('Category updated');
-      } else {
-        await addDoc(collection(db, 'categories'), { contest_id: activeContestId, name, description: desc });
-        toast.success('Category added');
-      }
-      setName('');
-      setDesc('');
-      setEditingId(null);
-    } catch (e) {
-      console.error("Category Error:", e);
-      toast.error('Network error or permission denied');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure? Ensure no photos belong to this category first.')) return;
-    try {
-      const qSnap = await getDocs(query(collection(db, 'photos'), where('category_id', '==', id), limit(1)));
-      if (!qSnap.empty) {
-        toast.error('Photos exist in this category. Delete them first.');
-        return;
-      }
-      await deleteDoc(doc(db, 'categories', id));
-      toast.success('Category deleted');
-    } catch (e) {
-      console.error("Category Delete Error:", e);
-      toast.error('Network error or permission denied');
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
-        <Input
-          placeholder="Category Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="bg-white/5 border-white/10"
-        />
-        <Input
-          placeholder="Description"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          className="bg-white/5 border-white/10"
-        />
-        <div className="flex gap-2">
-          {editingId && (
-            <Button variant="secondary" onClick={() => { setEditingId(null); setName(''); setDesc(''); }} className="flex-1">
-              Cancel
-            </Button>
-          )}
-          <Button
-            onClick={handleSave}
-            className="flex-1 bg-fivem-orange hover:bg-fivem-orange/90 text-white flex items-center justify-center gap-2"
-          >
-            {editingId ? 'Update Category' : <><Plus size={14} /> Add Category</>}
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        {categories.map(cat => (
-          <div key={cat.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium truncate">{cat.name}</p>
-              <p className="text-[10px] text-white/50 truncate">{cat.description}</p>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <button
-                onClick={() => {
-                  setEditingId(cat.id);
-                  setName(cat.name);
-                  setDesc(cat.description);
-                }}
-                className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
-              >
-                <Edit3 size={14} />
-              </button>
-              <button
-                onClick={() => handleDelete(cat.id)}
-                className="p-1.5 hover:bg-red-500/20 rounded-lg text-white/50 hover:text-red-400 transition-colors"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AdminRulesManager({ authToken, rulesMarkdown, onRefresh }: { authToken: string, rulesMarkdown: string, onRefresh: () => void }) {
-  const [content, setContent] = useState(rulesMarkdown);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await updateDoc(doc(db, 'settings', 'global'), { rulesMarkdown: content });
-      toast.success('Rules updated successfully');
-      onRefresh();
-    } catch (e) {
-      console.error("Rules Error:", e);
-      toast.error('Network error or permission denied');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4 h-full flex flex-col min-h-[500px]">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h3 className="text-lg font-display font-medium text-white">Contest Rules Engine</h3>
-          <p className="text-xs text-white/50">Write the unified contest rules using standard Markdown (supports # headers, **bold**, *italics*, [links](), etc).</p>
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-fivem-orange hover:bg-fivem-orange/90 text-white shrink-0"
-        >
-          {isSaving ? 'Saving...' : 'Publish Rules'}
-        </Button>
-      </div>
-
-      <textarea
-        placeholder="Write your markdown rules here..."
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="w-full flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-none placeholder:text-white/20"
-      />
-    </div>
-  );
-}
