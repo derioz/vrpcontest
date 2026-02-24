@@ -684,32 +684,32 @@ export default function App() {
         </section>
       )}
 
-{/* Category Tab Bar */ }
-{
-  categories.length > 0 && (
-    <div className="sticky top-[68px] z-30 bg-fivem-dark/95 backdrop-blur-xl border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat)}
-              className={cn(
-                "flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
-                selectedCategory?.id === cat.id
-                  ? "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
-                  : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
-              )}
-            >
-              <span className="text-base">{cat.emoji || 'âœ¨'}</span>
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
+      {/* Category Tab Bar */}
+      {
+        categories.length > 0 && (
+          <div className="sticky top-[68px] z-30 bg-fivem-dark/95 backdrop-blur-xl border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "flex items-center gap-2 shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                      selectedCategory?.id === cat.id
+                        ? "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                        : "bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <span className="text-base">{cat.emoji || 'âœ¨'}</span>
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      }
 
       <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
@@ -1137,52 +1137,52 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-{/* Lightbox Modal */ }
-<AnimatePresence>
-  {lightboxPhoto && (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={() => setLightboxPhoto(null)}
-        className="absolute inset-0"
-      />
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxPhoto && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute inset-0"
+            />
 
-      <button
-        onClick={() => setLightboxPhoto(null)}
-        className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
-      >
-        <X size={24} />
-      </button>
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
 
-      <motion.div
-        layoutId={lightboxPhoto.id.toString()}
-        className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
-      >
-        <img
-          src={lightboxPhoto.image_url}
-          alt={lightboxPhoto.caption}
-          className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
-        />
+            <motion.div
+              layoutId={lightboxPhoto.id.toString()}
+              className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
+            >
+              <img
+                src={lightboxPhoto.image_url}
+                alt={lightboxPhoto.caption}
+                className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
+              />
 
-        <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
-          <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
-          <div className="flex items-center gap-4 mt-4">
-            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-              <User size={14} className="text-fivem-orange" />
-              <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-              <Vote size={14} className="text-emerald-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
-            </div>
+              <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
+                <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                    <User size={14} className="text-fivem-orange" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                    <Vote size={14} className="text-emerald-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </motion.div>
-    </div>
-  )}
-</AnimatePresence>
+        )}
+      </AnimatePresence>
     </div >
   );
 }
@@ -1510,9 +1510,11 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
 
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
-  const [catEmoji, setCatEmoji] = useState('âœ¨');
+  const [catEmoji, setCatEmoji] = useState('✨');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [editingEmojiIdx, setEditingEmojiIdx] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -1530,7 +1532,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
     setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
-    setCatEmoji('âœ¨');
+    setCatEmoji('✨');
   };
 
   const removeCategory = (id: string | number) => {
@@ -1574,7 +1576,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
           batch.update(doc(db, 'categories', cat.id), {
             name: cat.name,
             description: cat.desc,
-            emoji: cat.emoji || 'âœ¨'
+            emoji: cat.emoji || '✨'
           });
         } else {
           const catRef = doc(collection(db, 'categories'));
@@ -1582,7 +1584,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
             contest_id: activeContest.id,
             name: cat.name,
             description: cat.desc,
-            emoji: cat.emoji || 'âœ¨'
+            emoji: cat.emoji || '✨'
           });
         }
       });
@@ -1592,7 +1594,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
       toast.success(`Successfully updated ${title}!`);
       setCatName('');
       setCatDesc('');
-      setCatEmoji('âœ¨');
+      setCatEmoji('✨');
       onUpdated();
     } catch (e) {
       console.error("Update Error:", e);
@@ -1622,17 +1624,45 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
         {categories.length > 0 && (
           <div className="space-y-2 mb-4">
             {categories.map((c, i) => (
-              <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl">
-                    {c.emoji || 'âœ¨'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
-                    <p className="text-xs text-white/50">{c.desc}</p>
-                  </div>
+              <div key={c.id} className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-xl">
+                {/* Per-row emoji picker */}
+                <div className="relative shrink-0 static-emoji-wrapper">
+                  <button
+                    onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
+                    className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl hover:bg-fivem-orange/20 transition-colors border border-white/10"
+                    title="Change emoji"
+                  >
+                    {c.emoji || '✨'}
+                  </button>
+                  {editingEmojiIdx === i && (
+                    <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+                      <Picker
+                        data={data}
+                        theme="dark"
+                        onEmojiSelect={(e: any) => {
+                          setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, emoji: e.native } : cat));
+                          setEditingEmojiIdx(null);
+                        }}
+                        previewPosition="none"
+                        navPosition="bottom"
+                      />
+                    </div>
+                  )}
                 </div>
-                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors">
+                {/* Inline name and description inputs */}
+                <input
+                  value={c.name}
+                  onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
+                  placeholder="Category name..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-fivem-orange/50 transition-colors"
+                />
+                <input
+                  value={c.desc}
+                  onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
+                  placeholder="Description..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white/60 outline-none focus:border-fivem-orange/50 transition-colors"
+                />
+                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors shrink-0">
                   <X size={16} />
                 </button>
               </div>
