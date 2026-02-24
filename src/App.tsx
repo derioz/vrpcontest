@@ -29,7 +29,8 @@ import {
   Heading,
   Calendar,
   Smile,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -1093,29 +1094,49 @@ export default function App() {
       </Dialog>
 
       <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
-        <DialogContent className="w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl max-h-[95vh] overflow-y-auto bg-fivem-card/95 backdrop-blur-xl border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-white p-0 overflow-x-hidden">
-          {/* Decorative Admin Glow */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-fivem-orange/10 blur-[150px] rounded-full pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-fivem-orange/5 blur-[150px] rounded-full pointer-events-none" />
+        <DialogContent className="w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl max-h-[95vh] overflow-y-auto bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-x-hidden">
 
-          <div className="p-6 md:p-10 relative z-10 w-full h-full">
-            <DialogHeader className="mb-6 flex flex-row justify-between items-center border-b border-white/10 pb-4">
-              <DialogTitle className="font-display text-2xl flex items-center gap-3">
-                <Settings className="text-fivem-orange" size={24} /> Admin Settings
-              </DialogTitle>
-            </DialogHeader>
+          {/* Ambient glows — uitripled glassmorphism pattern */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fivem-orange/8 blur-[200px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fivem-orange/4 blur-[160px] rounded-full pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col h-full">
+
+            {/* ── Header Bar ── */}
+            <div className="flex items-center justify-between px-8 py-5 border-b border-white/[0.08]">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
+                  <Settings size={20} className="text-fivem-orange" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black font-display text-white leading-none">Admin Settings</h2>
+                  <p className="text-[11px] text-white/30 font-mono mt-0.5">Contest Management Console</p>
+                </div>
+              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                    <span className="text-[11px] font-bold text-emerald-400 font-mono">Admin Authenticated</span>
+                  </div>
+                  <div className="text-[11px] text-white/30 font-mono px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
+                    {user?.displayName || user?.email || 'Admin'}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {!isAdmin ? (
-              <div className="space-y-6">
+              <div className="flex-1 flex items-center justify-center p-10">
                 {user ? (
-                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center space-y-2">
-                    <Lock className="mx-auto text-red-400" size={24} />
-                    <p className="text-sm font-bold text-red-400">Access Denied</p>
+                  <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                      <Lock className="text-red-400" size={24} />
+                    </div>
+                    <p className="font-bold text-red-400">Access Denied</p>
                     <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
-                    <button
-                      onClick={() => signOut(auth)}
-                      className="text-xs text-white/30 hover:text-white underline mt-2"
-                    >
+                    <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
                       Logout to switch accounts
                     </button>
                   </div>
@@ -1124,45 +1145,86 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div className="space-y-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 pt-2">
-                  <span className="text-emerald-400 text-sm font-mono font-bold flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 w-fit">
-                    <Unlock size={16} /> Admin Authenticated
-                  </span>
-                  <span className="text-[11px] text-white/40 font-mono italic mt-2 sm:mt-0 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 w-fit">
-                    Logged in as <span className="text-white/80 font-bold">{user?.displayName || user?.email || 'Admin'}</span>
-                  </span>
+              <div className="flex-1 p-8 space-y-8">
+
+                {/* ── Glassmorphism Stats Row (uitripled stats-card pattern) ── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
+                    { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
+                    { label: 'Total Entries', value: photos.length, icon: ImageIcon, color: 'purple' },
+                    { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
+                  ].map((stat, i) => {
+                    const Icon = stat.icon;
+                    const colors: Record<string, string> = {
+                      orange: 'from-fivem-orange/20 border-fivem-orange/25 [--c:theme(colors.orange.500)]',
+                      blue: 'from-blue-500/15 border-blue-500/20 [--c:theme(colors.blue.400)]',
+                      purple: 'from-purple-500/15 border-purple-500/20 [--c:theme(colors.purple.400)]',
+                      emerald: 'from-emerald-500/15 border-emerald-500/20 [--c:theme(colors.emerald.400)]',
+                      red: 'from-red-500/15 border-red-500/20 [--c:theme(colors.red.400)]',
+                    };
+                    const iconColors: Record<string, string> = { orange: 'text-fivem-orange', blue: 'text-blue-400', purple: 'text-purple-400', emerald: 'text-emerald-400', red: 'text-red-400' };
+                    return (
+                      <motion.div
+                        key={stat.label}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.07, duration: 0.4 }}
+                        className={cn("relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4", colors[stat.color])}
+                      >
+                        <div className="absolute top-0 right-0 w-20 h-20 blur-[40px] opacity-30 rounded-full bg-current" />
+                        <Icon size={16} className={cn("mb-3 relative z-10", iconColors[stat.color])} />
+                        <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">{stat.label}</p>
+                        <p className="text-sm font-black text-white leading-tight truncate">{String(stat.value)}</p>
+                      </motion.div>
+                    );
+                  })}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                  {/* Left Column: Quick Controls & Active Contest */}
-                  <div className="space-y-8 lg:block">
-                    <div className="space-y-4">
-                      <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider">Live Status</h4>
-                      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                {/* ── Main 2-col Layout ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                  {/* LEFT: Live Controls + Edit Contest */}
+                  <div className="space-y-6">
+
+                    {/* Voting Toggle — prominent card */}
+                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent" />
+                      <div className="flex items-center gap-2 mb-5">
+                        <div className="w-1 h-4 bg-fivem-orange rounded-full" />
+                        <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Live Status</h4>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
                         <div>
-                          <p className="font-bold">Voting Status</p>
-                          <p className="text-xs text-white/50">Toggle public voting for all categories</p>
+                          <p className="font-bold text-white">Voting Status</p>
+                          <p className="text-xs text-white/40 mt-0.5">Toggle public voting for all categories</p>
                         </div>
-                        <Button
+                        <button
                           onClick={() => toggleVoting(!votingOpen)}
-                          variant={votingOpen ? "destructive" : "default"}
                           className={cn(
-                            "px-4 py-2 font-bold text-xs transition-all",
-                            !votingOpen && "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                            "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                            votingOpen
+                              ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                              : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
                           )}
                         >
-                          {votingOpen ? "Close Voting" : "Open Voting"}
-                        </Button>
+                          <span className="relative z-10 flex items-center gap-2">
+                            {votingOpen ? <Lock size={14} /> : <Unlock size={14} />}
+                            {votingOpen ? 'Close Voting' : 'Open Voting'}
+                          </span>
+                        </button>
                       </div>
                     </div>
 
+                    {/* Edit Current Contest */}
                     {activeContest && (
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider flex items-center gap-2">
-                          <Settings size={14} /> Edit Current Contest
-                        </h4>
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                        <div className="px-6 pt-5 pb-4 border-b border-white/[0.07] flex items-center gap-2">
+                          <div className="w-1 h-4 bg-white/30 rounded-full" />
+                          <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Edit Current Contest</h4>
+                        </div>
+                        <div className="p-6">
                           <EditContestManager
                             activeContest={activeContest}
                             currentRules={rulesMarkdown}
@@ -1174,24 +1236,35 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Right Column: Creation & Destructive Actions */}
-                  <div className="space-y-8 h-full flex flex-col">
-                    <div className="space-y-4 flex-1">
-                      <h4 className="text-xs font-mono text-white/40 uppercase tracking-wider flex items-center gap-2">
-                        <Plus size={14} /> Create New Contest
-                      </h4>
-                      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-full border-dashed">
+                  {/* RIGHT: Create + Danger */}
+                  <div className="space-y-6 flex flex-col">
+
+                    {/* Create New Contest */}
+                    <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/15 bg-fivem-orange/[0.03] flex-1">
+                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent" />
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-fivem-orange/8 blur-[80px] rounded-full pointer-events-none" />
+                      <div className="px-6 pt-5 pb-4 border-b border-fivem-orange/[0.12] flex items-center gap-2">
+                        <div className="w-1 h-4 bg-fivem-orange rounded-full" />
+                        <h4 className="text-[11px] font-mono text-fivem-orange/70 uppercase tracking-[0.2em]">Create New Contest</h4>
+                      </div>
+                      <div className="p-6 relative z-10">
                         <CreateContestManager onCreated={() => window.location.reload()} />
                       </div>
                     </div>
 
-                    <div className="pt-8 mt-auto border-t border-red-500/20 space-y-4 relative bg-red-500/5 p-6 rounded-2xl border border-red-500/10">
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] rounded-full opacity-30" />
-                      <h4 className="text-xs font-mono text-red-500 uppercase tracking-wider font-bold flex items-center gap-2">
-                        <AlertCircle size={16} /> Danger Zone
-                      </h4>
-                      <ArchiveContest onArchived={() => window.location.reload()} />
+                    {/* Danger Zone */}
+                    <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/[0.03]">
+                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+                      <div className="px-6 pt-5 pb-4 border-b border-red-500/[0.12] flex items-center gap-2">
+                        <div className="w-1 h-4 bg-red-500/70 rounded-full" />
+                        <AlertCircle size={13} className="text-red-500/80" />
+                        <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Danger Zone</h4>
+                      </div>
+                      <div className="p-6">
+                        <ArchiveContest onArchived={() => window.location.reload()} />
+                      </div>
                     </div>
+
                   </div>
                 </div>
               </div>
