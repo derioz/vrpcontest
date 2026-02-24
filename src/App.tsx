@@ -24,7 +24,8 @@ import {
   Info,
   Share2,
   Maximize2,
-  Share
+  Share,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -240,6 +241,20 @@ export default function App() {
   }, [selectedCategory]);
 
   const handleVote = async (photoId: string) => {
+    if (!votingOpen) {
+      toast.error('Voting is currently closed');
+      return;
+    }
+
+    let currentUser = user;
+    if (!currentUser) {
+      const success = await handleDiscordLogin();
+      if (!success) return;
+      // After login, the 'user' state will eventually update, but we need the immediate user object
+      currentUser = auth.currentUser;
+      if (!currentUser) return;
+    }
+
     let currentName = playerName;
     if (!currentName) {
       const promptedName = window.prompt("Please enter your Vital RP Character Name to vote:");
@@ -251,13 +266,10 @@ export default function App() {
       setPlayerName(currentName);
       localStorage.setItem('fivem_player_name', currentName);
     }
-    if (!votingOpen) {
-      toast.error('Voting is currently closed');
-      return;
-    }
 
     try {
-      const voteRef = doc(db, 'votes', `${photoId}_${currentName}`);
+      // Use Discord UID (or Firebase UID) for strict 1-vote-per-person
+      const voteRef = doc(db, 'votes', `${photoId}_${currentUser.uid}`);
       const voteSnap = await getDoc(voteRef);
 
       if (voteSnap.exists()) {
@@ -265,7 +277,13 @@ export default function App() {
         return;
       }
 
-      await setDoc(voteRef, { photoId, voterName: currentName, timestamp: new Date().toISOString() });
+      await setDoc(voteRef, {
+        photoId,
+        voterName: currentName,
+        voterUid: currentUser.uid,
+        voterDiscord: currentUser.displayName,
+        timestamp: new Date().toISOString()
+      });
 
       const photoRef = doc(db, 'photos', photoId);
       await updateDoc(photoRef, { vote_count: increment(1) });
@@ -333,12 +351,20 @@ export default function App() {
     }
   };
 
-  const handleUploadClick = async () => {
-    if (!playerName) {
-      toast.error('Set your player name first');
-      return;
+  const handleDiscordLogin = async () => {
+    try {
+      await signInWithPopup(auth, discordProvider);
+      return true;
+    } catch (error: any) {
+      console.error("Discord Auth Error:", error);
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error('Discord authentication failed');
+      }
+      return false;
     }
+  };
 
+  const handleUploadClick = async () => {
     const isDiscordUser = user?.providerData.some(p => p.providerId === 'discord.com');
 
     if (user && isDiscordUser) {
@@ -346,14 +372,9 @@ export default function App() {
       return;
     }
 
-    try {
-      await signInWithPopup(auth, discordProvider);
+    const success = await handleDiscordLogin();
+    if (success) {
       setShowUploadModal(true);
-    } catch (error: any) {
-      console.error("Discord Auth Error:", error);
-      if (error.code !== 'auth/popup-closed-by-user') {
-        toast.error('Discord authentication failed');
-      }
     }
   };
 
@@ -435,6 +456,48 @@ export default function App() {
                   <ChevronRight size={16} className={cn("transition-transform relative z-10", selectedCategory?.id === cat.id ? "translate-x-1" : "group-hover:translate-x-1")} />
                 </button>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Account</h2>
+            <div className="p-4 bg-fivem-card rounded-xl border border-white/5">
+              {user ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-fivem-orange/10 border border-fivem-orange/20 flex items-center justify-center text-fivem-orange">
+                      {user.photoURL ? (
+                        <img src={user.photoURL} alt="" className="w-full h-full rounded-full" />
+                      ) : (
+                        <User size={20} />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold truncate">{user.displayName || 'Anonymous'}</p>
+                      <p className="text-[10px] text-white/40 font-mono uppercase truncate">
+                        {user.providerData.some(p => p.providerId === 'password') ? 'Admin Account' : 'Discord Account'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => signOut(auth)}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/5 hover:bg-red-500/10 hover:text-red-400 border border-white/5 transition-all text-xs font-bold uppercase tracking-wider"
+                  >
+                    <LogOut size={14} /> Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider text-center">Login to submit photos & vote</p>
+                  <button
+                    onClick={handleDiscordLogin}
+                    className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+                  >
+                    <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-5 h-5 invert" alt="" />
+                    Login with Discord
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 
@@ -629,21 +692,32 @@ export default function App() {
           </DialogHeader>
 
           {!isAdmin ? (
-            <LoginForm />
+            <div className="space-y-6">
+              {user ? (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center space-y-2">
+                  <Lock className="mx-auto text-red-400" size={24} />
+                  <p className="text-sm font-bold text-red-400">Access Denied</p>
+                  <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
+                  <button
+                    onClick={() => signOut(auth)}
+                    className="text-xs text-white/30 hover:text-white underline mt-2"
+                  >
+                    Logout to switch accounts
+                  </button>
+                </div>
+              ) : (
+                <LoginForm onDiscordLogin={handleDiscordLogin} />
+              )}
+            </div>
           ) : (
             <div className="space-y-8">
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
                 <span className="text-emerald-400 text-xs font-mono font-bold flex items-center gap-2">
                   <Unlock size={14} /> Admin Authenticated
                 </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => signOut(auth)}
-                  className="text-white/40 hover:text-white"
-                >
-                  Logout
-                </Button>
+                <span className="text-[10px] text-white/40 font-mono italic">
+                  Logged in as {user.displayName}
+                </span>
               </div>
 
               <div className="space-y-4">
@@ -896,7 +970,7 @@ function UploadForm({ categoryName, discordName, onUpload, onClose }: { category
   );
 }
 
-function LoginForm() {
+function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -952,6 +1026,24 @@ function LoginForm() {
       >
         {loading ? 'Authenticating...' : 'Secure Login'}
       </Button>
+
+      <div className="relative py-4">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-white/10"></span>
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-fivem-card px-2 text-white/20 font-mono">Or Admin via OAuth</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onDiscordLogin()}
+        className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+      >
+        <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-5 h-5 invert" alt="" />
+        Login with Discord
+      </button>
     </form>
   );
 }
