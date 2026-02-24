@@ -1403,7 +1403,7 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
         />
       </div>
 
-      <div className="space-y-4 relative z-10">
+      <div className="space-y-4 relative z-30">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Edit Categories</label>
 
         {categories.length > 0 && (
@@ -1669,7 +1669,7 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         />
       </div>
 
-      <div className="space-y-4 relative z-10">
+      <div className="space-y-4 relative z-30">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Define Categories</label>
 
         {/* Current Categories List */}
