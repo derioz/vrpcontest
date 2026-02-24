@@ -1066,7 +1066,7 @@ function ArchiveContest({ onArchived }: { onArchived: () => void }) {
         batch.update(d.ref, { is_active: false });
       });
 
-      batch.update(doc(db, 'settings', 'global'), { votingOpen: false });
+      batch.set(doc(db, 'settings', 'global'), { votingOpen: false }, { merge: true });
 
       if (nextName) {
         const newContestRef = doc(collection(db, 'contests'));
@@ -1188,9 +1188,8 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         });
       });
 
-      // 4. Overwrite global Rules if provided
       if (rules) {
-        batch.update(doc(db, 'settings', 'global'), { rulesMarkdown: rules });
+        batch.set(doc(db, 'settings', 'global'), { rulesMarkdown: rules }, { merge: true });
       }
 
       await batch.commit();
