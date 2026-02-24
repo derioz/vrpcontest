@@ -26,9 +26,7 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Initialize Discord OAuth Provider
-export const discordProvider = new OAuthProvider('discord.com');
+// Initialize Discord OAuth Provider (Custom OIDC via Firebase Identity Platform)
+export const discordProvider = new OAuthProvider('oidc.discord');
 discordProvider.addScope('identify');
 discordProvider.addScope('email');
-// Note: We don't expose the Discord Client Secret on the frontend.
-// The integration is handled entirely by Firebase Auth in the cloud.

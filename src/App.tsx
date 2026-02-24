@@ -124,6 +124,19 @@ export default function App() {
         return;
       }
 
+      // Debug: Log user info to help troubleshoot
+      console.log('Firebase Auth User:', {
+        uid: currentUser.uid,
+        displayName: currentUser.displayName,
+        email: currentUser.email,
+        providerData: currentUser.providerData.map(p => ({
+          providerId: p.providerId,
+          uid: p.uid,
+          displayName: p.displayName,
+          email: p.email
+        }))
+      });
+
       // Check for email user (legacy admin)
       const isEmailUser = currentUser.providerData.some(p => p.providerId === 'password');
       if (isEmailUser) {
@@ -131,22 +144,31 @@ export default function App() {
         return;
       }
 
-      // Check for Discord admin
-      const discordProfile = currentUser.providerData.find(p => p.providerId === 'discord.com');
-      if (discordProfile) {
-        try {
-          // Check admins collection for the discord user ID (using uid)
-          const adminDoc = await getDoc(doc(db, 'admins', discordProfile.uid));
-          if (adminDoc.exists()) {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
-          }
-        } catch (error) {
-          console.error("Error checking admin status:", error);
-          setIsAdmin(false);
+      // Check for Discord admin using Firebase UID
+      try {
+        // Try Firebase UID first (most reliable)
+        const adminByUid = await getDoc(doc(db, 'admins', currentUser.uid));
+        if (adminByUid.exists()) {
+          console.log('Admin matched by Firebase UID:', currentUser.uid);
+          setIsAdmin(true);
+          return;
         }
-      } else {
+
+        // Also try the OIDC provider UID
+        const discordProfile = currentUser.providerData.find(p => p.providerId === 'oidc.discord');
+        if (discordProfile && discordProfile.uid !== currentUser.uid) {
+          const adminByProvider = await getDoc(doc(db, 'admins', discordProfile.uid));
+          if (adminByProvider.exists()) {
+            console.log('Admin matched by Discord provider UID:', discordProfile.uid);
+            setIsAdmin(true);
+            return;
+          }
+        }
+
+        console.log('No admin match found. Check your admins collection for:', currentUser.uid, discordProfile?.uid);
+        setIsAdmin(false);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
         setIsAdmin(false);
       }
     });
@@ -376,7 +398,7 @@ export default function App() {
   };
 
   const handleUploadClick = async () => {
-    const isDiscordUser = user?.providerData.some(p => p.providerId === 'discord.com');
+    const isDiscordUser = user?.providerData.some(p => p.providerId === 'oidc.discord');
 
     if (user && isDiscordUser) {
       setShowUploadModal(true);
@@ -687,7 +709,7 @@ export default function App() {
           </DialogHeader>
           <UploadForm
             categoryName={selectedCategory?.name || 'Category'}
-            discordName={user?.displayName || 'Authenticated User'}
+            discordName={user?.displayName || user?.providerData?.[0]?.displayName || user?.email || 'Authenticated User'}
             onClose={() => setShowUploadModal(false)}
             onUpload={async (imageData, caption, discordName, formPlayerName) => {
               await handleUpload(imageData, caption, discordName, formPlayerName);
