@@ -356,10 +356,21 @@ export default function App() {
       await signInWithPopup(auth, discordProvider);
       return true;
     } catch (error: any) {
-      console.error("Discord Auth Error:", error);
-      if (error.code !== 'auth/popup-closed-by-user') {
-        toast.error('Discord authentication failed');
+      console.error("Detailed Discord Auth Error:", error);
+
+      if (error.code === 'auth/popup-closed-by-user') {
+        return false;
       }
+
+      // Handle common configuration errors with helpful messages
+      if (error.code === 'auth/unauthorized-domain') {
+        toast.error('This domain is not authorized in Firebase. Add your Vercel URL to "Authorized Domains" in the Firebase Console.');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        toast.error('Discord login is not enabled in Firebase. Enable it in the "Sign-in method" tab.');
+      } else {
+        toast.error(`Authentication failed: ${error.message || 'Unknown error'}`);
+      }
+
       return false;
     }
   };
