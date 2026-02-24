@@ -115,13 +115,39 @@ export default function App() {
 
   // Listen for Firebase Auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      // For now, if they are logged in via email (password), they are an admin.
-      // Discord users will be handled separately (but also generate a currentUser).
-      // We check if the login provider is password to determine admin vs standard discord user.
-      const isEmailUser = currentUser?.providerData.some(p => p.providerId === 'password');
-      setIsAdmin(!!isEmailUser);
+
+      if (!currentUser) {
+        setIsAdmin(false);
+        return;
+      }
+
+      // Check for email user (legacy admin)
+      const isEmailUser = currentUser.providerData.some(p => p.providerId === 'password');
+      if (isEmailUser) {
+        setIsAdmin(true);
+        return;
+      }
+
+      // Check for Discord admin
+      const discordProfile = currentUser.providerData.find(p => p.providerId === 'discord.com');
+      if (discordProfile) {
+        try {
+          // Check admins collection for the discord user ID (using uid)
+          const adminDoc = await getDoc(doc(db, 'admins', discordProfile.uid));
+          if (adminDoc.exists()) {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
     });
     return () => unsubscribe();
   }, []);
