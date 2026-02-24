@@ -1248,18 +1248,19 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
       <button onClick={() => insertText('[Link Name](', ')')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Link">
         <LinkIcon size={16} />
       </button>
-      <div className="relative">
-        <button onClick={() => setShowEmoji(!showEmoji)} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Emoji">
+      <div className="relative static-emoji-wrapper">
+        <button onClick={(e) => { e.preventDefault(); setShowEmoji(!showEmoji); }} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Emoji">
           <Smile size={16} />
         </button>
         {showEmoji && (
-          <div className="absolute top-10 right-0 z-50 shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1">
+          <div className="absolute top-10 right-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
             <EmojiPicker
               theme={EmojiTheme.DARK}
               onEmojiClick={(e) => {
                 insertText(e.emoji);
                 setShowEmoji(false);
               }}
+              width="100%"
             />
           </div>
         )}
@@ -1407,13 +1408,13 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2 relative">
-          <div className="relative shrink-0">
-            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+        <div className="flex flex-col sm:flex-row gap-2 relative z-50">
+          <div className="relative shrink-0 static-emoji-wrapper">
+            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
               {catEmoji}
             </Button>
             {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[100] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+              <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
                 <EmojiPicker
                   theme={EmojiTheme.DARK}
                   onEmojiClick={(e) => {
@@ -1673,13 +1674,13 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         )}
 
         {/* Builder Row */}
-        <div className="flex flex-col sm:flex-row gap-2 relative">
-          <div className="relative shrink-0">
-            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+        <div className="flex flex-col sm:flex-row gap-2 relative z-50">
+          <div className="relative shrink-0 static-emoji-wrapper">
+            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
               {catEmoji}
             </Button>
             {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[100] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+              <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
                 <EmojiPicker
                   theme={EmojiTheme.DARK}
                   onEmojiClick={(e) => {
