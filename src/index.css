@@ -67,17 +67,3 @@
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
-
-/* Force EmojiPickerReact Background and Variables */
-.EmojiPickerReact.epr-dark-theme {
-  --epr-bg-color: #18181b !important;
-  /* var(--color-fivem-card) */
-  --epr-category-label-bg-color: #18181b !important;
-  background-color: var(--epr-bg-color) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-.EmojiPickerReact {
-  --epr-picker-border-radius: 0.75rem !important;
-  /* match rounded-xl */
-}

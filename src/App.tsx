@@ -36,7 +36,8 @@ import { useDropzone } from 'react-dropzone';
 import { Toaster, toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import { cn } from './lib/utils';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
@@ -1270,13 +1271,15 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
         </button>
         {showEmoji && (
           <div className="absolute top-10 right-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-            <EmojiPicker
-              theme={EmojiTheme.DARK}
-              onEmojiClick={(e) => {
-                insertText(e.emoji);
+            <Picker
+              data={data}
+              theme="dark"
+              onEmojiSelect={(e: any) => {
+                insertText(e.native);
                 setShowEmoji(false);
               }}
-              width="100%"
+              previewPosition="none"
+              navPosition="bottom"
             />
           </div>
         )}
@@ -1431,13 +1434,15 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
             </Button>
             {showEmojiPicker && (
               <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                <EmojiPicker
-                  theme={EmojiTheme.DARK}
-                  onEmojiClick={(e) => {
-                    setCatEmoji(e.emoji);
+                <Picker
+                  data={data}
+                  theme="dark"
+                  onEmojiSelect={(e: any) => {
+                    setCatEmoji(e.native);
                     setShowEmojiPicker(false);
                   }}
-                  width="100%"
+                  previewPosition="none"
+                  navPosition="bottom"
                 />
               </div>
             )}
@@ -1697,13 +1702,15 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
             </Button>
             {showEmojiPicker && (
               <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                <EmojiPicker
-                  theme={EmojiTheme.DARK}
-                  onEmojiClick={(e) => {
-                    setCatEmoji(e.emoji);
+                <Picker
+                  data={data}
+                  theme="dark"
+                  onEmojiSelect={(e: any) => {
+                    setCatEmoji(e.native);
                     setShowEmojiPicker(false);
                   }}
-                  width="100%"
+                  previewPosition="none"
+                  navPosition="bottom"
                 />
               </div>
             )}
