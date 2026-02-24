@@ -19,7 +19,9 @@ import {
   AlertCircle,
   FileText,
   Share2,
-  LogOut
+  LogOut,
+  Info,
+  Maximize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
