@@ -1405,7 +1405,7 @@ export default function App() {
           <div className="absolute left-1/2 -translate-x-1/2 bottom-[-60px] w-[600px] h-[200px] bg-fivem-orange/[0.04] blur-[80px] rounded-full" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-10">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-7">
           <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8">
 
             {/* Left — branding */}
@@ -1449,8 +1449,7 @@ export default function App() {
               <div className="flex items-center gap-5 text-[11px] font-mono uppercase tracking-[0.15em]">
                 {[
                   { label: 'Website', href: 'http://vitalrp.net' },
-                  { label: 'Discord', href: '#' },
-                  { label: 'Rules', href: '#rules' },
+                  { label: 'Discord', href: 'http://discord.gg/vitalrp' },
                 ].map(link => (
                   <a
                     key={link.label}
