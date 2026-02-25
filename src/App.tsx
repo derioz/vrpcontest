@@ -491,40 +491,64 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <Toaster position="top-right" theme="dark" />
 
-      {/* Dynamic Dock Navbar (uitripled inspired) */}
-      <div className="fixed top-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-6">
-        <motion.nav
-          initial={{ y: -40, opacity: 0, scale: 0.95 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
-          className="pointer-events-auto flex items-stretch gap-2 p-1.5 rounded-[2rem] bg-[#030303]/60 backdrop-blur-[32px] border border-white/[0.08] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-white/15 hover:bg-[#030303]/80 transition-all duration-500 group/nav"
-        >
-          {/* Logo Section */}
-          <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-transparent border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] overflow-hidden shrink-0">
-            <div className="absolute inset-0 bg-fivem-orange/20 blur-md opacity-0 group-hover/nav:opacity-100 transition-opacity duration-700" />
-            <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-6 h-6 object-contain relative z-10 drop-shadow-[0_0_12px_rgba(234,88,12,0.8)]" />
-          </div>
+      {/* Top-Anchored Command Bar (Unique Non-Pill Design) */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        {/* The Glass Backdrop — Only blurs what passes directly behind the 64px tall header */}
+        <div className="absolute inset-0 h-16 bg-[#030303]/40 backdrop-blur-2xl border-b border-white/[0.04] mask-image:linear-gradient(to_bottom,black_60%,transparent)]" />
 
-          {/* Title Segment */}
-          <div className="hidden md:flex flex-col justify-center px-6 border-x border-white/[0.05] bg-white/[0.02] mx-1 relative overflow-hidden group-hover/nav:bg-white/[0.04] transition-colors duration-500">
-            {/* Animated bottom highlight line */}
-            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent translate-y-full group-hover/nav:translate-y-0 transition-transform duration-500" />
+        {/* The Animated Glow Line at the very top edge */}
+        <motion.div
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={{ scaleX: 1, opacity: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent"
+        />
 
-            <h1 className="font-display text-sm font-black tracking-widest uppercase text-white/90 group-hover/nav:text-white transition-colors">
-              <span className="text-fivem-orange drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]">Vital RP</span>
-            </h1>
-            <p className="text-[9px] font-mono text-white/40 uppercase tracking-[0.3em] mt-0.5">Photo Contest</p>
-          </div>
+        <div className="relative h-16 max-w-[1400px] mx-auto px-6 flex items-center justify-between pointer-events-none">
 
-          {/* User/Actions Section */}
-          <div className="flex items-center gap-1.5 pl-2 pr-1">
+          {/* Left: Branding — pure minimalist geometry */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="pointer-events-auto flex items-center gap-4 group/brand"
+          >
+            {/* The Orb */}
+            <div className="relative w-8 h-8 rounded-full flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-fivem-orange/10 border border-fivem-orange/20 scale-100 group-hover/brand:scale-110 transition-transform duration-500" />
+              <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
+            </div>
+            {/* The Typography */}
+            <div className="flex flex-col">
+              <span className="text-white font-display font-black text-xs tracking-[0.2em] leading-none mb-1">
+                VITAL RP
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-px bg-fivem-orange/50" />
+                <span className="text-white/40 font-mono text-[9px] uppercase tracking-[0.4em] leading-none">
+                  {activeContest?.name || 'Photo Contest'}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Right: Actions — floating glass tags */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="pointer-events-auto flex items-center gap-3"
+          >
             {user ? (
-              <div className="flex items-center gap-2 px-3 h-10 rounded-full bg-white/[0.04] border border-white/[0.05] hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                <span className="text-[11px] font-mono font-bold text-white/80 hidden sm:block tracking-widest uppercase">{user.displayName?.split(' ')[0] || user.email?.split('@')[0]}</span>
+              <div className="group/user relative flex items-center gap-3 px-1.5 py-1.5 rounded-full hover:bg-white/[0.04] transition-colors duration-500 border border-transparent hover:border-white/[0.05]">
+                <div className="flex flex-col items-end pr-1 hidden sm:flex">
+                  <span className="text-[10px] font-bold text-white/90 leading-none mb-1">{user.displayName?.split(' ')[0] || user.email?.split('@')[0]}</span>
+                  <span className="text-[8px] font-mono tracking-[0.2em] uppercase text-white/30 leading-none">Online</span>
+                </div>
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full ring-2 ring-white/10 shadow-lg" />
+                  <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full ring-1 ring-white/10 group-hover/user:ring-white/30 transition-all" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-fivem-orange/20 flex items-center justify-center text-[10px] font-bold text-fivem-orange ring-1 ring-fivem-orange/50">
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
                     {user.displayName?.[0] || user.email?.[0] || 'U'}
                   </div>
                 )}
@@ -532,30 +556,36 @@ export default function App() {
             ) : (
               <button
                 onClick={handleDiscordLogin}
-                className="relative h-10 flex items-center gap-2.5 px-5 rounded-full bg-[#5865F2]/10 border border-[#5865F2]/20 hover:bg-[#5865F2] hover:border-[#5865F2] hover:shadow-[0_0_20px_rgba(88,101,242,0.4)] transition-all duration-300 group/btn"
+                className="group/login relative px-5 h-9 rounded-full flex items-center gap-2 overflow-hidden bg-white/[0.03] border border-white/[0.08] hover:border-[#5865F2]/50 transition-all duration-500"
               >
-                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-4 h-4 invert opacity-70 group-hover/btn:opacity-100 group-hover/btn:brightness-0 transition-all duration-300" style={{ filter: 'brightness(0) saturate(100%) invert(43%) sepia(87%) saturate(3015%) hue-rotate(219deg) brightness(96%) contrast(97%)' }} alt="" />
-                <span className="text-[11px] font-bold tracking-widest uppercase text-[#5865F2] group-hover/btn:text-white transition-colors duration-300">Login</span>
+                <div className="absolute inset-0 bg-[#5865F2]/10 translate-y-full group-hover/login:translate-y-0 transition-transform duration-500 ease-out" />
+                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-3.5 h-3.5 invert opacity-50 group-hover/login:opacity-100 group-hover/login:invert-0 transition-all duration-500 relative z-10" style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }} alt="" />
+                <span className="text-[10px] font-display font-bold tracking-[0.15em] uppercase text-white/60 group-hover/login:text-[#5865F2] transition-colors duration-500 relative z-10">Sign In</span>
               </button>
             )}
+
+            <div className="w-px h-6 bg-gradient-to-b from-transparent via-white/10 to-transparent mx-1" />
 
             <button
               onClick={() => isAdmin ? setShowAdminModal(true) : setShowLoginModal(true)}
               className={cn(
-                "relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 group/spin",
+                "group/setting relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-500",
                 isAdmin
-                  ? "bg-fivem-orange/10 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange hover:text-white hover:shadow-[0_0_15px_rgba(234,88,12,0.4)]"
-                  : "bg-white/[0.04] text-white/50 border border-white/[0.05] hover:bg-white/10 hover:text-white hover:border-white/20"
+                  ? "hover:bg-fivem-orange/10 border border-transparent hover:border-fivem-orange/30"
+                  : "hover:bg-white/[0.06] border border-transparent hover:border-white/[0.05]"
               )}
             >
               {isAdmin && (
-                <div className="absolute inset-0 rounded-full bg-fivem-orange/20 animate-ping opacity-20" />
+                <div className="absolute inset-0 rounded-full bg-fivem-orange/5 animate-pulse opacity-50" />
               )}
-              <Settings size={16} className={cn("transition-transform duration-[800ms] ease-out", isAdmin ? "group-hover/spin:rotate-180" : "group-hover/spin:rotate-90")} />
-              {isAdmin && <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-fivem-orange border-2 border-[#030303]" />}
+              <Settings size={15} className={cn(
+                "transition-all duration-[1s] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                isAdmin ? "text-fivem-orange group-hover/setting:rotate-[360deg]" : "text-white/40 group-hover/setting:text-white/80 group-hover/setting:rotate-90"
+              )} />
+              {isAdmin && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />}
             </button>
-          </div>
-        </motion.nav>
+          </motion.div>
+        </div>
       </div>
 
       {/* Hero Banner — GlowyWavesHero + NewHeroSection patterns from uitripled */}
