@@ -491,49 +491,69 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <Toaster position="top-right" theme="dark" />
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 glass border-b border-white/10 px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      {/* Floating Glass Navbar (uitripled inspired) */}
+      <div className="sticky top-6 z-50 w-full px-6 pointer-events-none flex justify-center mt-6">
+        <motion.nav
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="pointer-events-auto flex items-center justify-between gap-8 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl px-5 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ring-1 ring-white/5"
+        >
+          {/* Left: Branding */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 shrink-0">
-              <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.5)]" />
+            <div className="w-8 h-8 shrink-0 rounded-full bg-white/[0.03] border border-white/5 p-1.5 flex items-center justify-center">
+              <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.6)]" />
             </div>
-            <div>
-              <h1 className="font-display text-base sm:text-lg font-black tracking-tight uppercase text-white">
+            <div className="hidden sm:block">
+              <h1 className="font-display text-sm font-black tracking-tight uppercase text-white flex items-center gap-2">
                 <span className="text-fivem-orange">VITAL RP</span>
-                <span className="text-white/30 mx-2">—</span>
+                <div className="w-1 h-1 rounded-full bg-white/30" />
                 <span className="text-white">{activeContest?.name || 'PHOTO CONTEST'}</span>
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
             {user ? (
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
-                {user.photoURL && <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full" />}
-                <span className="text-xs font-bold text-white/70 hidden sm:block">{user.displayName || user.email}</span>
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full pl-1.5 pr-3 py-1 hover:bg-white/10 transition-colors">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full ring-1 ring-white/20" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-fivem-orange/20 flex items-center justify-center text-[10px] font-bold text-fivem-orange">
+                    {user.displayName?.[0] || user.email?.[0] || 'U'}
+                  </div>
+                )}
+                <span className="text-xs font-bold text-white/80 hidden sm:block">{user.displayName || user.email?.split('@')[0]}</span>
               </div>
             ) : (
               <button
                 onClick={handleDiscordLogin}
-                className="flex items-center gap-2 bg-[#5865F2]/20 border border-[#5865F2]/30 text-white/80 hover:text-white hover:bg-[#5865F2]/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                className="group relative flex items-center gap-2 overflow-hidden rounded-full bg-[#5865F2]/10 border border-[#5865F2]/30 px-4 py-1.5 text-xs font-bold text-[#5865F2] transition-all hover:bg-[#5865F2] hover:text-white"
               >
-                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-4 h-4 invert" alt="" />
-                Login
+                <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300" />
+                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-3.5 h-3.5 invert transition-all group-hover:brightness-0 opacity-80 group-hover:opacity-100" style={{ filter: 'brightness(0) saturate(100%) invert(43%) sepia(87%) saturate(3015%) hue-rotate(219deg) brightness(96%) contrast(97%)' }} alt="" />
+                <span className="relative z-10 transition-colors">Login</span>
               </button>
             )}
+
+            <div className="w-px h-4 bg-white/10 mx-1" />
+
             <button
               onClick={() => isAdmin ? setShowAdminModal(true) : setShowLoginModal(true)}
               className={cn(
-                "p-2 rounded-lg transition-colors",
-                isAdmin ? "bg-fivem-orange text-white" : "bg-white/5 text-white/50 hover:text-white"
+                "relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
+                isAdmin
+                  ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange hover:text-white hover:shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                  : "bg-white/5 text-white/40 border border-white/5 hover:bg-white/10 hover:text-white hover:border-white/20"
               )}
             >
-              <Settings size={20} />
+              <Settings size={14} className={cn("transition-transform duration-500", isAdmin ? "animate-spin-slow" : "group-hover:rotate-90")} />
+              {isAdmin && <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-fivem-orange animate-pulse" />}
             </button>
           </div>
-        </div>
-      </header>
+        </motion.nav>
+      </div>
 
       {/* Hero Banner — GlowyWavesHero + NewHeroSection patterns from uitripled */}
       {activeContest ? (() => {
