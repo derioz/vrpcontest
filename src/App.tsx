@@ -493,8 +493,8 @@ export default function App() {
 
       {/* Top-Anchored Command Bar (Unique Non-Pill Design) */}
       <div className="fixed top-0 left-0 right-0 z-50">
-        {/* The Glass Backdrop — Only blurs what passes directly behind the 64px tall header */}
-        <div className="absolute inset-0 h-16 bg-[#030303]/40 backdrop-blur-2xl border-b border-white/[0.04] mask-image:linear-gradient(to_bottom,black_60%,transparent)]" />
+        {/* The Glass Backdrop — Only blurs what passes directly behind the taller header */}
+        <div className="absolute inset-0 h-24 bg-[#030303]/40 backdrop-blur-2xl border-b border-white/[0.04] mask-image:linear-gradient(to_bottom,black_60%,transparent)]" />
 
         {/* The Animated Glow Line at the very top edge */}
         <motion.div
@@ -504,7 +504,7 @@ export default function App() {
           className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent"
         />
 
-        <div className="relative h-16 max-w-[1400px] mx-auto px-6 flex items-center justify-between pointer-events-none">
+        <div className="relative h-24 max-w-[1400px] mx-auto px-8 flex items-center justify-between pointer-events-none">
 
           {/* Left: Branding — pure minimalist geometry */}
           <motion.div
@@ -514,18 +514,18 @@ export default function App() {
             className="pointer-events-auto flex items-center gap-4 group/brand"
           >
             {/* The Orb */}
-            <div className="relative w-8 h-8 rounded-full flex items-center justify-center">
+            <div className="relative w-10 h-10 rounded-full flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-fivem-orange/10 border border-fivem-orange/20 scale-100 group-hover/brand:scale-110 transition-transform duration-500" />
-              <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
+              <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-6 h-6 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
             </div>
             {/* The Typography */}
             <div className="flex flex-col">
-              <span className="text-white font-display font-black text-xs tracking-[0.2em] leading-none mb-1">
+              <span className="text-white font-display font-black text-sm tracking-[0.2em] leading-none mb-1">
                 VITAL RP
               </span>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-px bg-fivem-orange/50" />
-                <span className="text-white/40 font-mono text-[9px] uppercase tracking-[0.4em] leading-none">
+                <span className="w-3 h-px bg-fivem-orange/50" />
+                <span className="text-white/40 font-mono text-[10px] uppercase tracking-[0.4em] leading-none">
                   {activeContest?.name || 'Photo Contest'}
                 </span>
               </div>
@@ -540,15 +540,15 @@ export default function App() {
             className="pointer-events-auto flex items-center gap-3"
           >
             {user ? (
-              <div className="group/user relative flex items-center gap-3 px-1.5 py-1.5 rounded-full hover:bg-white/[0.04] transition-colors duration-500 border border-transparent hover:border-white/[0.05]">
+              <div className="group/user relative flex items-center gap-3 px-2 py-2 rounded-full hover:bg-white/[0.04] transition-colors duration-500 border border-transparent hover:border-white/[0.05]">
                 <div className="flex flex-col items-end pr-1 hidden sm:flex">
-                  <span className="text-[10px] font-bold text-white/90 leading-none mb-1">{user.displayName?.split(' ')[0] || user.email?.split('@')[0]}</span>
-                  <span className="text-[8px] font-mono tracking-[0.2em] uppercase text-white/30 leading-none">Online</span>
+                  <span className="text-xs font-bold text-white/90 leading-none mb-1">{user.displayName?.split(' ')[0] || user.email?.split('@')[0]}</span>
+                  <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-white/30 leading-none">Online</span>
                 </div>
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full ring-1 ring-white/10 group-hover/user:ring-white/30 transition-all" />
+                  <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full ring-1 ring-white/10 group-hover/user:ring-white/30 transition-all" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
+                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
                     {user.displayName?.[0] || user.email?.[0] || 'U'}
                   </div>
                 )}
@@ -556,11 +556,11 @@ export default function App() {
             ) : (
               <button
                 onClick={handleDiscordLogin}
-                className="group/login relative px-5 h-9 rounded-full flex items-center gap-2 overflow-hidden bg-white/[0.03] border border-white/[0.08] hover:border-[#5865F2]/50 transition-all duration-500"
+                className="group/login relative px-6 h-11 rounded-full flex items-center gap-2 overflow-hidden bg-white/[0.03] border border-white/[0.08] hover:border-[#5865F2]/50 transition-all duration-500"
               >
                 <div className="absolute inset-0 bg-[#5865F2]/10 translate-y-full group-hover/login:translate-y-0 transition-transform duration-500 ease-out" />
-                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-3.5 h-3.5 invert opacity-50 group-hover/login:opacity-100 group-hover/login:invert-0 transition-all duration-500 relative z-10" style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }} alt="" />
-                <span className="text-[10px] font-display font-bold tracking-[0.15em] uppercase text-white/60 group-hover/login:text-[#5865F2] transition-colors duration-500 relative z-10">Sign In</span>
+                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-4 h-4 invert opacity-50 group-hover/login:opacity-100 group-hover/login:invert-0 transition-all duration-500 relative z-10" style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }} alt="" />
+                <span className="text-xs font-display font-bold tracking-[0.15em] uppercase text-white/60 group-hover/login:text-[#5865F2] transition-colors duration-500 relative z-10">Sign In</span>
               </button>
             )}
 
@@ -569,7 +569,7 @@ export default function App() {
             <button
               onClick={() => isAdmin ? setShowAdminModal(true) : setShowLoginModal(true)}
               className={cn(
-                "group/setting relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-500",
+                "group/setting relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-500",
                 isAdmin
                   ? "hover:bg-fivem-orange/10 border border-transparent hover:border-fivem-orange/30"
                   : "hover:bg-white/[0.06] border border-transparent hover:border-white/[0.05]"
@@ -578,11 +578,11 @@ export default function App() {
               {isAdmin && (
                 <div className="absolute inset-0 rounded-full bg-fivem-orange/5 animate-pulse opacity-50" />
               )}
-              <Settings size={15} className={cn(
+              <Settings size={18} className={cn(
                 "transition-all duration-[1s] ease-[cubic-bezier(0.22,1,0.36,1)]",
                 isAdmin ? "text-fivem-orange group-hover/setting:rotate-[360deg]" : "text-white/40 group-hover/setting:text-white/80 group-hover/setting:rotate-90"
               )} />
-              {isAdmin && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />}
+              {isAdmin && <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />}
             </button>
           </motion.div>
         </div>
@@ -601,7 +601,7 @@ export default function App() {
         };
 
         return (
-          <section className="relative overflow-hidden border-b border-white/10" style={{ minHeight: '580px' }}>
+          <section className="relative overflow-hidden border-b border-white/10 pt-28" style={{ minHeight: '640px' }}>
             {/* ── Deep dark base ── */}
             <div className="absolute inset-0 bg-[#060606]" />
 
