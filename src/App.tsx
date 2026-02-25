@@ -548,7 +548,7 @@ export default function App() {
         };
 
         return (
-          <section className="relative overflow-hidden border-b border-white/10" style={{ minHeight: '540px' }}>
+          <section className="relative overflow-hidden border-b border-white/10" style={{ minHeight: '580px' }}>
             {/* ── Deep dark base ── */}
             <div className="absolute inset-0 bg-[#060606]" />
 
@@ -562,50 +562,23 @@ export default function App() {
             {/* ── Grid dot overlay (uitripled texture detail) ── */}
             <div className="absolute inset-0 opacity-[0.025] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
-            {/* ── Right-side decorative panel ── */}
-            <div className="absolute right-0 top-0 w-[45%] h-full pointer-events-none hidden lg:block" style={{ clipPath: 'polygon(10% 0, 100% 0, 100% 100%, 0% 100%)' }}>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#060606] via-[#060606]/60 to-transparent z-10" />
-              {/* Film-strip rows */}
-              <div className="w-full h-full grid grid-rows-4 gap-0 opacity-15">
-                {['linear-gradient(135deg, #1a1a1a, #222)', 'linear-gradient(135deg, #161616, #1e1e1e)', 'linear-gradient(135deg, #1c1c1c, #252525)', 'linear-gradient(135deg, #181818, #202020)'].map((bg, i) => (
-                  <div key={i} className="border-y border-white/[0.04]" style={{ background: bg }} />
-                ))}
-              </div>
-              {/* Giant aperture watermark */}
-              <div className="absolute right-12 top-1/2 -translate-y-1/2 w-80 h-80 opacity-[0.04] z-20">
-                <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="100" cy="100" r="98" stroke="white" strokeWidth="2" />
-                  <circle cx="100" cy="100" r="65" stroke="white" strokeWidth="1.5" />
-                  <circle cx="100" cy="100" r="32" stroke="white" strokeWidth="1" />
-                  {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-                    <line key={i}
-                      x1={100 + 68 * Math.cos((deg * Math.PI) / 180)}
-                      y1={100 + 68 * Math.sin((deg * Math.PI) / 180)}
-                      x2={100 + 96 * Math.cos(((deg + 55) * Math.PI) / 180)}
-                      y2={100 + 96 * Math.sin(((deg + 55) * Math.PI) / 180)}
-                      stroke="white" strokeWidth="1.5"
-                    />
-                  ))}
-                </svg>
-              </div>
-            </div>
-
             {/* ── Film grain ── */}
             <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
               backgroundSize: '128px 128px'
             }} />
 
-            {/* ── Main content (uitripled containerVariants stagger) ── */}
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-24 flex flex-col justify-center" style={{ minHeight: '540px' }}>
+            {/* ── Main 2-col layout ── */}
+            <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center" style={{ minHeight: '580px', paddingTop: '4rem', paddingBottom: '4rem' }}>
+
+              {/* LEFT — text content */}
               <motion.div
                 variants={heroContainerVariants}
                 initial="hidden"
                 animate="visible"
-                className="max-w-2xl"
+                className="flex flex-col"
               >
-
-                {/* Badge pill — uitripled frosted pill pattern */}
+                {/* Badge pill */}
                 <motion.div variants={heroItemVariants} className="mb-8">
                   <div className="inline-flex items-center gap-3 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-fivem-orange">
                     <div className="p-1.5 bg-fivem-orange/20 rounded-full">
@@ -622,30 +595,32 @@ export default function App() {
                   </div>
                 </motion.div>
 
-                {/* Contest title — gradient clip text (uitripled NewHeroSection pattern) */}
+                {/* Title */}
                 <motion.h2
                   variants={heroItemVariants}
-                  className="text-5xl md:text-6xl xl:text-7xl font-black font-display tracking-tight leading-[0.93] mb-5"
+                  className="text-5xl md:text-6xl xl:text-7xl font-black font-display tracking-tight leading-[0.92] mb-5"
                 >
-                  <span className="text-white">{activeContest.name.split(' ')[0]}{activeContest.name.split(' ').length > 1 ? ' ' : ''}</span>
+                  <span className="text-white">{activeContest.name.split(' ')[0]}</span>
                   {activeContest.name.split(' ').length > 1 && (
-                    <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
-                      {activeContest.name.split(' ').slice(1).join(' ')}
-                    </span>
+                    <>
+                      {' '}
+                      <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
+                        {activeContest.name.split(' ').slice(1).join(' ')}
+                      </span>
+                    </>
                   )}
                 </motion.h2>
 
                 {/* Tagline */}
-                <motion.p variants={heroItemVariants} className="text-white/40 text-base md:text-lg leading-relaxed mb-8 max-w-md">
-                  Capture the moment. Submit your best in-game screenshot —<br className="hidden md:block" />
-                  let the community pick their favorite.
+                <motion.p variants={heroItemVariants} className="text-white/45 text-base md:text-lg leading-relaxed mb-8 max-w-md">
+                  Capture the moment. Submit your best in-game screenshot and let the community pick their favorite.
                 </motion.p>
 
-                {/* CTA buttons */}
+                {/* CTAs */}
                 <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3 mb-10">
                   <button
                     onClick={handleUploadClick}
-                    className="group relative flex items-center gap-2.5 bg-fivem-orange text-white font-bold px-8 py-4 rounded-2xl text-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_40px_rgba(234,88,12,0.55)]"
+                    className="group relative flex items-center gap-2.5 bg-fivem-orange text-white font-bold px-8 py-4 rounded-2xl text-sm overflow-hidden transition-all hover:-translate-y-1 hover:shadow-[0_12px_50px_rgba(234,88,12,0.6)]"
                   >
                     <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
@@ -656,68 +631,138 @@ export default function App() {
                   </button>
                   <a
                     href="#rules"
-                    className="group flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 hover:border-white/20 text-white/70 hover:text-white font-bold px-7 py-4 rounded-2xl transition-all hover:-translate-y-0.5 text-sm backdrop-blur-sm"
+                    className="flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 text-white/70 hover:text-white font-bold px-7 py-4 rounded-2xl transition-all hover:-translate-y-0.5 text-sm backdrop-blur-sm"
                   >
                     <FileText size={15} />
                     Contest Rules
                   </a>
                 </motion.div>
 
-                {/* Category pills — uitripled highlight pills pattern */}
-                {categories.length > 0 && (
-                  <motion.div variants={heroItemVariants} className="flex flex-wrap items-center gap-2 mb-10">
-                    <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 mr-1">Themes:</span>
-                    {categories.slice(0, 5).map((cat, i) => (
-                      <motion.button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat)}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.5 + i * 0.06 }}
-                        className={cn(
-                          'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur-sm transition-all hover:-translate-y-0.5',
-                          selectedCategory?.id === cat.id
-                            ? 'border-fivem-orange/50 bg-fivem-orange/15 text-fivem-orange'
-                            : 'border-white/10 bg-white/[0.04] text-white/50 hover:border-white/20 hover:text-white/80'
-                        )}
-                      >
-                        <span>{cat.emoji || '✨'}</span>
-                        {cat.name}
-                      </motion.button>
-                    ))}
-                  </motion.div>
-                )}
-
-                {/* Stats panel — uitripled frosted glass statsVariants grid */}
-                <motion.div
-                  variants={heroItemVariants}
-                  className="flex items-stretch w-fit rounded-2xl overflow-hidden border border-white/[0.08] backdrop-blur-md bg-white/[0.02]"
-                >
+                {/* Stats — GlassmorphismMinimalMetricsBlock: rounded-2xl, backdrop-blur-2xl, hover-lift, color-coded */}
+                <motion.div variants={heroItemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {[
                     { value: categories.length, label: 'Categories' },
                     { value: photos.length, label: 'Entries' },
-                    { value: photos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Votes Cast', accent: true },
-                  ].map((stat, i) => (
+                    { value: photos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Votes', accent: true },
+                    { value: votingOpen ? 'Open' : 'Closed', label: 'Voting', status: true },
+                  ].map((stat) => (
                     <div
                       key={stat.label}
                       className={cn(
-                        'flex flex-col items-center justify-center px-6 py-4 border-r border-white/[0.07] last:border-r-0',
-                        stat.accent ? 'bg-fivem-orange/[0.08]' : ''
+                        'group relative overflow-hidden rounded-2xl border p-4 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1',
+                        (stat as any).accent
+                          ? 'border-fivem-orange/25 bg-fivem-orange/[0.08] hover:border-fivem-orange/40'
+                          : (stat as any).status
+                            ? (votingOpen ? 'border-emerald-500/25 bg-emerald-500/[0.08]' : 'border-amber-500/25 bg-amber-500/[0.08]')
+                            : 'border-white/[0.08] bg-white/[0.03] hover:border-white/15'
                       )}
                     >
-                      <span className={cn('text-2xl font-black font-display leading-none', stat.accent ? 'text-fivem-orange' : 'text-white')}>{stat.value}</span>
-                      <span className="text-[9px] uppercase tracking-widest text-white/30 font-mono mt-1">{stat.label}</span>
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <p className={cn('text-2xl font-black font-display leading-none mb-1.5 relative z-10',
+                        (stat as any).accent ? 'text-fivem-orange' : (stat as any).status ? (votingOpen ? 'text-emerald-400' : 'text-amber-400') : 'text-white'
+                      )}>{String(stat.value)}</p>
+                      <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/40 leading-none relative z-10">{stat.label}</p>
                     </div>
                   ))}
-                  <div className="flex flex-col items-center justify-center px-5 py-4 bg-white/[0.02]">
-                    <span className={cn('text-xs font-bold leading-none', votingOpen ? 'text-emerald-400' : 'text-amber-400')}>
-                      {votingOpen ? '🟢 Voting Open' : '🟡 Submit Now'}
-                    </span>
-                    <span className="text-[9px] uppercase tracking-widest text-white/30 font-mono mt-1">Status</span>
+                </motion.div>
+              </motion.div>
+
+              {/* RIGHT — photo mosaic (uitripled BentoGridBlock gallery pattern) */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
+                className="hidden lg:block relative"
+              >
+                {/* Spinning circular text badge — uitripled bento sparkle rotate */}
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                  className="absolute -top-8 -right-4 z-20 w-24 h-24"
+                >
+                  <svg viewBox="0 0 80 80" className="w-full h-full">
+                    <path id="heroCircle" d="M 40,40 m -30,0 a 30,30 0 1,1 60,0 a 30,30 0 1,1 -60,0" fill="none" />
+                    <text fontSize="8.5" fill="rgba(234,88,12,0.65)" fontFamily="monospace" letterSpacing="3.2">
+                      <textPath href="#heroCircle">PHOTO CONTEST • LIVE • SUBMIT •</textPath>
+                    </text>
+                  </svg>
+                  <div className="absolute inset-[28%] rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center">
+                    <span className="text-xl">📸</span>
                   </div>
                 </motion.div>
 
+                {/* Photo mosaic */}
+                {photos.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {photos.slice(0, 4).map((photo, i) => (
+                      <motion.div
+                        key={photo.id}
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
+                        whileHover={{ y: -5, scale: 1.02 }}
+                        className={cn(
+                          'relative overflow-hidden rounded-2xl border border-white/10 group cursor-pointer',
+                          i === 0 ? 'aspect-[4/3]' : i === 3 ? 'aspect-[4/3]' : 'aspect-square'
+                        )}
+                        onClick={() => setSelectedCategory(categories.find(c => c.id === photo.category_id) || null)}
+                      >
+                        <img src={photo.image_url} alt={photo.caption} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        {(photo.vote_count || 0) > 0 && (
+                          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-xs">❤️</span>
+                            <span className="text-xs font-bold text-white">{photo.vote_count}</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { bg: 'from-fivem-orange/20 to-orange-900/20', icon: '📸', label: 'Be first to submit' },
+                      { bg: 'from-purple-500/15 to-purple-900/10', icon: '🎬', label: 'In-game shots' },
+                      { bg: 'from-blue-500/15 to-blue-900/10', icon: '✨', label: 'Community voting' },
+                      { bg: 'from-emerald-500/15 to-emerald-900/10', icon: '🏆', label: 'Win prizes' },
+                    ].map((card, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
+                        className={cn(
+                          'relative overflow-hidden rounded-2xl border border-white/10 flex flex-col items-center justify-center p-6 bg-gradient-to-br',
+                          i === 0 ? 'aspect-[4/3]' : i === 3 ? 'aspect-[4/3]' : 'aspect-square',
+                          card.bg
+                        )}
+                      >
+                        <span className="text-3xl mb-2">{card.icon}</span>
+                        <span className="text-xs text-white/50 font-mono text-center">{card.label}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Aperture watermark */}
+                <div className="absolute -bottom-6 -right-6 w-40 h-40 opacity-[0.035] pointer-events-none">
+                  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="100" cy="100" r="98" stroke="white" strokeWidth="2" />
+                    <circle cx="100" cy="100" r="65" stroke="white" strokeWidth="1.5" />
+                    <circle cx="100" cy="100" r="32" stroke="white" strokeWidth="1" />
+                    {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+                      <line key={i}
+                        x1={100 + 68 * Math.cos((deg * Math.PI) / 180)}
+                        y1={100 + 68 * Math.sin((deg * Math.PI) / 180)}
+                        x2={100 + 96 * Math.cos(((deg + 55) * Math.PI) / 180)}
+                        y2={100 + 96 * Math.sin(((deg + 55) * Math.PI) / 180)}
+                        stroke="white" strokeWidth="1.5"
+                      />
+                    ))}
+                  </svg>
+                </div>
               </motion.div>
+
             </div>
           </section>
         );
