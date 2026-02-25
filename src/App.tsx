@@ -488,7 +488,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen flex flex-col">
       <Toaster position="top-right" theme="dark" />
 
       {/* Header */}
@@ -994,7 +994,7 @@ export default function App() {
           </section>
 
           {/* Rules Section */}
-          <section id="rules" className="pt-12 border-t border-white/10">
+          <section id="rules" className="pt-12 pb-24 border-t border-white/10">
             <div className="mb-8">
               <h2 className="text-3xl font-display font-bold mb-2">Contest Rules & Details</h2>
               <p className="text-white/50">Please read carefully before submitting your entries.</p>
@@ -1464,16 +1464,44 @@ export default function App() {
               </div>
 
               {/* Made by Damon pill */}
-              <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-md px-3.5 py-2 hover:border-white/20 transition-colors group">
+              <button
+                onClick={(e) => {
+                  const el = e.currentTarget;
+                  if (el.dataset.egging) return;
+                  el.dataset.egging = "true";
+
+                  const span = el.querySelector('.damon-text');
+                  const img = el.querySelector('img');
+                  if (!span || !img) return;
+
+                  const oldHtml = span.innerHTML;
+                  span.innerHTML = 'Made by <span class="text-white font-black drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]">✨ A GOD ✨</span>';
+
+                  el.style.transform = 'scale(1.4) translateY(-10px) rotate(5deg)';
+                  el.style.background = 'rgba(234,88,12,0.2)';
+                  el.style.borderColor = 'rgba(234,88,12,0.5)';
+                  img.classList.add('animate-spin');
+
+                  setTimeout(() => {
+                    span.innerHTML = oldHtml;
+                    el.style.transform = '';
+                    el.style.background = '';
+                    el.style.borderColor = '';
+                    img.classList.remove('animate-spin');
+                    delete el.dataset.egging;
+                  }, 2500);
+                }}
+                className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-md px-3.5 py-2 hover:border-white/20 transition-all duration-300 group cursor-pointer"
+              >
                 <img
                   src="https://r2.fivemanage.com/image/JOQmUtYFGJ7q.png"
                   alt="Damon"
                   className="w-6 h-6 rounded-full object-cover ring-1 ring-white/20"
                 />
-                <span className="text-[11px] font-mono text-white/40 group-hover:text-white/60 transition-colors">
+                <span className="damon-text text-[11px] font-mono text-white/40 group-hover:text-white/60 transition-colors">
                   Made by <span className="text-white/70 font-semibold">Damon</span>
                 </span>
-              </div>
+              </button>
 
               {/* Copyright */}
               <p className="text-[10px] font-mono text-white/20 tracking-widest uppercase">
