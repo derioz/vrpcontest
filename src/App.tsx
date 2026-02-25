@@ -1397,7 +1397,105 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
-    </div >
+
+      {/* ── Footer ── */}
+      <footer className="relative overflow-hidden border-t border-white/[0.07] bg-[#060606] mt-auto">
+        {/* Ambient glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-[-60px] w-[600px] h-[200px] bg-fivem-orange/[0.04] blur-[80px] rounded-full" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-10">
+          <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8">
+
+            {/* Left — branding */}
+            <div className="flex flex-col items-center md:items-start gap-3">
+              <div className="flex items-center gap-3">
+                {/* VRP logo mark */}
+                <div className="w-9 h-9 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-white font-black font-display text-lg leading-none">Vital RP</p>
+                  <p className="text-white/30 text-[10px] font-mono uppercase tracking-[0.2em] leading-none mt-0.5">Photo Contest</p>
+                </div>
+              </div>
+              <p className="text-white/30 text-xs text-center md:text-left max-w-xs leading-relaxed">
+                An in-game screenshot competition for the Vital RP FiveM community. Capture your best moment and let the community vote.
+              </p>
+              <a
+                href="http://vitalrp.net"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 text-fivem-orange/80 hover:text-fivem-orange text-xs font-mono transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                vitalrp.net
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-1 group-hover:translate-x-0 transition-transform">
+                  <path d="M7 17L17 7M7 7h10v10" />
+                </svg>
+              </a>
+            </div>
+
+            {/* Right — links + credit */}
+            <div className="flex flex-col items-center md:items-end gap-4">
+              {/* Quick links */}
+              <div className="flex items-center gap-5 text-[11px] font-mono uppercase tracking-[0.15em]">
+                {[
+                  { label: 'Website', href: 'http://vitalrp.net' },
+                  { label: 'Discord', href: '#' },
+                  { label: 'Rules', href: '#rules' },
+                ].map(link => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target={link.href.startsWith('http') ? '_blank' : undefined}
+                    rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    className="text-white/30 hover:text-white/70 transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+
+              {/* Made by Damon pill */}
+              <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-md px-3.5 py-2 hover:border-white/20 transition-colors group">
+                <img
+                  src="https://r2.fivemanage.com/image/JOQmUtYFGJ7q.png"
+                  alt="Damon"
+                  className="w-6 h-6 rounded-full object-cover ring-1 ring-white/20"
+                />
+                <span className="text-[11px] font-mono text-white/40 group-hover:text-white/60 transition-colors">
+                  Made by <span className="text-white/70 font-semibold">Damon</span>
+                </span>
+              </div>
+
+              {/* Copyright */}
+              <p className="text-[10px] font-mono text-white/20 tracking-widest uppercase">
+                © {new Date().getFullYear()} Vital RP · All rights reserved
+              </p>
+            </div>
+
+          </div>
+
+          {/* Bottom divider line */}
+          <div className="mt-8 pt-5 border-t border-white/[0.05] flex items-center justify-center">
+            <div className="flex items-center gap-2 text-[10px] font-mono text-white/15 uppercase tracking-[0.3em]">
+              <span className="w-8 h-px bg-white/10" />
+              Vital RP Photo Contest
+              <span className="w-8 h-px bg-white/10" />
+            </div>
+          </div>
+        </div>
+      </footer>
+
+    </div>
   );
 }
 
