@@ -46,6 +46,7 @@ import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
 import { VoteButton } from './components/VoteButton';
+import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 
 // Firebase Integrations
 import { auth, discordProvider, db } from './lib/firebase';
@@ -98,6 +99,7 @@ export default function App() {
   const [votingOpen, setVotingOpen] = useState(false);
   const [submissionsOpen, setSubmissionsOpen] = useState(true);
   const [onePhotoPerUser, setOnePhotoPerUser] = useState(false);
+  const [showWinnersToggle, setShowWinnersToggle] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -111,9 +113,12 @@ export default function App() {
   const [userSubmissionCount, setUserSubmissionCount] = useState(0);
   const [userTotalVotes, setUserTotalVotes] = useState(0);
 
-  const [activeContest, setActiveContest] = useState<{ id: string; name: string } | null>(null);
+  const [activeContest, setActiveContest] = useState<{ id: string; name: string; submissions_close_date?: string; voting_end_date?: string } | null>(null);
   const [votedPhotoIds, setVotedPhotoIds] = useState<Set<string>>(new Set());
   const [votingPhotoId, setVotingPhotoId] = useState<string | null>(null);
+
+  const isVotingOpen = votingOpen && (!activeContest?.voting_end_date || new Date() < new Date(activeContest.voting_end_date));
+  const isSubmissionsOpen = submissionsOpen && (!activeContest?.submissions_close_date || new Date() < new Date(activeContest.submissions_close_date));
 
   // photos for the currently-selected category (derived from allPhotos)
   const photos = useMemo(() => {
@@ -127,6 +132,24 @@ export default function App() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   }, [photos, sortBy]);
+
+  const winners = useMemo(() => {
+    if (!categories.length || !allPhotos.length) return [];
+    return categories.map(cat => {
+      const catPhotos = allPhotos.filter(p => p.category_id === cat.id);
+      if (!catPhotos.length) return null;
+      const topPhoto = [...catPhotos].sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))[0];
+      return {
+        id: topPhoto.id,
+        categoryName: cat.name,
+        playerName: topPhoto.player_name,
+        discordName: topPhoto.discord_name,
+        imageUrl: topPhoto.image_url,
+        caption: topPhoto.caption,
+        voteCount: topPhoto.vote_count || 0,
+      };
+    }).filter(Boolean) as any[];
+  }, [categories, allPhotos]);
 
   const handleShare = (photo: Photo) => {
     const url = `${window.location.origin}/?photo=${photo.id}`;
@@ -237,6 +260,7 @@ export default function App() {
         setVotingOpen(!!data.votingOpen);
         setSubmissionsOpen(data.submissionsOpen !== false);
         setOnePhotoPerUser(!!data.onePhotoPerUser); // default false (no limit)
+        setShowWinnersToggle(!!data.showWinnersToggle);
         setRulesMarkdown(data.rulesMarkdown || '');
         if (data.theme) setCurrentTheme(data.theme);
       }
@@ -251,7 +275,13 @@ export default function App() {
     const unsubContest = onSnapshot(qContest, async (snapshot) => {
       if (!snapshot.empty) {
         const activeDoc = snapshot.docs[0];
-        const contestData = { id: activeDoc.id, name: activeDoc.data().name };
+        const data = activeDoc.data();
+        const contestData = {
+          id: activeDoc.id,
+          name: data.name,
+          submissions_close_date: data.submissions_close_date,
+          voting_end_date: data.voting_end_date
+        };
         setActiveContest(contestData);
 
         // 3. Once we have an active contest, fetch its categories
@@ -320,7 +350,7 @@ export default function App() {
   }, [activeContest, categories]);
 
   const handleVote = async (photoId: string) => {
-    if (!votingOpen) {
+    if (!isVotingOpen) {
       toast.error('Voting is currently closed');
       return;
     }
@@ -395,7 +425,7 @@ export default function App() {
   };
 
   const handleUpload = async (imageData: string, caption: string, discordName: string, formPlayerName: string, categoryId: string) => {
-    if (!submissionsOpen) {
+    if (!isSubmissionsOpen) {
       toast.error('Submissions are currently closed');
       return;
     }
@@ -489,6 +519,18 @@ export default function App() {
     }
   };
 
+  const toggleShowWinners = async (enabled: boolean) => {
+    if (!isAdmin) return;
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { showWinnersToggle: enabled });
+      setShowWinnersToggle(enabled);
+      toast.success(enabled ? 'Winner announcement visible' : 'Winner announcement hidden');
+    } catch (error) {
+      console.error("Toggle ShowWinners Error:", error);
+      toast.error('Failed to toggle winner announcement');
+    }
+  };
+
   const handleDiscordLogin = async () => {
     try {
       await signInWithPopup(auth, discordProvider);
@@ -514,7 +556,7 @@ export default function App() {
   };
 
   const handleUploadClick = async () => {
-    if (!submissionsOpen) {
+    if (!isSubmissionsOpen) {
       toast.error('Submissions are currently closed');
       return;
     }
@@ -666,6 +708,11 @@ export default function App() {
         </div>
       </div>
 
+      {/* Winner Announcement Section */}
+      {activeContest && (!isVotingOpen || showWinnersToggle) && winners.length > 0 && (
+        <WinnerAnnouncement winners={winners} />
+      )}
+
       {/* Hero Banner — GlowyWavesHero + NewHeroSection patterns from uitripled */}
       {activeContest ? (() => {
         // uitripled containerVariants / itemVariants / statsVariants pattern
@@ -751,16 +798,16 @@ export default function App() {
                 <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3 mb-10">
                   <button
                     onClick={handleUploadClick}
-                    disabled={!submissionsOpen}
+                    disabled={!isSubmissionsOpen}
                     className={cn(
                       "group relative flex items-center gap-2.5 font-bold px-8 py-4 rounded-2xl text-sm overflow-hidden transition-all",
-                      submissionsOpen
+                      isSubmissionsOpen
                         ? "bg-fivem-orange text-white hover:-translate-y-1 hover:shadow-[0_12px_50px_rgba(234,88,12,0.6)]"
                         : "bg-white/10 text-white/30 cursor-not-allowed border border-white/10"
                     )}
                   >
-                    {submissionsOpen && <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />}
-                    {submissionsOpen ? (
+                    {isSubmissionsOpen && <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />}
+                    {isSubmissionsOpen ? (
                       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
@@ -768,7 +815,7 @@ export default function App() {
                     ) : (
                       <Lock size={17} className="relative z-10" />
                     )}
-                    <span className="relative z-10">{submissionsOpen ? 'Submit Your Shot' : 'Submissions Closed'}</span>
+                    <span className="relative z-10">{isSubmissionsOpen ? 'Submit Your Shot' : 'Submissions Closed'}</span>
                   </button>
                   <a
                     href="#rules"
@@ -785,7 +832,7 @@ export default function App() {
                     { value: categories.length, label: 'Categories' },
                     { value: allPhotos.length, label: 'Entries' },
                     { value: allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Votes', accent: true },
-                    { value: votingOpen ? 'Open' : 'Closed', label: 'Voting', status: true },
+                    { value: isVotingOpen ? 'Open' : 'Closed', label: 'Voting', status: true },
                   ].map((stat) => (
                     <div
                       key={stat.label}
@@ -794,13 +841,13 @@ export default function App() {
                         (stat as any).accent
                           ? 'border-fivem-orange/25 bg-fivem-orange/[0.08] hover:border-fivem-orange/40'
                           : (stat as any).status
-                            ? (votingOpen ? 'border-emerald-500/25 bg-emerald-500/[0.08]' : 'border-amber-500/25 bg-amber-500/[0.08]')
+                            ? (isVotingOpen ? 'border-emerald-500/25 bg-emerald-500/[0.08]' : 'border-amber-500/25 bg-amber-500/[0.08]')
                             : 'border-white/[0.08] bg-white/[0.03] hover:border-white/15'
                       )}
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <p className={cn('text-2xl font-black font-display leading-none mb-1.5 relative z-10',
-                        (stat as any).accent ? 'text-fivem-orange' : (stat as any).status ? (votingOpen ? 'text-emerald-400' : 'text-amber-400') : 'text-white'
+                        (stat as any).accent ? 'text-fivem-orange' : (stat as any).status ? (isVotingOpen ? 'text-emerald-400' : 'text-amber-400') : 'text-white'
                       )}>{String(stat.value)}</p>
                       <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/40 leading-none relative z-10">{stat.label}</p>
                     </div>
@@ -1510,6 +1557,30 @@ export default function App() {
                             </span>
                           </button>
                         </div>
+                        {/* Divider */}
+                        <div className="h-px bg-white/[0.06]" />
+
+                        {/* Test Winner Announcement Toggle */}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="font-bold text-white">Test Winner Announcement</p>
+                            <p className="text-xs text-white/40 mt-0.5">Force the winner showcase to appear above the hero</p>
+                          </div>
+                          <button
+                            onClick={() => toggleShowWinners(!showWinnersToggle)}
+                            className={cn(
+                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                              showWinnersToggle
+                                ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
+                                : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
+                            )}
+                          >
+                            <span className="relative z-10 flex items-center gap-2">
+                              {showWinnersToggle ? <Unlock size={14} /> : <Lock size={14} />}
+                              {showWinnersToggle ? 'Showing' : 'Hidden'}
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -2063,8 +2134,11 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
 }
 
 function EditContestManager({ activeContest, currentRules, currentCategories, onUpdated }: { activeContest: any, currentRules: string, currentCategories: Category[], onUpdated: () => void }) {
+  const formatDateForInput = (isoString?: string) => isoString ? new Date(isoString).toISOString().slice(0, 16) : '';
   const [title, setTitle] = useState(activeContest?.name || '');
   const [rules, setRules] = useState(currentRules || '');
+  const [submissionsCloseDate, setSubmissionsCloseDate] = useState(formatDateForInput(activeContest?.submissions_close_date));
+  const [votingEndDate, setVotingEndDate] = useState(formatDateForInput(activeContest?.voting_end_date));
   const [categories, setCategories] = useState<{ id: string | number, name: string, desc: string, emoji?: string }[]>(
     currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji }))
   );
@@ -2082,6 +2156,8 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
   useEffect(() => {
     setTitle(activeContest?.name || '');
     setRules(currentRules || '');
+    setSubmissionsCloseDate(formatDateForInput(activeContest?.submissions_close_date));
+    setVotingEndDate(formatDateForInput(activeContest?.voting_end_date));
     setCategories(currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji })));
   }, [activeContest, currentRules, currentCategories]);
 
@@ -2115,8 +2191,17 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
     try {
       const batch = writeBatch(db);
 
-      if (title !== activeContest.name) {
-        batch.update(doc(db, 'contests', activeContest.id), { name: title });
+      const updates: any = {};
+      if (title !== activeContest.name) updates.name = title;
+
+      const newSubClose = submissionsCloseDate ? new Date(submissionsCloseDate).toISOString() : null;
+      if (newSubClose !== activeContest.submissions_close_date) updates.submissions_close_date = newSubClose;
+
+      const newVoteEnd = votingEndDate ? new Date(votingEndDate).toISOString() : null;
+      if (newVoteEnd !== activeContest.voting_end_date) updates.voting_end_date = newVoteEnd;
+
+      if (Object.keys(updates).length > 0) {
+        batch.update(doc(db, 'contests', activeContest.id), updates);
       }
 
       if (rules !== currentRules) {
@@ -2259,9 +2344,23 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
         </div>
       </div>
 
+      <div className="space-y-4 relative z-30">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Schedule</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
+            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
+            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-2 relative z-20">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
+          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Contest Rules (Markdown)</label>
         </div>
         <div className="flex flex-col">
           <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
@@ -2371,6 +2470,8 @@ function ArchiveContest({ onArchived }: { onArchived: () => void }) {
 function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState('');
   const [rules, setRules] = useState('');
+  const [submissionsCloseDate, setSubmissionsCloseDate] = useState('');
+  const [votingEndDate, setVotingEndDate] = useState('');
   const [categories, setCategories] = useState<{ id: number, name: string, desc: string, emoji?: string }[]>([]);
 
   const [catName, setCatName] = useState('');
@@ -2422,7 +2523,9 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       batch.set(newContestRef, {
         name: title,
         is_active: true,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        ...(submissionsCloseDate ? { submissions_close_date: new Date(submissionsCloseDate).toISOString() } : {}),
+        ...(votingEndDate ? { voting_end_date: new Date(votingEndDate).toISOString() } : {})
       });
 
       // 3. Create embedded Category references
@@ -2527,9 +2630,23 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         </div>
       </div>
 
+      <div className="space-y-4 relative z-30">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Schedule</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
+            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
+            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-2 relative z-20">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
+          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Contest Rules (Markdown)</label>
           <span className="text-[10px] text-white/40">Optional - can be edited later</span>
         </div>
         <div className="flex flex-col">
