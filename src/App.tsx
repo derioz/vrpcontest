@@ -106,7 +106,6 @@ export default function App() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
   const [sortBy, setSortBy] = useState<'top' | 'newest'>('top');
@@ -264,10 +263,8 @@ export default function App() {
         setRulesMarkdown(data.rulesMarkdown || '');
         if (data.theme) setCurrentTheme(data.theme);
       }
-      setIsInitialLoad(false);
     }, (err) => {
       console.error("Settings listener error:", err);
-      setIsInitialLoad(false);
     });
 
     // 2. Listen to Active Contest
@@ -578,34 +575,6 @@ export default function App() {
     }
   };
 
-  if (isInitialLoad) {
-    return (
-      <div className="min-h-screen flex flex-col gap-8 items-center justify-center bg-fivem-dark">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="relative"
-        >
-          {/* Glow rings */}
-          <div className="absolute inset-0 rounded-full bg-fivem-orange/20 blur-3xl scale-150 animate-pulse" />
-          <div className="absolute inset-0 rounded-full bg-orange-400/10 blur-2xl scale-125" />
-          <img
-            src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png"
-            alt="Vital RP"
-            className="w-40 h-40 object-contain relative z-10 drop-shadow-[0_0_30px_rgba(234,88,12,0.7)]"
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
-          <ShimmeringText text="Connecting to Vital RP..." duration={2} className="text-xl font-bold tracking-widest uppercase font-mono" />
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
