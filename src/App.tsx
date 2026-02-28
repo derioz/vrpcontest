@@ -1756,41 +1756,73 @@ export default function App() {
               {/* Made by Damon pill */}
               <button
                 onClick={(e) => {
-                  const el = e.currentTarget;
+                  const el = e.currentTarget as HTMLButtonElement;
                   if (el.dataset.egging) return;
                   el.dataset.egging = "true";
 
-                  const span = el.querySelector('.damon-text');
-                  const img = el.querySelector('img');
+                  const span = el.querySelector('.damon-text') as HTMLDivElement;
+                  const img = el.querySelector('img') as HTMLImageElement;
                   if (!span || !img) return;
 
-                  const oldHtml = span.innerHTML;
-                  span.innerHTML = 'Made by <span class="text-white font-black drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]">✨ A GOD ✨</span>';
+                  // 1. Shrink pill and hide text
+                  span.style.maxWidth = '0px';
+                  span.style.opacity = '0';
+                  // Use negative margin to conceptually collapse the flex gap on the parent
+                  span.style.marginLeft = '-10px';
 
-                  el.style.transform = 'scale(1.4) translateY(-10px) rotate(5deg)';
-                  el.style.background = 'rgba(234,88,12,0.2)';
-                  el.style.borderColor = 'rgba(234,88,12,0.5)';
-                  img.classList.add('animate-spin');
+                  // 2. Enlarge and wiggle icon
+                  img.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
+                  let wiggleCount = 0;
+                  const wiggleInterval = setInterval(() => {
+                    wiggleCount++;
+                    const rot = wiggleCount % 2 === 0 ? 15 : -15;
+                    img.style.transform = `scale(2.2) rotate(${rot}deg)`;
+                  }, 120);
+
+                  // 3. Pop and return to normal
                   setTimeout(() => {
-                    span.innerHTML = oldHtml;
-                    el.style.transform = '';
-                    el.style.background = '';
-                    el.style.borderColor = '';
-                    img.classList.remove('animate-spin');
-                    delete el.dataset.egging;
-                  }, 2500);
+                    clearInterval(wiggleInterval);
+                    img.style.transition = 'all 0.15s ease-out';
+                    img.style.transform = 'scale(3.5)';
+                    img.style.opacity = '0';
+
+                    setTimeout(() => {
+                      img.style.transition = 'none';
+                      img.style.transform = 'scale(0)';
+
+                      requestAnimationFrame(() => {
+                        // Reset everything back to normal with a satisfying spring
+                        img.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                        img.style.transform = '';
+                        img.style.opacity = '1';
+
+                        span.style.maxWidth = '200px';
+                        span.style.opacity = '1';
+                        span.style.marginLeft = '0px';
+
+                        setTimeout(() => {
+                          span.style.maxWidth = '';
+                          span.style.opacity = '';
+                          span.style.marginLeft = '';
+                          delete el.dataset.egging;
+                        }, 500);
+                      });
+                    }, 150);
+                  }, 1500);
                 }}
                 className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-md px-3.5 py-2 hover:border-white/20 transition-all duration-300 group cursor-pointer"
               >
                 <img
                   src="https://r2.fivemanage.com/image/JOQmUtYFGJ7q.png"
                   alt="Damon"
-                  className="w-6 h-6 rounded-full object-cover ring-1 ring-white/20"
+                  className="w-6 h-6 rounded-full object-cover ring-1 ring-white/20 relative z-10 shrink-0"
                 />
-                <span className="damon-text text-[11px] font-mono text-white/40 group-hover:text-white/60 transition-colors">
-                  Made by <span className="text-white/70 font-semibold">Damon</span>
-                </span>
+                <div className="damon-text overflow-hidden whitespace-nowrap transition-all duration-300 origin-left opacity-100 max-w-[200px]">
+                  <span className="text-[11px] font-mono text-white/40 group-hover:text-white/60 transition-colors">
+                    Made by <span className="text-white/70 font-semibold">Damon</span>
+                  </span>
+                </div>
               </button>
 
               {/* Copyright */}
