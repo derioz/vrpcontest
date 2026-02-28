@@ -666,9 +666,9 @@ export default function App() {
                   <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-white/30 leading-none">Online</span>
                 </div>
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full ring-1 ring-white/10 group-hover/user:ring-white/30 transition-all" />
+                  <img src={user.photoURL} alt="" className="w-10 h-10 shrink-0 rounded-full ring-1 ring-white/10 group-hover/user:ring-white/30 transition-all" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
                     {user.displayName?.[0] || user.email?.[0] || 'U'}
                   </div>
                 )}

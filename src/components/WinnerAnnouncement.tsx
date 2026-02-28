@@ -15,6 +15,36 @@ interface WinnerAnnouncementProps {
     winners: Winner[];
 }
 
+const Confetti = () => {
+    return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-40">
+            {[...Array(60)].map((_, i) => (
+                <motion.div
+                    key={i}
+                    className="absolute w-2 h-2 rounded-sm"
+                    style={{
+                        backgroundColor: ['#f59e0b', '#f97316', '#fbbf24', '#ffffff', '#ef4444', '#8b5cf6'][Math.floor(Math.random() * 6)],
+                        left: `${Math.random() * 100}%`,
+                        top: `-10%`,
+                    }}
+                    initial={{ y: -100, x: 0, rotate: 0, opacity: 1 }}
+                    animate={{
+                        y: ['0vh', '110vh'],
+                        x: [0, (Math.random() - 0.5) * 400],
+                        rotate: [0, Math.random() * 1080],
+                    }}
+                    transition={{
+                        duration: 3 + Math.random() * 5,
+                        repeat: Infinity,
+                        delay: Math.random() * 7,
+                        ease: "linear"
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
+
 export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
     const containerVars = {
         hidden: { opacity: 0 },
@@ -32,7 +62,9 @@ export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
     };
 
     return (
-        <section className="relative w-full py-20 overflow-hidden flex flex-col items-center justify-center bg-[#060606] border-b border-white/10">
+        <section className="relative w-full pt-32 pb-20 overflow-hidden flex flex-col items-center justify-center bg-[#060606] border-b border-white/10">
+            <Confetti />
+
             {/* Animated Deep Dark Background Orbs */}
             <div className="absolute inset-0 pointer-events-none z-0">
                 <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black z-10 opacity-80" />
@@ -51,8 +83,21 @@ export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
             </div>
 
             <div className="relative z-20 text-center px-4 max-w-7xl mx-auto w-full">
+
+                {/* Background "CONGRATULATIONS" text */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                    animate={{ opacity: 0.05, scale: 1, y: 0 }}
+                    transition={{ duration: 1.5, type: "spring", bounce: 0.4 }}
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-full pointer-events-none z-0"
+                >
+                    <h2 className="text-[12vw] sm:text-[10vw] font-black font-display text-white whitespace-nowrap leading-none select-none">
+                        CONGRATULATIONS
+                    </h2>
+                </motion.div>
+
                 {/* Title */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="mb-2">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="relative z-10 mb-2">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-500 text-xs font-bold uppercase tracking-widest mb-6">
                         <Trophy size={14} />
                         <span>Hall of Fame</span>
