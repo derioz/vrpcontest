@@ -776,17 +776,38 @@ export default function App() {
                 {/* Title */}
                 <motion.h2
                   variants={heroItemVariants}
-                  className="text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-black font-display tracking-tight leading-[0.92] mb-5"
+                  className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5"
+                  style={{ textWrap: 'balance' }}
                 >
-                  <span className="text-white">{activeContest.name.split(' ')[0]}</span>
-                  {activeContest.name.split(' ').length > 1 && (
-                    <>
-                      {' '}
-                      <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
-                        {activeContest.name.split(' ').slice(1).join(' ')}
-                      </span>
-                    </>
-                  )}
+                  {(() => {
+                    const hasColon = activeContest.name.includes(':');
+                    if (hasColon) {
+                      const [main, ...rest] = activeContest.name.split(':');
+                      return (
+                        <>
+                          <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent block pb-1">
+                            {main}:
+                          </span>
+                          <span className="text-white block mt-1 text-2xl sm:text-3xl lg:text-4xl opacity-90">
+                            {rest.join(':').trim()}
+                          </span>
+                        </>
+                      );
+                    }
+
+                    // Fallback for names without colons
+                    const words = activeContest.name.split(' ');
+                    return (
+                      <>
+                        <span className="text-white">{words[0]}</span>
+                        {words.length > 1 && (
+                          <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
+                            {' '}{words.slice(1).join(' ')}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
                 </motion.h2>
 
                 {/* Tagline */}
