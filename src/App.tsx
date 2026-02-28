@@ -92,7 +92,7 @@ interface Theme {
 export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [rulesMarkdown, setRulesMarkdown] = useState('');
   const [votingOpen, setVotingOpen] = useState(false);
   const [submissionsOpen, setSubmissionsOpen] = useState(true);
@@ -110,6 +110,12 @@ export default function App() {
   const [userTotalVotes, setUserTotalVotes] = useState(0);
 
   const [activeContest, setActiveContest] = useState<{ id: string; name: string } | null>(null);
+
+  // photos for the currently-selected category (derived from allPhotos)
+  const photos = useMemo(() => {
+    if (!selectedCategory) return [];
+    return allPhotos.filter(p => p.category_id === selectedCategory.id);
+  }, [allPhotos, selectedCategory]);
 
   const sortedPhotos = useMemo(() => {
     return [...photos].sort((a, b) => {
@@ -204,7 +210,6 @@ export default function App() {
 
     return () => unsub();
   }, [user]);
-
   // Fetch initial data (Real-time Firestore listeners)
   useEffect(() => {
     // 1. Listen to Global Settings (rules, theme, votingOpen)
@@ -277,21 +282,23 @@ export default function App() {
     }
   }, [currentTheme]);
 
-  // Fetch photos when category changes
+  // Listen to ALL photos for all categories in the active contest
   useEffect(() => {
-    if (!selectedCategory) return;
-
-    const q = query(collection(db, 'photos'), where('category_id', '==', selectedCategory.id));
+    if (!activeContest || categories.length === 0) {
+      setAllPhotos([]);
+      return;
+    }
+    const catIds = categories.map(c => c.id);
+    const q = query(collection(db, 'photos'), where('category_id', 'in', catIds));
     const unsub = onSnapshot(q, (snapshot) => {
-      const fetchedPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Photo[];
-      setPhotos(fetchedPhotos);
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Photo[];
+      setAllPhotos(fetched);
     }, (err) => {
-      console.error("Photos listener error", err);
+      console.error('Photos listener error', err);
       toast.error('Failed to load photos');
     });
-
     return () => unsub();
-  }, [selectedCategory]);
+  }, [activeContest, categories]);
 
   const handleVote = async (photoId: string) => {
     if (!votingOpen) {
@@ -728,8 +735,8 @@ export default function App() {
                 <motion.div variants={heroItemVariants} className="grid grid-cols-2 gap-2.5">
                   {[
                     { value: categories.length, label: 'Categories' },
-                    { value: photos.length, label: 'Entries' },
-                    { value: photos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Votes', accent: true },
+                    { value: allPhotos.length, label: 'Entries' },
+                    { value: allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Votes', accent: true },
                     { value: votingOpen ? 'Open' : 'Closed', label: 'Voting', status: true },
                   ].map((stat) => (
                     <div
@@ -884,9 +891,10 @@ export default function App() {
                 {/* Category pill strip — position:relative so the layoutId indicator can be absolute */}
                 <div className="relative flex items-center gap-2 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
                   {categories.map((cat) => {
-                    const entryCount = photos.filter(p => p.category_id === cat.id).length;
+                    const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
                     const isActive = selectedCategory?.id === cat.id;
-                    const pct = photos.length > 0 ? ((entryCount / photos.length) * 100).toFixed(0) : '0';
+                    const totalAll = allPhotos.length;
+                    const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
                     return (
                       <button
                         key={cat.id}
@@ -922,7 +930,7 @@ export default function App() {
                 {/* Right: stacked total */}
                 <div className="ml-auto shrink-0 pl-5 border-l border-white/10 flex flex-col justify-center items-end gap-0.5">
                   <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Total</span>
-                  <span className="text-xl font-black font-display text-white leading-none">{photos.length}</span>
+                  <span className="text-xl font-black font-display text-white leading-none">{allPhotos.length}</span>
                   <span className="text-[9px] font-mono text-white/30 leading-none">entries</span>
                 </div>
 
@@ -1252,7 +1260,7 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   <ImageIcon size={14} className="text-white/30 shrink-0" />
-                  <p className="text-xs text-white/40">{photos.length} total entries</p>
+                  <p className="text-xs text-white/40">{allPhotos.length} total entries</p>
                 </div>
               </div>
             </section>
@@ -1337,7 +1345,7 @@ export default function App() {
                   {[
                     { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
                     { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
-                    { label: 'Total Entries', value: photos.length, icon: ImageIcon, color: 'purple' },
+                    { label: 'Total Entries', value: allPhotos.length, icon: ImageIcon, color: 'purple' },
                     { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
                   ].map((stat, i) => {
                     const Icon = stat.icon;
