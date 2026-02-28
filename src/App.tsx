@@ -1665,42 +1665,58 @@ export default function App() {
       {/* Lightbox Modal */}
       <AnimatePresence>
         {lightboxPhoto && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 md:p-12">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#060606]/98 backdrop-blur-2xl p-4 md:p-8">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setLightboxPhoto(null)}
-              className="absolute inset-0"
+              className="absolute inset-0 cursor-zoom-out"
             />
 
             <button
               onClick={() => setLightboxPhoto(null)}
-              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-10"
+              className="absolute top-4 right-4 md:top-8 md:right-8 p-3 bg-white/5 hover:bg-white/15 rounded-full text-white backdrop-blur-xl transition-all hover:scale-105 z-50 border border-white/10"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
 
             <motion.div
               layoutId={lightboxPhoto.id.toString()}
-              className="relative w-full h-full max-w-7xl max-h-[90vh] flex flex-col items-center justify-center pointer-events-none"
+              className="relative w-full h-full max-w-7xl flex flex-col items-center justify-center pointer-events-none gap-6"
             >
-              <img
-                src={lightboxPhoto.image_url}
-                alt={lightboxPhoto.caption}
-                className="max-w-full max-h-full object-contain pointer-events-auto rounded-xl shadow-2xl shadow-fivem-orange/20"
-              />
+              {/* Image Container */}
+              <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
+                <img
+                  src={lightboxPhoto.image_url}
+                  alt={lightboxPhoto.caption}
+                  className="max-w-full max-h-full object-contain pointer-events-auto rounded-md shadow-[0_0_50px_rgba(234,88,12,0.15)] ring-1 ring-white/10"
+                />
+              </div>
 
-              <div className="absolute bottom-[-2rem] md:bottom-[-4rem] left-0 right-0 flex flex-col items-center text-center px-4 pointer-events-auto">
-                <p className="text-white text-lg md:text-xl font-medium drop-shadow-lg">{lightboxPhoto.caption || "No caption provided"}</p>
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                    <User size={14} className="text-fivem-orange" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.player_name}</span>
+              {/* Caption & Stats Bar */}
+              <div className="shrink-0 flex flex-col items-center text-center max-w-3xl px-4 pointer-events-auto mb-2 md:mb-6">
+                <p className="text-white md:text-lg font-medium tracking-wide mb-4">
+                  {lightboxPhoto.caption || "No caption provided"}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
+                    <User size={14} className="text-fivem-orange/80" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white/90">
+                      {lightboxPhoto.player_name}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                    <Vote size={14} className="text-emerald-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">{lightboxPhoto.vote_count || 0} Votes</span>
+                  <div className="flex items-center gap-2 bg-fivem-orange/10 backdrop-blur-xl px-4 py-2 rounded-full border border-fivem-orange/20 shadow-lg shadow-fivem-orange/5">
+                    <Vote size={14} className="text-fivem-orange" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-fivem-orange">
+                      {lightboxPhoto.vote_count || 0} Votes
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg hidden sm:flex">
+                    <Calendar size={14} className="text-white/40" />
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/50">
+                      {new Date(lightboxPhoto.created_at).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1907,10 +1923,9 @@ function UploadForm({ categories, initialCategoryId, discordName, onUpload, onCl
       toast.error('Please fill in all required fields');
       return;
     }
-    // Allow any image that has at LEAST one dimension meeting the 1920x1080 ratio.
-    // For example, portrait shots from FiveM are basically 1080x1920
-    if (resolution && ((resolution.w < 1920 && resolution.h < 1920) || (resolution.w < 1080 && resolution.h < 1080))) {
-      toast.error(`Resolution too low: ${resolution.w}x${resolution.h}. Minimum is 1920x1080 (or 1080x1920).`);
+    // Enforce strict landscape orientation resolution. Minimum 1920 width, 1080 height.
+    if (resolution && (resolution.w < 1920 || resolution.h < 1080)) {
+      toast.error(`Resolution too low: ${resolution.w}x${resolution.h}. Minimum is 1920x1080.`);
       return;
     }
 
