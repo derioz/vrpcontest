@@ -45,6 +45,7 @@ import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
+import { VoteButton } from './components/VoteButton';
 
 // Firebase Integrations
 import { auth, discordProvider, db } from './lib/firebase';
@@ -1084,107 +1085,21 @@ export default function App() {
                           </div>
 
                           <div className="absolute bottom-3 right-3 z-20">
-                            {(() => {
-                              const hasVoted = votedPhotoIds.has(photo.id);
-                              const totalCatVotes = photos.reduce((s, p) => s + (p.vote_count || 0), 0);
-                              const voteCount = photo.vote_count || 0;
-                              const pct = totalCatVotes > 0 ? Math.round((voteCount / totalCatVotes) * 100) : 0;
-                              const isBursting = votingPhotoId === photo.id;
-                              return (
-                                <div className="relative group/vote">
-                                  {/* Hover popover */}
-                                  <div className="absolute bottom-full right-0 mb-2 pointer-events-none opacity-0 group-hover/vote:opacity-100 transition-all duration-200 translate-y-1 group-hover/vote:translate-y-0">
-                                    <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 w-44 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
-                                      {/* Vote count */}
-                                      <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Votes</span>
-                                        <span className="text-base font-black text-white font-display leading-none">{voteCount}</span>
-                                      </div>
-                                      {/* Category share bar */}
-                                      <div className="mb-2">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Category share</span>
-                                          <span className="text-[10px] font-bold text-fivem-orange">{pct}%</span>
-                                        </div>
-                                        <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                                          <div
-                                            className="h-full bg-fivem-orange rounded-full transition-all duration-500"
-                                            style={{ width: `${pct}%` }}
-                                          />
-                                        </div>
-                                      </div>
-                                      {/* Status */}
-                                      {votingOpen && (
-                                        <div className={cn(
-                                          "flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider pt-1.5 border-t border-white/[0.06]",
-                                          hasVoted ? "text-emerald-400" : "text-white/30"
-                                        )}>
-                                          {hasVoted ? (
-                                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>You voted · click to undo</>
-                                          ) : (
-                                            <><Vote size={10} />Click to vote</>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                    {/* Arrow */}
-                                    <div className="absolute bottom-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0a]/95 border-r border-b border-white/10 rotate-45" />
-                                  </div>
-
-                                  {/* Burst particles */}
-                                  <AnimatePresence>
-                                    {isBursting && [
-                                      { x: 0, y: -44, delay: 0, emoji: hasVoted ? '💔' : '❤️' },
-                                      { x: -18, y: -36, delay: 0.04, emoji: hasVoted ? '💔' : '✨' },
-                                      { x: 18, y: -36, delay: 0.04, emoji: hasVoted ? '💔' : '✨' },
-                                      { x: -8, y: -52, delay: 0.08, emoji: hasVoted ? '💔' : '⭐' },
-                                    ].map((p, i) => (
-                                      <motion.span
-                                        key={i}
-                                        initial={{ opacity: 1, y: 0, x: 0, scale: 0.5 }}
-                                        animate={{ opacity: 0, y: p.y, x: p.x, scale: 1.2 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.65, delay: p.delay, ease: 'easeOut' }}
-                                        className="absolute bottom-1 right-3 pointer-events-none text-base select-none"
-                                        style={{ zIndex: 50 }}
-                                      >
-                                        {p.emoji}
-                                      </motion.span>
-                                    ))}
-                                  </AnimatePresence>
-
-                                  {/* The button */}
-                                  <motion.button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setVotingPhotoId(photo.id);
-                                      setTimeout(() => setVotingPhotoId(null), 700);
-                                      handleVote(photo.id);
-                                    }}
-                                    disabled={!votingOpen}
-                                    whileTap={votingOpen ? { scale: 0.75 } : {}}
-                                    animate={isBursting ? { scale: [1, 1.25, 0.92, 1.08, 1] } : { scale: 1 }}
-                                    transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                                    className={cn(
-                                      "flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm",
-                                      !votingOpen
-                                        ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                        : hasVoted
-                                          ? "bg-white text-fivem-orange hover:bg-red-500/20 hover:text-red-400 border border-fivem-orange/40 hover:border-red-400/50 shadow-[0_0_12px_rgba(234,88,12,0.35)]"
-                                          : "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
-                                    )}
-                                  >
-                                    <Vote size={14} />
-                                    <span>{voteCount}</span>
-                                    {hasVoted && (
-                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-fivem-orange">
-                                        <polyline points="20 6 9 17 4 12" />
-                                      </svg>
-                                    )}
-                                  </motion.button>
-                                </div>
-                              );
-                            })()}
+                            <VoteButton
+                              photoId={photo.id}
+                              voteCount={photo.vote_count || 0}
+                              hasVoted={votedPhotoIds.has(photo.id)}
+                              votingOpen={votingOpen}
+                              categorySharePct={(() => {
+                                const total = photos.reduce((s, p) => s + (p.vote_count || 0), 0);
+                                return total > 0 ? Math.round(((photo.vote_count || 0) / total) * 100) : 0;
+                              })()}
+                              onVote={() => {
+                                setVotingPhotoId(photo.id);
+                                setTimeout(() => setVotingPhotoId(null), 700);
+                                handleVote(photo.id);
+                              }}
+                            />
                           </div>
 
                         </div>
