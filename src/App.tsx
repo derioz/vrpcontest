@@ -97,6 +97,7 @@ export default function App() {
   const [rulesMarkdown, setRulesMarkdown] = useState('');
   const [votingOpen, setVotingOpen] = useState(false);
   const [submissionsOpen, setSubmissionsOpen] = useState(true);
+  const [onePhotoPerUser, setOnePhotoPerUser] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -234,7 +235,8 @@ export default function App() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setVotingOpen(!!data.votingOpen);
-        setSubmissionsOpen(data.submissionsOpen !== false); // default true if field missing
+        setSubmissionsOpen(data.submissionsOpen !== false);
+        setOnePhotoPerUser(!!data.onePhotoPerUser); // default false (no limit)
         setRulesMarkdown(data.rulesMarkdown || '');
         if (data.theme) setCurrentTheme(data.theme);
       }
@@ -397,6 +399,11 @@ export default function App() {
       toast.error('Submissions are currently closed');
       return;
     }
+    // Enforce 1-photo-per-user limit server-side guard
+    if (onePhotoPerUser && userSubmissionCount >= 1) {
+      toast.error('Only 1 submission per user is allowed.');
+      return;
+    }
     if (!categoryId || !formPlayerName || !discordName) return;
 
     try {
@@ -470,6 +477,18 @@ export default function App() {
     }
   };
 
+  const toggleOnePhotoPerUser = async (enabled: boolean) => {
+    if (!isAdmin) return;
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { onePhotoPerUser: enabled });
+      setOnePhotoPerUser(enabled);
+      toast.success(enabled ? '1-photo limit enabled' : '1-photo limit disabled');
+    } catch (error) {
+      console.error("Toggle OnePhotoPerUser Error:", error);
+      toast.error('Failed to toggle limit');
+    }
+  };
+
   const handleDiscordLogin = async () => {
     try {
       await signInWithPopup(auth, discordProvider);
@@ -497,6 +516,10 @@ export default function App() {
   const handleUploadClick = async () => {
     if (!submissionsOpen) {
       toast.error('Submissions are currently closed');
+      return;
+    }
+    if (onePhotoPerUser && userSubmissionCount >= 1) {
+      toast.error('You have already submitted a photo. Only 1 submission per user is allowed.');
       return;
     }
 
@@ -1459,6 +1482,31 @@ export default function App() {
                             <span className="relative z-10 flex items-center gap-2">
                               {submissionsOpen ? <Lock size={14} /> : <Unlock size={14} />}
                               {submissionsOpen ? 'Close Submissions' : 'Open Submissions'}
+                            </span>
+                          </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="h-px bg-white/[0.06]" />
+
+                        {/* 1 Photo Per User Toggle */}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="font-bold text-white">1 Photo Per User</p>
+                            <p className="text-xs text-white/40 mt-0.5">Limit each Discord account to one submission</p>
+                          </div>
+                          <button
+                            onClick={() => toggleOnePhotoPerUser(!onePhotoPerUser)}
+                            className={cn(
+                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                              onePhotoPerUser
+                                ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
+                                : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
+                            )}
+                          >
+                            <span className="relative z-10 flex items-center gap-2">
+                              {onePhotoPerUser ? <Lock size={14} /> : <Unlock size={14} />}
+                              {onePhotoPerUser ? 'Limit ON' : 'Limit OFF'}
                             </span>
                           </button>
                         </div>
