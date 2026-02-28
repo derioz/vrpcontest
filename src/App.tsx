@@ -709,7 +709,7 @@ export default function App() {
       </div>
 
       {/* Winner Announcement Section */}
-      {activeContest && (!isVotingOpen || showWinnersToggle) && winners.length > 0 && (
+      {activeContest && showWinnersToggle && winners.length > 0 && (
         <WinnerAnnouncement winners={winners} />
       )}
 
@@ -1302,20 +1302,20 @@ export default function App() {
               <h3 className="text-sm font-bold">Contest Status</h3>
               <div className="flex flex-col items-end gap-1">
                 {votingOpen ? (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                     <Unlock size={10} /> Voting Open
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                     <Lock size={10} /> Voting Closed
                   </span>
                 )}
                 {submissionsOpen ? (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                     <Unlock size={10} /> Submissions Open
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                     <Lock size={10} /> Submissions Closed
                   </span>
                 )}

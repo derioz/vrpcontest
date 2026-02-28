@@ -91,7 +91,7 @@ export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
                     transition={{ duration: 1.5, type: "spring", bounce: 0.4 }}
                     className="absolute top-0 left-1/2 -translate-x-1/2 w-full pointer-events-none z-0"
                 >
-                    <h2 className="text-[12vw] sm:text-[10vw] font-black font-display text-white whitespace-nowrap leading-none select-none">
+                    <h2 className="text-[6vw] sm:text-[5vw] lg:text-[4vw] font-black font-display text-white whitespace-nowrap leading-none select-none">
                         CONGRATULATIONS
                     </h2>
                 </motion.div>
