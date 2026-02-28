@@ -110,6 +110,7 @@ export default function App() {
   const [userTotalVotes, setUserTotalVotes] = useState(0);
 
   const [activeContest, setActiveContest] = useState<{ id: string; name: string } | null>(null);
+  const [votedPhotoIds, setVotedPhotoIds] = useState<Set<string>>(new Set());
 
   // photos for the currently-selected category (derived from allPhotos)
   const photos = useMemo(() => {
@@ -208,6 +209,20 @@ export default function App() {
       console.error("User submissions listener error", err);
     });
 
+    return () => unsub();
+  }, [user]);
+
+  // Track which photos the current user has voted on (real-time)
+  useEffect(() => {
+    if (!user) {
+      setVotedPhotoIds(new Set());
+      return;
+    }
+    const q = query(collection(db, 'votes'), where('voterUid', '==', user.uid));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const ids = new Set(snapshot.docs.map(d => d.data().photoId as string));
+      setVotedPhotoIds(ids);
+    });
     return () => unsub();
   }, [user]);
   // Fetch initial data (Real-time Firestore listeners)
@@ -310,7 +325,6 @@ export default function App() {
     if (!currentUser) {
       const success = await handleDiscordLogin();
       if (!success) return;
-      // After login, the 'user' state will eventually update, but we need the immediate user object
       currentUser = auth.currentUser;
       if (!currentUser) return;
     }
@@ -328,34 +342,43 @@ export default function App() {
     }
 
     try {
-      // Use Discord UID (or Firebase UID) for strict 1-vote-per-person
       const voteRef = doc(db, 'votes', `${photoId}_${currentUser.uid}`);
       const voteSnap = await getDoc(voteRef);
+      const photoRef = doc(db, 'photos', photoId);
 
       if (voteSnap.exists()) {
-        toast.error('You have already voted for this photo');
-        return;
+        // Already voted — remove the vote
+        await deleteDoc(voteRef);
+        await updateDoc(photoRef, { vote_count: increment(-1) });
+        toast.success('Vote removed!');
+      } else {
+        // Cast a new vote
+        await setDoc(voteRef, {
+          photoId,
+          voterName: currentName,
+          voterUid: currentUser.uid,
+          voterDiscord: currentUser.displayName,
+          timestamp: new Date().toISOString()
+        });
+        await updateDoc(photoRef, { vote_count: increment(1) });
+        toast.success('Vote recorded!');
       }
-
-      await setDoc(voteRef, {
-        photoId,
-        voterName: currentName,
-        voterUid: currentUser.uid,
-        voterDiscord: currentUser.displayName,
-        timestamp: new Date().toISOString()
-      });
-
-      const photoRef = doc(db, 'photos', photoId);
-      await updateDoc(photoRef, { vote_count: increment(1) });
-
-      toast.success('Vote recorded!');
     } catch (error) {
       console.error("Vote Error:", error);
       toast.error('Network error or vote failed');
     }
   };
 
-  const handleDeletePhoto = async (photoId: string) => {
+  const handleDeletePhoto = async (photoId: string, photoDiscordName: string) => {
+    // Ownership check: only the photo owner or an admin can delete
+    const isOwner = user && (
+      user.displayName === photoDiscordName ||
+      user.providerData.some(p => p.displayName === photoDiscordName)
+    );
+    if (!isAdmin && !isOwner) {
+      toast.error('You can only delete your own photos');
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this photo?")) return;
     try {
       await deleteDoc(doc(db, 'photos', photoId));
@@ -1038,7 +1061,7 @@ export default function App() {
                           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                             {(isAdmin || (user && (user.displayName === photo.discord_name || user.providerData.some(p => p.displayName === photo.discord_name)))) && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id, photo.discord_name); }}
                                 className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
                                 title="Delete Photo"
                               >
@@ -1060,19 +1083,27 @@ export default function App() {
                           </div>
 
                           <div className="absolute bottom-3 right-3 z-20">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
-                              disabled={!votingOpen}
-                              className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
-                                votingOpen
-                                  ? "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
-                                  : "bg-white/10 text-white/40 cursor-not-allowed"
-                              )}
-                            >
-                              <Vote size={16} />
-                              {photo.vote_count || 0}
-                            </button>
+                            {(() => {
+                              const hasVoted = votedPhotoIds.has(photo.id);
+                              return (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
+                                  disabled={!votingOpen}
+                                  title={hasVoted ? 'Click to remove your vote' : 'Vote for this photo'}
+                                  className={cn(
+                                    "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
+                                    !votingOpen
+                                      ? "bg-white/10 text-white/40 cursor-not-allowed"
+                                      : hasVoted
+                                        ? "bg-white text-fivem-orange hover:bg-red-500/20 hover:text-red-400 border border-fivem-orange/50 hover:border-red-400/50 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                                        : "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
+                                  )}
+                                >
+                                  <Vote size={16} />
+                                  {photo.vote_count || 0}
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                         <div className="p-4 pr-32 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
