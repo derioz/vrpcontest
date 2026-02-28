@@ -527,7 +527,7 @@ export default function App() {
           className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent"
         />
 
-        <div className="relative h-24 max-w-[1400px] mx-auto px-8 flex items-center justify-between pointer-events-none">
+        <div className="relative h-16 sm:h-24 max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between pointer-events-none">
 
           {/* Left: Branding — pure minimalist geometry */}
           <motion.div
@@ -624,7 +624,7 @@ export default function App() {
         };
 
         return (
-          <section className="relative overflow-hidden border-b border-white/10 pt-28" style={{ minHeight: '640px' }}>
+          <section className="relative overflow-hidden border-b border-white/10 pt-20 sm:pt-28" style={{ minHeight: '500px' }}>
             {/* ── Deep dark base ── */}
             <div className="absolute inset-0 bg-[#060606]" />
 
@@ -645,7 +645,7 @@ export default function App() {
             }} />
 
             {/* ── Main 2-col layout ── */}
-            <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center" style={{ minHeight: '580px', paddingTop: '4rem', paddingBottom: '4rem' }}>
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center" style={{ paddingTop: '2rem', paddingBottom: '3rem' }}>
 
               {/* LEFT — text content */}
               <motion.div
@@ -674,7 +674,7 @@ export default function App() {
                 {/* Title */}
                 <motion.h2
                   variants={heroItemVariants}
-                  className="text-5xl md:text-6xl xl:text-7xl font-black font-display tracking-tight leading-[0.92] mb-5"
+                  className="text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-black font-display tracking-tight leading-[0.92] mb-5"
                 >
                   <span className="text-white">{activeContest.name.split(' ')[0]}</span>
                   {activeContest.name.split(' ').length > 1 && (
@@ -725,7 +725,7 @@ export default function App() {
                 </motion.div>
 
                 {/* Stats — GlassmorphismMinimalMetricsBlock: rounded-2xl, backdrop-blur-2xl, hover-lift, color-coded */}
-                <motion.div variants={heroItemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <motion.div variants={heroItemVariants} className="grid grid-cols-2 gap-2.5">
                   {[
                     { value: categories.length, label: 'Categories' },
                     { value: photos.length, label: 'Entries' },
@@ -872,7 +872,7 @@ export default function App() {
         categories.length > 0 && (
           <div className="relative z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10 shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
             <div className="max-w-7xl mx-auto px-6">
-              <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar py-4">
+              <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar touch-pan-x py-4">
 
                 {/* Left anchor label */}
                 <div className="shrink-0 flex flex-col justify-center gap-1 pr-5 border-r border-white/10">
@@ -934,10 +934,10 @@ export default function App() {
 
 
 
-      <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
 
-        {/* Main Content â€” 3 cols */}
-        <div className="lg:col-span-3 space-y-24 min-w-0">
+        {/* Main Content – 3 cols */}
+        <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
           <section>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -989,7 +989,7 @@ export default function App() {
                 )}
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <AnimatePresence mode="popLayout">
                   {sortedPhotos.map((photo, index) => {
                     const rankEmoji = sortBy === 'top' ? (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null) : null;
@@ -1107,8 +1107,8 @@ export default function App() {
           </section>
         </div>
 
-        {/* Right Sidebar â€” 1 col */}
-        <aside className="lg:col-span-1 space-y-6 lg:sticky lg:top-36 self-start">
+        {/* Right Sidebar – 1 col */}
+        <aside className="lg:col-span-1 space-y-4 sm:space-y-6 lg:sticky lg:top-28 self-start order-first lg:order-last">
 
           {/* Profile */}
           <section>
@@ -1262,7 +1262,7 @@ export default function App() {
       </main >
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="sm:max-w-lg bg-fivem-card border-white/10 text-white">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-lg bg-fivem-card border-white/10 text-white">
           <DialogHeader>
             <DialogTitle className="font-display">Upload Entry</DialogTitle>
           </DialogHeader>
@@ -1279,17 +1279,17 @@ export default function App() {
       </Dialog>
 
       <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
-        <DialogContent className="w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl max-h-[95vh] overflow-y-auto bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-x-hidden">
+        <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-x-hidden">
 
           {/* Ambient glows — uitripled glassmorphism pattern */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fivem-orange/8 blur-[200px] rounded-full pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fivem-orange/4 blur-[160px] rounded-full pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col h-full">
+          <div className="relative z-10 flex flex-col -m-6">
 
             {/* ── Header Bar ── */}
-            <div className="flex items-center justify-between px-8 py-5 border-b border-white/[0.08]">
+            <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.08]">
               <div className="flex items-center gap-4">
                 <div className="p-2.5 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
                   <Settings size={20} className="text-fivem-orange" />
@@ -1330,7 +1330,7 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 p-8 space-y-8">
+              <div className="flex-1 p-4 sm:p-8 space-y-6 sm:space-y-8">
 
                 {/* ── Glassmorphism Stats Row (uitripled stats-card pattern) ── */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1381,7 +1381,7 @@ export default function App() {
                       </div>
                       <div className="space-y-4">
                         {/* Voting Toggle */}
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <p className="font-bold text-white">Voting Status</p>
                             <p className="text-xs text-white/40 mt-0.5">Toggle public voting for all categories</p>
@@ -1406,7 +1406,7 @@ export default function App() {
                         <div className="h-px bg-white/[0.06]" />
 
                         {/* Submissions Toggle */}
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <p className="font-bold text-white">Submissions Status</p>
                             <p className="text-xs text-white/40 mt-0.5">Allow or block new photo submissions</p>
@@ -1767,7 +1767,7 @@ function UploadForm({ categories, initialCategoryId, discordName, onUpload, onCl
           <div
             {...getRootProps()}
             className={cn(
-              "aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative",
+              "aspect-[16/9] sm:aspect-video max-h-48 sm:max-h-56 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative",
               isDragActive ? "border-fivem-orange bg-fivem-orange/5" : "border-white/10 hover:border-white/20 bg-white/5",
               image && "border-none"
             )}

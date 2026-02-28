@@ -67,3 +67,19 @@
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* Hide scrollbar but keep scrollability (category tabs) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth horizontal touch scrolling on iOS */
+.touch-pan-x {
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
