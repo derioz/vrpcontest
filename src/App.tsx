@@ -1085,26 +1085,76 @@ export default function App() {
                           <div className="absolute bottom-3 right-3 z-20">
                             {(() => {
                               const hasVoted = votedPhotoIds.has(photo.id);
+                              const totalCatVotes = photos.reduce((s, p) => s + (p.vote_count || 0), 0);
+                              const voteCount = photo.vote_count || 0;
+                              const pct = totalCatVotes > 0 ? Math.round((voteCount / totalCatVotes) * 100) : 0;
                               return (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
-                                  disabled={!votingOpen}
-                                  title={hasVoted ? 'Click to remove your vote' : 'Vote for this photo'}
-                                  className={cn(
-                                    "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all",
-                                    !votingOpen
-                                      ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                      : hasVoted
-                                        ? "bg-white text-fivem-orange hover:bg-red-500/20 hover:text-red-400 border border-fivem-orange/50 hover:border-red-400/50 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.4)]"
-                                        : "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
-                                  )}
-                                >
-                                  <Vote size={16} />
-                                  {photo.vote_count || 0}
-                                </button>
+                                <div className="relative group/vote">
+                                  {/* Hover popover */}
+                                  <div className="absolute bottom-full right-0 mb-2 pointer-events-none opacity-0 group-hover/vote:opacity-100 transition-all duration-200 translate-y-1 group-hover/vote:translate-y-0">
+                                    <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 w-44 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+                                      {/* Vote count */}
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Votes</span>
+                                        <span className="text-base font-black text-white font-display leading-none">{voteCount}</span>
+                                      </div>
+                                      {/* Category share bar */}
+                                      <div className="mb-2">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Category share</span>
+                                          <span className="text-[10px] font-bold text-fivem-orange">{pct}%</span>
+                                        </div>
+                                        <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                          <div
+                                            className="h-full bg-fivem-orange rounded-full transition-all duration-500"
+                                            style={{ width: `${pct}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                      {/* Status */}
+                                      {votingOpen && (
+                                        <div className={cn(
+                                          "flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider pt-1.5 border-t border-white/[0.06]",
+                                          hasVoted ? "text-emerald-400" : "text-white/30"
+                                        )}>
+                                          {hasVoted ? (
+                                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>You voted · click to undo</>
+                                          ) : (
+                                            <><Vote size={10} />Click to vote</>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Arrow */}
+                                    <div className="absolute bottom-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0a]/95 border-r border-b border-white/10 rotate-45" />
+                                  </div>
+
+                                  {/* The button */}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
+                                    disabled={!votingOpen}
+                                    className={cn(
+                                      "flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm transition-all duration-200",
+                                      !votingOpen
+                                        ? "bg-white/10 text-white/40 cursor-not-allowed"
+                                        : hasVoted
+                                          ? "bg-white text-fivem-orange hover:bg-red-500/20 hover:text-red-400 border border-fivem-orange/40 hover:border-red-400/50 active:scale-95 shadow-[0_0_12px_rgba(234,88,12,0.35)]"
+                                          : "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
+                                    )}
+                                  >
+                                    <Vote size={14} />
+                                    <span>{voteCount}</span>
+                                    {hasVoted && (
+                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-fivem-orange">
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </div>
                               );
                             })()}
                           </div>
+
                         </div>
                         <div className="p-4 pr-32 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
                           <p className="text-sm font-medium line-clamp-2 text-white">{photo.caption || "No caption provided"}</p>
