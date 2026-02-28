@@ -111,6 +111,7 @@ export default function App() {
 
   const [activeContest, setActiveContest] = useState<{ id: string; name: string } | null>(null);
   const [votedPhotoIds, setVotedPhotoIds] = useState<Set<string>>(new Set());
+  const [votingPhotoId, setVotingPhotoId] = useState<string | null>(null);
 
   // photos for the currently-selected category (derived from allPhotos)
   const photos = useMemo(() => {
@@ -1088,6 +1089,7 @@ export default function App() {
                               const totalCatVotes = photos.reduce((s, p) => s + (p.vote_count || 0), 0);
                               const voteCount = photo.vote_count || 0;
                               const pct = totalCatVotes > 0 ? Math.round((voteCount / totalCatVotes) * 100) : 0;
+                              const isBursting = votingPhotoId === photo.id;
                               return (
                                 <div className="relative group/vote">
                                   {/* Hover popover */}
@@ -1129,17 +1131,47 @@ export default function App() {
                                     <div className="absolute bottom-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0a]/95 border-r border-b border-white/10 rotate-45" />
                                   </div>
 
+                                  {/* Burst particles */}
+                                  <AnimatePresence>
+                                    {isBursting && [
+                                      { x: 0, y: -44, delay: 0, emoji: hasVoted ? '💔' : '❤️' },
+                                      { x: -18, y: -36, delay: 0.04, emoji: hasVoted ? '💔' : '✨' },
+                                      { x: 18, y: -36, delay: 0.04, emoji: hasVoted ? '💔' : '✨' },
+                                      { x: -8, y: -52, delay: 0.08, emoji: hasVoted ? '💔' : '⭐' },
+                                    ].map((p, i) => (
+                                      <motion.span
+                                        key={i}
+                                        initial={{ opacity: 1, y: 0, x: 0, scale: 0.5 }}
+                                        animate={{ opacity: 0, y: p.y, x: p.x, scale: 1.2 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.65, delay: p.delay, ease: 'easeOut' }}
+                                        className="absolute bottom-1 right-3 pointer-events-none text-base select-none"
+                                        style={{ zIndex: 50 }}
+                                      >
+                                        {p.emoji}
+                                      </motion.span>
+                                    ))}
+                                  </AnimatePresence>
+
                                   {/* The button */}
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); handleVote(photo.id); }}
+                                  <motion.button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setVotingPhotoId(photo.id);
+                                      setTimeout(() => setVotingPhotoId(null), 700);
+                                      handleVote(photo.id);
+                                    }}
                                     disabled={!votingOpen}
+                                    whileTap={votingOpen ? { scale: 0.75 } : {}}
+                                    animate={isBursting ? { scale: [1, 1.25, 0.92, 1.08, 1] } : { scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 18 }}
                                     className={cn(
-                                      "flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm transition-all duration-200",
+                                      "flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm",
                                       !votingOpen
                                         ? "bg-white/10 text-white/40 cursor-not-allowed"
                                         : hasVoted
-                                          ? "bg-white text-fivem-orange hover:bg-red-500/20 hover:text-red-400 border border-fivem-orange/40 hover:border-red-400/50 active:scale-95 shadow-[0_0_12px_rgba(234,88,12,0.35)]"
-                                          : "bg-fivem-orange text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
+                                          ? "bg-white text-fivem-orange hover:bg-red-500/20 hover:text-red-400 border border-fivem-orange/40 hover:border-red-400/50 shadow-[0_0_12px_rgba(234,88,12,0.35)]"
+                                          : "bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_25px_rgba(234,88,12,0.8)]"
                                     )}
                                   >
                                     <Vote size={14} />
@@ -1149,7 +1181,7 @@ export default function App() {
                                         <polyline points="20 6 9 17 4 12" />
                                       </svg>
                                     )}
-                                  </button>
+                                  </motion.button>
                                 </div>
                               );
                             })()}
