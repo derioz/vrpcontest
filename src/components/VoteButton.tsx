@@ -9,7 +9,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { cn } from '../lib/utils';
 
@@ -46,10 +46,14 @@ export function VoteButton({
     const [voters, setVoters] = useState<Voter[]>([]);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Fetch voter names when popup opens
+    // Fetch up to 5 voter names when popup opens — keeps the list digestible
     useEffect(() => {
         if (!isHovered) return;
-        const q = query(collection(db, 'votes'), where('photoId', '==', photoId));
+        const q = query(
+            collection(db, 'votes'),
+            where('photoId', '==', photoId),
+            limit(5)
+        );
         const unsub = onSnapshot(q, (snap) => {
             setVoters(
                 snap.docs.map((d) => ({
@@ -113,9 +117,9 @@ export function VoteButton({
                             <span className="text-[10px] font-mono text-white/30">{voteCount.toLocaleString()} vote{voteCount !== 1 ? 's' : ''}</span>
                         </div>
 
-                        {/* Voter list */}
+                        {/* Voter list — capped at 5 */}
                         {voters.length > 0 ? (
-                            <div className="max-h-36 overflow-y-auto space-y-1 mb-2">
+                            <div className="space-y-1 mb-2">
                                 {voters.map((v, i) => (
                                     <motion.div
                                         key={v.id}
@@ -124,7 +128,6 @@ export function VoteButton({
                                         transition={{ delay: i * 0.025, duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                                         className="flex items-center gap-2 py-0.5"
                                     >
-                                        {/* Avatar initial */}
                                         <div className="w-5 h-5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center shrink-0">
                                             <span className="text-[9px] font-bold text-fivem-orange uppercase leading-none">
                                                 {v.displayName.charAt(0)}
@@ -133,6 +136,15 @@ export function VoteButton({
                                         <span className="text-xs text-white/70 truncate">{v.displayName}</span>
                                     </motion.div>
                                 ))}
+                                {voteCount > voters.length && (
+                                    <div className="flex items-center gap-1.5 pt-0.5">
+                                        <div className="flex-1 h-px bg-white/[0.06]" />
+                                        <span className="text-[10px] font-mono text-white/30 shrink-0">
+                                            +{(voteCount - voters.length).toLocaleString()} more
+                                        </span>
+                                        <div className="flex-1 h-px bg-white/[0.06]" />
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <p className="text-[11px] text-white/25 italic mb-2 px-0.5">No votes yet</p>
