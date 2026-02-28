@@ -1907,8 +1907,10 @@ function UploadForm({ categories, initialCategoryId, discordName, onUpload, onCl
       toast.error('Please fill in all required fields');
       return;
     }
-    if (resolution && (resolution.w < 1920 || resolution.h < 1080)) {
-      toast.error(`Resolution too low: ${resolution.w}x${resolution.h}. Minimum is 1920x1080.`);
+    // Allow any image that has at LEAST one dimension meeting the 1920x1080 ratio.
+    // For example, portrait shots from FiveM are basically 1080x1920
+    if (resolution && ((resolution.w < 1920 && resolution.h < 1920) || (resolution.w < 1080 && resolution.h < 1080))) {
+      toast.error(`Resolution too low: ${resolution.w}x${resolution.h}. Minimum is 1920x1080 (or 1080x1920).`);
       return;
     }
 
