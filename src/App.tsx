@@ -95,6 +95,7 @@ export default function App() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [rulesMarkdown, setRulesMarkdown] = useState('');
   const [votingOpen, setVotingOpen] = useState(false);
+  const [submissionsOpen, setSubmissionsOpen] = useState(true);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -211,6 +212,7 @@ export default function App() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setVotingOpen(!!data.votingOpen);
+        setSubmissionsOpen(data.submissionsOpen !== false); // default true if field missing
         setRulesMarkdown(data.rulesMarkdown || '');
         if (data.theme) setCurrentTheme(data.theme);
       }
@@ -359,6 +361,10 @@ export default function App() {
   };
 
   const handleUpload = async (imageData: string, caption: string, discordName: string, formPlayerName: string, categoryId: string) => {
+    if (!submissionsOpen) {
+      toast.error('Submissions are currently closed');
+      return;
+    }
     if (!categoryId || !formPlayerName || !discordName) return;
 
     try {
@@ -420,6 +426,18 @@ export default function App() {
     }
   };
 
+  const toggleSubmissions = async (open: boolean) => {
+    if (!isAdmin) return;
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { submissionsOpen: open });
+      setSubmissionsOpen(open);
+      toast.success(`Submissions ${open ? 'opened' : 'closed'}`);
+    } catch (error) {
+      console.error("Toggle Submissions Error:", error);
+      toast.error('Failed to toggle submissions');
+    }
+  };
+
   const handleDiscordLogin = async () => {
     try {
       await signInWithPopup(auth, discordProvider);
@@ -445,6 +463,11 @@ export default function App() {
   };
 
   const handleUploadClick = async () => {
+    if (!submissionsOpen) {
+      toast.error('Submissions are currently closed');
+      return;
+    }
+
     const isDiscordUser = user?.providerData.some(p => p.providerId === 'oidc.discord');
 
     if (user && isDiscordUser) {
@@ -673,14 +696,24 @@ export default function App() {
                 <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3 mb-10">
                   <button
                     onClick={handleUploadClick}
-                    className="group relative flex items-center gap-2.5 bg-fivem-orange text-white font-bold px-8 py-4 rounded-2xl text-sm overflow-hidden transition-all hover:-translate-y-1 hover:shadow-[0_12px_50px_rgba(234,88,12,0.6)]"
+                    disabled={!submissionsOpen}
+                    className={cn(
+                      "group relative flex items-center gap-2.5 font-bold px-8 py-4 rounded-2xl text-sm overflow-hidden transition-all",
+                      submissionsOpen
+                        ? "bg-fivem-orange text-white hover:-translate-y-1 hover:shadow-[0_12px_50px_rgba(234,88,12,0.6)]"
+                        : "bg-white/10 text-white/30 cursor-not-allowed border border-white/10"
+                    )}
                   >
-                    <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                      <circle cx="12" cy="13" r="4" />
-                    </svg>
-                    <span className="relative z-10">Submit Your Shot</span>
+                    {submissionsOpen && <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />}
+                    {submissionsOpen ? (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    ) : (
+                      <Lock size={17} className="relative z-10" />
+                    )}
+                    <span className="relative z-10">{submissionsOpen ? 'Submit Your Shot' : 'Submissions Closed'}</span>
                   </button>
                   <a
                     href="#rules"
@@ -945,13 +978,15 @@ export default function App() {
               >
                 <ImageIcon size={48} className="text-white/10 mb-4" />
                 <p className="text-white/40 font-medium">No entries yet in this category</p>
-                <p className="text-xs text-white/20 mt-1">Be the first to upload a photo!</p>
-                <button
-                  onClick={handleUploadClick}
-                  className="mt-6 flex items-center gap-2 bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-fivem-orange hover:text-white transition-all"
-                >
-                  <Upload size={16} /> Submit Entry
-                </button>
+                <p className="text-xs text-white/20 mt-1">{submissionsOpen ? 'Be the first to upload a photo!' : 'Submissions are currently closed.'}</p>
+                {submissionsOpen && (
+                  <button
+                    onClick={handleUploadClick}
+                    className="mt-6 flex items-center gap-2 bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-fivem-orange hover:text-white transition-all"
+                  >
+                    <Upload size={16} /> Submit Entry
+                  </button>
+                )}
               </motion.div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1159,27 +1194,46 @@ export default function App() {
           <section className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">Contest Status</h3>
-              {votingOpen ? (
-                <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  <Unlock size={10} /> Voting Open
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  <Lock size={10} /> Voting Closed
-                </span>
-              )}
+              <div className="flex flex-col items-end gap-1">
+                {votingOpen ? (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <Unlock size={10} /> Voting Open
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <Lock size={10} /> Voting Closed
+                  </span>
+                )}
+                {submissionsOpen ? (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <Unlock size={10} /> Submissions Open
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <Lock size={10} /> Submissions Closed
+                  </span>
+                )}
+              </div>
             </div>
             <p className="text-xs text-white/50 leading-relaxed">
-              {votingOpen
-                ? "Browse the entries and cast your votes for your favorites!"
-                : "Submit your best shots now. Voting will open soon."}
+              {submissionsOpen
+                ? votingOpen
+                  ? "Browse the entries and cast your votes for your favorites!"
+                  : "Submit your best shots now. Voting will open soon."
+                : "Submissions are closed. Stay tuned for voting!"}
             </p>
             <button
               onClick={handleUploadClick}
-              className="w-full bg-white text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-fivem-orange hover:text-white transition-colors"
+              disabled={!submissionsOpen}
+              className={cn(
+                "w-full font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors",
+                submissionsOpen
+                  ? "bg-white text-black hover:bg-fivem-orange hover:text-white"
+                  : "bg-white/10 text-white/30 cursor-not-allowed"
+              )}
             >
-              <Upload size={18} />
-              Upload Photo
+              {submissionsOpen ? <Upload size={18} /> : <Lock size={18} />}
+              {submissionsOpen ? 'Upload Photo' : 'Submissions Closed'}
             </button>
           </section>
 
@@ -1318,32 +1372,60 @@ export default function App() {
                   {/* LEFT: Live Controls + Edit Contest */}
                   <div className="space-y-6">
 
-                    {/* Voting Toggle — prominent card */}
+                    {/* Live Controls card */}
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6">
                       <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent" />
                       <div className="flex items-center gap-2 mb-5">
                         <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-                        <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Live Status</h4>
+                        <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Live Controls</h4>
                       </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="font-bold text-white">Voting Status</p>
-                          <p className="text-xs text-white/40 mt-0.5">Toggle public voting for all categories</p>
+                      <div className="space-y-4">
+                        {/* Voting Toggle */}
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-bold text-white">Voting Status</p>
+                            <p className="text-xs text-white/40 mt-0.5">Toggle public voting for all categories</p>
+                          </div>
+                          <button
+                            onClick={() => toggleVoting(!votingOpen)}
+                            className={cn(
+                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                              votingOpen
+                                ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+                            )}
+                          >
+                            <span className="relative z-10 flex items-center gap-2">
+                              {votingOpen ? <Lock size={14} /> : <Unlock size={14} />}
+                              {votingOpen ? 'Close Voting' : 'Open Voting'}
+                            </span>
+                          </button>
                         </div>
-                        <button
-                          onClick={() => toggleVoting(!votingOpen)}
-                          className={cn(
-                            "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                            votingOpen
-                              ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                              : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
-                          )}
-                        >
-                          <span className="relative z-10 flex items-center gap-2">
-                            {votingOpen ? <Lock size={14} /> : <Unlock size={14} />}
-                            {votingOpen ? 'Close Voting' : 'Open Voting'}
-                          </span>
-                        </button>
+
+                        {/* Divider */}
+                        <div className="h-px bg-white/[0.06]" />
+
+                        {/* Submissions Toggle */}
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-bold text-white">Submissions Status</p>
+                            <p className="text-xs text-white/40 mt-0.5">Allow or block new photo submissions</p>
+                          </div>
+                          <button
+                            onClick={() => toggleSubmissions(!submissionsOpen)}
+                            className={cn(
+                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                              submissionsOpen
+                                ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+                            )}
+                          >
+                            <span className="relative z-10 flex items-center gap-2">
+                              {submissionsOpen ? <Lock size={14} /> : <Unlock size={14} />}
+                              {submissionsOpen ? 'Close Submissions' : 'Open Submissions'}
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
