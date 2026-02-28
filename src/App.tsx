@@ -2344,23 +2344,9 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
         </div>
       </div>
 
-      <div className="space-y-4 relative z-30">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Schedule</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
-            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
-            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2 relative z-20">
+      <div className="space-y-2 relative z-30">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Contest Rules (Markdown)</label>
+          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
         </div>
         <div className="flex flex-col">
           <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
@@ -2371,6 +2357,20 @@ function EditContestManager({ activeContest, currentRules, currentCategories, on
             onChange={(e) => setRules(e.target.value)}
             className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
           />
+        </div>
+      </div>
+
+      <div className="space-y-4 relative z-20">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
+            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
+            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
         </div>
       </div>
 
@@ -2630,23 +2630,9 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         </div>
       </div>
 
-      <div className="space-y-4 relative z-30">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Schedule</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
-            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
-            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2 relative z-20">
+      <div className="space-y-2 relative z-30">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Contest Rules (Markdown)</label>
+          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
           <span className="text-[10px] text-white/40">Optional - can be edited later</span>
         </div>
         <div className="flex flex-col">
@@ -2658,6 +2644,20 @@ function CreateContestManager({ onCreated }: { onCreated: () => void }) {
             onChange={(e) => setRules(e.target.value)}
             className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
           />
+        </div>
+      </div>
+
+      <div className="space-y-4 relative z-20">
+        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
+            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
+            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          </div>
         </div>
       </div>
 
