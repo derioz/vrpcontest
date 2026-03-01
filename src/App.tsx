@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import {
   Upload,
   Vote,
@@ -30,7 +30,8 @@ import {
   Calendar,
   Smile,
   Link as LinkIcon,
-  Layers
+  Layers,
+  BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -53,43 +54,16 @@ import { auth, discordProvider, db } from './lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  emoji?: string;
-}
+import { Category, Photo, Rule, Theme } from './types';
 
-interface Photo {
-  id: string;
-  category_id: string;
-  player_name: string;
-  discord_name: string;
-  image_url: string;
-  caption: string;
-  created_at: string;
-  vote_count: number;
-}
+const UploadForm = lazy(() => import('./components/UploadForm'));
+const EditContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.EditContestManager })));
+const ArchiveContest = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.ArchiveContest })));
+const CreateContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.CreateContestManager })));
+const LightboxModal = lazy(() => import('./components/LightboxModal'));
+const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 
-interface Rule {
-  id: number;
-  title: string;
-  content: string;
-  category: string;
-  importance: 'Normal' | 'High' | 'Critical';
-}
 
-interface Theme {
-  colors: {
-    background: string;
-    text: string;
-    primary: string;
-    secondary: string;
-    card: string;
-    accent: string;
-  };
-  font: string;
-}
 
 export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -106,6 +80,7 @@ export default function App() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
   const [sortBy, setSortBy] = useState<'top' | 'newest'>('top');
@@ -1362,15 +1337,17 @@ export default function App() {
           <DialogHeader>
             <DialogTitle className="font-display">Upload Entry</DialogTitle>
           </DialogHeader>
-          <UploadForm
-            categories={categories}
-            initialCategoryId={selectedCategory?.id || ''}
-            discordName={user?.displayName || user?.providerData?.[0]?.displayName || user?.email || 'Authenticated User'}
-            onClose={() => setShowUploadModal(false)}
-            onUpload={async (imageData, caption, discordName, formPlayerName, categoryId) => {
-              await handleUpload(imageData, caption, discordName, formPlayerName, categoryId);
-            }}
-          />
+          <Suspense fallback={<div className="p-8 text-center text-white/50 animate-pulse font-mono text-xs">Loading form...</div>}>
+            <UploadForm
+              categories={categories}
+              initialCategoryId={selectedCategory?.id || ''}
+              discordName={user?.displayName || user?.providerData?.[0]?.displayName || user?.email || 'Authenticated User'}
+              onClose={() => setShowUploadModal(false)}
+              onUpload={async (imageData, caption, discordName, formPlayerName, categoryId) => {
+                await handleUpload(imageData, caption, discordName, formPlayerName, categoryId);
+              }}
+            />
+          </Suspense>
         </DialogContent>
       </Dialog>
 
@@ -1382,315 +1359,309 @@ export default function App() {
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fivem-orange/4 blur-[160px] rounded-full pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col -m-6">
+          <Suspense fallback={<div className="p-10 text-center text-fivem-orange/50 animate-pulse font-mono flex items-center justify-center min-h-[500px]">Loading Admin Modules...</div>}>
+            <div className="relative z-10 flex flex-col -m-6">
 
-            {/* ── Header Bar ── */}
-            <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.08]">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
-                  <Settings size={20} className="text-fivem-orange" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-black font-display text-white leading-none">Admin Settings</h2>
-                  <p className="text-[11px] text-white/30 font-mono mt-0.5">Contest Management Console</p>
-                </div>
-              </div>
-              {isAdmin && (
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                    <span className="text-[11px] font-bold text-emerald-400 font-mono">Admin Authenticated</span>
+              {/* ── Header Bar ── */}
+              <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.08]">
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
+                    <Settings size={20} className="text-fivem-orange" />
                   </div>
-                  <div className="text-[11px] text-white/30 font-mono px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-                    {user?.displayName || user?.email || 'Admin'}
+                  <div>
+                    <h2 className="text-lg font-black font-display text-white leading-none">Admin Settings</h2>
+                    <p className="text-[11px] text-white/30 font-mono mt-0.5">Contest Management Console</p>
+                  </div>
+                </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                      <span className="text-[11px] font-bold text-emerald-400 font-mono">Admin Authenticated</span>
+                    </div>
+                    <div className="text-[11px] text-white/30 font-mono px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
+                      {user?.displayName || user?.email || 'Admin'}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {!isAdmin ? (
+                <div className="flex-1 flex items-center justify-center p-10">
+                  {user ? (
+                    <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
+                      <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                        <Lock className="text-red-400" size={24} />
+                      </div>
+                      <p className="font-bold text-red-400">Access Denied</p>
+                      <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
+                      <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
+                        Logout to switch accounts
+                      </button>
+                    </div>
+                  ) : (
+                    <LoginForm onDiscordLogin={handleDiscordLogin} />
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 p-4 sm:p-8 space-y-6 sm:space-y-8">
+
+                  {/* ── Glassmorphism Stats Row (uitripled stats-card pattern) ── */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
+                      { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
+                      { label: 'Total Entries', value: allPhotos.length, icon: ImageIcon, color: 'purple' },
+                      { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
+                    ].map((stat, i) => {
+                      const Icon = stat.icon;
+                      const colors: Record<string, string> = {
+                        orange: 'from-fivem-orange/20 border-fivem-orange/25 [--c:theme(colors.orange.500)]',
+                        blue: 'from-blue-500/15 border-blue-500/20 [--c:theme(colors.blue.400)]',
+                        purple: 'from-purple-500/15 border-purple-500/20 [--c:theme(colors.purple.400)]',
+                        emerald: 'from-emerald-500/15 border-emerald-500/20 [--c:theme(colors.emerald.400)]',
+                        red: 'from-red-500/15 border-red-500/20 [--c:theme(colors.red.400)]',
+                      };
+                      const iconColors: Record<string, string> = { orange: 'text-fivem-orange', blue: 'text-blue-400', purple: 'text-purple-400', emerald: 'text-emerald-400', red: 'text-red-400' };
+                      return (
+                        <motion.div
+                          key={stat.label}
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.07, duration: 0.4 }}
+                          className={cn("relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4", colors[stat.color])}
+                        >
+                          <div className="absolute top-0 right-0 w-20 h-20 blur-[40px] opacity-30 rounded-full bg-current" />
+                          <Icon size={16} className={cn("mb-3 relative z-10", iconColors[stat.color])} />
+                          <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">{stat.label}</p>
+                          <p className="text-sm font-black text-white leading-tight truncate">{String(stat.value)}</p>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {/* ── Main 2-col Layout ── */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    {/* LEFT: Live Controls + Edit Contest */}
+                    <div className="space-y-6">
+
+                      {/* Live Controls card */}
+                      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent" />
+                        <div className="flex items-center gap-2 mb-5">
+                          <div className="w-1 h-4 bg-fivem-orange rounded-full" />
+                          <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Live Controls</h4>
+                        </div>
+                        <div className="space-y-4">
+                          {/* Voting Toggle */}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-white">Voting Status</p>
+                              <p className="text-xs text-white/40 mt-0.5">Toggle public voting for all categories</p>
+                            </div>
+                            <button
+                              onClick={() => toggleVoting(!votingOpen)}
+                              className={cn(
+                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                                votingOpen
+                                  ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                                  : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+                              )}
+                            >
+                              <span className="relative z-10 flex items-center gap-2">
+                                {votingOpen ? <Lock size={14} /> : <Unlock size={14} />}
+                                {votingOpen ? 'Close Voting' : 'Open Voting'}
+                              </span>
+                            </button>
+                          </div>
+
+                          {/* Divider */}
+                          <div className="h-px bg-white/[0.06]" />
+
+                          {/* Submissions Toggle */}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-white">Submissions Status</p>
+                              <p className="text-xs text-white/40 mt-0.5">Allow or block new photo submissions</p>
+                            </div>
+                            <button
+                              onClick={() => toggleSubmissions(!submissionsOpen)}
+                              className={cn(
+                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                                submissionsOpen
+                                  ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                                  : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+                              )}
+                            >
+                              <span className="relative z-10 flex items-center gap-2">
+                                {submissionsOpen ? <Lock size={14} /> : <Unlock size={14} />}
+                                {submissionsOpen ? 'Close Submissions' : 'Open Submissions'}
+                              </span>
+                            </button>
+                          </div>
+
+                          {/* Divider */}
+                          <div className="h-px bg-white/[0.06]" />
+
+                          {/* 1 Photo Per User Toggle */}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-white">1 Photo Per User</p>
+                              <p className="text-xs text-white/40 mt-0.5">Limit each Discord account to one submission</p>
+                            </div>
+                            <button
+                              onClick={() => toggleOnePhotoPerUser(!onePhotoPerUser)}
+                              className={cn(
+                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                                onePhotoPerUser
+                                  ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
+                                  : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
+                              )}
+                            >
+                              <span className="relative z-10 flex items-center gap-2">
+                                {onePhotoPerUser ? <Lock size={14} /> : <Unlock size={14} />}
+                                {onePhotoPerUser ? 'Limit ON' : 'Limit OFF'}
+                              </span>
+                            </button>
+                          </div>
+                          {/* Divider */}
+                          <div className="h-px bg-white/[0.06]" />
+
+                          {/* Test Winner Announcement Toggle */}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-white">Test Winner Announcement</p>
+                              <p className="text-xs text-white/40 mt-0.5">Force the winner showcase to appear above the hero</p>
+                            </div>
+                            <button
+                              onClick={() => toggleShowWinners(!showWinnersToggle)}
+                              className={cn(
+                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                                showWinnersToggle
+                                  ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
+                                  : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
+                              )}
+                            >
+                              <span className="relative z-10 flex items-center gap-2">
+                                {showWinnersToggle ? <Unlock size={14} /> : <Lock size={14} />}
+                                {showWinnersToggle ? 'Showing' : 'Hidden'}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Edit Current Contest */}
+                      {activeContest && (
+                        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+                          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                          <div className="px-6 pt-5 pb-4 border-b border-white/[0.07] flex items-center gap-2">
+                            <div className="w-1 h-4 bg-white/30 rounded-full" />
+                            <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Edit Current Contest</h4>
+                          </div>
+                          <div className="p-6">
+                            <EditContestManager
+                              activeContest={activeContest}
+                              currentRules={rulesMarkdown}
+                              currentCategories={categories}
+                              onUpdated={() => window.location.reload()}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RIGHT: Create + Danger */}
+                    <div className="space-y-6 flex flex-col">
+
+                      {/* Create New Contest */}
+                      <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/15 bg-fivem-orange/[0.03] flex-1">
+                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent" />
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-fivem-orange/8 blur-[80px] rounded-full pointer-events-none" />
+                        <div className="px-6 pt-5 pb-4 border-b border-fivem-orange/[0.12] flex items-center gap-2">
+                          <div className="w-1 h-4 bg-fivem-orange rounded-full" />
+                          <h4 className="text-[11px] font-mono text-fivem-orange/70 uppercase tracking-[0.2em]">Create New Contest</h4>
+                        </div>
+                        <div className="p-6 relative z-10">
+                          <CreateContestManager onCreated={() => window.location.reload()} />
+                        </div>
+                      </div>
+
+                      {/* Danger Zone */}
+                      <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/[0.03]">
+                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+                        <div className="px-6 pt-5 pb-4 border-b border-red-500/[0.12] flex items-center gap-2">
+                          <div className="w-1 h-4 bg-red-500/70 rounded-full" />
+                          <AlertCircle size={13} className="text-red-500/80" />
+                          <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Danger Zone</h4>
+                        </div>
+                        <div className="p-6">
+                          <ArchiveContest onArchived={() => window.location.reload()} />
+                        </div>
+                      </div>
+
+                      {/* View Analytics Dashboard */}
+                      <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 bg-blue-500/[0.03]">
+                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none" />
+                        <div className="px-6 pt-5 pb-4 border-b border-blue-500/[0.12] flex items-center gap-2">
+                          <div className="w-1 h-4 bg-blue-500/70 rounded-full" />
+                          <BarChart3 size={13} className="text-blue-500/80" />
+                          <h4 className="text-[11px] font-mono text-blue-500/80 uppercase tracking-[0.2em]">Analytics & Data</h4>
+                        </div>
+                        <div className="p-6 flex flex-col items-center">
+                          <button
+                            onClick={() => {
+                              setShowAdminModal(false);
+                              setShowAnalyticsDashboard(true);
+                            }}
+                            className="w-full relative px-6 py-4 rounded-xl font-bold transition-all duration-300 overflow-hidden bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.1)] hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] group"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                            <span className="relative z-10 flex items-center justify-center gap-2">
+                              Launch Live Dashboard
+                              <ChevronRight size={16} className="text-blue-500/60 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                            </span>
+                          </button>
+                          <p className="text-xs text-white/40 mt-3 text-center">Gain deep insights into voting velocity and contest engagement.</p>
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
                 </div>
               )}
             </div>
-
-            {!isAdmin ? (
-              <div className="flex-1 flex items-center justify-center p-10">
-                {user ? (
-                  <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
-                    <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
-                      <Lock className="text-red-400" size={24} />
-                    </div>
-                    <p className="font-bold text-red-400">Access Denied</p>
-                    <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
-                    <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
-                      Logout to switch accounts
-                    </button>
-                  </div>
-                ) : (
-                  <LoginForm onDiscordLogin={handleDiscordLogin} />
-                )}
-              </div>
-            ) : (
-              <div className="flex-1 p-4 sm:p-8 space-y-6 sm:space-y-8">
-
-                {/* ── Glassmorphism Stats Row (uitripled stats-card pattern) ── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
-                    { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
-                    { label: 'Total Entries', value: allPhotos.length, icon: ImageIcon, color: 'purple' },
-                    { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
-                  ].map((stat, i) => {
-                    const Icon = stat.icon;
-                    const colors: Record<string, string> = {
-                      orange: 'from-fivem-orange/20 border-fivem-orange/25 [--c:theme(colors.orange.500)]',
-                      blue: 'from-blue-500/15 border-blue-500/20 [--c:theme(colors.blue.400)]',
-                      purple: 'from-purple-500/15 border-purple-500/20 [--c:theme(colors.purple.400)]',
-                      emerald: 'from-emerald-500/15 border-emerald-500/20 [--c:theme(colors.emerald.400)]',
-                      red: 'from-red-500/15 border-red-500/20 [--c:theme(colors.red.400)]',
-                    };
-                    const iconColors: Record<string, string> = { orange: 'text-fivem-orange', blue: 'text-blue-400', purple: 'text-purple-400', emerald: 'text-emerald-400', red: 'text-red-400' };
-                    return (
-                      <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.07, duration: 0.4 }}
-                        className={cn("relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4", colors[stat.color])}
-                      >
-                        <div className="absolute top-0 right-0 w-20 h-20 blur-[40px] opacity-30 rounded-full bg-current" />
-                        <Icon size={16} className={cn("mb-3 relative z-10", iconColors[stat.color])} />
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">{stat.label}</p>
-                        <p className="text-sm font-black text-white leading-tight truncate">{String(stat.value)}</p>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                {/* ── Main 2-col Layout ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-                  {/* LEFT: Live Controls + Edit Contest */}
-                  <div className="space-y-6">
-
-                    {/* Live Controls card */}
-                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent" />
-                      <div className="flex items-center gap-2 mb-5">
-                        <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-                        <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Live Controls</h4>
-                      </div>
-                      <div className="space-y-4">
-                        {/* Voting Toggle */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-white">Voting Status</p>
-                            <p className="text-xs text-white/40 mt-0.5">Toggle public voting for all categories</p>
-                          </div>
-                          <button
-                            onClick={() => toggleVoting(!votingOpen)}
-                            className={cn(
-                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                              votingOpen
-                                ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
-                            )}
-                          >
-                            <span className="relative z-10 flex items-center gap-2">
-                              {votingOpen ? <Lock size={14} /> : <Unlock size={14} />}
-                              {votingOpen ? 'Close Voting' : 'Open Voting'}
-                            </span>
-                          </button>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="h-px bg-white/[0.06]" />
-
-                        {/* Submissions Toggle */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-white">Submissions Status</p>
-                            <p className="text-xs text-white/40 mt-0.5">Allow or block new photo submissions</p>
-                          </div>
-                          <button
-                            onClick={() => toggleSubmissions(!submissionsOpen)}
-                            className={cn(
-                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                              submissionsOpen
-                                ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
-                            )}
-                          >
-                            <span className="relative z-10 flex items-center gap-2">
-                              {submissionsOpen ? <Lock size={14} /> : <Unlock size={14} />}
-                              {submissionsOpen ? 'Close Submissions' : 'Open Submissions'}
-                            </span>
-                          </button>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="h-px bg-white/[0.06]" />
-
-                        {/* 1 Photo Per User Toggle */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-white">1 Photo Per User</p>
-                            <p className="text-xs text-white/40 mt-0.5">Limit each Discord account to one submission</p>
-                          </div>
-                          <button
-                            onClick={() => toggleOnePhotoPerUser(!onePhotoPerUser)}
-                            className={cn(
-                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                              onePhotoPerUser
-                                ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
-                                : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
-                            )}
-                          >
-                            <span className="relative z-10 flex items-center gap-2">
-                              {onePhotoPerUser ? <Lock size={14} /> : <Unlock size={14} />}
-                              {onePhotoPerUser ? 'Limit ON' : 'Limit OFF'}
-                            </span>
-                          </button>
-                        </div>
-                        {/* Divider */}
-                        <div className="h-px bg-white/[0.06]" />
-
-                        {/* Test Winner Announcement Toggle */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-white">Test Winner Announcement</p>
-                            <p className="text-xs text-white/40 mt-0.5">Force the winner showcase to appear above the hero</p>
-                          </div>
-                          <button
-                            onClick={() => toggleShowWinners(!showWinnersToggle)}
-                            className={cn(
-                              "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                              showWinnersToggle
-                                ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
-                                : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
-                            )}
-                          >
-                            <span className="relative z-10 flex items-center gap-2">
-                              {showWinnersToggle ? <Unlock size={14} /> : <Lock size={14} />}
-                              {showWinnersToggle ? 'Showing' : 'Hidden'}
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Edit Current Contest */}
-                    {activeContest && (
-                      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                        <div className="px-6 pt-5 pb-4 border-b border-white/[0.07] flex items-center gap-2">
-                          <div className="w-1 h-4 bg-white/30 rounded-full" />
-                          <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Edit Current Contest</h4>
-                        </div>
-                        <div className="p-6">
-                          <EditContestManager
-                            activeContest={activeContest}
-                            currentRules={rulesMarkdown}
-                            currentCategories={categories}
-                            onUpdated={() => window.location.reload()}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* RIGHT: Create + Danger */}
-                  <div className="space-y-6 flex flex-col">
-
-                    {/* Create New Contest */}
-                    <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/15 bg-fivem-orange/[0.03] flex-1">
-                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent" />
-                      <div className="absolute top-0 right-0 w-48 h-48 bg-fivem-orange/8 blur-[80px] rounded-full pointer-events-none" />
-                      <div className="px-6 pt-5 pb-4 border-b border-fivem-orange/[0.12] flex items-center gap-2">
-                        <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-                        <h4 className="text-[11px] font-mono text-fivem-orange/70 uppercase tracking-[0.2em]">Create New Contest</h4>
-                      </div>
-                      <div className="p-6 relative z-10">
-                        <CreateContestManager onCreated={() => window.location.reload()} />
-                      </div>
-                    </div>
-
-                    {/* Danger Zone */}
-                    <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/[0.03]">
-                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
-                      <div className="px-6 pt-5 pb-4 border-b border-red-500/[0.12] flex items-center gap-2">
-                        <div className="w-1 h-4 bg-red-500/70 rounded-full" />
-                        <AlertCircle size={13} className="text-red-500/80" />
-                        <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Danger Zone</h4>
-                      </div>
-                      <div className="p-6">
-                        <ArchiveContest onArchived={() => window.location.reload()} />
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          </Suspense>
         </DialogContent>
       </Dialog>
 
       {/* Lightbox Modal */}
+      <Suspense fallback={null}>
+        <LightboxModal photo={lightboxPhoto} onClose={() => setLightboxPhoto(null)} />
+      </Suspense>
+
+      {/* Analytics Dashboard Fullscreen Render */}
       <AnimatePresence>
-        {lightboxPhoto && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#060606]/98 backdrop-blur-2xl p-4 md:p-8">
+        {showAnalyticsDashboard && isAdmin && (
+          <Suspense fallback={null}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setLightboxPhoto(null)}
-              className="absolute inset-0 cursor-zoom-out"
-            />
-
-            <button
-              onClick={() => setLightboxPhoto(null)}
-              className="absolute top-4 right-4 md:top-8 md:right-8 p-3 bg-white/5 hover:bg-white/15 rounded-full text-white backdrop-blur-xl transition-all hover:scale-105 z-50 border border-white/10"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="fixed inset-0 z-[200] bg-black"
             >
-              <X size={20} />
-            </button>
-
-            <motion.div
-              layoutId={lightboxPhoto.id.toString()}
-              className="relative w-full h-full max-w-7xl flex flex-col items-center justify-center pointer-events-none gap-6"
-            >
-              {/* Image Container */}
-              <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
-                <img
-                  src={lightboxPhoto.image_url}
-                  alt={lightboxPhoto.caption}
-                  className="max-w-full max-h-full object-contain pointer-events-auto rounded-md shadow-[0_0_50px_rgba(234,88,12,0.15)] ring-1 ring-white/10"
-                />
-              </div>
-
-              {/* Caption & Stats Bar */}
-              <div className="shrink-0 flex flex-col items-center text-center max-w-3xl px-4 pointer-events-auto mb-2 md:mb-6">
-                <p className="text-white md:text-lg font-medium tracking-wide mb-4">
-                  {lightboxPhoto.caption || "No caption provided"}
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
-                    <User size={14} className="text-fivem-orange/80" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white/90">
-                      {lightboxPhoto.player_name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-fivem-orange/10 backdrop-blur-xl px-4 py-2 rounded-full border border-fivem-orange/20 shadow-lg shadow-fivem-orange/5">
-                    <Vote size={14} className="text-fivem-orange" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-fivem-orange">
-                      {lightboxPhoto.vote_count || 0} Votes
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg hidden sm:flex">
-                    <Calendar size={14} className="text-white/40" />
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/50">
-                      {new Date(lightboxPhoto.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <AnalyticsDashboard
+                photos={allPhotos}
+                categories={categories}
+                onClose={() => {
+                  setShowAnalyticsDashboard(false);
+                }}
+              />
             </motion.div>
-          </div>
+          </Suspense>
         )}
       </AnimatePresence>
 
@@ -1855,175 +1826,7 @@ export default function App() {
 }
 
 
-function UploadForm({ categories, initialCategoryId, discordName, onUpload, onClose }: { categories: Category[], initialCategoryId: string, discordName: string, onUpload: (imageData: string, caption: string, discordName: string, playerName: string, categoryId: string) => Promise<void>, onClose: () => void }) {
-  const [image, setImage] = useState<string | null>(null);
-  const [caption, setCaption] = useState('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
-  const [formPlayerName, setFormPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
-  const [isUploading, setIsUploading] = useState(false);
-  const [resolution, setResolution] = useState<{ w: number, h: number } | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        const img = new Image();
-        img.onload = () => {
-          setResolution({ w: img.width, h: img.height });
-          setImage(dataUrl);
-        };
-        img.src = dataUrl;
-      };
-      reader.readAsDataURL(file);
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { 'image/*': [] },
-    maxFiles: 1,
-    multiple: false
-  } as any);
-
-  const handleSubmit = async () => {
-    if (!image || !discordName || !formPlayerName || !selectedCategoryId) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-    // Enforce strict landscape orientation resolution. Minimum 1920 width, 1080 height.
-    if (resolution && (resolution.w < 1920 || resolution.h < 1080)) {
-      toast.error(`Resolution too low: ${resolution.w}x${resolution.h}. Minimum is 1920x1080.`);
-      return;
-    }
-
-    localStorage.setItem('fivem_player_name', formPlayerName);
-    setIsUploading(true);
-    await onUpload(image, caption, discordName, formPlayerName, selectedCategoryId);
-    setIsUploading(false);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="p-4 bg-fivem-orange/10 border border-fivem-orange/20 rounded-xl flex flex-col gap-3">
-        <div className="flex items-start gap-3">
-          <Info className="text-fivem-orange shrink-0" size={18} />
-          <p className="text-xs text-fivem-orange/90 leading-relaxed">
-            We need your <strong>Discord Name</strong> and <strong>Character Name</strong> to securely verify your identity and easily distribute any contest rewards you might win!
-          </p>
-        </div>
-        <div className="flex items-start gap-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <AlertCircle className="text-red-400 shrink-0" size={14} />
-          <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
-            WARNING: You can only submit ONE photo across all categories. Choose wisely!
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Category (Required)</label>
-          <select
-            value={selectedCategoryId}
-            onChange={(e) => setSelectedCategoryId(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl h-10 px-3 text-sm outline-none focus:border-fivem-orange text-white appearance-none"
-          >
-            <option value="" disabled className="bg-fivem-dark text-white/50">Select a Category...</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.id} className="bg-fivem-dark">{c.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Character Name (Required)</label>
-            <Input
-              type="text"
-              value={formPlayerName}
-              onChange={(e) => setFormPlayerName(e.target.value)}
-              placeholder="e.g. John Doe"
-              className="bg-white/5 border-white/10 h-10"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Discord Account</label>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 h-10 rounded-md px-3 flex items-center text-emerald-400 font-mono text-sm">
-              <User size={14} className="mr-2" />
-              {discordName}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Photo (Min 1920x1080)</label>
-          <div
-            {...getRootProps()}
-            className={cn(
-              "aspect-[16/9] sm:aspect-video max-h-48 sm:max-h-56 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative",
-              isDragActive ? "border-fivem-orange bg-fivem-orange/5" : "border-white/10 hover:border-white/20 bg-white/5",
-              image && "border-none"
-            )}
-          >
-            <input {...getInputProps()} />
-            {image ? (
-              <>
-                <img src={image} className="w-full h-full object-cover" alt="Preview" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                  <p className="text-xs font-bold uppercase tracking-widest">Click to change</p>
-                  {resolution && (
-                    <span className={cn(
-                      "text-[10px] px-2 py-1 rounded bg-black/60",
-                      (resolution.w < 1920 || resolution.h < 1080) ? "text-red-400" : "text-emerald-400"
-                    )}>
-                      {resolution.w}x{resolution.h}
-                    </span>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="bg-white/5 p-4 rounded-full mb-4">
-                  <Upload className="text-white/40" size={32} />
-                </div>
-                <p className="text-sm font-medium">Drop your photo here</p>
-                <p className="text-xs text-white/30 mt-1">or click to browse files</p>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Caption (Optional)</label>
-          <textarea
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Describe your shot..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm outline-none focus:border-fivem-orange transition-colors min-h-[100px] resize-none"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-3 pt-2">
-        <Button
-          variant="secondary"
-          onClick={onClose}
-          className="flex-1 h-12 rounded-xl"
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={!image || !discordName || isUploading}
-          className="flex-1 h-12 bg-fivem-orange hover:bg-fivem-orange/90 text-white rounded-xl"
-        >
-          {isUploading ? "Uploading..." : "Submit Entry"}
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> }) {
   const [email, setEmail] = useState('');
@@ -2106,608 +1909,5 @@ function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> 
   );
 }
 
-function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, textareaRef: React.RefObject<HTMLTextAreaElement | null>, onTextChange: (t: string) => void }) {
-  const [showEmoji, setShowEmoji] = useState(false);
 
-  const insertText = (before: string, after: string = '') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-
-    if (start === undefined || end === undefined) {
-      onTextChange(text + `\n${before}text${after}`);
-      return;
-    }
-
-    const selectedText = text.substring(start, end);
-    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
-
-    onTextChange(newText);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + before.length, start + before.length + selectedText.length);
-    }, 0);
-  };
-
-  return (
-    <div className="flex gap-2 p-2 bg-white/5 border border-white/10 rounded-t-xl border-b-0">
-      <button onClick={() => insertText('**', '**')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Bold">
-        <Bold size={16} />
-      </button>
-      <button onClick={() => insertText('*', '*')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Italic">
-        <Italic size={16} />
-      </button>
-      <button onClick={() => insertText('# ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Heading">
-        <Heading size={16} />
-      </button>
-      <button onClick={() => insertText('- ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="List">
-        <List size={16} />
-      </button>
-      <button onClick={() => insertText('[Link Name](', ')')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Link">
-        <LinkIcon size={16} />
-      </button>
-      <div className="relative static-emoji-wrapper">
-        <button onClick={(e) => { e.preventDefault(); setShowEmoji(!showEmoji); }} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Emoji">
-          <Smile size={16} />
-        </button>
-        {showEmoji && (
-          <div className="absolute top-10 right-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-            <Picker
-              data={data}
-              theme="dark"
-              onEmojiSelect={(e: any) => {
-                insertText(e.native);
-                setShowEmoji(false);
-              }}
-              previewPosition="none"
-              navPosition="bottom"
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EditContestManager({ activeContest, currentRules, currentCategories, onUpdated }: { activeContest: any, currentRules: string, currentCategories: Category[], onUpdated: () => void }) {
-  const formatDateForInput = (isoString?: string) => isoString ? new Date(isoString).toISOString().slice(0, 16) : '';
-  const [title, setTitle] = useState(activeContest?.name || '');
-  const [rules, setRules] = useState(currentRules || '');
-  const [submissionsCloseDate, setSubmissionsCloseDate] = useState(formatDateForInput(activeContest?.submissions_close_date));
-  const [votingEndDate, setVotingEndDate] = useState(formatDateForInput(activeContest?.voting_end_date));
-  const [categories, setCategories] = useState<{ id: string | number, name: string, desc: string, emoji?: string }[]>(
-    currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji }))
-  );
-
-  const [catName, setCatName] = useState('');
-  const [catDesc, setCatDesc] = useState('');
-  const [catEmoji, setCatEmoji] = useState('✨');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [editingEmojiIdx, setEditingEmojiIdx] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    setTitle(activeContest?.name || '');
-    setRules(currentRules || '');
-    setSubmissionsCloseDate(formatDateForInput(activeContest?.submissions_close_date));
-    setVotingEndDate(formatDateForInput(activeContest?.voting_end_date));
-    setCategories(currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji })));
-  }, [activeContest, currentRules, currentCategories]);
-
-  const addCategory = () => {
-    if (!catName || !catDesc) {
-      toast.error('Please enter name and description');
-      return;
-    }
-    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
-    setCatName('');
-    setCatDesc('');
-    setCatEmoji('✨');
-  };
-
-  const removeCategory = (id: string | number) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-  };
-
-  const handleUpdate = async () => {
-    if (!activeContest) return;
-    if (!title) return toast.error('Contest title is required');
-
-    let finalCategories = [...categories];
-    if (catName && catDesc) {
-      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji });
-    }
-
-    if (finalCategories.length === 0) return toast.error('At least one category is required');
-
-    setLoading(true);
-    try {
-      const batch = writeBatch(db);
-
-      const updates: any = {};
-      if (title !== activeContest.name) updates.name = title;
-
-      const newSubClose = submissionsCloseDate ? new Date(submissionsCloseDate).toISOString() : null;
-      if (newSubClose !== activeContest.submissions_close_date) updates.submissions_close_date = newSubClose;
-
-      const newVoteEnd = votingEndDate ? new Date(votingEndDate).toISOString() : null;
-      if (newVoteEnd !== activeContest.voting_end_date) updates.voting_end_date = newVoteEnd;
-
-      if (Object.keys(updates).length > 0) {
-        batch.update(doc(db, 'contests', activeContest.id), updates);
-      }
-
-      if (rules !== currentRules) {
-        batch.set(doc(db, 'settings', 'global'), { rulesMarkdown: rules }, { merge: true });
-      }
-
-      const currentCatMap = new Map(currentCategories.map(c => [c.id, c]));
-      const finalCatIds = new Set(finalCategories.map(c => c.id));
-
-      currentCategories.forEach(oldCat => {
-        if (!finalCatIds.has(oldCat.id)) {
-          batch.delete(doc(db, 'categories', oldCat.id));
-        }
-      });
-
-      finalCategories.forEach(cat => {
-        if (typeof cat.id === 'string' && currentCatMap.has(cat.id)) {
-          batch.update(doc(db, 'categories', cat.id), {
-            name: cat.name,
-            description: cat.desc,
-            emoji: cat.emoji || '✨'
-          });
-        } else {
-          const catRef = doc(collection(db, 'categories'));
-          batch.set(catRef, {
-            contest_id: activeContest.id,
-            name: cat.name,
-            description: cat.desc,
-            emoji: cat.emoji || '✨'
-          });
-        }
-      });
-
-      await batch.commit();
-
-      toast.success(`Successfully updated ${title}!`);
-      setCatName('');
-      setCatDesc('');
-      setCatEmoji('✨');
-      onUpdated();
-    } catch (e) {
-      console.error("Update Error:", e);
-      toast.error('Failed to update contest');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!activeContest) return null;
-
-  return (
-    <div className="space-y-6 p-6 bg-fivem-card/50 rounded-2xl border border-white/10 relative">
-      <div className="space-y-2 relative z-10">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
-        <Input
-          placeholder="e.g. Cyberpunk Nights V2"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="bg-white/5 border-white/10 h-10 text-sm font-display"
-        />
-      </div>
-
-      <div className="space-y-4 relative z-30">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Edit Categories</label>
-
-        {categories.length > 0 && (
-          <div className="space-y-2 mb-4">
-            {categories.map((c, i) => (
-              <div key={c.id} className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-xl min-w-0">
-                {/* Per-row emoji picker */}
-                <div className="relative shrink-0 static-emoji-wrapper">
-                  <button
-                    onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
-                    className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl hover:bg-fivem-orange/20 transition-colors border border-white/10"
-                    title="Change emoji"
-                  >
-                    {c.emoji || '✨'}
-                  </button>
-                  {editingEmojiIdx === i && (
-                    <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                      <Picker
-                        data={data}
-                        theme="dark"
-                        onEmojiSelect={(e: any) => {
-                          setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, emoji: e.native } : cat));
-                          setEditingEmojiIdx(null);
-                        }}
-                        previewPosition="none"
-                        navPosition="bottom"
-                      />
-                    </div>
-                  )}
-                </div>
-                {/* Inline name and description inputs */}
-                <input
-                  value={c.name}
-                  onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
-                  placeholder="Category name..."
-                  className="min-w-0 flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-fivem-orange/50 transition-colors"
-                />
-                <input
-                  value={c.desc}
-                  onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
-                  placeholder="Description..."
-                  className="min-w-0 flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white/60 outline-none focus:border-fivem-orange/50 transition-colors"
-                />
-                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors shrink-0">
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row gap-2 relative z-50">
-          <div className="relative shrink-0 static-emoji-wrapper">
-            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
-              {catEmoji}
-            </Button>
-            {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                <Picker
-                  data={data}
-                  theme="dark"
-                  onEmojiSelect={(e: any) => {
-                    setCatEmoji(e.native);
-                    setShowEmojiPicker(false);
-                  }}
-                  previewPosition="none"
-                  navPosition="bottom"
-                />
-              </div>
-            )}
-          </div>
-          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3 h-10" />
-          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10" />
-          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white h-10">
-            <Plus size={16} />
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-2 relative z-30">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
-        </div>
-        <div className="flex flex-col">
-          <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
-          <textarea
-            ref={textareaRef}
-            placeholder="Define the rules for this contest..."
-            value={rules}
-            onChange={(e) => setRules(e.target.value)}
-            className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-4 relative z-20">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
-            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
-            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-        </div>
-      </div>
-
-      <Button
-        onClick={handleUpdate}
-        disabled={loading}
-        className="w-full h-12 bg-white/10 hover:bg-fivem-orange hover:text-white text-white font-display text-sm tracking-wide rounded-xl mt-4 transition-all relative z-0"
-      >
-        {loading ? 'Saving Changes...' : 'Save Contest Changes'}
-      </Button>
-    </div >
-  );
-}
-
-function ArchiveContest({ onArchived }: { onArchived: () => void }) {
-  const [nextName, setNextName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-
-  const handleArchive = async () => {
-    setLoading(true);
-    try {
-      const batch = writeBatch(db);
-
-      const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
-      const activeSnaps = await getDocs(qActive);
-      activeSnaps.forEach(d => {
-        batch.update(d.ref, { is_active: false });
-      });
-
-      batch.set(doc(db, 'settings', 'global'), { votingOpen: false }, { merge: true });
-
-      if (nextName) {
-        const newContestRef = doc(collection(db, 'contests'));
-        batch.set(newContestRef, {
-          name: nextName,
-          is_active: true,
-          created_at: new Date().toISOString()
-        });
-      }
-
-      await batch.commit();
-
-      toast.success('Contest archived');
-      onArchived();
-      setConfirming(false);
-      setNextName('');
-    } catch (e) {
-      console.error("Archive Error:", e);
-      toast.error('Network error or permission denied');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (confirming) {
-    return (
-      <div className="p-6 bg-red-500/10 rounded-xl border border-red-500/30 space-y-4">
-        <div className="flex items-center gap-3 text-red-400">
-          <AlertCircle size={24} />
-          <h4 className="font-bold">Are you absolutely sure?</h4>
-        </div>
-        <p className="text-xs text-red-400/80 leading-relaxed">
-          This action will immediately archive the current contest, locking all submissions and votes. It cannot be undone. Are you sure you want to proceed?
-        </p>
-        <div className="flex gap-3 pt-2">
-          <Button variant="secondary" onClick={() => setConfirming(false)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
-          <Button onClick={handleArchive} disabled={loading} variant="destructive" className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-            {loading ? 'Archiving...' : 'Yes, Archive Now'}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
-      <p className="text-xs text-white/60">Quickly archive the current contest and wipe the slate clean.</p>
-      <Input
-        placeholder="Next Contest Name (Optional)"
-        value={nextName}
-        onChange={(e) => setNextName(e.target.value)}
-        className="bg-white/5 border-white/10"
-      />
-      <Button
-        onClick={() => setConfirming(true)}
-        disabled={loading}
-        variant="destructive"
-        className="w-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
-      >
-        Archive Current Contest
-      </Button>
-    </div>
-  );
-}
-
-function CreateContestManager({ onCreated }: { onCreated: () => void }) {
-  const [title, setTitle] = useState('');
-  const [rules, setRules] = useState('');
-  const [submissionsCloseDate, setSubmissionsCloseDate] = useState('');
-  const [votingEndDate, setVotingEndDate] = useState('');
-  const [categories, setCategories] = useState<{ id: number, name: string, desc: string, emoji?: string }[]>([]);
-
-  const [catName, setCatName] = useState('');
-  const [catDesc, setCatDesc] = useState('');
-  const [catEmoji, setCatEmoji] = useState('✨');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const addCategory = () => {
-    if (!catName || !catDesc) {
-      toast.error('Please enter name and description');
-      return;
-    }
-    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
-    setCatName('');
-    setCatDesc('');
-    setCatEmoji('✨');
-  };
-
-  const removeCategory = (id: number) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-  };
-
-  const handleLaunch = async () => {
-    if (!title) return toast.error('Contest title is required');
-
-    let finalCategories = [...categories];
-    if (catName && catDesc) {
-      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji });
-    }
-
-    if (finalCategories.length === 0) return toast.error('At least one category is required');
-
-    setLoading(true);
-    try {
-      const batch = writeBatch(db);
-
-      // 1. Archive current active contest(s)
-      const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
-      const activeSnaps = await getDocs(qActive);
-      activeSnaps.forEach((dSnap) => {
-        batch.update(dSnap.ref, { is_active: false });
-      });
-
-      // 2. Create new Contest Document
-      const newContestRef = doc(collection(db, 'contests'));
-      batch.set(newContestRef, {
-        name: title,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        ...(submissionsCloseDate ? { submissions_close_date: new Date(submissionsCloseDate).toISOString() } : {}),
-        ...(votingEndDate ? { voting_end_date: new Date(votingEndDate).toISOString() } : {})
-      });
-
-      // 3. Create embedded Category references
-      finalCategories.forEach(cat => {
-        const catRef = doc(collection(db, 'categories'));
-        batch.set(catRef, {
-          contest_id: newContestRef.id,
-          name: cat.name,
-          description: cat.desc,
-          emoji: cat.emoji || '✨'
-        });
-      });
-
-      if (rules) {
-        batch.set(doc(db, 'settings', 'global'), { rulesMarkdown: rules }, { merge: true });
-      }
-
-      await batch.commit();
-
-      toast.success(`Successfully deployed ${title}!`);
-      setTitle('');
-      setCategories([]);
-      setCatName('');
-      setCatDesc('');
-      setCatEmoji('✨');
-      setRules('');
-      onCreated();
-    } catch (e) {
-      console.error("Launch Error:", e);
-      toast.error('Failed to create contest');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-fivem-dark to-fivem-dark/80 rounded-2xl border border-white/10 relative">
-      {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[100px] rounded-full pointer-events-none" />
-
-      <div className="space-y-2 relative z-10">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
-        <Input
-          placeholder="e.g. Cyberpunk Nights V2"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="bg-white/5 border-white/10 h-14 text-lg font-display"
-        />
-      </div>
-
-      <div className="space-y-4 relative z-30">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Define Categories</label>
-
-        {/* Current Categories List */}
-        {categories.length > 0 && (
-          <div className="space-y-2 mb-4">
-            {categories.map((c, i) => (
-              <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl">
-                    {c.emoji || '✨'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
-                    <p className="text-xs text-white/50">{c.desc}</p>
-                  </div>
-                </div>
-                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Builder Row */}
-        <div className="flex flex-col sm:flex-row gap-2 relative z-50">
-          <div className="relative shrink-0 static-emoji-wrapper">
-            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
-              {catEmoji}
-            </Button>
-            {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                <Picker
-                  data={data}
-                  theme="dark"
-                  onEmojiSelect={(e: any) => {
-                    setCatEmoji(e.native);
-                    setShowEmojiPicker(false);
-                  }}
-                  previewPosition="none"
-                  navPosition="bottom"
-                />
-              </div>
-            )}
-          </div>
-          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3 h-10" />
-          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10" />
-          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white h-10">
-            <Plus size={16} />
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-2 relative z-30">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
-          <span className="text-[10px] text-white/40">Optional - can be edited later</span>
-        </div>
-        <div className="flex flex-col">
-          <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
-          <textarea
-            ref={textareaRef}
-            placeholder="Define the rules for this new contest..."
-            value={rules}
-            onChange={(e) => setRules(e.target.value)}
-            className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-4 relative z-20">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
-            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
-            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-        </div>
-      </div>
-
-      <Button
-        onClick={handleLaunch}
-        disabled={loading}
-        className="w-full h-14 bg-fivem-orange hover:bg-fivem-orange/90 text-white font-display text-lg tracking-wide rounded-xl mt-4 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all relative z-0"
-      >
-        {loading ? 'Initializing Core Systems...' : '🚀 Launch New Contest'}
-      </Button>
-    </div>
-  );
-}
 
