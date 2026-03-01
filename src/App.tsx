@@ -729,7 +729,10 @@ export default function App() {
                       const [main, ...rest] = activeContest.name.split(':');
                       return (
                         <>
-                          <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent block pb-1">
+                          <span
+                            className="block pb-1"
+                            style={{ backgroundImage: 'linear-gradient(to right, #ea580c, #fb923c, #fcd34d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', color: 'transparent' }}
+                          >
                             {main}:
                           </span>
                           <span className="text-white block mt-1 text-2xl sm:text-3xl lg:text-4xl opacity-90">
@@ -745,7 +748,9 @@ export default function App() {
                       <>
                         <span className="text-white">{words[0]}</span>
                         {words.length > 1 && (
-                          <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
+                          <span
+                            style={{ backgroundImage: 'linear-gradient(to right, #ea580c, #fb923c, #fcd34d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', color: 'transparent' }}
+                          >
                             {' '}{words.slice(1).join(' ')}
                           </span>
                         )}
