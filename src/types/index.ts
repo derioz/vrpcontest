@@ -10,7 +10,9 @@ export interface Photo {
     category_id: string;
     player_name: string;
     discord_name: string;
-    image_url: string;
+    image_url: string; // This remains for backwards compatibility and for the decrypted state on the client
+    censored_image_url?: string; // Pixelated version visible before voting
+    encrypted_image_url?: string; // RSA-encrypted original URL
     caption: string;
     created_at: string;
     vote_count: number;

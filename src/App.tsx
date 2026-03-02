@@ -40,7 +40,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import { cn } from './lib/utils';
+import { cn, pixelateImage } from './lib/utils';
+import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
@@ -90,6 +91,8 @@ export default function App() {
   const [activeContest, setActiveContest] = useState<{ id: string; name: string; submissions_close_date?: string; voting_end_date?: string } | null>(null);
   const [votedPhotoIds, setVotedPhotoIds] = useState<Set<string>>(new Set());
   const [votingPhotoId, setVotingPhotoId] = useState<string | null>(null);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
 
   const isVotingOpen = votingOpen && (!activeContest?.voting_end_date || new Date() < new Date(activeContest.voting_end_date));
   const isSubmissionsOpen = submissionsOpen && (!activeContest?.submissions_close_date || new Date() < new Date(activeContest.submissions_close_date));
@@ -237,6 +240,8 @@ export default function App() {
         setShowWinnersToggle(!!data.showWinnersToggle);
         setRulesMarkdown(data.rulesMarkdown || '');
         if (data.theme) setCurrentTheme(data.theme);
+        setPublicKey(data.publicKey || null);
+        setPrivateKey(data.privateKey || null);
       }
     }, (err) => {
       console.error("Settings listener error:", err);
@@ -311,15 +316,29 @@ export default function App() {
     }
     const catIds = categories.map(c => c.id);
     const q = query(collection(db, 'photos'), where('category_id', 'in', catIds));
-    const unsub = onSnapshot(q, (snapshot) => {
+    const unsub = onSnapshot(q, async (snapshot) => {
       const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Photo[];
-      setAllPhotos(fetched);
+
+      const processedPhotos = await Promise.all(fetched.map(async (photo) => {
+        if (privateKey && photo.encrypted_image_url) {
+          try {
+            const clearUrl = await decryptUrl(photo.encrypted_image_url, privateKey);
+            return { ...photo, image_url: clearUrl };
+          } catch (e) {
+            console.error("Failed to decrypt photo", photo.id);
+            return { ...photo, image_url: photo.censored_image_url || photo.image_url };
+          }
+        }
+        return { ...photo, image_url: photo.censored_image_url || photo.image_url };
+      }));
+
+      setAllPhotos(processedPhotos);
     }, (err) => {
       console.error('Photos listener error', err);
       toast.error('Failed to load photos');
     });
     return () => unsub();
-  }, [activeContest, categories]);
+  }, [activeContest, categories, privateKey]);
 
   const handleVote = async (photoId: string) => {
     if (!isVotingOpen) {
@@ -409,33 +428,53 @@ export default function App() {
     if (!categoryId || !formPlayerName || !discordName) return;
 
     try {
-      // Convert base64 data URL to Blob
+      toast.loading("Encrypting and uploading securely...", { id: "upload-toast" });
+
+      // 1. Pixelate original image
+      const censoredDataUrl = await pixelateImage(imageData, 60);
+
+      // Convert base64 data URLs to Blobs
       const res = await fetch(imageData);
       const blob = await res.blob();
-
       const formData = new FormData();
       formData.append('file', blob, `entry_${Date.now()}.png`);
 
-      const uploadRes = await fetch('https://api.fivemanage.com/api/image', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'IHo5KJCgcYdVYCqAZsnYokzPAYoUnTsK'
-        },
-        body: formData
-      });
+      const censoredRes = await fetch(censoredDataUrl);
+      const censoredBlob = await censoredRes.blob();
+      const censoredFormData = new FormData();
+      censoredFormData.append('file', censoredBlob, `censored_${Date.now()}.png`);
 
-      if (!uploadRes.ok) {
+      const headers = { 'Authorization': 'IHo5KJCgcYdVYCqAZsnYokzPAYoUnTsK' };
+
+      const [uploadRes, censoredUploadRes] = await Promise.all([
+        fetch('https://api.fivemanage.com/api/image', { method: 'POST', headers, body: formData }),
+        fetch('https://api.fivemanage.com/api/image', { method: 'POST', headers, body: censoredFormData })
+      ]);
+
+      if (!uploadRes.ok || !censoredUploadRes.ok) {
         throw new Error('Failed to upload image to Fivemanage');
       }
 
       const uploadData = await uploadRes.json();
       const downloadURL = uploadData.url;
 
+      const censoredUploadData = await censoredUploadRes.json();
+      const censoredURL = censoredUploadData.url;
+
+      let encryptedURL = '';
+      if (publicKey) {
+        encryptedURL = await encryptUrl(downloadURL, publicKey);
+      } else {
+        console.warn("No public key found, falling back to unencrypted storage (Not Recommended).");
+      }
+
       const newPhoto = {
         category_id: categoryId,
         player_name: formPlayerName,
         discord_name: discordName,
-        image_url: downloadURL,
+        image_url: publicKey ? censoredURL : downloadURL,
+        censored_image_url: censoredURL,
+        encrypted_image_url: encryptedURL,
         caption: caption || '',
         created_at: new Date().toISOString(),
         vote_count: 0
@@ -443,7 +482,7 @@ export default function App() {
 
       await addDoc(collection(db, 'photos'), newPhoto);
 
-      toast.success('Photo uploaded successfully!');
+      toast.success('Secure upload successful!', { id: "upload-toast" });
       setShowUploadModal(false);
 
       setPlayerName(formPlayerName);
@@ -500,6 +539,42 @@ export default function App() {
     } catch (error) {
       console.error("Toggle ShowWinners Error:", error);
       toast.error('Failed to toggle winner announcement');
+    }
+  };
+
+  const handleGenerateKeys = async () => {
+    if (!isAdmin) return;
+    if (publicKey && !window.confirm("Keys already exist. Generating new keys will completely break existing encrypted images. Continue?")) return;
+
+    try {
+      const keys = await generateRSAKeyPair();
+      localStorage.setItem(`vrp_private_key`, keys.privateKey);
+      await updateDoc(doc(db, 'settings', 'global'), { publicKey: keys.publicKey, privateKey: null });
+      toast.success("Security keys generated! Private key saved to this browser.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to generate keys");
+    }
+  };
+
+  const handleToggleReveal = async (reveal: boolean) => {
+    if (!isAdmin) return;
+    try {
+      if (reveal) {
+        const storedKey = localStorage.getItem(`vrp_private_key`);
+        if (!storedKey) {
+          toast.error("Private key not found on this device. Cannot reveal.");
+          return;
+        }
+        await updateDoc(doc(db, 'settings', 'global'), { privateKey: storedKey });
+        toast.success("Images Revealed!");
+      } else {
+        await updateDoc(doc(db, 'settings', 'global'), { privateKey: null });
+        toast.success("Images Censored securely.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to toggle reveal");
     }
   };
 
@@ -1551,6 +1626,49 @@ export default function App() {
                               <span className="relative z-10 flex items-center gap-2">
                                 {showWinnersToggle ? <Unlock size={14} /> : <Lock size={14} />}
                                 {showWinnersToggle ? 'Showing' : 'Hidden'}
+                              </span>
+                            </button>
+                          </div>
+
+                          {/* Divider */}
+                          <div className="h-px bg-white/[0.06]" />
+
+                          {/* Image Censoring Keys */}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-white">Security Keys (Censorship)</p>
+                              <p className="text-xs text-white/40 mt-0.5">Generate RSA Keys to encrypt image URLs securely</p>
+                            </div>
+                            <button
+                              onClick={handleGenerateKeys}
+                              className="relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.2)]"
+                            >
+                              <span className="relative z-10 flex items-center gap-2">
+                                {publicKey ? 'Regenerate Keys' : 'Generate Keys'}
+                              </span>
+                            </button>
+                          </div>
+
+                          {/* Reveal Test Toggle */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
+                            <div>
+                              <p className="font-bold text-emerald-400">Reveal Images (Testing Phase)</p>
+                              <p className="text-xs text-white/40 mt-0.5">Publish Private Key to decrypt images globally</p>
+                            </div>
+                            <button
+                              onClick={() => handleToggleReveal(!privateKey)}
+                              disabled={!publicKey}
+                              className={cn(
+                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                                privateKey
+                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+                                  : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10",
+                                !publicKey && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              <span className="relative z-10 flex items-center gap-2">
+                                {privateKey ? <Unlock size={14} /> : <Lock size={14} />}
+                                {privateKey ? 'Revealed' : 'Censored'}
                               </span>
                             </button>
                           </div>
