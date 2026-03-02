@@ -51,7 +51,7 @@ export default function LightboxModal({ photo, privateKey, onClose }: LightboxMo
                                 <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
                                     <User size={14} className="text-fivem-orange/80" />
                                     <span className="text-xs font-bold uppercase tracking-wider text-white/90">
-                                        {privateKey ? photo.player_name : "Anonymous Pixel"}
+                                        {privateKey ? photo.player_name : "Anonymous"}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2 bg-fivem-orange/10 backdrop-blur-xl px-4 py-2 rounded-full border border-fivem-orange/20 shadow-lg shadow-fivem-orange/5">

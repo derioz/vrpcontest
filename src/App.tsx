@@ -1171,7 +1171,7 @@ export default function App() {
                             <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5 max-w-[160px]">
                               <User size={10} className="text-fivem-orange shrink-0" />
                               <span className="text-[10px] font-bold uppercase tracking-wider truncate">
-                                {privateKey ? photo.player_name : "Anonymous Pixel"}
+                                {privateKey ? photo.player_name : "Anonymous"}
                               </span>
                             </div>
                           </div>
