@@ -18,6 +18,18 @@ export interface Photo {
     vote_count: number;
 }
 
+export interface ArchivedWinner {
+    id: string;
+    contest_name: string;
+    category_name: string;
+    player_name: string;
+    discord_name: string;
+    image_url: string;
+    caption: string;
+    vote_count: number;
+    archived_at: string;
+}
+
 export interface Rule {
     id: number;
     title: string;

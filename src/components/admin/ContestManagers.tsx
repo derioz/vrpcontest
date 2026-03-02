@@ -1,5 +1,5 @@
 ﻿import React, { useState, useRef, useEffect } from 'react'; import { toast } from 'sonner';
-import { Category } from '../../types';
+import { Category, Photo } from '../../types';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { db } from '../../lib/firebase';
@@ -325,7 +325,17 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
   );
 }
 
-export function ArchiveContest({ onArchived }: { onArchived: () => void }) {
+export function ArchiveContest({
+  onArchived,
+  activeContest,
+  categories,
+  allPhotos
+}: {
+  onArchived: () => void,
+  activeContest: any,
+  categories: Category[],
+  allPhotos: Photo[]
+}) {
   const [nextName, setNextName] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -333,34 +343,124 @@ export function ArchiveContest({ onArchived }: { onArchived: () => void }) {
   const handleArchive = async () => {
     setLoading(true);
     try {
-      const batch = writeBatch(db);
+      const nowString = new Date().toISOString();
 
-      const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
-      const activeSnaps = await getDocs(qActive);
-      activeSnaps.forEach(d => {
-        batch.update(d.ref, { is_active: false });
+      // 1. Compute winners
+      const winners = categories.map(cat => {
+        const catPhotos = allPhotos.filter(p => p.category_id === cat.id);
+        if (!catPhotos.length) return null;
+        const topPhoto = [...catPhotos].sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))[0];
+        return {
+          contest_name: activeContest?.name || 'Unknown Contest',
+          category_name: cat.name,
+          player_name: topPhoto.player_name,
+          discord_name: topPhoto.discord_name,
+          image_url: topPhoto.image_url,
+          caption: topPhoto.caption,
+          vote_count: topPhoto.vote_count || 0,
+          archived_at: nowString
+        };
+      }).filter(Boolean) as any[];
+
+      // 2. Compute user stats to preserve
+      const statsByDiscordName = new Map<string, { subs: number, votes: number }>();
+      allPhotos.forEach(p => {
+        const current = statsByDiscordName.get(p.discord_name) || { subs: 0, votes: 0 };
+        current.subs += 1;
+        current.votes += (p.vote_count || 0);
+        statsByDiscordName.set(p.discord_name, current);
       });
 
-      batch.set(doc(db, 'settings', 'global'), { votingOpen: false }, { merge: true });
+      // 3. Prepare batches (chunking into 400 ops per batch to be safe under 500 limit)
+      let currentBatch = writeBatch(db);
+      let opCount = 0;
+      const batches: any[] = [];
+
+      const commitBatchIfNeeded = async (force = false) => {
+        if (opCount >= 400 || (force && opCount > 0)) {
+          batches.push(currentBatch.commit());
+          currentBatch = writeBatch(db);
+          opCount = 0;
+        }
+      };
+
+      // Deactivate active contests
+      const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
+      const activeSnaps = await getDocs(qActive);
+      for (const d of activeSnaps.docs) {
+        currentBatch.update(d.ref, { is_active: false });
+        opCount++;
+        await commitBatchIfNeeded();
+      }
+
+      currentBatch.set(doc(db, 'settings', 'global'), { votingOpen: false }, { merge: true });
+      opCount++;
+      await commitBatchIfNeeded();
 
       if (nextName) {
         const newContestRef = doc(collection(db, 'contests'));
-        batch.set(newContestRef, {
+        currentBatch.set(newContestRef, {
           name: nextName,
           is_active: true,
-          created_at: new Date().toISOString()
+          created_at: nowString
         });
+        opCount++;
+        await commitBatchIfNeeded();
       }
 
-      await batch.commit();
+      // 4. Write winners to archived_winners
+      for (const winner of winners) {
+        const winnerRef = doc(collection(db, 'archived_winners'));
+        currentBatch.set(winnerRef, winner);
+        opCount++;
+        await commitBatchIfNeeded();
+      }
 
-      toast.success('Contest archived');
+      // 5. Update user_stats with increment
+      // In firebase v9 JS SDK, increment is available via Firebase import.
+      // But we will just set the fields via import { increment } from 'firebase/firestore'
+      // Wait, we can't assume increment is imported here. Let's dynamically import it or read existing if we must.
+      // Easiest is to just read and add, OR assume we can import increment at the top.
+      const { increment } = await import('firebase/firestore');
+      for (const [discordName, stats] of Array.from(statsByDiscordName.entries())) {
+        const statRef = doc(db, 'user_stats', discordName);
+        currentBatch.set(statRef, {
+          archived_submissions: increment(stats.subs),
+          archived_votes: increment(stats.votes)
+        }, { merge: true });
+        opCount++;
+        await commitBatchIfNeeded();
+      }
+
+      // 6. Delete all photos
+      const photosSnap = await getDocs(collection(db, 'photos'));
+      for (const pSnap of photosSnap.docs) {
+        currentBatch.delete(pSnap.ref);
+        opCount++;
+        await commitBatchIfNeeded();
+      }
+
+      // 7. Delete all votes
+      const votesSnap = await getDocs(collection(db, 'votes'));
+      for (const vSnap of votesSnap.docs) {
+        currentBatch.delete(vSnap.ref);
+        opCount++;
+        await commitBatchIfNeeded();
+      }
+
+      // Commit any remaining ops
+      await commitBatchIfNeeded(true);
+
+      // Wait for all batches to finish
+      await Promise.all(batches);
+
+      toast.success('Contest safely archived!');
       onArchived();
       setConfirming(false);
       setNextName('');
     } catch (e) {
       console.error("Archive Error:", e);
-      toast.error('Network error or permission denied');
+      toast.error('Failed to archive contest cleanly');
     } finally {
       setLoading(false);
     }
@@ -374,7 +474,7 @@ export function ArchiveContest({ onArchived }: { onArchived: () => void }) {
           <h4 className="font-bold">Are you absolutely sure?</h4>
         </div>
         <p className="text-xs text-red-400/80 leading-relaxed">
-          This action will immediately archive the current contest, locking all submissions and votes. It cannot be undone. Are you sure you want to proceed?
+          This action will immediately archive the current contest. Winners will be saved to the Hall of Fame, user statistics preserved, and all current photos and votes will be permanently deleted. This cannot be undone. Are you sure you want to proceed?
         </p>
         <div className="flex gap-3 pt-2">
           <Button variant="secondary" onClick={() => setConfirming(false)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
@@ -388,7 +488,7 @@ export function ArchiveContest({ onArchived }: { onArchived: () => void }) {
 
   return (
     <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
-      <p className="text-xs text-white/60">Quickly archive the current contest and wipe the slate clean.</p>
+      <p className="text-xs text-white/60">Finalize this contest by saving winners, storing participant stats, and clearing the database for the next round.</p>
       <Input
         placeholder="Next Contest Name (Optional)"
         value={nextName}

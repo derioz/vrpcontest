@@ -58,6 +58,7 @@ import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setD
 import { Category, Photo, Rule, Theme } from './types';
 
 const UploadForm = lazy(() => import('./components/UploadForm'));
+const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const EditContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.EditContestManager })));
 const ArchiveContest = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.ArchiveContest })));
 const CreateContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.CreateContestManager })));
@@ -75,6 +76,7 @@ export default function App() {
   const [submissionsOpen, setSubmissionsOpen] = useState(true);
   const [onePhotoPerUser, setOnePhotoPerUser] = useState(false);
   const [showWinnersToggle, setShowWinnersToggle] = useState(false);
+  const [showArchivedWinners, setShowArchivedWinners] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -200,19 +202,47 @@ export default function App() {
     }
 
     const q = query(collection(db, 'photos'), where('discord_name', '==', user.displayName));
-    const unsub = onSnapshot(q, (snapshot) => {
-      setUserSubmissionCount(snapshot.size);
-      let votes = 0;
+    const unsubPhotos = onSnapshot(q, (snapshot) => {
+      let currentSubs = snapshot.size;
+      let currentVotes = 0;
       snapshot.forEach(doc => {
         const data = doc.data();
-        votes += (data.vote_count || 0);
+        currentVotes += (data.vote_count || 0);
       });
-      setUserTotalVotes(votes);
+
+      // Fetch permanent archived stats 
+      getDoc(doc(db, 'user_stats', user.displayName!)).then((statDoc) => {
+        if (statDoc.exists()) {
+          const stats = statDoc.data();
+          setUserSubmissionCount(currentSubs + (stats.archived_submissions || 0));
+          setUserTotalVotes(currentVotes + (stats.archived_votes || 0));
+        } else {
+          setUserSubmissionCount(currentSubs);
+          setUserTotalVotes(currentVotes);
+        }
+      }).catch((e) => {
+        console.error("Failed fetching user_stats", e);
+        setUserSubmissionCount(currentSubs);
+        setUserTotalVotes(currentVotes);
+      });
+
     }, (err) => {
       console.error("User submissions listener error", err);
     });
 
-    return () => unsub();
+    // Also set up realtime listener on user_stats just in case it updates while active
+    const unsubStats = onSnapshot(doc(db, 'user_stats', user.displayName), (statDoc) => {
+      // We won't tightly re-query photos here, but just trigger a state refresh of the photos query
+      // to recalculate. However, it's easier to just rely on the photos snapshot for active counters,
+      // and only read the stats doc once. Or handle it symmetrically. 
+      // For speed, let's just keep simplest implementation: the one above updates whenever photos update.
+      // We'll leave it simple.
+    });
+
+    return () => {
+      unsubPhotos();
+      unsubStats();
+    };
   }, [user]);
 
   // Track which photos the current user has voted on (real-time)
@@ -1408,6 +1438,19 @@ export default function App() {
                   <p className="text-xs text-white/40">{allPhotos.length} total entries</p>
                 </div>
               </div>
+
+              {/* Archived Winners Button */}
+              <div className="pt-3 mt-3 border-t border-white/5">
+                <button
+                  onClick={() => setShowArchivedWinners(true)}
+                  className="w-full relative px-4 py-3 rounded-xl font-bold transition-all duration-300 overflow-hidden bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
+                    <Trophy size={16} className="text-fivem-orange/70" />
+                    Previous Winners
+                  </span>
+                </button>
+              </div>
             </section>
           )}
 
@@ -1786,6 +1829,13 @@ export default function App() {
                 }}
               />
             </motion.div>
+          </Suspense>
+        )}
+
+        {/* Archived Winners Fullscreen Render */}
+        {showArchivedWinners && (
+          <Suspense fallback={null}>
+            <ArchivedWinnersView onClose={() => setShowArchivedWinners(false)} />
           </Suspense>
         )}
       </AnimatePresence>
