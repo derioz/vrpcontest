@@ -1477,7 +1477,10 @@ export default function App() {
       </Dialog>
 
       <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
-        <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-x-hidden">
+        <DialogContent
+          onInteractOutside={(e) => e.preventDefault()}
+          className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-x-hidden"
+        >
 
           {/* Ambient glows — uitripled glassmorphism pattern */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fivem-orange/8 blur-[200px] rounded-full pointer-events-none" />
