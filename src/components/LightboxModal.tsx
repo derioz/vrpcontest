@@ -5,10 +5,11 @@ import { Photo } from '../types';
 
 interface LightboxModalProps {
     photo: Photo | null;
+    privateKey: string | null;
     onClose: () => void;
 }
 
-export default function LightboxModal({ photo, onClose }: LightboxModalProps) {
+export default function LightboxModal({ photo, privateKey, onClose }: LightboxModalProps) {
     return (
         <AnimatePresence>
             {photo && (
@@ -50,7 +51,7 @@ export default function LightboxModal({ photo, onClose }: LightboxModalProps) {
                                 <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
                                     <User size={14} className="text-fivem-orange/80" />
                                     <span className="text-xs font-bold uppercase tracking-wider text-white/90">
-                                        {photo.player_name}
+                                        {privateKey ? photo.player_name : "Anonymous Pixel"}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2 bg-fivem-orange/10 backdrop-blur-xl px-4 py-2 rounded-full border border-fivem-orange/20 shadow-lg shadow-fivem-orange/5">

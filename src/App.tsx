@@ -1170,7 +1170,9 @@ export default function App() {
                             )}
                             <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5 max-w-[160px]">
                               <User size={10} className="text-fivem-orange shrink-0" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider truncate">{photo.player_name}</span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider truncate">
+                                {privateKey ? photo.player_name : "Anonymous Pixel"}
+                              </span>
                             </div>
                           </div>
 
@@ -1762,7 +1764,7 @@ export default function App() {
 
       {/* Lightbox Modal */}
       <Suspense fallback={null}>
-        <LightboxModal photo={lightboxPhoto} onClose={() => setLightboxPhoto(null)} />
+        <LightboxModal photo={lightboxPhoto} privateKey={privateKey} onClose={() => setLightboxPhoto(null)} />
       </Suspense>
 
       {/* Analytics Dashboard Fullscreen Render */}
