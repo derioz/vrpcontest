@@ -1120,7 +1120,7 @@ export default function App() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-3xl">{selectedCategory?.emoji || 'ðŸ“·'}</span>
+                  <span className="text-3xl">{selectedCategory?.emoji || '📷'}</span>
                   <h2 className="text-2xl font-display font-bold">{selectedCategory?.name || 'Entries'}</h2>
                 </div>
                 <p className="text-sm text-white/40">{selectedCategory?.description}</p>
