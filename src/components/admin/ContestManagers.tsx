@@ -55,7 +55,7 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
           <Smile size={16} />
         </button>
         {showEmoji && (
-          <div className="absolute top-10 right-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+          <div className="absolute top-10 right-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
             <Picker
               data={data}
               theme="dark"
@@ -194,7 +194,7 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
 
   return (
     <div className="space-y-6 p-6 bg-fivem-card/50 rounded-2xl border border-white/10 relative">
-      <div className="space-y-2 relative z-10">
+      <div className="space-y-2">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
         <Input
           placeholder="e.g. Cyberpunk Nights V2"
@@ -204,7 +204,7 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
         />
       </div>
 
-      <div className="space-y-4 relative z-30">
+      <div className="space-y-4">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Edit Categories</label>
 
         {categories.length > 0 && (
@@ -221,7 +221,7 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
                     {c.emoji || '✨'}
                   </button>
                   {editingEmojiIdx === i && (
-                    <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+                    <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
                       <Picker
                         data={data}
                         theme="dark"
@@ -256,13 +256,13 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2 relative z-50">
+        <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative shrink-0 static-emoji-wrapper">
             <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
               {catEmoji}
             </Button>
             {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+              <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
                 <Picker
                   data={data}
                   theme="dark"
@@ -284,7 +284,7 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
         </div>
       </div>
 
-      <div className="space-y-2 relative z-30">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
         </div>
@@ -300,7 +300,7 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
         </div>
       </div>
 
-      <div className="space-y-4 relative z-20">
+      <div className="space-y-4">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
@@ -611,7 +611,7 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       {/* Decorative Glow */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="space-y-2 relative z-10">
+      <div className="space-y-2">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
         <Input
           placeholder="e.g. Cyberpunk Nights V2"
@@ -621,7 +621,7 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         />
       </div>
 
-      <div className="space-y-4 relative z-30">
+      <div className="space-y-4">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Define Categories</label>
 
         {/* Current Categories List */}
@@ -647,13 +647,13 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         )}
 
         {/* Builder Row */}
-        <div className="flex flex-col sm:flex-row gap-2 relative z-50">
+        <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative shrink-0 static-emoji-wrapper">
             <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
               {catEmoji}
             </Button>
             {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[9999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+              <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
                 <Picker
                   data={data}
                   theme="dark"
@@ -675,7 +675,7 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         </div>
       </div>
 
-      <div className="space-y-2 relative z-30">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
           <span className="text-[10px] text-white/40">Optional - can be edited later</span>
@@ -692,7 +692,7 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         </div>
       </div>
 
-      <div className="space-y-4 relative z-20">
+      <div className="space-y-4">
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
