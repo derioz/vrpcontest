@@ -1768,7 +1768,12 @@ export default function App() {
                           <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Danger Zone</h4>
                         </div>
                         <div className="p-6">
-                          <ArchiveContest onArchived={() => window.location.reload()} />
+                          <ArchiveContest
+                            onArchived={() => window.location.reload()}
+                            activeContest={activeContest}
+                            categories={categories}
+                            allPhotos={allPhotos}
+                          />
                         </div>
                       </div>
 
