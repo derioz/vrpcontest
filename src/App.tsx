@@ -1439,20 +1439,21 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Archived Winners Button */}
-              <div className="pt-3 mt-3 border-t border-white/5">
-                <button
-                  onClick={() => setShowArchivedWinners(true)}
-                  className="w-full relative px-4 py-3 rounded-xl font-bold transition-all duration-300 overflow-hidden bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
-                    <Trophy size={16} className="text-fivem-orange/70" />
-                    Previous Winners
-                  </span>
-                </button>
-              </div>
             </section>
           )}
+
+          {/* Archived Winners Button — always visible */}
+          <section className="p-4">
+            <button
+              onClick={() => setShowArchivedWinners(true)}
+              className="w-full relative px-4 py-3 rounded-xl font-bold transition-all duration-300 overflow-hidden bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
+                <Trophy size={16} className="text-fivem-orange/70" />
+                Previous Winners
+              </span>
+            </button>
+          </section>
 
         </aside>
       </main >

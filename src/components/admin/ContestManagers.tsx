@@ -401,8 +401,8 @@ export function ArchiveContest({
         writeOps.push(batch => batch.update(d.ref, { is_active: false }));
       });
 
-      // Disable voting in global settings
-      writeOps.push(batch => batch.set(doc(db, 'settings', 'global'), { votingOpen: false }, { merge: true }));
+      // Disable voting and clear old rules in global settings
+      writeOps.push(batch => batch.set(doc(db, 'settings', 'global'), { votingOpen: false, rulesMarkdown: '' }, { merge: true }));
 
       // Create next contest if provided
       if (nextName) {
