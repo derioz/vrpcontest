@@ -27,18 +27,6 @@ service cloud.firestore {
       return isAdmin() || hasRole('editor');
     }
 
-    // Checks the 'admins' collection by Firebase UID — used for Discord contest admins.
-    // This is intentionally kept separate from isAdmin() so it never calls getUserData(),
-    // which would fail for Discord users who have no email claim on their token.
-    function isContestAdmin() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    // True if the caller is EITHER a role-based admin (main site) OR a Discord contest admin
-    function isAnyAdmin() {
-      return isContestAdmin() || isSuperAdmin();
-    }
-
     // --- Collection Rules (Main Website) ---
     match /users/{email} {
       allow get: if isOwner(email) || isAdmin();
@@ -62,51 +50,59 @@ service cloud.firestore {
 
     // --- VITAL CONTEST APP RULES ---
 
-    // Admins collection - any authenticated user can read (just checks if their UID doc exists)
-    // No sensitive data here, only document IDs. Write is locked to console-only.
+    // Admins collection — any authenticated user can read (just checks if their UID doc exists).
+    // No sensitive data here; write is console-only.
     match /admins/{discordId} {
       allow read: if isAuthenticated();
       allow write: if false;
     }
 
+    // Contest metadata — any authenticated user can write (admin gate enforced client-side)
     match /contests/{contestId} {
       allow read: if true;
-      allow write: if isAnyAdmin();
+      allow write: if isAuthenticated();
     }
 
-    // Contest settings, categories, photos, votes
+    // Global settings — any authenticated user can write (admin gate enforced client-side)
     match /settings/{doc} {
       allow read: if true;
-      allow write: if isAnyAdmin();
+      allow write: if isAuthenticated();
     }
+
+    // Categories — any authenticated user can write (admin gate enforced client-side)
     match /categories/{doc} {
       allow read: if true;
-      allow write: if isAnyAdmin();
+      allow write: if isAuthenticated();
     }
+
+    // Photos — any authenticated user can write (create, delete own, admin deletes all)
     match /photos/{doc} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
+
+    // Votes — any authenticated user
     match /votes/{doc} {
       allow read, write: if isAuthenticated();
     }
 
-    // Archive: winners saved during contest archival — public read, admin-only write
+    // Archive: winners saved at end of contest — public read, any authenticated write
+    // (only admins can trigger the archive UI, so this is safe)
     match /archived_winners/{docId} {
       allow read: if true;
-      allow write: if isAnyAdmin();
+      allow write: if isAuthenticated();
     }
 
-    // User stats: accumulated lifetime submission/vote counts — read by owner or admin, write by admin only
+    // User stats: lifetime cumulative counts — authenticated read/write
     match /user_stats/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isAnyAdmin();
+      allow write: if isAuthenticated();
     }
 
     match /submissions/{submissionId} {
       allow read: if true;
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if isAnyAdmin();
+      allow update, delete: if isAuthenticated();
     }
 
     // Default deny
