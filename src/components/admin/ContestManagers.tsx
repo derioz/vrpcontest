@@ -344,8 +344,10 @@ export function ArchiveContest({
     setLoading(true);
     try {
       const nowString = new Date().toISOString();
+      console.log('[Archive] Starting archive process...');
 
       // 1. Compute winners
+      console.log('[Archive] Phase 1: Computing winners from', allPhotos.length, 'photos across', categories.length, 'categories');
       const winners = categories.map(cat => {
         const catPhotos = allPhotos.filter(p => p.category_id === cat.id);
         if (!catPhotos.length) return null;
@@ -361,8 +363,10 @@ export function ArchiveContest({
           archived_at: nowString
         };
       }).filter(Boolean) as any[];
+      console.log('[Archive] Winners computed:', winners.length);
 
       // 2. Compute user stats to preserve
+      console.log('[Archive] Phase 2: Computing user stats');
       const statsByDiscordName = new Map<string, { subs: number, votes: number }>();
       allPhotos.forEach(p => {
         const current = statsByDiscordName.get(p.discord_name) || { subs: 0, votes: 0 };
@@ -370,101 +374,102 @@ export function ArchiveContest({
         current.votes += (p.vote_count || 0);
         statsByDiscordName.set(p.discord_name, current);
       });
+      console.log('[Archive] User stats computed for', statsByDiscordName.size, 'users');
 
-      // 3. Prepare batches (chunking into 400 ops per batch to be safe under 500 limit)
-      let currentBatch = writeBatch(db);
-      let opCount = 0;
-      const batches: any[] = [];
+      // 3. Import increment helper
+      const { increment } = await import('firebase/firestore');
 
-      const commitBatchIfNeeded = async (force = false) => {
-        if (opCount >= 400 || (force && opCount > 0)) {
-          batches.push(currentBatch.commit());
-          currentBatch = writeBatch(db);
-          opCount = 0;
-        }
-      };
-
-      // Deactivate active contests
+      // --- Reads: fetch all data before building write ops ---
+      console.log('[Archive] Phase 3: Fetching active contests...');
       const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
       const activeSnaps = await getDocs(qActive);
-      for (const d of activeSnaps.docs) {
-        currentBatch.update(d.ref, { is_active: false });
-        opCount++;
-        await commitBatchIfNeeded();
-      }
+      console.log('[Archive] Active contests found:', activeSnaps.size);
 
-      currentBatch.set(doc(db, 'settings', 'global'), { votingOpen: false }, { merge: true });
-      opCount++;
-      await commitBatchIfNeeded();
+      console.log('[Archive] Phase 4: Fetching all photos...');
+      const photosSnap = await getDocs(collection(db, 'photos'));
+      console.log('[Archive] Photos to delete:', photosSnap.size);
 
+      console.log('[Archive] Phase 5: Fetching all votes...');
+      const votesSnap = await getDocs(collection(db, 'votes'));
+      console.log('[Archive] Votes to delete:', votesSnap.size);
+
+      // Build write operations list
+      const writeOps: Array<(batch: any) => void> = [];
+
+      // Deactivate contests
+      activeSnaps.docs.forEach(d => {
+        writeOps.push(batch => batch.update(d.ref, { is_active: false }));
+      });
+
+      // Disable voting in global settings
+      writeOps.push(batch => batch.set(doc(db, 'settings', 'global'), { votingOpen: false }, { merge: true }));
+
+      // Create next contest if provided
       if (nextName) {
         const newContestRef = doc(collection(db, 'contests'));
-        currentBatch.set(newContestRef, {
+        writeOps.push(batch => batch.set(newContestRef, {
           name: nextName,
           is_active: true,
           created_at: nowString
-        });
-        opCount++;
-        await commitBatchIfNeeded();
+        }));
       }
 
-      // 4. Write winners to archived_winners
-      for (const winner of winners) {
+      // Write winners to archived_winners
+      winners.forEach(winner => {
         const winnerRef = doc(collection(db, 'archived_winners'));
-        currentBatch.set(winnerRef, winner);
-        opCount++;
-        await commitBatchIfNeeded();
-      }
+        writeOps.push(batch => batch.set(winnerRef, winner));
+      });
 
-      // 5. Update user_stats with increment
-      // In firebase v9 JS SDK, increment is available via Firebase import.
-      // But we will just set the fields via import { increment } from 'firebase/firestore'
-      // Wait, we can't assume increment is imported here. Let's dynamically import it or read existing if we must.
-      // Easiest is to just read and add, OR assume we can import increment at the top.
-      const { increment } = await import('firebase/firestore');
+      // Update user_stats
       for (const [discordName, stats] of Array.from(statsByDiscordName.entries())) {
         const statRef = doc(db, 'user_stats', discordName);
-        currentBatch.set(statRef, {
+        writeOps.push(batch => batch.set(statRef, {
           archived_submissions: increment(stats.subs),
           archived_votes: increment(stats.votes)
-        }, { merge: true });
-        opCount++;
-        await commitBatchIfNeeded();
+        }, { merge: true }));
       }
 
-      // 6. Delete all photos
-      const photosSnap = await getDocs(collection(db, 'photos'));
-      for (const pSnap of photosSnap.docs) {
-        currentBatch.delete(pSnap.ref);
-        opCount++;
-        await commitBatchIfNeeded();
+      // Delete all photos
+      photosSnap.docs.forEach(pSnap => {
+        writeOps.push(batch => batch.delete(pSnap.ref));
+      });
+
+      // Delete all votes
+      votesSnap.docs.forEach(vSnap => {
+        writeOps.push(batch => batch.delete(vSnap.ref));
+      });
+
+      // Execute all writes in chunked batches
+      const BATCH_SIZE = 400;
+      const totalBatches = Math.ceil(writeOps.length / BATCH_SIZE);
+      console.log(`[Archive] Phase 6: Committing ${writeOps.length} write ops in ${totalBatches} batch(es)...`);
+
+      for (let i = 0; i < writeOps.length; i += BATCH_SIZE) {
+        const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
+        console.log(`[Archive] Committing batch ${batchIndex}/${totalBatches}...`);
+        const batch = writeBatch(db);
+        const chunk = writeOps.slice(i, i + BATCH_SIZE);
+        chunk.forEach(op => op(batch));
+        await batch.commit();
+        console.log(`[Archive] Batch ${batchIndex}/${totalBatches} committed ✓`);
       }
 
-      // 7. Delete all votes
-      const votesSnap = await getDocs(collection(db, 'votes'));
-      for (const vSnap of votesSnap.docs) {
-        currentBatch.delete(vSnap.ref);
-        opCount++;
-        await commitBatchIfNeeded();
-      }
-
-      // Commit any remaining ops
-      await commitBatchIfNeeded(true);
-
-      // Wait for all batches to finish
-      await Promise.all(batches);
-
+      console.log('[Archive] ✅ All batches committed successfully!');
       toast.success('Contest safely archived!');
       onArchived();
       setConfirming(false);
       setNextName('');
-    } catch (e) {
-      console.error("Archive Error:", e);
-      toast.error('Failed to archive contest cleanly');
+    } catch (e: any) {
+      console.error('[Archive] ❌ FAILED:', e);
+      console.error('[Archive] Error code:', e?.code);
+      console.error('[Archive] Error message:', e?.message);
+      const msg = e?.message || e?.code || 'Unknown error';
+      toast.error(`Archive failed: ${msg}`);
     } finally {
       setLoading(false);
     }
   };
+
 
   if (confirming) {
     return (

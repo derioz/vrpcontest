@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(email) {
+      return isAuthenticated() && request.auth.token.email.lower() == email.lower();
+    }
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.token.email.lower())).data;
+    }
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+    function isSuperAdmin() {
+      return (isAuthenticated() && request.auth.token.email.lower() == 'tx.davidj@gmail.com')
+             || hasRole('superadmin')
+             || hasRole('owner');
+    }
+    function isAdmin() {
+      return isSuperAdmin() || hasRole('admin');
+    }
+    function isEditor() {
+      return isAdmin() || hasRole('editor');
+    }
+
+    // Checks the 'admins' collection by Firebase UID — used for Discord contest admins.
+    // This is intentionally kept separate from isAdmin() so it never calls getUserData(),
+    // which would fail for Discord users who have no email claim on their token.
+    function isContestAdmin() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // True if the caller is EITHER a role-based admin (main site) OR a Discord contest admin
+    function isAnyAdmin() {
+      return isContestAdmin() || isSuperAdmin();
+    }
+
+    // --- Collection Rules (Main Website) ---
+    match /users/{email} {
+      allow get: if isOwner(email) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(email) && request.resource.data.role == 'user';
+      allow update: if isOwner(email) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      allow write: if isAdmin();
+    }
+    match /gallery/{imageId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+    match /staff/{staffId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- VITAL CONTEST APP RULES ---
+
+    // Admins collection - any authenticated user can read (just checks if their UID doc exists)
+    // No sensitive data here, only document IDs. Write is locked to console-only.
+    match /admins/{discordId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /contests/{contestId} {
+      allow read: if true;
+      allow write: if isAnyAdmin();
+    }
+
+    // Contest settings, categories, photos, votes
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isAnyAdmin();
+    }
+    match /categories/{doc} {
+      allow read: if true;
+      allow write: if isAnyAdmin();
+    }
+    match /photos/{doc} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /votes/{doc} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Archive: winners saved during contest archival — public read, admin-only write
+    match /archived_winners/{docId} {
+      allow read: if true;
+      allow write: if isAnyAdmin();
+    }
+
+    // User stats: accumulated lifetime submission/vote counts — read by owner or admin, write by admin only
+    match /user_stats/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAnyAdmin();
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if isAnyAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
