@@ -83,6 +83,8 @@ export default function App() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showNotAdminModal, setShowNotAdminModal] = useState(false);
+  const [notAdminClickCount, setNotAdminClickCount] = useState(0);
   const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
@@ -869,7 +871,7 @@ export default function App() {
 
             {/* Admin / Settings gear */}
             <button
-              onClick={() => isAdmin ? setShowAdminModal(true) : setShowLoginModal(true)}
+              onClick={() => isAdmin ? setShowAdminModal(true) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })()}
               className={cn(
                 'group/setting relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-500',
                 isAdmin
@@ -2142,6 +2144,98 @@ export default function App() {
           </div>
         </div>
       </footer>
+      {/* ─── NOT AN ADMIN: Humorous Gate Modal ─── */}
+      <AnimatePresence>
+        {showNotAdminModal && (() => {
+          const messages = [
+            { title: "lol nope", body: "You thought you could just waltz in here? Bold move. The admins have been alerted. (They haven't.)", emoji: "🔒" },
+            { title: "Still trying?", body: "Sir, this is a Wendy's. Also, you are not an admin. These two facts are equally important.", emoji: "🍔" },
+            { title: "Impressive persistence.", body: "At this rate you'll have the job by morning. Unfortunately the hiring manager is also an admin, so... awkward.", emoji: "💼" },
+            { title: "FBI OPEN UP", body: "Your IP has been logged, printed, laminated, and filed under 'absolutely not an admin'. Have a lovely day.", emoji: "🚨" },
+            { title: "okay we're impressed", body: "Nobody has clicked this many times. You've unlocked a secret: you're STILL not an admin. Congratulations.", emoji: "🏆" },
+          ];
+          const idx = Math.min(notAdminClickCount - 1, messages.length - 1);
+          const msg = messages[idx];
+          const threatLevel = Math.min(notAdminClickCount, 5);
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowNotAdminModal(false)}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            >
+              <motion.div
+                initial={{ scale: 0.8, y: 30, opacity: 0, rotate: -2 }}
+                animate={{ scale: 1, y: 0, opacity: 1, rotate: 0 }}
+                exit={{ scale: 0.85, y: 20, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 25 }}
+                onClick={e => e.stopPropagation()}
+                className="relative max-w-sm w-full rounded-3xl border border-white/10 overflow-hidden"
+                style={{ background: 'linear-gradient(135deg, #0f0f0f 0%, #1a0a00 100%)' }}
+              >
+                {/* Orange glow backdrop */}
+                <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(234,88,12,0.6), transparent 70%)' }} />
+
+                {/* Top accent bar */}
+                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, #ea580c 30%, #fb923c 50%, #ea580c 70%, transparent)' }} />
+
+                <div className="relative px-7 pt-8 pb-7">
+                  {/* Wiggling lock emoji */}
+                  <motion.div
+                    animate={{ rotate: [0, -12, 12, -8, 8, -4, 4, 0] }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="text-5xl text-center mb-5 select-none"
+                  >
+                    {msg.emoji}
+                  </motion.div>
+
+                  <h2 className="text-white font-display font-black text-xl text-center mb-3 tracking-tight">
+                    {msg.title}
+                  </h2>
+                  <p className="text-white/55 text-sm text-center leading-relaxed mb-6">
+                    {msg.body}
+                  </p>
+
+                  {/* Threat level meter */}
+                  <div className="mb-6 px-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30">Threat Level</span>
+                      <span className="text-[10px] font-mono text-fivem-orange/80">{['HARMLESS', 'LOW', 'MEDIUM', 'CONCERNING', 'HIGH', 'YOU NEED HELP'][threatLevel]}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(threatLevel / 5) * 100}%` }}
+                        transition={{ duration: 0.6, ease: 'easeOut', delay: 0.35 }}
+                        className="h-full rounded-full"
+                        style={{ background: threatLevel >= 4 ? 'linear-gradient(90deg, #ea580c, #ef4444)' : 'linear-gradient(90deg, #ea580c, #fb923c)' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dismiss button */}
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setShowNotAdminModal(false)}
+                    className="w-full py-3 rounded-2xl font-display font-bold text-sm tracking-wide
+                      bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-white/20
+                      text-white/70 hover:text-white transition-all duration-200"
+                  >
+                    {['Walk away in silence', 'Fine, FINE.', 'I accept my fate 😔', 'okay I get it!!', 'please let me go', 'I WILL NEVER RETURN'][Math.min(notAdminClickCount - 1, 5)]}
+                  </motion.button>
+
+                  <p className="text-center text-[10px] font-mono text-white/20 mt-3 tracking-widest uppercase">
+                    hack attempt #{notAdminClickCount} logged
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
     </div>
   );
