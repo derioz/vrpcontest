@@ -75,10 +75,13 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // Photos — any authenticated user can write (create, delete own, admin deletes all)
+    // Photos — authenticated users can create & update (for votes);
+    // only the uploader (matched by uploader_uid) or an admin can delete.
     match /photos/{doc} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.uploader_uid == request.auth.uid);
     }
 
     // Votes — any authenticated user

@@ -502,6 +502,7 @@ export default function App() {
         category_id: categoryId,
         player_name: formPlayerName,
         discord_name: discordName,
+        uploader_uid: auth.currentUser?.uid || '',
         image_url: publicKey ? censoredURL : downloadURL,
         censored_image_url: censoredURL,
         encrypted_image_url: encryptedURL,
@@ -1069,7 +1070,10 @@ export default function App() {
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat)}
-                        className="relative z-10 flex flex-col gap-1.5 px-5 py-3.5 rounded-xl transition-colors duration-150 text-left shrink-0"
+                        className={cn(
+                          "group/cat relative z-10 flex flex-col gap-1.5 px-5 py-3.5 rounded-xl transition-all duration-200 text-left shrink-0",
+                          !isActive && "hover:bg-white/[0.06] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                        )}
                       >
                         {/* Spring sliding indicator behind the active button */}
                         {isActive && (
@@ -1082,7 +1086,7 @@ export default function App() {
                         {/* Content always above the indicator */}
                         <div className="relative flex items-center gap-2">
                           <span className="text-xl leading-none">{cat.emoji || '✨'}</span>
-                          <span className={cn("text-sm font-bold whitespace-nowrap transition-colors", isActive ? "text-white" : "text-white/65 group-hover:text-white")}>{cat.name}</span>
+                          <span className={cn("text-sm font-bold whitespace-nowrap transition-colors", isActive ? "text-white" : "text-white/65 group-hover/cat:text-white")}>{cat.name}</span>
                         </div>
                         <div className="relative flex items-center justify-between gap-2">
                           <span className={cn("text-xs font-mono leading-none transition-colors", isActive ? "text-white/80" : "text-white/40")}>
