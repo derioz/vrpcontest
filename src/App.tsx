@@ -668,103 +668,155 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <Toaster position="top-right" theme="dark" />
 
-      {/* ─── SIGNAL BAR — uitripled-inspired scroll-aware navbar ─── */}
+      {/* ─── SIGNAL BAR v2 — premium enhanced navbar ─── */}
       <motion.header
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
-        className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] overflow-hidden"
+        className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          e.currentTarget.style.setProperty('--mouse-x', `${x}%`);
+        }}
       >
-        {/* Scanline texture overlay */}
+        {/* Multi-layer glass surface */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
+
+        {/* Mouse-reactive spotlight */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-700"
+          style={{
+            background: 'radial-gradient(600px circle at var(--mouse-x, 50%) 50%, rgba(234,88,12,0.06), transparent 60%)'
+          }}
+        />
+
+        {/* Scanline texture */}
         <div className="scanline absolute inset-0 pointer-events-none z-0" />
 
-        {/* Bottom glow seam */}
+        {/* Top shimmer sweep */}
+        <motion.div
+          initial={{ x: '-100%', opacity: 0 }}
+          animate={{ x: '200%', opacity: [0, 1, 0] }}
+          transition={{ duration: 3, delay: 0.8, ease: 'easeInOut' }}
+          className="absolute top-0 left-0 w-1/3 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none z-10"
+        />
+
+        {/* Bottom glow seam — vivid orange */}
         <motion.div
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 1.8, ease: 'easeOut' }}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent pointer-events-none z-10"
+          transition={{ duration: 2, ease: 'easeOut' }}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-px pointer-events-none z-10"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(234,88,12,0.9) 30%, #fb923c 50%, rgba(234,88,12,0.9) 70%, transparent)' }}
         />
+        {/* Softer outer bloom */}
+        <motion.div
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={{ scaleX: 1, opacity: 1 }}
+          transition={{ duration: 2, ease: 'easeOut', delay: 0.1 }}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-4 pointer-events-none z-9"
+          style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(234,88,12,0.25), transparent 70%)', filter: 'blur(4px)' }}
+        />
+
+        {/* Hard bottom border line */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-white/[0.06]" />
 
         {/* Inner layout */}
         <div className="relative z-10 h-full max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
 
           {/* ── LEFT: Brand Beacon ── */}
           <motion.div
-            initial={{ opacity: 0, x: -16 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.1 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
             className="flex items-center gap-3 group/brand shrink-0"
           >
-            {/* Orb with radial corona */}
-            <div className="relative w-9 h-9 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-fivem-orange/10 border border-fivem-orange/25
-                group-hover/brand:bg-fivem-orange/20 group-hover/brand:border-fivem-orange/50
-                group-hover/brand:shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all duration-500" />
+            {/* Orb — dual-ring scanner effect */}
+            <div className="relative w-10 h-10 flex items-center justify-center">
+              {/* Outer slow rotating ring */}
               <motion.div
-                className="absolute inset-[-4px] rounded-full border border-fivem-orange/10 opacity-0 group-hover/brand:opacity-100"
-                animate={{ scale: [1, 1.25, 1], opacity: [0, 0.5, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                className="absolute inset-[-3px] rounded-full"
+                style={{ background: 'conic-gradient(from 0deg, transparent 70%, rgba(234,88,12,0.7) 85%, transparent 100%)', borderRadius: '50%' }}
+              />
+              {/* Core glow ring */}
+              <div className="absolute inset-0 rounded-full bg-fivem-orange/10 border border-fivem-orange/30
+                group-hover/brand:bg-fivem-orange/20 group-hover/brand:border-fivem-orange/60
+                group-hover/brand:shadow-[0_0_24px_rgba(234,88,12,0.5)] transition-all duration-500" />
+              {/* Expand pulse on hover */}
+              <motion.div
+                className="absolute inset-[-6px] rounded-full border border-fivem-orange/20"
+                animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               />
               <img
                 src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png"
                 alt="Vital RP"
-                className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.9)]"
+                className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_10px_rgba(234,88,12,1)]"
               />
             </div>
 
             {/* Wordmark */}
             <div className="flex flex-col leading-none">
-              <span className="text-white font-display font-black text-xs tracking-[0.25em] leading-none">VITAL RP</span>
-              <div className="flex items-center gap-1.5 mt-1">
-                {/* Blinking live dot */}
-                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" style={{ animationDuration: '1.8s' }} />
-                <span className="text-white/35 font-mono text-[9px] uppercase tracking-[0.35em] leading-none truncate max-w-[120px] sm:max-w-none">
+              <span className="text-white font-display font-black text-sm tracking-[0.22em] leading-none">VITAL RP</span>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange" style={{
+                  boxShadow: '0 0 6px rgba(234,88,12,0.9)',
+                  animation: 'pulse 1.8s ease-in-out infinite'
+                }} />
+                <span className="text-white/40 font-mono text-[9px] uppercase tracking-[0.4em] leading-none">
                   {activeContest?.name || 'Photo Contest'}
                 </span>
               </div>
             </div>
           </motion.div>
 
-          {/* ── CENTER: Live Telemetry Strip (desktop only) ── */}
+          {/* ── CENTER: Contest Identity Badge ── */}
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.25 }}
-            className="hidden md:flex items-center gap-1 bg-white/[0.03] border border-white/[0.07] rounded-xl px-1.5 py-1.5"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+            className="hidden md:flex items-center gap-3"
           >
-            {/* Readout: Entries */}
-            <div className="flex flex-col items-center px-4 py-1.5 rounded-lg">
-              <span className="text-fivem-orange font-display font-black text-base leading-none tabular-nums">{allPhotos.length}</span>
-              <span className="text-white/30 font-mono text-[9px] uppercase tracking-[0.2em] mt-0.5">Entries</span>
-            </div>
-
-            <div className="w-px h-7 bg-white/[0.08]" />
-
-            {/* Readout: Voting status */}
-            <div className="flex flex-col items-center px-4 py-1.5 rounded-lg">
-              <span className={cn(
-                'text-sm font-bold leading-none font-display',
-                isVotingOpen ? 'text-emerald-400' : 'text-amber-400'
-              )}>{isVotingOpen ? 'Open' : 'Closed'}</span>
-              <span className="text-white/30 font-mono text-[9px] uppercase tracking-[0.2em] mt-0.5">Voting</span>
-            </div>
-
-            {/* Previous Winners button — only if toggle is on */}
+            {/* Previous Winners — gold trophy chip (only if enabled) */}
             {showWinnersToggle && (
-              <>
-                <div className="w-px h-7 bg-white/[0.08]" />
-                <button
-                  onClick={() => setShowArchivedWinners(true)}
-                  className="group/win flex items-center gap-1.5 px-4 py-1.5 rounded-lg
-                    hover:bg-fivem-orange/10 transition-all duration-300"
-                >
-                  <Trophy size={12} className="text-fivem-orange/70 group-hover/win:text-fivem-orange transition-colors" />
-                  <span className="text-white/50 group-hover/win:text-white/90 font-mono text-[10px] uppercase tracking-[0.15em] transition-colors">
-                    Winners
-                  </span>
-                </button>
-              </>
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setShowArchivedWinners(true)}
+                className="group/win relative flex items-center gap-2.5 px-5 py-2.5 rounded-full overflow-hidden
+                  bg-gradient-to-r from-amber-500/10 to-orange-500/10
+                  border border-amber-500/25 hover:border-amber-400/60
+                  transition-all duration-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-orange-500/5 opacity-0 group-hover/win:opacity-100 transition-opacity duration-300" />
+                {/* Shimmer sweep on hover */}
+                <motion.div
+                  className="absolute inset-0 opacity-0 group-hover/win:opacity-100"
+                  style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.15) 50%, transparent 100%)' }}
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.5 }}
+                />
+                <Trophy size={14} className="text-amber-400 group-hover/win:text-amber-300 relative z-10 transition-colors drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+                <span className="relative z-10 text-amber-400/80 group-hover/win:text-amber-300 font-display font-bold text-xs tracking-[0.2em] uppercase transition-colors">
+                  Hall of Fame
+                </span>
+              </motion.button>
             )}
+
+            {/* Animated LIVE badge */}
+            <div className="relative flex items-center gap-2 px-4 py-2 rounded-full border border-white/[0.08] bg-white/[0.03]">
+              <div className="relative flex items-center justify-center w-4 h-4">
+                <motion.div
+                  animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                  className="absolute inset-0 rounded-full bg-fivem-orange/60"
+                />
+                <div className="w-2 h-2 rounded-full bg-fivem-orange relative z-10" style={{ boxShadow: '0 0 8px rgba(234,88,12,1)' }} />
+              </div>
+              <span className="text-[10px] font-bold font-mono uppercase tracking-[0.35em] text-white/50">Live Contest</span>
+            </div>
           </motion.div>
 
           {/* ── RIGHT: Action Cluster ── */}
