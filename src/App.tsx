@@ -805,18 +805,6 @@ export default function App() {
               </motion.button>
             )}
 
-            {/* Animated LIVE badge */}
-            <div className="relative flex items-center gap-2 px-4 py-2 rounded-full border border-white/[0.08] bg-white/[0.03]">
-              <div className="relative flex items-center justify-center w-4 h-4">
-                <motion.div
-                  animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
-                  className="absolute inset-0 rounded-full bg-fivem-orange/60"
-                />
-                <div className="w-2 h-2 rounded-full bg-fivem-orange relative z-10" style={{ boxShadow: '0 0 8px rgba(234,88,12,1)' }} />
-              </div>
-              <span className="text-[10px] font-bold font-mono uppercase tracking-[0.35em] text-white/50">Live Contest</span>
-            </div>
           </motion.div>
 
           {/* ── RIGHT: Action Cluster ── */}
