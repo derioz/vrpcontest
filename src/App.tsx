@@ -33,7 +33,7 @@ import {
   Layers,
   BarChart3
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
 import { Toaster, toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -657,106 +657,205 @@ export default function App() {
   };
 
 
+  // ── Scroll-aware Signal Bar hooks ──
+  const navbarRef = useRef<HTMLDivElement>(null);
+  const { scrollY } = useScroll();
+  const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
+  const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
+  const navBg = useTransform(scrollY, [0, 80], ['rgba(3,3,3,0.3)', 'rgba(3,3,3,0.85)']);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Toaster position="top-right" theme="dark" />
 
-      {/* Top-Anchored Command Bar (Unique Non-Pill Design) */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        {/* The Glass Backdrop — Only blurs what passes directly behind the taller header */}
-        <div className="absolute inset-0 h-24 bg-[#030303]/40 backdrop-blur-2xl border-b border-white/[0.04] mask-image:linear-gradient(to_bottom,black_60%,transparent)]" />
+      {/* ─── SIGNAL BAR — uitripled-inspired scroll-aware navbar ─── */}
+      <motion.header
+        ref={navbarRef}
+        style={{ height: navH, backgroundColor: navBg }}
+        className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] overflow-hidden"
+      >
+        {/* Scanline texture overlay */}
+        <div className="scanline absolute inset-0 pointer-events-none z-0" />
 
-        {/* The Animated Glow Line at the very top edge */}
+        {/* Bottom glow seam */}
         <motion.div
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent"
+          transition={{ duration: 1.8, ease: 'easeOut' }}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent pointer-events-none z-10"
         />
 
-        <div className="relative h-16 sm:h-24 max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between pointer-events-none">
+        {/* Inner layout */}
+        <div className="relative z-10 h-full max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
 
-          {/* Left: Branding — pure minimalist geometry */}
+          {/* ── LEFT: Brand Beacon ── */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="pointer-events-auto flex items-center gap-4 group/brand"
+            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.1 }}
+            className="flex items-center gap-3 group/brand shrink-0"
           >
-            {/* The Orb */}
-            <div className="relative w-10 h-10 rounded-full flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-fivem-orange/10 border border-fivem-orange/20 scale-100 group-hover/brand:scale-110 transition-transform duration-500" />
-              <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP" className="w-6 h-6 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
+            {/* Orb with radial corona */}
+            <div className="relative w-9 h-9 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-fivem-orange/10 border border-fivem-orange/25
+                group-hover/brand:bg-fivem-orange/20 group-hover/brand:border-fivem-orange/50
+                group-hover/brand:shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all duration-500" />
+              <motion.div
+                className="absolute inset-[-4px] rounded-full border border-fivem-orange/10 opacity-0 group-hover/brand:opacity-100"
+                animate={{ scale: [1, 1.25, 1], opacity: [0, 0.5, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <img
+                src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png"
+                alt="Vital RP"
+                className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.9)]"
+              />
             </div>
-            {/* The Typography */}
-            <div className="flex flex-col">
-              <span className="text-white font-display font-black text-sm tracking-[0.2em] leading-none mb-1">
-                VITAL RP
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-px bg-fivem-orange/50" />
-                <span className="text-white/40 font-mono text-[10px] uppercase tracking-[0.4em] leading-none">
+
+            {/* Wordmark */}
+            <div className="flex flex-col leading-none">
+              <span className="text-white font-display font-black text-xs tracking-[0.25em] leading-none">VITAL RP</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                {/* Blinking live dot */}
+                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" style={{ animationDuration: '1.8s' }} />
+                <span className="text-white/35 font-mono text-[9px] uppercase tracking-[0.35em] leading-none truncate max-w-[120px] sm:max-w-none">
                   {activeContest?.name || 'Photo Contest'}
                 </span>
               </div>
             </div>
           </motion.div>
 
-          {/* Right: Actions — floating glass tags */}
+          {/* ── CENTER: Live Telemetry Strip (desktop only) ── */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="pointer-events-auto flex items-center gap-3"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.25 }}
+            className="hidden md:flex items-center gap-1 bg-white/[0.03] border border-white/[0.07] rounded-xl px-1.5 py-1.5"
           >
+            {/* Readout: Entries */}
+            <div className="flex flex-col items-center px-4 py-1.5 rounded-lg">
+              <span className="text-fivem-orange font-display font-black text-base leading-none tabular-nums">{allPhotos.length}</span>
+              <span className="text-white/30 font-mono text-[9px] uppercase tracking-[0.2em] mt-0.5">Entries</span>
+            </div>
+
+            <div className="w-px h-7 bg-white/[0.08]" />
+
+            {/* Readout: Voting status */}
+            <div className="flex flex-col items-center px-4 py-1.5 rounded-lg">
+              <span className={cn(
+                'text-sm font-bold leading-none font-display',
+                isVotingOpen ? 'text-emerald-400' : 'text-amber-400'
+              )}>{isVotingOpen ? 'Open' : 'Closed'}</span>
+              <span className="text-white/30 font-mono text-[9px] uppercase tracking-[0.2em] mt-0.5">Voting</span>
+            </div>
+
+            {/* Previous Winners button — only if toggle is on */}
+            {showWinnersToggle && (
+              <>
+                <div className="w-px h-7 bg-white/[0.08]" />
+                <button
+                  onClick={() => setShowArchivedWinners(true)}
+                  className="group/win flex items-center gap-1.5 px-4 py-1.5 rounded-lg
+                    hover:bg-fivem-orange/10 transition-all duration-300"
+                >
+                  <Trophy size={12} className="text-fivem-orange/70 group-hover/win:text-fivem-orange transition-colors" />
+                  <span className="text-white/50 group-hover/win:text-white/90 font-mono text-[10px] uppercase tracking-[0.15em] transition-colors">
+                    Winners
+                  </span>
+                </button>
+              </>
+            )}
+          </motion.div>
+
+          {/* ── RIGHT: Action Cluster ── */}
+          <motion.div
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
+            className="flex items-center gap-2 shrink-0"
+          >
+            {/* User avatar or Sign In */}
             {user ? (
-              <div className="group/user relative flex items-center gap-3 px-2 py-2 rounded-full hover:bg-white/[0.04] transition-colors duration-500 border border-transparent hover:border-white/[0.05]">
-                <div className="flex flex-col items-end pr-1 hidden sm:flex">
-                  <span className="text-xs font-bold text-white/90 leading-none mb-1">{user.displayName?.split(' ')[0] || user.email?.split('@')[0]}</span>
-                  <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-white/30 leading-none">Online</span>
+              <div className="group/user relative flex items-center gap-2.5 pl-2.5 pr-1 py-1 rounded-full
+                border border-transparent hover:border-white/[0.08] hover:bg-white/[0.04]
+                transition-all duration-400"
+              >
+                <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-xs font-bold text-white/85 leading-none">
+                    {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
+                  </span>
+                  <span className="text-[9px] font-mono tracking-widest uppercase text-emerald-400/80 leading-none mt-0.5">Online</span>
                 </div>
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-10 h-10 shrink-0 rounded-full ring-1 ring-white/10 group-hover/user:ring-white/30 transition-all" />
-                ) : (
-                  <div className="w-10 h-10 shrink-0 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
-                    {user.displayName?.[0] || user.email?.[0] || 'U'}
-                  </div>
-                )}
+                <div className="relative">
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt=""
+                      className="w-8 h-8 rounded-full ring-2 ring-[#5865F2]/40 group-hover/user:ring-[#5865F2]/80 transition-all duration-300"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
+                      {user.displayName?.[0] || user.email?.[0] || 'U'}
+                    </div>
+                  )}
+                  {/* Green online pip */}
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#09090b]" />
+                </div>
               </div>
             ) : (
               <button
                 onClick={handleDiscordLogin}
-                className="group/login relative px-6 h-11 rounded-full flex items-center gap-2 overflow-hidden bg-white/[0.03] border border-white/[0.08] hover:border-[#5865F2]/50 transition-all duration-500"
+                className="group/login relative flex items-center gap-2 px-4 h-9 rounded-full overflow-hidden
+                  bg-white/[0.04] border border-white/[0.10] hover:border-[#5865F2]/60
+                  transition-all duration-400"
               >
-                <div className="absolute inset-0 bg-[#5865F2]/10 translate-y-full group-hover/login:translate-y-0 transition-transform duration-500 ease-out" />
-                <img src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg" className="w-4 h-4 invert opacity-50 group-hover/login:opacity-100 group-hover/login:invert-0 transition-all duration-500 relative z-10" style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }} alt="" />
-                <span className="text-xs font-display font-bold tracking-[0.15em] uppercase text-white/60 group-hover/login:text-[#5865F2] transition-colors duration-500 relative z-10">Sign In</span>
+                <div className="absolute inset-0 bg-[#5865F2]/15 -translate-x-full group-hover/login:translate-x-0 transition-transform duration-400 ease-out" />
+                <img
+                  src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg"
+                  className="w-3.5 h-3.5 relative z-10 opacity-50 group-hover/login:opacity-100 transition-opacity duration-400"
+                  style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }}
+                  alt=""
+                />
+                <span className="relative z-10 text-[11px] font-display font-bold tracking-[0.18em] uppercase
+                  text-white/55 group-hover/login:text-white transition-colors duration-400"
+                >
+                  Sign In
+                </span>
               </button>
             )}
 
-            <div className="w-px h-6 bg-gradient-to-b from-transparent via-white/10 to-transparent mx-1" />
+            {/* Divider */}
+            <div className="w-px h-5 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
 
+            {/* Admin / Settings gear */}
             <button
               onClick={() => isAdmin ? setShowAdminModal(true) : setShowLoginModal(true)}
               className={cn(
-                "group/setting relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-500",
+                'group/setting relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-500',
                 isAdmin
-                  ? "hover:bg-fivem-orange/10 border border-transparent hover:border-fivem-orange/30"
-                  : "hover:bg-white/[0.06] border border-transparent hover:border-white/[0.05]"
+                  ? 'hover:bg-fivem-orange/10 border border-fivem-orange/20 hover:border-fivem-orange/50'
+                  : 'hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08]'
               )}
             >
               {isAdmin && (
-                <div className="absolute inset-0 rounded-full bg-fivem-orange/5 animate-pulse opacity-50" />
+                <div className="absolute inset-0 rounded-full bg-fivem-orange/5 animate-pulse opacity-60" />
               )}
-              <Settings size={18} className={cn(
-                "transition-all duration-[1s] ease-[cubic-bezier(0.22,1,0.36,1)]",
-                isAdmin ? "text-fivem-orange group-hover/setting:rotate-[360deg]" : "text-white/40 group-hover/setting:text-white/80 group-hover/setting:rotate-90"
-              )} />
-              {isAdmin && <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />}
+              <Settings
+                size={16}
+                className={cn(
+                  'transition-all duration-[1s] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                  isAdmin
+                    ? 'text-fivem-orange group-hover/setting:rotate-[360deg]'
+                    : 'text-white/35 group-hover/setting:text-white/80 group-hover/setting:rotate-90'
+                )}
+              />
+              {isAdmin && (
+                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_6px_rgba(234,88,12,1)]" />
+              )}
             </button>
           </motion.div>
         </div>
-      </div>
+      </motion.header>
 
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (

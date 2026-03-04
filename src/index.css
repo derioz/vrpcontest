@@ -84,3 +84,12 @@
   touch-action: pan-x;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Scanline CRT texture — Signal Bar navbar overlay */
+.scanline {
+  background-image: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.04) 2px,
+      rgba(0, 0, 0, 0.04) 4px);
+}
