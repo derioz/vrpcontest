@@ -26,6 +26,21 @@ service cloud.firestore {
     function isEditor() {
       return isAdmin() || hasRole('editor');
     }
+    // Contest app admin — matches client-side admin check.
+    // Checks Firebase Auth UID, Discord provider UID, and email/password users.
+    // Does NOT call getUserData()/isAdmin() to avoid errors for Discord users without an email.
+    function isContestAdmin() {
+      return isAuthenticated()
+             && (
+                 // Email/password users are always admin in the contest app
+                 request.auth.token.firebase.sign_in_provider == 'password'
+                 // Check admins collection by Firebase Auth UID
+                 || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+                 // Check admins collection by Discord provider UID
+                 || ('oidc.discord' in request.auth.token.firebase.identities
+                     && exists(/databases/$(database)/documents/admins/$(request.auth.token.firebase.identities['oidc.discord'][0])))
+             );
+    }
 
     // --- Collection Rules (Main Website) ---
     match /users/{email} {
@@ -76,12 +91,13 @@ service cloud.firestore {
     }
 
     // Photos — authenticated users can create & update (for votes);
-    // only the uploader (matched by uploader_uid) or an admin can delete.
+    // only the uploader or a contest admin can delete.
+    // isContestAdmin() is checked FIRST to avoid isAdmin() throwing for Discord users.
     match /photos/{doc} {
       allow read: if true;
       allow create: if isAuthenticated();
       allow update: if isAuthenticated();
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.uploader_uid == request.auth.uid);
+      allow delete: if isContestAdmin() || (isAuthenticated() && resource.data.uploader_uid == request.auth.uid);
     }
 
     // Votes — any authenticated user

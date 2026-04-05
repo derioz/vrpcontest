@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -31,7 +31,8 @@ import {
   Smile,
   Link as LinkIcon,
   Layers,
-  BarChart3
+  BarChart3,
+  Eye
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -64,6 +65,7 @@ const ArchiveContest = lazy(() => import('./components/admin/ContestManagers').t
 const CreateContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.CreateContestManager })));
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
+const AdminSubmissionsPreview = lazy(() => import('./components/admin/AdminSubmissionsPreview'));
 
 
 
@@ -1712,6 +1714,25 @@ export default function App() {
                         </motion.div>
                       );
                     })}
+                  </div>
+
+                  {/* ── Admin Submissions Preview ── */}
+                  <div className="relative overflow-hidden rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03]">
+                    <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/8 blur-[80px] rounded-full pointer-events-none" />
+                    <div className="px-6 pt-5 pb-4 border-b border-cyan-500/[0.12] flex items-center gap-2">
+                      <div className="w-1 h-4 bg-cyan-500/70 rounded-full" />
+                      <Eye size={13} className="text-cyan-500/80" />
+                      <h4 className="text-[11px] font-mono text-cyan-500/80 uppercase tracking-[0.2em]">Admin Submissions Preview</h4>
+                      <span className="text-[10px] font-mono text-white/30 ml-auto">Decrypted view — only visible to admins</span>
+                    </div>
+                    <div className="p-6 relative z-10">
+                      <AdminSubmissionsPreview
+                        allPhotos={allPhotos}
+                        categories={categories}
+                        onDeletePhoto={handleDeletePhoto}
+                      />
+                    </div>
                   </div>
 
                   {/* ── Main 2-col Layout ── */}
