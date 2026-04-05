@@ -4,6 +4,8 @@ import { decryptUrl } from '../../lib/crypto';
 import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { db } from '../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface AdminSubmissionsPreviewProps {
   allPhotos: Photo[];
@@ -18,19 +20,34 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Try to decrypt all photos using the local private key
+  // Try to decrypt all photos using the local or remote private key
   useEffect(() => {
-    const localPrivateKey = localStorage.getItem('vrp_private_key');
-    if (!localPrivateKey || allPhotos.length === 0) {
-      setDecryptionFailed(!localPrivateKey);
-      return;
-    }
-
     let cancelled = false;
     setDecrypting(true);
     setDecryptionFailed(false);
 
     (async () => {
+      let localPrivateKey = localStorage.getItem('vrp_private_key');
+      
+      // Fallback to fetching secure key from Firestore if not in local storage
+      if (!localPrivateKey) {
+        try {
+          const secretSnap = await getDoc(doc(db, 'secrets', 'keys'));
+          if (secretSnap.exists()) {
+            localPrivateKey = secretSnap.data().privateKey;
+          }
+        } catch (error) {
+          console.error("Failed to fetch secure keys:", error);
+        }
+      }
+
+      if (!localPrivateKey || allPhotos.length === 0) {
+        if (!cancelled) {
+          setDecryptionFailed(!localPrivateKey);
+          setDecrypting(false);
+        }
+        return;
+      }
       const newMap = new Map<string, string>();
       let anyDecrypted = false;
 

@@ -84,6 +84,11 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // Secrets collection — only contest admins can read or write (e.g., storing private keys securely)
+    match /secrets/{doc} {
+      allow read, write: if isContestAdmin();
+    }
+
     // Categories — any authenticated user can write (admin gate enforced client-side)
     match /categories/{doc} {
       allow read: if true;

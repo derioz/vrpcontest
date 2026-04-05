@@ -584,8 +584,9 @@ export default function App() {
     try {
       const keys = await generateRSAKeyPair();
       localStorage.setItem(`vrp_private_key`, keys.privateKey);
+      await setDoc(doc(db, 'secrets', 'keys'), { privateKey: keys.privateKey }, { merge: true });
       await updateDoc(doc(db, 'settings', 'global'), { publicKey: keys.publicKey, privateKey: null });
-      toast.success("Security keys generated! Private key saved to this browser.");
+      toast.success("Security keys generated! Private key saved securely.");
     } catch (error) {
       console.error(error);
       toast.error("Failed to generate keys");
@@ -596,9 +597,14 @@ export default function App() {
     if (!isAdmin) return;
     try {
       if (reveal) {
-        const storedKey = localStorage.getItem(`vrp_private_key`);
+        let storedKey = localStorage.getItem(`vrp_private_key`);
         if (!storedKey) {
-          toast.error("Private key not found on this device. Cannot reveal.");
+          const secretDoc = await getDoc(doc(db, 'secrets', 'keys'));
+          if (secretDoc.exists()) storedKey = secretDoc.data().privateKey;
+        }
+        
+        if (!storedKey) {
+          toast.error("Private key not found. Cannot reveal.");
           return;
         }
         await updateDoc(doc(db, 'settings', 'global'), { privateKey: storedKey });
