@@ -66,7 +66,6 @@ const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView'
 const EditContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.EditContestManager })));
 const ArchiveContest = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.ArchiveContest })));
 const CreateContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.CreateContestManager })));
-const DeleteContestsManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.DeleteContestsManager })));
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 const AdminSubmissionsPreview = lazy(() => import('./components/admin/AdminSubmissionsPreview'));
@@ -1969,25 +1968,13 @@ export default function App() {
                           <AlertCircle size={13} className="text-red-500/80" />
                           <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Danger Zone</h4>
                         </div>
-                        <div className="p-6 space-y-6">
-                            
+                        <div className="p-6">
                           <ArchiveContest
                             onArchived={() => window.location.reload()}
                             activeContest={activeContest}
                             categories={categories}
                             allPhotos={allPhotos}
                           />
-                          
-                          <div className="h-px bg-red-500/10 w-full" />
-                          
-                          <div className="space-y-3">
-                            <div>
-                                <h4 className="font-bold text-red-400">Permanently Delete Contests</h4>
-                                <p className="text-xs text-red-400/60 mt-0.5">Completely erase contests, including all categories and photos without archiving.</p>
-                            </div>
-                            <DeleteContestsManager />
-                          </div>
-                            
                         </div>
                       </div>
 

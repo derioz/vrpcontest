@@ -338,7 +338,7 @@ export function ArchiveContest({
 }) {
   const [nextName, setNextName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<'archive' | 'destroy' | null>(null);
 
   const handleArchive = async () => {
     setLoading(true);
@@ -467,11 +467,50 @@ export function ArchiveContest({
       toast.error(`Archive failed: ${msg}`);
     } finally {
       setLoading(false);
+      setLoading(false);
     }
   };
 
+  const handleDestroy = async () => {
+    if (!activeContest) return;
+    setLoading(true);
+    try {
+      toast.loading('Permanently destroying test contest...', { id: 'destroy' });
+      const batch = writeBatch(db);
+      
+      // Delete contest
+      batch.delete(doc(db, 'contests', activeContest.id));
+      
+      // Delete categories
+      const catIds = categories.map(c => String(c.id));
+      if (catIds.length > 0) {
+        const catSnap = await getDocs(query(collection(db, 'categories'), where('contest_id', '==', activeContest.id)));
+        catSnap.docs.forEach(d => batch.delete(d.ref));
+        
+        // Delete photos for these categories
+        for (let i = 0; i < catIds.length; i += 10) {
+          const chunk = catIds.slice(i, i + 10);
+          const photoSnap = await getDocs(query(collection(db, 'photos'), where('category_id', 'in', chunk)));
+          photoSnap.docs.forEach(p => batch.delete(p.ref));
+        }
+      }
+      
+      await batch.commit();
+      toast.success('Test contest completely destroyed.', { id: 'destroy' });
+      setConfirming(null);
+      onArchived();
+      
+      // Attempt window reload if possible so UI resyncs completely
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Failed to destroy contest: ' + e.message, { id: 'destroy' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (confirming) {
+  if (confirming === 'archive') {
     return (
       <div className="p-6 bg-red-500/10 rounded-xl border border-red-500/30 space-y-4">
         <div className="flex items-center gap-3 text-red-400">
@@ -482,9 +521,29 @@ export function ArchiveContest({
           This action will immediately archive the current contest. Winners will be saved to the Hall of Fame, user statistics preserved, and all current photos and votes will be permanently deleted. This cannot be undone. Are you sure you want to proceed?
         </p>
         <div className="flex gap-3 pt-2">
-          <Button variant="secondary" onClick={() => setConfirming(false)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
+          <Button variant="secondary" onClick={() => setConfirming(null)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
           <Button onClick={handleArchive} disabled={loading} variant="destructive" className="flex-1 bg-red-500 hover:bg-red-600 text-white">
             {loading ? 'Archiving...' : 'Yes, Archive Now'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (confirming === 'destroy') {
+    return (
+      <div className="p-6 bg-red-500/10 rounded-xl border border-red-500/30 space-y-4">
+        <div className="flex items-center gap-3 text-red-500">
+          <Trash2 size={24} />
+          <h4 className="font-bold">Destroy Test Contest</h4>
+        </div>
+        <p className="text-xs text-red-400/80 leading-relaxed font-bold">
+          This will vaporize the current active contest completely. NO winners will be saved, and NO user statistics will be tracked. All current categories and photos will be erased. Use this ONLY for cleaning up test contests!
+        </p>
+        <div className="flex gap-3 pt-2">
+          <Button variant="secondary" onClick={() => setConfirming(null)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
+          <Button onClick={handleDestroy} disabled={loading} variant="destructive" className="flex-1 bg-red-500 hover:bg-red-600 text-white">
+            {loading ? 'Destroying...' : 'Yes, Nuke It'}
           </Button>
         </div>
       </div>
@@ -500,14 +559,26 @@ export function ArchiveContest({
         onChange={(e) => setNextName(e.target.value)}
         className="bg-white/5 border-white/10"
       />
-      <Button
-        onClick={() => setConfirming(true)}
-        disabled={loading}
-        variant="destructive"
-        className="w-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
-      >
-        Archive Current Contest
-      </Button>
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <Button
+          onClick={() => setConfirming('archive')}
+          disabled={loading}
+          variant="destructive"
+          className="w-full bg-fivem-orange/20 text-fivem-orange hover:bg-fivem-orange/30 hover:text-white border border-fivem-orange/30"
+          title="Save winners and preserve statistics"
+        >
+          Archive Contest
+        </Button>
+        <Button
+          onClick={() => setConfirming('destroy')}
+          disabled={loading}
+          variant="destructive"
+          className="w-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20"
+          title="Delete current contest completely without archiving"
+        >
+          Destroy Test Contest
+        </Button>
+      </div>
     </div>
   );
 }
@@ -718,111 +789,3 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
 
 }
 
-export function DeleteContestsManager() {
-  const [contests, setContests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
-
-  const fetchContests = async () => {
-    try {
-      const snap = await getDocs(collection(db, 'contests'));
-      const sorted = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setContests(sorted);
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to load contests');
-    }
-  };
-
-  useEffect(() => {
-    fetchContests();
-  }, []);
-
-  const handleDelete = async (id: string, name: string) => {
-    setLoading(true);
-    try {
-      toast.loading(`Nuking contest: ${name}...`, { id: 'nukeast' });
-      
-      const batch = writeBatch(db);
-      
-      // 1. Delete the contest document itself
-      batch.delete(doc(db, 'contests', id));
-      
-      // 2. Fetch and delete related categories
-      const catSnap = await getDocs(query(collection(db, 'categories'), where('contest_id', '==', id)));
-      const catIds = catSnap.docs.map(d => d.id);
-      
-      catSnap.docs.forEach(d => batch.delete(d.ref));
-      
-      // 3. Fetch and delete related photos
-      if (catIds.length > 0) {
-        // Firestore 'in' query supports max 10, so chunk them if necessary. 
-        // For test contests, usually there are <10 categories.
-        for (let i = 0; i < catIds.length; i += 10) {
-          const chunk = catIds.slice(i, i + 10);
-          const photoSnap = await getDocs(query(collection(db, 'photos'), where('category_id', 'in', chunk)));
-          photoSnap.docs.forEach(p => batch.delete(p.ref));
-        }
-      }
-
-      await batch.commit();
-      toast.success(`Contest "${name}" and all its content have been completely erased.`, { id: 'nukeast' });
-      setConfirmingId(null);
-      fetchContests(); // Refresh list
-    } catch (e: any) {
-      console.error(e);
-      toast.error(`Failed to delete contest: ${e.message}`, { id: 'nukeast' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (contests.length === 0) {
-    return (
-      <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center">
-        <p className="text-sm text-white/50">No contests found.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {contests.map((c) => (
-        <div key={c.id} className="p-4 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between group">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-bold text-white text-sm">{c.name}</h4>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold ${c.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/10 text-white/50 border border-white/10'}`}>
-                {c.is_active ? 'ACTIVE' : 'ARCHIVED'}
-              </span>
-            </div>
-            <p className="text-[10px] text-white/40 font-mono flex items-center gap-1.5">
-              <Clock size={10} />
-              {new Date(c.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          
-          {confirmingId === c.id ? (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-red-400 mr-1">Are you sure?</span>
-              <Button size="sm" variant="secondary" onClick={() => setConfirmingId(null)} disabled={loading} className="h-8 text-xs bg-white/5">Cancel</Button>
-              <Button size="sm" variant="destructive" onClick={() => handleDelete(c.id, c.name)} disabled={loading} className="h-8 text-xs bg-red-500 hover:bg-red-600">
-                {loading ? 'Deleting...' : 'Yes, Delete'}
-              </Button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setConfirmingId(c.id)}
-              className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors border border-red-500/20"
-              title="Permanently Delete Contest"
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
