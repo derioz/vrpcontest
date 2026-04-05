@@ -32,7 +32,10 @@ import {
   Link as LinkIcon,
   Layers,
   BarChart3,
-  Eye
+  Eye,
+  ChevronDown,
+  ChevronUp,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -99,6 +102,7 @@ export default function App() {
   const [votingPhotoId, setVotingPhotoId] = useState<string | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
+  const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
 
   const isVotingOpen = votingOpen && (!activeContest?.voting_end_date || new Date() < new Date(activeContest.voting_end_date));
   const isSubmissionsOpen = submissionsOpen && (!activeContest?.submissions_close_date || new Date() < new Date(activeContest.submissions_close_date));
@@ -1726,19 +1730,43 @@ export default function App() {
                   <div className="relative overflow-hidden rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03]">
                     <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
                     <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/8 blur-[80px] rounded-full pointer-events-none" />
-                    <div className="px-6 pt-5 pb-4 border-b border-cyan-500/[0.12] flex items-center gap-2">
-                      <div className="w-1 h-4 bg-cyan-500/70 rounded-full" />
-                      <Eye size={13} className="text-cyan-500/80" />
-                      <h4 className="text-[11px] font-mono text-cyan-500/80 uppercase tracking-[0.2em]">Admin Submissions Preview</h4>
-                      <span className="text-[10px] font-mono text-white/30 ml-auto">Decrypted view — only visible to admins</span>
-                    </div>
-                    <div className="p-6 relative z-10">
-                      <AdminSubmissionsPreview
-                        allPhotos={allPhotos}
-                        categories={categories}
-                        onDeletePhoto={handleDeletePhoto}
-                      />
-                    </div>
+                    
+                    <button 
+                      onClick={() => setAdminPreviewOpen(!adminPreviewOpen)}
+                      className="w-full px-6 pt-5 pb-4 border-b border-cyan-500/[0.12] flex items-center justify-between group hover:bg-cyan-500/[0.02] transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-4 bg-cyan-500/70 rounded-full" />
+                        <Eye size={13} className="text-cyan-500/80" />
+                        <h4 className="text-[11px] font-mono text-cyan-500/80 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">Admin Submissions Preview</h4>
+                        <span className="text-[10px] font-mono text-white/30 ml-2 hidden sm:inline-block">Decrypted view — only visible to admins</span>
+                      </div>
+                      <div className="text-cyan-500/50 group-hover:text-cyan-400 p-1 bg-cyan-500/10 rounded-md transition-colors">
+                        {adminPreviewOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </div>
+                    </button>
+                    
+                    <AnimatePresence initial={false}>
+                      {adminPreviewOpen && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                          className="relative z-10"
+                        >
+                          <div className="p-6">
+                            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-cyan-500" /></div>}>
+                              <AdminSubmissionsPreview
+                                allPhotos={allPhotos}
+                                categories={categories}
+                                onDeletePhoto={handleDeletePhoto}
+                              />
+                            </Suspense>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* ── Main 2-col Layout ── */}
