@@ -16,7 +16,7 @@ interface AdminSubmissionsPreviewProps {
 export default function AdminSubmissionsPreview({ allPhotos, categories, onDeletePhoto }: AdminSubmissionsPreviewProps) {
   const [decryptedPhotos, setDecryptedPhotos] = useState<Map<string, string>>(new Map());
   const [decrypting, setDecrypting] = useState(false);
-  const [decryptionFailed, setDecryptionFailed] = useState(false);
+  const [decryptionFailedState, setDecryptionFailedState] = useState<'missing' | 'incorrect' | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -25,7 +25,7 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
   useEffect(() => {
     let cancelled = false;
     setDecrypting(true);
-    setDecryptionFailed(false);
+    setDecryptionFailedState(null);
 
     (async () => {
       let localPrivateKey = localStorage.getItem('vrp_private_key');
@@ -47,17 +47,19 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
 
       if (!localPrivateKey || allPhotos.length === 0) {
         if (!cancelled) {
-          setDecryptionFailed(!localPrivateKey);
+          setDecryptionFailedState(!localPrivateKey ? 'missing' : null);
           setDecrypting(false);
         }
         return;
       }
       const newMap = new Map<string, string>();
       let anyDecrypted = false;
+      let anyEncryptedFound = false;
 
       await Promise.all(
         allPhotos.map(async (photo) => {
           if (photo.encrypted_image_url) {
+            anyEncryptedFound = true;
             try {
               const clearUrl = await decryptUrl(photo.encrypted_image_url, localPrivateKey);
               if (!cancelled) {
@@ -74,8 +76,8 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
       if (!cancelled) {
         setDecryptedPhotos(newMap);
         setDecrypting(false);
-        if (!anyDecrypted && allPhotos.some(p => p.encrypted_image_url)) {
-          setDecryptionFailed(true);
+        if (!anyDecrypted && anyEncryptedFound) {
+          setDecryptionFailedState('incorrect');
         }
       }
     })();
@@ -117,13 +119,13 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
         <div className="flex items-center gap-3">
           <div className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold",
-            decryptionFailed
+            decryptionFailedState
               ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
               : decrypting
                 ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
                 : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
           )}>
-            {decryptionFailed ? (
+            {decryptionFailedState ? (
               <><EyeOff size={12} /> Showing Censored</>
             ) : decrypting ? (
               <><div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" /> Decrypting...</>
@@ -136,7 +138,7 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
       </div>
 
       {/* Decryption warning */}
-      {decryptionFailed && (
+      {decryptionFailedState === 'missing' && (
         <div className="flex flex-col gap-2 p-3 bg-amber-500/5 border border-amber-500/15 rounded-xl">
           <div className="flex items-center gap-3">
             <Lock size={14} className="text-amber-400 shrink-0" />
@@ -147,6 +149,20 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
           {errorMsg && (
             <p className="text-[10px] ml-6 text-amber-400/60 font-mono">Error details: {errorMsg}</p>
           )}
+        </div>
+      )}
+      
+      {decryptionFailedState === 'incorrect' && (
+        <div className="flex flex-col gap-2 p-3 bg-red-500/5 border border-red-500/15 rounded-xl">
+          <div className="flex items-center gap-3">
+            <Lock size={14} className="text-red-400 shrink-0" />
+            <p className="text-xs text-red-400/80 font-bold">
+              Key Mismatch Detected
+            </p>
+          </div>
+          <p className="text-[10px] ml-6 text-red-400/60 font-mono">
+            A private key was found, but it failed to decrypt any of these photos. This means the photos were encrypted with an older, different key. Delete and re-upload the photos to sync them with the current key.
+          </p>
         </div>
       )}
 
