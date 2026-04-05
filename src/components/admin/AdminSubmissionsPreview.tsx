@@ -17,6 +17,7 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
   const [decryptedPhotos, setDecryptedPhotos] = useState<Map<string, string>>(new Map());
   const [decrypting, setDecrypting] = useState(false);
   const [decryptionFailed, setDecryptionFailed] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -35,9 +36,12 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
           const secretSnap = await getDoc(doc(db, 'secrets', 'keys'));
           if (secretSnap.exists()) {
             localPrivateKey = secretSnap.data().privateKey;
+          } else {
+            setErrorMsg("Secure key document 'secrets/keys' does not exist.");
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Failed to fetch secure keys:", error);
+          setErrorMsg(error.message || "Failed to fetch secure keys due to a permissions or network error.");
         }
       }
 
@@ -133,11 +137,16 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
 
       {/* Decryption warning */}
       {decryptionFailed && (
-        <div className="flex items-center gap-3 p-3 bg-amber-500/5 border border-amber-500/15 rounded-xl">
-          <Lock size={14} className="text-amber-400 shrink-0" />
-          <p className="text-xs text-amber-400/80">
-            Private key not found on this device. Showing censored versions. Generate or import keys in Live Controls to enable admin preview.
-          </p>
+        <div className="flex flex-col gap-2 p-3 bg-amber-500/5 border border-amber-500/15 rounded-xl">
+          <div className="flex items-center gap-3">
+            <Lock size={14} className="text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-400/80">
+              Private key not found. Showing censored versions. 
+            </p>
+          </div>
+          {errorMsg && (
+            <p className="text-[10px] ml-6 text-amber-400/60 font-mono">Error details: {errorMsg}</p>
+          )}
         </div>
       )}
 
