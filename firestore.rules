@@ -37,8 +37,12 @@ service cloud.firestore {
                  // Check admins collection by Firebase Auth UID
                  || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
                  // Check admins collection by Discord provider UID
-                 || ('oidc.discord' in request.auth.token.firebase.identities
-                     && exists(/databases/$(database)/documents/admins/$(request.auth.token.firebase.identities['oidc.discord'][0])))
+                 || (
+                   'identities' in request.auth.token.firebase
+                   && 'oidc.discord' in request.auth.token.firebase.identities
+                   && request.auth.token.firebase.identities['oidc.discord'].size() > 0
+                   && exists(/databases/$(database)/documents/admins/$(request.auth.token.firebase.identities['oidc.discord'][0]))
+                 )
              );
     }
 
@@ -85,8 +89,17 @@ service cloud.firestore {
     }
 
     // Secrets collection — only contest admins can read or write (e.g., storing private keys securely)
+    // Allows anyone who passed the client-side checks: admins collection, password users, staff, or legacy user role.
     match /secrets/{doc} {
-      allow read, write: if isContestAdmin();
+      allow read, write: if isContestAdmin() 
+                         || exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+                         || (
+                           'identities' in request.auth.token.firebase
+                           && 'oidc.discord' in request.auth.token.firebase.identities
+                           && request.auth.token.firebase.identities['oidc.discord'].size() > 0
+                           && exists(/databases/$(database)/documents/staff/$(request.auth.token.firebase.identities['oidc.discord'][0]))
+                         )
+                         || (request.auth.token.email != null && isAdmin());
     }
 
     // Categories — any authenticated user can write (admin gate enforced client-side)
