@@ -28,21 +28,26 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
     setDecryptionFailedState(null);
 
     (async () => {
-      let localPrivateKey = localStorage.getItem('vrp_private_key');
+      let localPrivateKey = null;
       
-      // Fallback to fetching secure key from Firestore if not in local storage
-      if (!localPrivateKey) {
-        try {
-          const secretSnap = await getDoc(doc(db, 'secrets', 'keys'));
-          if (secretSnap.exists()) {
-            localPrivateKey = secretSnap.data().privateKey;
-          } else {
-            setErrorMsg("Secure key document 'secrets/keys' does not exist.");
-          }
-        } catch (error: any) {
-          console.error("Failed to fetch secure keys:", error);
-          setErrorMsg(error.message || "Failed to fetch secure keys due to a permissions or network error.");
+      // 1. ALWAYS prefer the synchronized key from Firestore first
+      try {
+        const secretSnap = await getDoc(doc(db, 'secrets', 'keys'));
+        if (secretSnap.exists() && secretSnap.data().privateKey) {
+          localPrivateKey = secretSnap.data().privateKey;
+          // Keep local storage perfectly in sync with the server key
+          localStorage.setItem('vrp_private_key', localPrivateKey);
+        } else {
+          setErrorMsg("Secure key document 'secrets/keys' does not exist or is empty.");
         }
+      } catch (error: any) {
+        console.error("Failed to fetch secure keys:", error);
+        setErrorMsg(error.message || "Failed to fetch secure keys due to a permissions or network error.");
+      }
+
+      // 2. Fallback to localStorage ONLY if the server key couldn't be retrieved
+      if (!localPrivateKey) {
+        localPrivateKey = localStorage.getItem('vrp_private_key');
       }
 
       if (!localPrivateKey || allPhotos.length === 0) {
