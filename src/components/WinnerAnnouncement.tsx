@@ -1,5 +1,6 @@
+import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Trophy } from "lucide-react";
+import { Download, Trophy } from "lucide-react";
 
 interface Winner {
     id: string;
@@ -13,6 +14,7 @@ interface Winner {
 
 interface WinnerAnnouncementProps {
     winners: Winner[];
+    contestName?: string;
 }
 
 const Confetti = () => {
@@ -45,7 +47,14 @@ const Confetti = () => {
     );
 };
 
-export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
+function sanitizeFilePart(value: string) {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
+export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementProps) {
     const containerVars = {
         hidden: { opacity: 0 },
         show: {
@@ -59,6 +68,83 @@ export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
     const itemVars = {
         hidden: { opacity: 0, y: 20 },
         show: { opacity: 1, y: 0 },
+    };
+
+    const handleDownload = async (winner: Winner) => {
+        const toastId = `download-${winner.id}`;
+        toast.loading("Preparing download...", { id: toastId });
+
+        try {
+            const response = await fetch(winner.imageUrl);
+            if (!response.ok) {
+                throw new Error(`Download failed with status ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const contestPart = contestName ? sanitizeFilePart(contestName) : "current-contest";
+            const categoryPart = sanitizeFilePart(winner.categoryName) || "winner";
+            const playerPart = sanitizeFilePart(winner.playerName) || "player";
+            const extension = blob.type.split("/")[1] || "jpg";
+
+            link.href = objectUrl;
+            link.download = `${contestPart}-${categoryPart}-${playerPart}.${extension}`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(objectUrl);
+
+            toast.success("Winning photo downloaded.", { id: toastId });
+        } catch (error) {
+            console.error("Winner download failed:", error);
+            toast.error("Could not download that image.", { id: toastId });
+        }
+    };
+
+    const handleDownloadAll = async () => {
+        if (winners.length === 0) return;
+
+        const toastId = "download-all-winners";
+        toast.loading("Preparing winning photos...", { id: toastId });
+
+        let successCount = 0;
+        for (const winner of winners) {
+            try {
+                const response = await fetch(winner.imageUrl);
+                if (!response.ok) {
+                    throw new Error(`Download failed with status ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                const contestPart = contestName ? sanitizeFilePart(contestName) : "current-contest";
+                const categoryPart = sanitizeFilePart(winner.categoryName) || "winner";
+                const playerPart = sanitizeFilePart(winner.playerName) || "player";
+                const extension = blob.type.split("/")[1] || "jpg";
+
+                link.href = objectUrl;
+                link.download = `${contestPart}-${categoryPart}-${playerPart}.${extension}`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(objectUrl);
+                successCount += 1;
+
+                await new Promise((resolve) => window.setTimeout(resolve, 150));
+            } catch (error) {
+                console.error("Bulk winner download failed:", winner.id, error);
+            }
+        }
+
+        if (successCount === winners.length) {
+            toast.success("Downloaded all winning photos.", { id: toastId });
+        } else if (successCount > 0) {
+            toast.error(`Downloaded ${successCount} of ${winners.length} winning photos.`, { id: toastId });
+        } else {
+            toast.error("Could not download the winning photos.", { id: toastId });
+        }
     };
 
     return (
@@ -117,6 +203,21 @@ export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
                     <div className="h-[2px] w-32 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent rounded-full" />
                 </motion.div>
 
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.35 }}
+                    className="mb-10 flex justify-center"
+                >
+                    <button
+                        onClick={handleDownloadAll}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/12 px-5 py-3 text-sm font-semibold text-amber-100 transition-all hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-white"
+                    >
+                        <Download size={16} />
+                        Download All Winners
+                    </button>
+                </motion.div>
+
                 {/* Winners Grid */}
                 <motion.div variants={containerVars} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full justify-center">
                     {winners.map((winner, index) => {
@@ -163,6 +264,13 @@ export function WinnerAnnouncement({ winners }: WinnerAnnouncementProps) {
                                                 <span className="text-white/40 font-mono text-[10px] uppercase truncate">{winner.discordName}</span>
                                             </div>
                                         </div>
+                                        <button
+                                            onClick={() => handleDownload(winner)}
+                                            className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200 transition-all hover:bg-amber-500/20 hover:border-amber-500/40 hover:text-white"
+                                        >
+                                            <Download size={16} />
+                                            Download Photo
+                                        </button>
                                     </div>
 
                                 </div>

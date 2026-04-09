@@ -913,7 +913,7 @@ export default function App() {
 
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (
-        <WinnerAnnouncement winners={winners} />
+        <WinnerAnnouncement winners={winners} contestName={activeContest.name} />
       )}
 
       {/* Hero Banner — GlowyWavesHero + NewHeroSection patterns from uitripled */}
