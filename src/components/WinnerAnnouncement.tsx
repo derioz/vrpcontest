@@ -102,51 +102,6 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
         }
     };
 
-    const handleDownloadAll = async () => {
-        if (winners.length === 0) return;
-
-        const toastId = "download-all-winners";
-        toast.loading("Preparing winning photos...", { id: toastId });
-
-        let successCount = 0;
-        for (const winner of winners) {
-            try {
-                const response = await fetch(winner.imageUrl);
-                if (!response.ok) {
-                    throw new Error(`Download failed with status ${response.status}`);
-                }
-
-                const blob = await response.blob();
-                const objectUrl = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                const contestPart = contestName ? sanitizeFilePart(contestName) : "current-contest";
-                const categoryPart = sanitizeFilePart(winner.categoryName) || "winner";
-                const playerPart = sanitizeFilePart(winner.playerName) || "player";
-                const extension = blob.type.split("/")[1] || "jpg";
-
-                link.href = objectUrl;
-                link.download = `${contestPart}-${categoryPart}-${playerPart}.${extension}`;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                URL.revokeObjectURL(objectUrl);
-                successCount += 1;
-
-                await new Promise((resolve) => window.setTimeout(resolve, 150));
-            } catch (error) {
-                console.error("Bulk winner download failed:", winner.id, error);
-            }
-        }
-
-        if (successCount === winners.length) {
-            toast.success("Downloaded all winning photos.", { id: toastId });
-        } else if (successCount > 0) {
-            toast.error(`Downloaded ${successCount} of ${winners.length} winning photos.`, { id: toastId });
-        } else {
-            toast.error("Could not download the winning photos.", { id: toastId });
-        }
-    };
-
     return (
         <section className="relative w-full pt-32 pb-20 overflow-hidden flex flex-col items-center justify-center bg-[#060606] border-b border-white/10">
             <Confetti />
@@ -201,21 +156,6 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                 {/* Divider line */}
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.3 }} className="my-12">
                     <div className="h-[2px] w-32 mx-auto bg-gradient-to-r from-transparent via-amber-500/50 to-transparent rounded-full" />
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.35 }}
-                    className="mb-10 flex justify-center"
-                >
-                    <button
-                        onClick={handleDownloadAll}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/12 px-5 py-3 text-sm font-semibold text-amber-100 transition-all hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-white"
-                    >
-                        <Download size={16} />
-                        Download All Winners
-                    </button>
                 </motion.div>
 
                 {/* Winners Grid */}

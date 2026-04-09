@@ -33,6 +33,7 @@ import {
   Layers,
   BarChart3,
   Eye,
+  Download,
   ChevronDown,
   ChevronUp,
   Loader2
@@ -137,6 +138,62 @@ export default function App() {
       };
     }).filter(Boolean) as any[];
   }, [categories, allPhotos]);
+
+  const sanitizeDownloadPart = (value: string) => {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  const handleDownloadWinningPhotos = async () => {
+    if (!activeContest || winners.length === 0) {
+      toast.error('No winning photos are available to download.');
+      return;
+    }
+
+    const toastId = 'download-admin-winners';
+    toast.loading('Preparing winning photos...', { id: toastId });
+
+    let successCount = 0;
+
+    for (const winner of winners) {
+      try {
+        const response = await fetch(winner.imageUrl);
+        if (!response.ok) {
+          throw new Error(`Download failed with status ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const contestPart = sanitizeDownloadPart(activeContest.name) || 'current-contest';
+        const categoryPart = sanitizeDownloadPart(winner.categoryName) || 'winner';
+        const playerPart = sanitizeDownloadPart(winner.playerName) || 'player';
+        const extension = blob.type.split('/')[1] || 'jpg';
+
+        link.href = objectUrl;
+        link.download = `${contestPart}-${categoryPart}-${playerPart}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+        successCount += 1;
+
+        await new Promise((resolve) => window.setTimeout(resolve, 150));
+      } catch (error) {
+        console.error('Admin winner download failed:', winner.id, error);
+      }
+    }
+
+    if (successCount === winners.length) {
+      toast.success('Downloaded all category winners.', { id: toastId });
+    } else if (successCount > 0) {
+      toast.error(`Downloaded ${successCount} of ${winners.length} winning photos.`, { id: toastId });
+    } else {
+      toast.error('Could not download the winning photos.', { id: toastId });
+    }
+  };
 
   const handleShare = (photo: Photo) => {
     const url = `${window.location.origin}/?photo=${photo.id}`;
@@ -1894,6 +1951,31 @@ export default function App() {
                             >
                               <span className="relative z-10 flex items-center gap-2">
                                 {publicKey ? 'Regenerate Keys' : 'Generate Keys'}
+                              </span>
+                            </button>
+                          </div>
+
+                          <div className="h-px bg-white/[0.06]" />
+
+                          {/* Download Winners */}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-white">Download Category Winners</p>
+                              <p className="text-xs text-white/40 mt-0.5">Download the current winning photo from each category</p>
+                            </div>
+                            <button
+                              onClick={handleDownloadWinningPhotos}
+                              disabled={!activeContest || winners.length === 0}
+                              className={cn(
+                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
+                                activeContest && winners.length > 0
+                                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                                  : "bg-white/5 text-white/40 border border-white/10 opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              <span className="relative z-10 flex items-center gap-2">
+                                <Download size={14} />
+                                Download Winners
                               </span>
                             </button>
                           </div>
