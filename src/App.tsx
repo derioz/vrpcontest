@@ -105,6 +105,56 @@ export default function App() {
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
 
+  // ── Easter Egg: rapid-click logo triggers party mode ──
+  const [easterEggActive, setEasterEggActive] = useState(false);
+  const easterEggClicks = useRef(0);
+  const easterEggTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const spawnConfetti = useCallback(() => {
+    const orb = document.getElementById('easter-egg-orb');
+    if (!orb) return;
+    const rect = orb.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const colors = ['#ea580c', '#facc15', '#34d399', '#60a5fa', '#a78bfa', '#f472b6', '#fb923c', '#f43f5e'];
+    const emojis = ['✨', '🎉', '🔥', '⭐', '🎊', '💎', '🚀', '🌟'];
+    for (let i = 0; i < 28; i++) {
+      const el = document.createElement('span');
+      const useEmoji = Math.random() > 0.6;
+      el.textContent = useEmoji ? emojis[Math.floor(Math.random() * emojis.length)] : '●';
+      el.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;font-size:${useEmoji ? Math.random() * 16 + 12 : Math.random() * 8 + 4}px;color:${colors[Math.floor(Math.random() * colors.length)]};pointer-events:none;z-index:9999;text-shadow:0 0 6px currentColor;will-change:transform,opacity;`;
+      document.body.appendChild(el);
+      const angle = (Math.PI * 2 * i) / 28 + (Math.random() - 0.5) * 0.5;
+      const velocity = 120 + Math.random() * 180;
+      const dx = Math.cos(angle) * velocity;
+      const dy = Math.sin(angle) * velocity - 60;
+      const anim = el.animate([
+        { transform: 'translate(0, 0) scale(0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 140}px) scale(1.2) rotate(${Math.random() * 720 - 360}deg)`, opacity: 0 },
+      ], { duration: 1000 + Math.random() * 600, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)', fill: 'forwards' });
+      anim.onfinish = () => el.remove();
+    }
+  }, []);
+
+  const handleLogoEasterEgg = useCallback(() => {
+    easterEggClicks.current += 1;
+    if (easterEggTimer.current) clearTimeout(easterEggTimer.current);
+    easterEggTimer.current = setTimeout(() => { easterEggClicks.current = 0; }, 2000);
+    if (easterEggClicks.current >= 7) {
+      easterEggClicks.current = 0;
+      if (easterEggTimer.current) clearTimeout(easterEggTimer.current);
+      setEasterEggActive(true);
+      spawnConfetti();
+      toast('🎉 You found the secret!', {
+        description: 'You are now officially a Vital RP detective.',
+        duration: 3500,
+        style: { background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', border: '1px solid rgba(234,88,12,0.4)', color: '#fff' },
+      });
+      setTimeout(() => setEasterEggActive(false), 3000);
+    }
+  }, [spawnConfetti]);
+
+
   const isVotingOpen = votingOpen && (!activeContest?.voting_end_date || new Date() < new Date(activeContest.voting_end_date));
   const isSubmissionsOpen = submissionsOpen && (!activeContest?.submissions_close_date || new Date() < new Date(activeContest.submissions_close_date));
 
@@ -802,29 +852,61 @@ export default function App() {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
             className="flex items-center gap-3 group/brand shrink-0"
           >
-            {/* Orb — dual-ring scanner effect */}
-            <div className="relative w-10 h-10 flex items-center justify-center">
+            {/* Orb — dual-ring scanner effect + Easter Egg */}
+            <div
+              id="easter-egg-orb"
+              className="relative w-10 h-10 flex items-center justify-center cursor-pointer select-none"
+              onClick={handleLogoEasterEgg}
+            >
               {/* Outer slow rotating ring */}
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                transition={{ duration: easterEggActive ? 0.5 : 8, repeat: Infinity, ease: 'linear' }}
                 className="absolute inset-[-3px] rounded-full"
-                style={{ background: 'conic-gradient(from 0deg, transparent 70%, rgba(234,88,12,0.7) 85%, transparent 100%)', borderRadius: '50%' }}
+                style={{
+                  background: easterEggActive
+                    ? 'conic-gradient(from 0deg, #ea580c, #facc15, #34d399, #60a5fa, #a78bfa, #f472b6, #ea580c)'
+                    : 'conic-gradient(from 0deg, transparent 70%, rgba(234,88,12,0.7) 85%, transparent 100%)',
+                  borderRadius: '50%',
+                  transition: 'background 0.3s',
+                }}
               />
               {/* Core glow ring */}
-              <div className="absolute inset-0 rounded-full bg-fivem-orange/10 border border-fivem-orange/30
-                group-hover/brand:bg-fivem-orange/20 group-hover/brand:border-fivem-orange/60
-                group-hover/brand:shadow-[0_0_24px_rgba(234,88,12,0.5)] transition-all duration-500" />
+              <div
+                className={`absolute inset-0 rounded-full transition-all duration-500 ${
+                  easterEggActive
+                    ? 'bg-fivem-orange/30 border-2 border-fivem-orange/80 shadow-[0_0_30px_rgba(234,88,12,0.8)]'
+                    : 'bg-fivem-orange/10 border border-fivem-orange/30 group-hover/brand:bg-fivem-orange/20 group-hover/brand:border-fivem-orange/60 group-hover/brand:shadow-[0_0_24px_rgba(234,88,12,0.5)]'
+                }`}
+              />
               {/* Expand pulse on hover */}
               <motion.div
                 className="absolute inset-[-6px] rounded-full border border-fivem-orange/20"
                 animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.3, 0, 0.3] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: easterEggActive ? 0.4 : 3, repeat: Infinity, ease: 'easeInOut' }}
               />
-              <img
+              {/* Rainbow ring burst when active */}
+              <AnimatePresence>
+                {easterEggActive && (
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: [1, 1.8, 2.2], opacity: [0.8, 0.4, 0] }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.5, ease: 'easeOut' }}
+                    className="absolute inset-[-12px] rounded-full pointer-events-none"
+                    style={{
+                      background: 'conic-gradient(from 0deg, #ea580c, #facc15, #34d399, #60a5fa, #a78bfa, #f472b6, #ea580c)',
+                      filter: 'blur(6px)',
+                    }}
+                  />
+                )}
+              </AnimatePresence>
+              <motion.img
                 src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png"
                 alt="Vital RP"
                 className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_10px_rgba(234,88,12,1)]"
+                animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.3, 1] } : {}}
+                transition={easterEggActive ? { duration: 0.6, ease: 'easeInOut' } : {}}
               />
             </div>
 
