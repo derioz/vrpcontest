@@ -96,7 +96,8 @@ export default function App() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsCategorySticky(!entry.isIntersecting);
+        // Only set sticky to true if the categories sentinel is not intersecting AND has scrolled past the top of the viewport
+        setIsCategorySticky(!entry.isIntersecting && entry.boundingClientRect.top < 80);
       },
       {
         threshold: 0,
@@ -847,38 +848,33 @@ export default function App() {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
             className="flex items-center gap-3 group/brand shrink-0"
           >
-            {/* Orb — dual-ring scanner effect + Easter Egg */}
+            {/* Squircle Brand Logo Badge with Easter Egg */}
             <div
               id="easter-egg-orb"
-              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none"
+              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none rounded-xl border border-white/10 bg-white/[0.02] transition-all duration-300 hover:border-fivem-orange/40 hover:bg-fivem-orange/[0.02]"
               onClick={handleLogoEasterEgg}
             >
-              {/* Outer slow rotating ring */}
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: easterEggActive ? 0.5 : 8, repeat: Infinity, ease: 'linear' }}
-                className="absolute inset-[-2px] rounded-full"
-                style={{
-                  background: easterEggActive
-                    ? 'conic-gradient(from 0deg, #ea580c, #facc15, #34d399, #60a5fa, #a78bfa, #f472b6, #ea580c)'
-                    : 'conic-gradient(from 0deg, transparent 70%, rgba(234,88,12,0.7) 85%, transparent 100%)',
-                  borderRadius: '50%',
-                  transition: 'background 0.3s',
-                }}
-              />
-              {/* Core glow ring */}
-              <div
-                className={`absolute inset-0 rounded-full transition-all duration-500 ${
-                  easterEggActive
-                    ? 'bg-fivem-orange/30 border-2 border-fivem-orange/80 shadow-[0_0_20px_rgba(234,88,12,0.7)]'
-                    : 'bg-white/5 border border-white/10 group-hover/brand:border-fivem-orange/50 group-hover/brand:shadow-[0_0_15px_rgba(234,88,12,0.3)]'
-                }`}
-              />
+              {/* Conic glowing border when easter egg is active */}
+              {easterEggActive && (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  className="absolute inset-[-10px]"
+                  style={{
+                    background: 'conic-gradient(from 0deg, #ea580c, #facc15, #34d399, #60a5fa, #a78bfa, #f472b6, #ea580c)',
+                  }}
+                />
+              )}
+              {/* Inner glass overlay to cover the center of the conic gradient, leaving a glowing frame */}
+              {easterEggActive && (
+                <div className="absolute inset-[2px] bg-fivem-dark rounded-[10px] z-5 pointer-events-none" />
+              )}
+              
               <motion.img
                 src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
                 alt="Vital RP"
                 className="w-5.5 h-5.5 object-contain relative z-10 drop-shadow-[0_0_6px_rgba(234,88,12,0.8)]"
-                animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.25, 1] } : {}}
+                animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.2, 1] } : {}}
                 transition={easterEggActive ? { duration: 0.6, ease: 'easeInOut' } : {}}
               />
             </div>
@@ -941,30 +937,30 @@ export default function App() {
           >
             {/* User avatar or Sign In */}
             {user ? (
-              <div className="group/user relative flex items-center gap-2.5 pl-2.5 pr-1 py-1 rounded-xl
-                border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04]
-                transition-all duration-400"
+              <div className="group/user relative flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-xl
+                border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20
+                transition-all duration-300 shadow-sm cursor-default"
               >
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-bold text-white/80 leading-none">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt=""
+                    className="w-6 h-6 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
+                    {user.displayName?.[0] || user.email?.[0] || 'U'}
+                  </div>
+                )}
+                
+                <div className="flex flex-col items-start leading-none gap-0.5">
+                  <span className="text-xs font-bold text-white/80 group-hover/user:text-white transition-colors">
                     {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
                   </span>
-                  <span className="text-[8px] font-mono tracking-widest uppercase text-emerald-400/80 leading-none mt-1">Online</span>
-                </div>
-                <div className="relative">
-                  {user.photoURL ? (
-                    <img
-                      src={user.photoURL}
-                      alt=""
-                      className="w-7 h-7 rounded-lg ring-1 ring-white/10 group-hover/user:ring-white/20 transition-all duration-300"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
-                      {user.displayName?.[0] || user.email?.[0] || 'U'}
-                    </div>
-                  )}
-                  {/* Green online pip */}
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#09090b]" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
+                    <span className="text-[7.5px] font-mono tracking-widest uppercase text-emerald-400 font-bold">Online</span>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -1522,47 +1518,47 @@ export default function App() {
                           className={cn(
                             "group/cat relative flex flex-col justify-between p-5 rounded-2xl border text-left transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1 hover:shadow-lg",
                             isActive
-                              ? "bg-fivem-orange/[0.08] border-fivem-orange/50 text-white shadow-[0_8px_32px_rgba(234,88,12,0.22)]"
-                              : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.06] hover:border-fivem-orange/30 text-white/60 hover:text-white"
+                              ? "bg-gradient-to-b from-fivem-orange/[0.03] to-fivem-orange/[0.08] border-fivem-orange/60 text-white shadow-[0_8px_24px_rgba(234,88,12,0.18)]"
+                              : "bg-[#0b0b0d]/50 hover:bg-[#121215]/80 border-white/[0.06] hover:border-white/15 text-white/60 hover:text-white"
                           )}
                         >
                           {/* Inner shining hover gradient overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.015] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
                           <div className="w-full">
-                            <div className="flex items-start justify-between gap-3 mb-3">
-                              <span className="text-3xl group-hover/cat:scale-115 transition-transform duration-200 leading-none block">{cat.emoji || '✨'}</span>
+                            <div className="flex items-start justify-between gap-3 mb-3.5">
+                              <span className="text-3xl group-hover/cat:scale-110 transition-transform duration-350 leading-none block">{cat.emoji || '✨'}</span>
                               <div className={cn(
-                                "w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-300",
+                                "w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-300",
                                 isActive 
-                                  ? "border-fivem-orange bg-fivem-orange/20 shadow-[0_0_10px_rgba(234,88,12,0.4)]"
-                                  : "border-white/10 bg-transparent group-hover/cat:border-white/20"
+                                  ? "border-fivem-orange bg-fivem-orange/20 shadow-[0_0_8px_rgba(234,88,12,0.35)]"
+                                  : "border-white/15 bg-transparent group-hover/cat:border-white/30"
                               )}>
                                 {isActive && (
-                                  <span className="w-2 h-2 rounded-full bg-fivem-orange" />
+                                  <span className="w-1.5 h-1.5 rounded-sm bg-fivem-orange" />
                                 )}
                               </div>
                             </div>
                             
                             <span className={cn(
-                              "block text-[15px] font-bold leading-tight mb-1.5 transition-colors",
+                              "block text-[14px] font-bold leading-tight mb-1.5 transition-colors",
                               isActive ? "text-white" : "text-white/80 group-hover/cat:text-white"
                             )}>
                               {cat.name}
                             </span>
                             
                             {cat.description && (
-                              <span className="block text-[11px] text-white/45 leading-relaxed mb-4">
+                              <span className="block text-[11px] text-white/40 leading-relaxed mb-5">
                                 {cat.description}
                               </span>
                             )}
                           </div>
 
                           {/* Stat details with progress bar */}
-                          <div className="w-full mt-auto pt-3 border-t border-white/5 flex flex-col gap-2">
-                            <div className="flex items-center justify-between text-[10px] font-mono text-white/30">
-                              <span>{entryCount} submissions</span>
-                              <span className={cn("font-bold transition-all", isActive ? "text-fivem-orange" : "text-white/40")}>
+                          <div className="w-full mt-auto pt-3.5 border-t border-white/5 flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-[9px] font-mono text-white/30">
+                              <span className="uppercase tracking-wider">{entryCount} submissions</span>
+                              <span className={cn("font-bold transition-all", isActive ? "text-fivem-orange font-black" : "text-white/40")}>
                                 {pct}%
                               </span>
                             </div>
@@ -1571,7 +1567,7 @@ export default function App() {
                               <div
                                 className={cn(
                                   "h-full rounded-full transition-all duration-500",
-                                  isActive ? "bg-fivem-orange" : "bg-white/20 group-hover/cat:bg-white/40"
+                                  isActive ? "bg-gradient-to-r from-fivem-orange to-orange-400 shadow-[0_0_8px_rgba(234,88,12,0.4)]" : "bg-white/20 group-hover/cat:bg-white/40"
                                 )}
                                 style={{ width: `${pct}%` }}
                               />
