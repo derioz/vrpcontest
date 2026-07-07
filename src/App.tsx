@@ -1342,123 +1342,188 @@ export default function App() {
       {
         categories.length > 0 && (
           <div className="relative z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10 shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
-            <div className="max-w-7xl mx-auto px-6 py-4">
-              <div className="flex items-center justify-between gap-4">
-
-                {/* Left side: Browse dropdown trigger */}
-                <div className="relative flex-1 sm:flex-initial">
-                  <button
-                    onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
-                    className="w-full sm:w-auto flex items-center justify-between gap-4 px-5 py-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] hover:border-fivem-orange/30 transition-all duration-200 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{selectedCategory?.emoji || '✨'}</span>
-                      <div className="text-left">
-                        <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-fivem-orange/80 font-mono leading-none mb-1">Category</span>
-                        <span className="block text-sm font-black text-white font-display leading-tight">{selectedCategory?.name}</span>
+            <div className="max-w-7xl mx-auto px-6 py-5">
+              
+              {/* ========================================= */}
+              {/* MOBILE: Dropdown & Modal                 */}
+              {/* ========================================= */}
+              <div className="block sm:hidden">
+                <div className="relative flex items-center justify-between gap-4">
+                  <div className="relative flex-1">
+                    <button
+                      onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+                      className="w-full flex items-center justify-between gap-4 px-5 py-3.5 rounded-2xl bg-white/[0.04] active:bg-white/[0.08] border border-white/[0.07] active:border-fivem-orange/30 transition-all duration-200 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{selectedCategory?.emoji || '✨'}</span>
+                        <div className="text-left">
+                          <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-fivem-orange/80 font-mono leading-none mb-1">Category</span>
+                          <span className="block text-sm font-black text-white font-display leading-tight">{selectedCategory?.name}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 pl-3 border-l border-white/10">
-                      <span className="text-xs font-mono text-white/40">
-                        {allPhotos.filter(p => p.category_id === selectedCategory?.id).length} entries
-                      </span>
-                      <ChevronDown className={cn("w-4 h-4 text-white/60 transition-transform duration-200", isCategoryMenuOpen && "rotate-180")} />
-                    </div>
-                  </button>
+                      <div className="flex items-center gap-2 pl-3 border-l border-white/10">
+                        <span className="text-xs font-mono text-white/40">
+                          {allPhotos.filter(p => p.category_id === selectedCategory?.id).length} entries
+                        </span>
+                        <ChevronDown className={cn("w-4 h-4 text-white/60 transition-transform duration-200", isCategoryMenuOpen && "rotate-180")} />
+                      </div>
+                    </button>
 
-                  {/* Dropdown Menu (Grid of categories) */}
-                  <AnimatePresence>
-                    {isCategoryMenuOpen && (
-                      <>
-                        {/* Mobile: Full-screen overlay backdrop */}
-                        <div
-                          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm sm:hidden"
-                          onClick={() => setIsCategoryMenuOpen(false)}
-                        />
+                    <AnimatePresence>
+                      {isCategoryMenuOpen && (
+                        <>
+                          {/* Mobile: Full-screen overlay backdrop */}
+                          <div
+                            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+                            onClick={() => setIsCategoryMenuOpen(false)}
+                          />
 
-                        {/* Dropdown list/grid */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          transition={{ duration: 0.15 }}
-                          className={cn(
-                            // Mobile style (centered modal / bottom drawer)
-                            "fixed bottom-4 left-4 right-4 z-50 p-6 rounded-3xl bg-fivem-dark border border-white/10 shadow-[0_10px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl max-h-[80vh] overflow-y-auto",
-                            // Desktop style (hanging dropdown)
-                            "sm:absolute sm:bottom-auto sm:top-[calc(100%+8px)] sm:left-0 sm:right-auto sm:w-[480px] sm:p-4 sm:rounded-2xl"
-                          )}
-                        >
-                          <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10 sm:hidden">
-                            <span className="text-sm font-bold text-white uppercase tracking-wider font-display">Select Category</span>
-                            <button
-                              onClick={() => setIsCategoryMenuOpen(false)}
-                              className="p-1 rounded-lg bg-white/5 text-white/60 hover:text-white"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {/* Dropdown Centered Modal */}
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-45%' }}
+                            animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                            exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-45%' }}
+                            transition={{ type: 'spring', stiffness: 350, damping: 26 }}
+                            className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2.5rem)] max-w-md p-6 rounded-3xl bg-fivem-dark border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl max-h-[85vh] overflow-y-auto"
+                          >
+                            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                              <span className="text-sm font-bold text-white uppercase tracking-wider font-display">Select Category</span>
+                              <button
+                                onClick={() => setIsCategoryMenuOpen(false)}
+                                className="p-1.5 rounded-lg bg-white/5 text-white/60 hover:text-white"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
 
-                          <div className="grid grid-cols-1 gap-2.5">
-                            {categories.map((cat) => {
-                              const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
-                              const isActive = selectedCategory?.id === cat.id;
-                              const totalAll = allPhotos.length;
-                              const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
+                            <div className="grid grid-cols-1 gap-2.5">
+                              {categories.map((cat) => {
+                                const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
+                                const isActive = selectedCategory?.id === cat.id;
+                                const totalAll = allPhotos.length;
+                                const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
 
-                              return (
-                                <button
-                                  key={cat.id}
-                                  onClick={() => {
-                                    setSelectedCategory(cat);
-                                    setIsCategoryMenuOpen(false);
-                                  }}
-                                  className={cn(
-                                    "flex items-center justify-between gap-4 p-3.5 rounded-xl transition-all duration-200 text-left border cursor-pointer",
-                                    isActive
-                                      ? "bg-fivem-orange/10 border-fivem-orange/40 text-white shadow-[inset_0_0_12px_rgba(234,88,12,0.1)]"
-                                      : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05] hover:border-white/10 text-white/70 hover:text-white"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xl shrink-0">{cat.emoji || '✨'}</span>
-                                    <div>
-                                      <span className="block text-sm font-bold leading-tight">{cat.name}</span>
-                                      {cat.description && (
-                                        <span className="block text-xs text-white/40 mt-0.5 line-clamp-1">{cat.description}</span>
-                                      )}
+                                return (
+                                  <button
+                                    key={cat.id}
+                                    onClick={() => {
+                                      setSelectedCategory(cat);
+                                      setIsCategoryMenuOpen(false);
+                                    }}
+                                    className={cn(
+                                      "flex items-center justify-between gap-4 p-3.5 rounded-xl transition-all duration-200 text-left border cursor-pointer",
+                                      isActive
+                                        ? "bg-fivem-orange/10 border-fivem-orange/40 text-white shadow-[inset_0_0_12px_rgba(234,88,12,0.1)]"
+                                        : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05] hover:border-white/10 text-white/70 hover:text-white"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-xl shrink-0">{cat.emoji || '✨'}</span>
+                                      <div>
+                                        <span className="block text-sm font-bold leading-tight">{cat.name}</span>
+                                        {cat.description && (
+                                          <span className="block text-xs text-white/40 mt-0.5 line-clamp-1">{cat.description}</span>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <span className="text-xs font-mono text-white/40">{entryCount} entries</span>
-                                    <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded-full", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5 text-white/30")}>
-                                      {pct}%
-                                    </span>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Right side: total stats */}
-                <div className="flex items-center gap-6">
-                  <div className="text-right hidden sm:flex flex-col justify-center gap-0.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 font-mono leading-none">Browse Categories</span>
-                    <span className="text-xs text-white/50 leading-none">{categories.length} topics available</span>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="text-xs font-mono text-white/40">{entryCount} entries</span>
+                                      <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded-full", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5 text-white/30")}>
+                                        {pct}%
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
-
-                  <div className="pl-5 border-l border-white/10 flex flex-col justify-center items-end gap-0.5">
-                    <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Total Entries</span>
-                    <span className="text-xl font-black font-display text-white leading-none">{allPhotos.length}</span>
+                  
+                  {/* Total entries on mobile */}
+                  <div className="pl-4 border-l border-white/10 flex flex-col justify-center items-end shrink-0">
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Total</span>
+                    <span className="text-lg font-black font-display text-white mt-0.5">{allPhotos.length}</span>
                   </div>
                 </div>
-
               </div>
+
+              {/* ========================================= */}
+              {/* DESKTOP: Beautiful Grid Layout           */}
+              {/* ========================================= */}
+              <div className="hidden sm:flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-fivem-orange font-mono">Browse</span>
+                    <span className="text-sm font-black text-white font-display">Categories</span>
+                    <span className="text-xs font-mono text-white/30">({categories.length} topics)</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs font-mono text-white/40">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" />
+                      <span>Total Submissions:</span>
+                      <span className="font-bold text-white font-display text-sm">{allPhotos.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
+                  {categories.map((cat) => {
+                    const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
+                    const isActive = selectedCategory?.id === cat.id;
+                    const totalAll = allPhotos.length;
+                    const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
+
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={cn(
+                          "group/cat relative flex flex-col justify-between p-4.5 rounded-2xl border text-left transition-all duration-300 cursor-pointer overflow-hidden",
+                          isActive
+                            ? "bg-fivem-orange/[0.08] border-fivem-orange/45 text-white shadow-[0_4px_24px_rgba(234,88,12,0.18)]"
+                            : "bg-white/[0.015] hover:bg-white/[0.05] border-white/[0.04] hover:border-fivem-orange/20 text-white/60 hover:text-white"
+                        )}
+                      >
+                        {/* Hover shining gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.015] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                        <div>
+                          <div className="flex items-start justify-between gap-3 mb-2.5">
+                            <span className="text-2.5xl group-hover/cat:scale-115 transition-transform duration-200 leading-none">{cat.emoji || '✨'}</span>
+                            {isActive && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-fivem-orange shadow-[0_0_12px_rgba(234,88,12,1)]" />
+                            )}
+                          </div>
+                          
+                          <span className={cn(
+                            "block text-sm font-bold leading-tight mb-1 transition-colors",
+                            isActive ? "text-white" : "text-white/80 group-hover/cat:text-white"
+                          )}>
+                            {cat.name}
+                          </span>
+                          
+                          {cat.description && (
+                            <span className="block text-[11px] text-white/40 leading-snug line-clamp-2 mb-4">
+                              {cat.description}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-white/5 text-[10px] font-mono text-white/30">
+                          <span>{entryCount} entries</span>
+                          <span className={cn("px-1.5 py-0.5 rounded-md font-bold", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5")}>
+                            {pct}%
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
           </div>
         )
