@@ -1135,9 +1135,7 @@ export default function App() {
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (
         <WinnerAnnouncement winners={winners} contestName={activeContest.name} />
-      )}
-
-      {/* Hero Banner — GlowyWavesHero + NewHeroSection patterns from uitripled */}
+      )}      {/* Hero Banner — GlowyWavesHero + NewHeroSection patterns from uitripled */}
       {activeContest ? (() => {
         // uitripled containerVariants / itemVariants / statsVariants pattern
         const heroContainerVariants = {
@@ -1150,7 +1148,17 @@ export default function App() {
         };
 
         return (
-          <section className="relative overflow-hidden border-b border-white/10 pt-20 sm:pt-28" style={{ minHeight: '500px' }}>
+          <section
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+              e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+            }}
+            className="relative overflow-hidden border-b border-white/10 pt-20 sm:pt-28"
+            style={{ minHeight: '520px' }}
+          >
             {/* ── Deep dark base ── */}
             <div className="absolute inset-0 bg-[#060606]" />
 
@@ -1158,20 +1166,28 @@ export default function App() {
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               <div className="absolute left-[10%] top-[-10%] w-[700px] h-[700px] rounded-full bg-fivem-orange/[0.07] blur-[160px] animate-pulse" style={{ animationDuration: '6s' }} />
               <div className="absolute right-[5%] bottom-[-20%] w-[500px] h-[500px] rounded-full bg-fivem-orange/[0.05] blur-[120px] animate-pulse" style={{ animationDuration: '9s', animationDelay: '2s' }} />
-              <div className="absolute left-[40%] top-[30%] w-[400px] h-[400px] rounded-full bg-orange-400/[0.03] blur-[100px] animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+              <div className="absolute left-[40%] top-[30%] w-[400px] h-[400px] rounded-full bg-orange-400/[0.03] blur-[100px] pointer-events-none" />
             </div>
+
+            {/* ── Spotlight Cursor Follower ── */}
+            <div
+              className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-500"
+              style={{
+                background: 'radial-gradient(500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(234,88,12,0.035), transparent 70%)'
+              }}
+            />
 
             {/* ── Grid dot overlay (uitripled texture detail) ── */}
             <div className="absolute inset-0 opacity-[0.025] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
             {/* ── Film grain ── */}
-            <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+            <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
               backgroundSize: '128px 128px'
             }} />
 
             {/* ── Main 2-col layout ── */}
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center" style={{ paddingTop: '2rem', paddingBottom: '3rem' }}>
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center" style={{ paddingTop: '2.5rem', paddingBottom: '3.5rem' }}>
 
               {/* LEFT — text content */}
               <motion.div
@@ -1181,18 +1197,18 @@ export default function App() {
                 className="flex flex-col"
               >
                 {/* Badge pill */}
-                <motion.div variants={heroItemVariants} className="mb-8">
-                  <div className="inline-flex items-center gap-3 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-fivem-orange">
-                    <div className="p-1.5 bg-fivem-orange/20 rounded-full">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <motion.div variants={heroItemVariants} className="mb-6">
+                  <div className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-md px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+                    <div className="p-1 bg-fivem-orange/20 rounded-lg">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
                     </div>
-                    Photo Contest
-                    <span className="flex items-center gap-1.5 ml-1 pl-3 border-l border-fivem-orange/20">
-                      <span className="w-1.5 h-1.5 bg-fivem-orange rounded-full animate-pulse" />
-                      <span className="text-[9px] tracking-widest">LIVE</span>
+                    <span>Photo Contest</span>
+                    <span className="flex items-center gap-1.5 ml-1 pl-3 border-l border-white/10">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      <span className="text-[9px] tracking-widest text-emerald-400 font-mono font-bold">LIVE</span>
                     </span>
                   </div>
                 </motion.div>
@@ -1200,7 +1216,7 @@ export default function App() {
                 {/* Title */}
                 <motion.h2
                   variants={heroItemVariants}
-                  className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5"
+                  className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5 text-white"
                   style={{ textWrap: 'balance' }}
                 >
                   {(() => {
@@ -1240,150 +1256,175 @@ export default function App() {
                 </motion.h2>
 
                 {/* Tagline */}
-                <motion.p variants={heroItemVariants} className="text-white/45 text-base md:text-lg leading-relaxed mb-8 max-w-md">
-                  Capture the moment. Submit your best in-game screenshot and let the community pick their favorite.
+                <motion.p variants={heroItemVariants} className="text-white/50 text-base leading-relaxed mb-8 max-w-md">
+                  Capture the spirit of the city. Submit your finest in-game screenshot, share your story, and let the Vital RP community choose the winners.
                 </motion.p>
 
                 {/* CTAs */}
-                <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3 mb-10">
+                <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3.5 mb-10">
                   <button
                     onClick={handleUploadClick}
                     disabled={!isSubmissionsOpen}
                     className={cn(
-                      "group relative flex items-center gap-2.5 font-bold px-8 py-4 rounded-2xl text-sm overflow-hidden transition-all",
+                      "group relative flex items-center gap-2.5 font-bold px-8 py-4 rounded-xl text-xs uppercase tracking-wider overflow-hidden transition-all duration-300 cursor-pointer active:scale-98",
                       isSubmissionsOpen
-                        ? "bg-fivem-orange text-white hover:-translate-y-1 hover:shadow-[0_12px_50px_rgba(234,88,12,0.6)]"
+                        ? "bg-fivem-orange text-white hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(234,88,12,0.4)]"
                         : "bg-white/10 text-white/30 cursor-not-allowed border border-white/10"
                     )}
                   >
                     {isSubmissionsOpen && <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />}
                     {isSubmissionsOpen ? (
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
                     ) : (
-                      <Lock size={17} className="relative z-10" />
+                      <Lock size={15} className="relative z-10" />
                     )}
                     <span className="relative z-10">{isSubmissionsOpen ? 'Submit Your Shot' : 'Submissions Closed'}</span>
                   </button>
                   <a
                     href="#rules"
-                    className="flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 text-white/70 hover:text-white font-bold px-7 py-4 rounded-2xl transition-all hover:-translate-y-0.5 text-sm backdrop-blur-sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="flex items-center gap-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 text-white/70 hover:text-white font-bold px-7 py-4 rounded-xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-sm cursor-pointer"
                   >
-                    <FileText size={15} />
+                    <FileText size={14} />
                     Contest Rules
                   </a>
                 </motion.div>
 
-                {/* Stats — GlassmorphismMinimalMetricsBlock: rounded-2xl, backdrop-blur-2xl, hover-lift, color-coded */}
-                <motion.div variants={heroItemVariants} className="grid grid-cols-2 gap-2.5">
+                {/* Stats row inside left column for cohesive ElevenLabs look */}
+                <motion.div variants={heroItemVariants} className="grid grid-cols-4 gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[#0c0c0e]/40 backdrop-blur-sm max-w-md">
                   {[
-                    { value: categories.length, label: 'Categories' },
-                    { value: allPhotos.length, label: 'Entries' },
-                    { value: allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Votes', accent: true },
-                    { value: isVotingOpen ? 'Open' : 'Closed', label: 'Voting', status: true },
+                    { value: categories.length, label: 'Topics' },
+                    { value: allPhotos.length, label: 'Submissions' },
+                    { value: allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Total Votes' },
+                    { value: isVotingOpen ? 'Open' : 'Closed', label: 'Voting Status', status: true }
                   ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className={cn(
-                        'group relative overflow-hidden rounded-2xl border p-4 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1',
-                        (stat as any).accent
-                          ? 'border-fivem-orange/25 bg-fivem-orange/[0.08] hover:border-fivem-orange/40'
-                          : (stat as any).status
-                            ? (isVotingOpen ? 'border-emerald-500/25 bg-emerald-500/[0.08]' : 'border-amber-500/25 bg-amber-500/[0.08]')
-                            : 'border-white/[0.08] bg-white/[0.03] hover:border-white/15'
-                      )}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <p className={cn('text-2xl font-black font-display leading-none mb-1.5 relative z-10',
-                        (stat as any).accent ? 'text-fivem-orange' : (stat as any).status ? (isVotingOpen ? 'text-emerald-400' : 'text-amber-400') : 'text-white'
-                      )}>{String(stat.value)}</p>
-                      <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/40 leading-none relative z-10">{stat.label}</p>
+                    <div key={stat.label} className="flex flex-col leading-none">
+                      <span className={cn(
+                        "text-base font-black font-display mb-1",
+                        stat.status ? (isVotingOpen ? "text-emerald-400" : "text-amber-400") : "text-white"
+                      )}>
+                        {stat.value}
+                      </span>
+                      <span className="text-[8px] font-mono uppercase tracking-wider text-white/30">{stat.label}</span>
                     </div>
                   ))}
                 </motion.div>
               </motion.div>
 
-              {/* RIGHT — photo mosaic (uitripled BentoGridBlock gallery pattern) */}
+              {/* RIGHT — Bento Grid Gallery & Viewfinder Overlay */}
               <motion.div
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
                 className="hidden lg:block relative"
               >
-                {/* Spinning circular text badge — uitripled bento sparkle rotate */}
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                  className="absolute -top-8 -right-4 z-20 w-24 h-24"
-                >
-                  <svg viewBox="0 0 80 80" className="w-full h-full">
-                    <path id="heroCircle" d="M 40,40 m -30,0 a 30,30 0 1,1 60,0 a 30,30 0 1,1 -60,0" fill="none" />
-                    <text fontSize="8.5" fill="rgba(234,88,12,0.65)" fontFamily="monospace" letterSpacing="3.2">
-                      <textPath href="#heroCircle">PHOTO CONTEST • LIVE • SUBMIT •</textPath>
-                    </text>
-                  </svg>
-                  <div className="absolute inset-[28%] rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center">
-                    <span className="text-xl">📸</span>
-                  </div>
-                </motion.div>
-
-                {/* Photo mosaic */}
-                {photos.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {photos.slice(0, 4).map((photo, i) => (
-                      <motion.div
-                        key={photo.id}
-                        initial={{ opacity: 0, scale: 0.92 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
-                        whileHover={{ y: -5, scale: 1.02 }}
-                        className={cn(
-                          'relative overflow-hidden rounded-2xl border border-white/10 group cursor-pointer',
-                          i === 0 ? 'aspect-[4/3]' : i === 3 ? 'aspect-[4/3]' : 'aspect-square'
-                        )}
-                        onClick={() => setSelectedCategory(categories.find(c => c.id === photo.category_id) || null)}
-                      >
-                        <img src={photo.image_url} alt={photo.caption} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        {(photo.vote_count || 0) > 0 && (
-                          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-xs">❤️</span>
-                            <span className="text-xs font-bold text-white">{photo.vote_count}</span>
+                {/* Simulated Floating Viewfinder / Bento Box */}
+                <div className="grid grid-cols-6 grid-rows-6 gap-3.5 h-[440px] max-w-[520px] mx-auto relative z-10">
+                  
+                  {/* Bento Box 1: Large Main Image (Col Span 4, Row Span 4) */}
+                  <div className="col-span-4 row-span-4 rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden group relative shadow-lg">
+                    {photos[0] ? (
+                      <>
+                        <img src={photos[0].image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-350" />
+                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-350 z-10">
+                          <span className="text-xs font-bold text-white truncate max-w-[150px]">{photos[0].player_name}</span>
+                          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
+                            <span className="text-[10px]">❤️</span>
+                            <span className="text-[10px] font-bold text-white">{photos[0].vote_count || 0}</span>
                           </div>
-                        )}
-                      </motion.div>
-                    ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-fivem-orange/10 to-transparent p-6 text-center">
+                        <span className="text-4xl mb-2">📸</span>
+                        <span className="text-sm font-bold text-white/80">Be the first to submit!</span>
+                        <span className="text-[10px] text-white/30 font-mono mt-1">NO ENTRIES YET</span>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { bg: 'from-fivem-orange/20 to-orange-900/20', icon: '📸', label: 'Be first to submit' },
-                      { bg: 'from-purple-500/15 to-purple-900/10', icon: '🎬', label: 'In-game shots' },
-                      { bg: 'from-blue-500/15 to-blue-900/10', icon: '✨', label: 'Community voting' },
-                      { bg: 'from-emerald-500/15 to-emerald-900/10', icon: '🏆', label: 'Win prizes' },
-                    ].map((card, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.4 + i * 0.1 }}
-                        className={cn(
-                          'relative overflow-hidden rounded-2xl border border-white/10 flex flex-col items-center justify-center p-6 bg-gradient-to-br',
-                          i === 0 ? 'aspect-[4/3]' : i === 3 ? 'aspect-[4/3]' : 'aspect-square',
-                          card.bg
-                        )}
-                      >
-                        <span className="text-3xl mb-2">{card.icon}</span>
-                        <span className="text-xs text-white/50 font-mono text-center">{card.label}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
 
-                {/* Aperture watermark */}
-                <div className="absolute -bottom-6 -right-6 w-40 h-40 opacity-[0.035] pointer-events-none">
+                  {/* Bento Box 2: Camera Viewfinder Parameter Panel (Col Span 2, Row Span 4) */}
+                  <div className="col-span-2 row-span-4 rounded-3xl border border-white/10 bg-[#0c0c0e]/90 p-4 flex flex-col justify-between overflow-hidden relative group shadow-lg">
+                    {/* Viewfinder crosshairs */}
+                    <div className="absolute inset-2 border border-white/[0.03] rounded-2xl pointer-events-none flex items-center justify-center">
+                      <div className="w-4 h-4 border-l border-t border-white/10 absolute top-0 left-0" />
+                      <div className="w-4 h-4 border-r border-t border-white/10 absolute top-0 right-0" />
+                      <div className="w-4 h-4 border-l border-b border-white/10 absolute bottom-0 left-0" />
+                      <div className="w-4 h-4 border-r border-b border-white/10 absolute bottom-0 right-0" />
+                      <div className="w-2 h-px bg-white/15" />
+                      <div className="h-2 w-px bg-white/15" />
+                    </div>
+
+                    <div className="relative z-10 flex flex-col gap-1 font-mono text-[9px] text-white/40">
+                      <div className="flex items-center justify-between">
+                        <span>ISO 400</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      </div>
+                      <span>F/2.8</span>
+                      <span>1/250S</span>
+                      <span>EV 0.0</span>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col items-center justify-center my-auto py-4 text-center">
+                      <span className="text-2xl text-fivem-orange/95 group-hover:scale-110 transition-transform duration-300">📷</span>
+                      <span className="text-[9px] font-mono tracking-widest text-white/50 uppercase mt-2">Viewfinder</span>
+                      <span className="text-[7.5px] font-mono text-fivem-orange/60 animate-pulse uppercase mt-0.5">Live Capture</span>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col gap-1 font-mono text-[9px] text-white/40 border-t border-white/5 pt-2">
+                      <span>AF-C</span>
+                      <span>RAW</span>
+                    </div>
+                  </div>
+
+                  {/* Bento Box 3: Metrics Stats Display (Col Span 2, Row Span 2) */}
+                  <div className="col-span-2 row-span-2 rounded-3xl border border-white/10 bg-white/[0.015] hover:bg-white/[0.04] p-4 flex flex-col justify-between transition-colors group shadow-lg">
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Voting Phase</span>
+                    <div className="flex items-baseline gap-1 mt-1.5">
+                      <span className={cn("text-xl font-black font-display leading-none", isVotingOpen ? "text-emerald-400" : "text-amber-400")}>
+                        {isVotingOpen ? 'Active' : 'Closed'}
+                      </span>
+                    </div>
+                    <span className="text-[8px] font-mono text-white/20 uppercase tracking-wider leading-none">
+                      {isVotingOpen ? 'VOTE NOW' : 'VOTES LOCKED'}
+                    </span>
+                  </div>
+
+                  {/* Bento Box 4: Secondary Image Landscape (Col Span 4, Row Span 2) */}
+                  <div className="col-span-4 row-span-2 rounded-3xl border border-white/10 bg-white/[0.015] overflow-hidden group relative shadow-lg">
+                    {photos[1] ? (
+                      <>
+                        <img src={photos[1].image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-350" />
+                        <div className="absolute bottom-3.5 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-350 z-10">
+                          <span className="text-xs font-bold text-white truncate max-w-[150px]">{photos[1].player_name}</span>
+                          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
+                            <span className="text-[10px]">❤️</span>
+                            <span className="text-[10px] font-bold text-white">{photos[1].vote_count || 0}</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-between p-5 bg-gradient-to-r from-purple-500/10 to-transparent">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest leading-none">Contest Rules</span>
+                          <span className="text-sm font-bold text-white mt-1">Read guidelines</span>
+                        </div>
+                        <span className="text-2xl text-purple-400/80">✨</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Aperture background watermark decoration */}
+                <div className="absolute -bottom-10 -right-10 w-44 h-44 opacity-[0.025] pointer-events-none z-0">
                   <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="100" cy="100" r="98" stroke="white" strokeWidth="2" />
                     <circle cx="100" cy="100" r="65" stroke="white" strokeWidth="1.5" />
