@@ -79,6 +79,7 @@ export default function App() {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [isCategorySticky, setIsCategorySticky] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const categorySentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -820,8 +821,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <Toaster position="top-right" theme="dark" />
 
-      {/* ─── SIGNAL BAR v2 — premium enhanced navbar ─── */}
-      <motion.header
+            <motion.header
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
         className={cn(
@@ -875,9 +875,9 @@ export default function App() {
                 }`}
               />
               <motion.img
-                src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png"
+                src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
                 alt="Vital RP"
-                className="w-4.5 h-4.5 object-contain relative z-10 drop-shadow-[0_0_6px_rgba(234,88,12,0.8)]"
+                className="w-5.5 h-5.5 object-contain relative z-10 drop-shadow-[0_0_6px_rgba(234,88,12,0.8)]"
                 animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.25, 1] } : {}}
                 transition={easterEggActive ? { duration: 0.6, ease: 'easeInOut' } : {}}
               />
@@ -898,28 +898,39 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* ── CENTER: Contest Identity Badge ── */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-            className="hidden md:flex items-center gap-3"
-          >
-            {/* Previous Winners — gold trophy chip (only if enabled) */}
-            {showWinnersToggle && (
-              <button
-                onClick={() => setShowArchivedWinners(true)}
-                className="group/win relative flex items-center gap-2 px-4 py-2 rounded-xl
-                  bg-white/[0.02] border border-white/10 hover:border-amber-500/40
-                  transition-all duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4)] cursor-pointer"
-              >
-                <Trophy size={13} className="text-amber-400/80 group-hover/win:text-amber-400 relative z-10 transition-colors drop-shadow-[0_0_4px_rgba(245,158,11,0.5)]" />
-                <span className="relative z-10 text-white/60 group-hover/win:text-white font-display font-bold text-[10px] tracking-wider uppercase transition-colors">
-                  Hall of Fame
-                </span>
-              </button>
-            )}
-          </motion.div>
+          {/* ── CENTER: Centered Navigation Tabs (Inspired by ElevenLabs + uitripled) ── */}
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-white/[0.02] border border-white/[0.06] relative">
+            {[
+              { label: 'Gallery', action: () => window.scrollTo({ top: 400, behavior: 'smooth' }) },
+              ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => setShowArchivedWinners(true) }] : []),
+              { label: 'Rules', action: () => document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }) }
+            ].map((item, index) => {
+              const isHovered = hoveredNavIndex === index;
+              return (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  onMouseEnter={() => setHoveredNavIndex(index)}
+                  onMouseLeave={() => setHoveredNavIndex(null)}
+                  className="relative px-4 py-1.5 rounded-lg text-xs font-bold font-display uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
+                >
+                  <span className="relative z-10">{item.label}</span>
+                  <AnimatePresence>
+                    {isHovered && (
+                      <motion.div
+                        layoutId="nav-hover-pill"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 rounded-lg bg-white/5 border border-white/10"
+                        transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                      />
+                    )}
+                  </AnimatePresence>
+                </button>
+              );
+            })}
+          </div>
 
           {/* ── RIGHT: Action Cluster ── */}
           <motion.div
@@ -953,7 +964,7 @@ export default function App() {
                     </div>
                   )}
                   {/* Green online pip */}
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-[#09090b]" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#09090b]" />
                 </div>
               </div>
             ) : (
@@ -1282,7 +1293,7 @@ export default function App() {
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-fivem-orange/[0.04] blur-[160px] rounded-full pointer-events-none" />
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative mb-6">
             <div className="absolute inset-0 bg-white/5 blur-3xl scale-150 rounded-full" />
-            <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
+            <img src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
           </motion.div>
           <h2 className="text-3xl font-display font-black text-white/30 mb-3 relative z-10">No Active Contest</h2>
           <p className="text-white/20 max-w-sm relative z-10">Check back soon — the next contest is being prepared by the admins.</p>
@@ -1576,6 +1587,8 @@ export default function App() {
               </div>
 
             </div>
+            {/* Category Sentinel at the very bottom of the categories section container */}
+            <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />
           </div>
         )
       }
@@ -2401,7 +2414,7 @@ export default function App() {
             <div className="flex flex-col items-center md:items-start gap-3">
               <div className="flex items-center gap-3">
                 {/* VRP logo mark */}
-                <img src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png" alt="Vital RP logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.6)]" />
+                <img src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png" alt="Vital RP logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.6)]" />
                 <div>
                   <p className="text-white font-black font-display text-lg leading-none">Vital RP</p>
                   <p className="text-white/30 text-[10px] font-mono uppercase tracking-[0.2em] leading-none mt-0.5">Photo Contest</p>
