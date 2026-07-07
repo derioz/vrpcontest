@@ -76,6 +76,7 @@ const AdminSubmissionsPreview = lazy(() => import('./components/admin/AdminSubmi
 export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [rulesMarkdown, setRulesMarkdown] = useState('');
   const [votingOpen, setVotingOpen] = useState(false);
@@ -1341,63 +1342,120 @@ export default function App() {
       {
         categories.length > 0 && (
           <div className="relative z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10 shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
-            <div className="max-w-7xl mx-auto px-6">
-              <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar touch-pan-x py-4">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
 
-                {/* Left anchor label */}
-                <div className="shrink-0 flex flex-col justify-center gap-1 pr-5 border-r border-white/10">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-fivem-orange font-mono leading-none">Browse</span>
-                  <span className="text-base font-black text-white font-display whitespace-nowrap leading-tight">Categories</span>
-                  <span className="text-[11px] font-mono text-white/30 leading-none">{categories.length} topics</span>
+                {/* Left side: Browse dropdown trigger */}
+                <div className="relative flex-1 sm:flex-initial">
+                  <button
+                    onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+                    className="w-full sm:w-auto flex items-center justify-between gap-4 px-5 py-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] hover:border-fivem-orange/30 transition-all duration-200 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{selectedCategory?.emoji || '✨'}</span>
+                      <div className="text-left">
+                        <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-fivem-orange/80 font-mono leading-none mb-1">Category</span>
+                        <span className="block text-sm font-black text-white font-display leading-tight">{selectedCategory?.name}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 pl-3 border-l border-white/10">
+                      <span className="text-xs font-mono text-white/40">
+                        {allPhotos.filter(p => p.category_id === selectedCategory?.id).length} entries
+                      </span>
+                      <ChevronDown className={cn("w-4 h-4 text-white/60 transition-transform duration-200", isCategoryMenuOpen && "rotate-180")} />
+                    </div>
+                  </button>
+
+                  {/* Dropdown Menu (Grid of categories) */}
+                  <AnimatePresence>
+                    {isCategoryMenuOpen && (
+                      <>
+                        {/* Mobile: Full-screen overlay backdrop */}
+                        <div
+                          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm sm:hidden"
+                          onClick={() => setIsCategoryMenuOpen(false)}
+                        />
+
+                        {/* Dropdown list/grid */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className={cn(
+                            // Mobile style (centered modal / bottom drawer)
+                            "fixed bottom-4 left-4 right-4 z-50 p-6 rounded-3xl bg-fivem-dark border border-white/10 shadow-[0_10px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl max-h-[80vh] overflow-y-auto",
+                            // Desktop style (hanging dropdown)
+                            "sm:absolute sm:bottom-auto sm:top-[calc(100%+8px)] sm:left-0 sm:right-auto sm:w-[480px] sm:p-4 sm:rounded-2xl"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10 sm:hidden">
+                            <span className="text-sm font-bold text-white uppercase tracking-wider font-display">Select Category</span>
+                            <button
+                              onClick={() => setIsCategoryMenuOpen(false)}
+                              className="p-1 rounded-lg bg-white/5 text-white/60 hover:text-white"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2.5">
+                            {categories.map((cat) => {
+                              const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
+                              const isActive = selectedCategory?.id === cat.id;
+                              const totalAll = allPhotos.length;
+                              const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
+
+                              return (
+                                <button
+                                  key={cat.id}
+                                  onClick={() => {
+                                    setSelectedCategory(cat);
+                                    setIsCategoryMenuOpen(false);
+                                  }}
+                                  className={cn(
+                                    "flex items-center justify-between gap-4 p-3.5 rounded-xl transition-all duration-200 text-left border cursor-pointer",
+                                    isActive
+                                      ? "bg-fivem-orange/10 border-fivem-orange/40 text-white shadow-[inset_0_0_12px_rgba(234,88,12,0.1)]"
+                                      : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05] hover:border-white/10 text-white/70 hover:text-white"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xl shrink-0">{cat.emoji || '✨'}</span>
+                                    <div>
+                                      <span className="block text-sm font-bold leading-tight">{cat.name}</span>
+                                      {cat.description && (
+                                        <span className="block text-xs text-white/40 mt-0.5 line-clamp-1">{cat.description}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-xs font-mono text-white/40">{entryCount} entries</span>
+                                    <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded-full", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5 text-white/30")}>
+                                      {pct}%
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                {/* Category pill strip — position:relative so the layoutId indicator can be absolute */}
-                <div className="relative flex items-center gap-2 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-                  {categories.map((cat) => {
-                    const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
-                    const isActive = selectedCategory?.id === cat.id;
-                    const totalAll = allPhotos.length;
-                    const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={cn(
-                          "group/cat relative z-10 flex flex-col gap-1.5 px-5 py-3.5 rounded-xl transition-all duration-200 text-left shrink-0",
-                          !isActive && "hover:bg-white/[0.06] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-                        )}
-                      >
-                        {/* Spring sliding indicator behind the active button */}
-                        {isActive && (
-                          <motion.div
-                            layoutId="cat-active-pill"
-                            className="absolute inset-0 rounded-xl bg-fivem-orange shadow-[0_0_20px_rgba(234,88,12,0.5)]"
-                            transition={{ type: 'spring', stiffness: 380, damping: 30, bounce: 0.15 }}
-                          />
-                        )}
-                        {/* Content always above the indicator */}
-                        <div className="relative flex items-center gap-2">
-                          <span className="text-xl leading-none">{cat.emoji || '✨'}</span>
-                          <span className={cn("text-sm font-bold whitespace-nowrap transition-colors", isActive ? "text-white" : "text-white/65 group-hover/cat:text-white")}>{cat.name}</span>
-                        </div>
-                        <div className="relative flex items-center justify-between gap-2">
-                          <span className={cn("text-xs font-mono leading-none transition-colors", isActive ? "text-white/80" : "text-white/40")}>
-                            {entryCount} {entryCount === 1 ? 'entry' : 'entries'}
-                          </span>
-                          <span className={cn("text-[10px] font-mono leading-none px-1.5 py-0.5 rounded-full transition-colors", isActive ? "bg-white/20 text-white/80" : "bg-white/8 text-white/30")}>
-                            {pct}%
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* Right side: total stats */}
+                <div className="flex items-center gap-6">
+                  <div className="text-right hidden sm:flex flex-col justify-center gap-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 font-mono leading-none">Browse Categories</span>
+                    <span className="text-xs text-white/50 leading-none">{categories.length} topics available</span>
+                  </div>
 
-                {/* Right: stacked total */}
-                <div className="ml-auto shrink-0 pl-5 border-l border-white/10 flex flex-col justify-center items-end gap-0.5">
-                  <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Total</span>
-                  <span className="text-xl font-black font-display text-white leading-none">{allPhotos.length}</span>
-                  <span className="text-[9px] font-mono text-white/30 leading-none">entries</span>
+                  <div className="pl-5 border-l border-white/10 flex flex-col justify-center items-end gap-0.5">
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Total Entries</span>
+                    <span className="text-xl font-black font-display text-white leading-none">{allPhotos.length}</span>
+                  </div>
                 </div>
 
               </div>
