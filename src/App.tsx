@@ -1396,7 +1396,7 @@ export default function App() {
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-2.5">
+                            <div className="grid grid-cols-1 gap-3">
                               {categories.map((cat) => {
                                 const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
                                 const isActive = selectedCategory?.id === cat.id;
@@ -1411,27 +1411,31 @@ export default function App() {
                                       setIsCategoryMenuOpen(false);
                                     }}
                                     className={cn(
-                                      "flex items-center justify-between gap-4 p-3.5 rounded-xl transition-all duration-200 text-left border cursor-pointer",
+                                      "flex flex-col gap-2 p-4 rounded-xl transition-all duration-200 text-left border cursor-pointer w-full",
                                       isActive
                                         ? "bg-fivem-orange/10 border-fivem-orange/40 text-white shadow-[inset_0_0_12px_rgba(234,88,12,0.1)]"
                                         : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05] hover:border-white/10 text-white/70 hover:text-white"
                                     )}
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-xl shrink-0">{cat.emoji || '✨'}</span>
-                                      <div>
-                                        <span className="block text-sm font-bold leading-tight">{cat.name}</span>
-                                        {cat.description && (
-                                          <span className="block text-xs text-white/40 mt-0.5 line-clamp-1">{cat.description}</span>
-                                        )}
+                                    <div className="flex items-center justify-between gap-3 w-full">
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xl shrink-0">{cat.emoji || '✨'}</span>
+                                        <span className="text-sm font-bold leading-tight">{cat.name}</span>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-2 shrink-0 text-[10px] font-mono text-white/40">
+                                        <span>{entryCount} entries</span>
+                                        <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] font-bold", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5")}>
+                                          {pct}%
+                                        </span>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <span className="text-xs font-mono text-white/40">{entryCount} entries</span>
-                                      <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded-full", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5 text-white/30")}>
-                                        {pct}%
-                                      </span>
-                                    </div>
+
+                                    {cat.description && (
+                                      <p className="text-xs text-white/45 leading-relaxed pl-8 pr-2">
+                                        {cat.description}
+                                      </p>
+                                    )}
                                   </button>
                                 );
                               })}
@@ -1451,77 +1455,103 @@ export default function App() {
               </div>
 
               {/* ========================================= */}
-              {/* DESKTOP: Beautiful Grid Layout           */}
+              {/* DESKTOP: Beautiful High-Fidelity Grid    */}
               {/* ========================================= */}
-              <div className="hidden sm:flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-fivem-orange font-mono">Browse</span>
-                    <span className="text-sm font-black text-white font-display">Categories</span>
-                    <span className="text-xs font-mono text-white/30">({categories.length} topics)</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs font-mono text-white/40">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" />
-                      <span>Total Submissions:</span>
-                      <span className="font-bold text-white font-display text-sm">{allPhotos.length}</span>
+              <div className="hidden sm:block relative overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.015] shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-6 backdrop-blur-md">
+                
+                {/* Background dot pattern overlay for dashboard aesthetics */}
+                <div className="absolute inset-0 dot-pattern opacity-30 pointer-events-none" />
+                
+                {/* Ambient glow light spot behind title */}
+                <div className="absolute -top-24 -left-24 w-64 h-64 bg-fivem-orange/10 blur-[90px] rounded-full pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col gap-5">
+                  
+                  {/* Section Title & Header */}
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.25em] bg-fivem-orange/20 text-fivem-orange rounded-full border border-fivem-orange/30 animate-pulse">
+                        Interactive filters
+                      </span>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider font-display">
+                        Filter Submissions by Category
+                      </h3>
+                      <span className="text-xs font-mono text-white/40">({categories.length} topics live)</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-xs font-mono text-white/40">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Contest Entries:</span>
+                        <span className="font-black text-white font-display text-base">{allPhotos.length}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                  {categories.map((cat) => {
-                    const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
-                    const isActive = selectedCategory?.id === cat.id;
-                    const totalAll = allPhotos.length;
-                    const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
+                  {/* Grid layout */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {categories.map((cat) => {
+                      const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
+                      const isActive = selectedCategory?.id === cat.id;
+                      const totalAll = allPhotos.length;
+                      const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
 
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={cn(
-                          "group/cat relative flex flex-col justify-between p-4.5 rounded-2xl border text-left transition-all duration-300 cursor-pointer overflow-hidden",
-                          isActive
-                            ? "bg-fivem-orange/[0.08] border-fivem-orange/45 text-white shadow-[0_4px_24px_rgba(234,88,12,0.18)]"
-                            : "bg-white/[0.015] hover:bg-white/[0.05] border-white/[0.04] hover:border-fivem-orange/20 text-white/60 hover:text-white"
-                        )}
-                      >
-                        {/* Hover shining gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.015] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={cn(
+                            "group/cat relative flex flex-col justify-between p-5 rounded-2xl border text-left transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1 hover:shadow-lg",
+                            isActive
+                              ? "bg-fivem-orange/[0.08] border-fivem-orange/50 text-white shadow-[0_8px_32px_rgba(234,88,12,0.22)]"
+                              : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.06] hover:border-fivem-orange/30 text-white/60 hover:text-white"
+                          )}
+                        >
+                          {/* Inner shining hover gradient overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-                        <div>
-                          <div className="flex items-start justify-between gap-3 mb-2.5">
-                            <span className="text-2.5xl group-hover/cat:scale-115 transition-transform duration-200 leading-none">{cat.emoji || '✨'}</span>
-                            {isActive && (
-                              <span className="w-2.5 h-2.5 rounded-full bg-fivem-orange shadow-[0_0_12px_rgba(234,88,12,1)]" />
+                          <div>
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <span className="text-3xl group-hover/cat:scale-115 transition-transform duration-200 leading-none block">{cat.emoji || '✨'}</span>
+                              <div className={cn(
+                                "w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-300",
+                                isActive 
+                                  ? "border-fivem-orange bg-fivem-orange/20 shadow-[0_0_10px_rgba(234,88,12,0.4)]"
+                                  : "border-white/10 bg-transparent group-hover/cat:border-white/20"
+                              )}>
+                                {isActive && (
+                                  <span className="w-2 h-2 rounded-full bg-fivem-orange" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            <span className={cn(
+                              "block text-[15px] font-bold leading-tight mb-1.5 transition-colors",
+                              isActive ? "text-white" : "text-white/80 group-hover/cat:text-white"
+                            )}>
+                              {cat.name}
+                            </span>
+                            
+                            {cat.description && (
+                              <span className="block text-[11px] text-white/40 leading-relaxed line-clamp-2 mb-4">
+                                {cat.description}
+                              </span>
                             )}
                           </div>
-                          
-                          <span className={cn(
-                            "block text-sm font-bold leading-tight mb-1 transition-colors",
-                            isActive ? "text-white" : "text-white/80 group-hover/cat:text-white"
-                          )}>
-                            {cat.name}
-                          </span>
-                          
-                          {cat.description && (
-                            <span className="block text-[11px] text-white/40 leading-snug line-clamp-2 mb-4">
-                              {cat.description}
-                            </span>
-                          )}
-                        </div>
 
-                        <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-white/5 text-[10px] font-mono text-white/30">
-                          <span>{entryCount} entries</span>
-                          <span className={cn("px-1.5 py-0.5 rounded-md font-bold", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5")}>
-                            {pct}%
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
+                          <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-white/5 text-[10px] font-mono text-white/30">
+                            <span>{entryCount} submissions</span>
+                            <span className={cn("px-1.5 py-0.5 rounded-md font-bold transition-all", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5 group-hover/cat:bg-white/10")}>
+                              {pct}%
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
                 </div>
+
               </div>
 
             </div>
