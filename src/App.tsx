@@ -1600,7 +1600,7 @@ export default function App() {
                           {/* Inner shining hover gradient overlay */}
                           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-                          <div>
+                          <div className="w-full">
                             <div className="flex items-start justify-between gap-3 mb-3">
                               <span className="text-3xl group-hover/cat:scale-115 transition-transform duration-200 leading-none block">{cat.emoji || '✨'}</span>
                               <div className={cn(
@@ -1623,17 +1623,30 @@ export default function App() {
                             </span>
                             
                             {cat.description && (
-                              <span className="block text-[11px] text-white/40 leading-relaxed line-clamp-2 mb-4">
+                              <span className="block text-[11px] text-white/45 leading-relaxed mb-4">
                                 {cat.description}
                               </span>
                             )}
                           </div>
 
-                          <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-white/5 text-[10px] font-mono text-white/30">
-                            <span>{entryCount} submissions</span>
-                            <span className={cn("px-1.5 py-0.5 rounded-md font-bold transition-all", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5 group-hover/cat:bg-white/10")}>
-                              {pct}%
-                            </span>
+                          {/* Stat details with progress bar */}
+                          <div className="w-full mt-auto pt-3 border-t border-white/5 flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-[10px] font-mono text-white/30">
+                              <span>{entryCount} submissions</span>
+                              <span className={cn("font-bold transition-all", isActive ? "text-fivem-orange" : "text-white/40")}>
+                                {pct}%
+                              </span>
+                            </div>
+                            {/* Horizontal Progress Bar */}
+                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-500",
+                                  isActive ? "bg-fivem-orange" : "bg-white/20 group-hover/cat:bg-white/40"
+                                )}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
                           </div>
                         </button>
                       );
