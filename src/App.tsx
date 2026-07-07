@@ -36,7 +36,8 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
-  Loader2
+  Loader2,
+  Menu
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -77,6 +78,7 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategorySticky, setIsCategorySticky] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
@@ -89,6 +91,18 @@ export default function App() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Lock body scroll when mobile menu or category selection modal is active
+  useEffect(() => {
+    if (isCategoryMenuOpen || isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isCategoryMenuOpen, isMobileMenuOpen]);
 
   useEffect(() => {
     const sentinel = categorySentinelRef.current;
@@ -819,10 +833,7 @@ export default function App() {
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Toaster position="top-right" theme="dark" />
-
-            <motion.header
+    <div className="min-h-screen flex flex-col">      <motion.header
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
         className={cn(
@@ -881,13 +892,13 @@ export default function App() {
 
             {/* Wordmark */}
             <div className="flex flex-col leading-none">
-              <span className="text-white font-display font-black text-xs tracking-[0.2em] leading-none uppercase">VITAL RP</span>
+              <span className="text-white font-display font-black text-sm tracking-[0.2em] leading-none uppercase">VITAL RP</span>
               <div className="flex items-center gap-1.5 mt-1.5">
                 <span className="w-1 h-1 rounded-full bg-fivem-orange" style={{
                   boxShadow: '0 0 6px rgba(234,88,12,0.9)',
                   animation: 'pulse 1.8s ease-in-out infinite'
                 }} />
-                <span className="text-white/30 font-mono text-[8px] uppercase tracking-[0.3em] leading-none">
+                <span className="text-white/30 font-mono text-[9px] uppercase tracking-[0.25em] leading-none font-bold">
                   {activeContest?.name || 'Photo Contest'}
                 </span>
               </div>
@@ -908,7 +919,7 @@ export default function App() {
                   onClick={item.action}
                   onMouseEnter={() => setHoveredNavIndex(index)}
                   onMouseLeave={() => setHoveredNavIndex(null)}
-                  className="relative px-4 py-1.5 rounded-lg text-xs font-bold font-display uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
+                  className="relative px-4 py-1.5 rounded-lg text-[13px] font-bold font-display uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
                 >
                   <span className="relative z-10">{item.label}</span>
                   <AnimatePresence>
@@ -928,12 +939,24 @@ export default function App() {
             })}
           </div>
 
-          {/* ── RIGHT: Action Cluster ── */}
+          {/* ── RIGHT: Hamburger toggle button for Mobile ── */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-white/10 bg-white/[0.02] text-white/70 hover:text-white cursor-pointer transition-all active:scale-95"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* ── RIGHT: Action Cluster (Desktop Only) ── */}
           <motion.div
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
-            className="flex items-center gap-3 shrink-0"
+            className="hidden md:flex items-center gap-3 shrink-0"
           >
             {/* User avatar or Sign In */}
             {user ? (
@@ -954,12 +977,12 @@ export default function App() {
                 )}
                 
                 <div className="flex flex-col items-start leading-none gap-0.5">
-                  <span className="text-xs font-bold text-white/80 group-hover/user:text-white transition-colors">
+                  <span className="text-[13px] font-bold text-white/80 group-hover/user:text-white transition-colors">
                     {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
-                    <span className="text-[7.5px] font-mono tracking-widest uppercase text-emerald-400 font-bold">Online</span>
+                    <span className="text-[8px] font-mono tracking-widest uppercase text-emerald-400 font-bold">Online</span>
                   </div>
                 </div>
               </div>
@@ -974,7 +997,7 @@ export default function App() {
                   className="w-3.5 h-3.5 relative z-10 opacity-80 group-hover/login:opacity-100 transition-opacity duration-200 invert"
                   alt=""
                 />
-                <span className="relative z-10 text-[10px] font-display font-bold tracking-wider uppercase">
+                <span className="relative z-10 text-[11px] font-display font-bold tracking-wider uppercase">
                   Sign In
                 </span>
               </button>
@@ -1009,6 +1032,105 @@ export default function App() {
           </motion.div>
         </div>
       </motion.header>
+
+      {/* Mobile Drawer Overlay Sheet (Inspired by shadcn Sheet + ElevenLabs) */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            {/* Backdrop filter */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-black/85 backdrop-blur-md"
+            />
+            {/* Navigation Sheet Panel */}
+            <motion.div
+              initial={{ y: '-100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '-100%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              className="fixed top-0 left-0 right-0 z-50 bg-[#09090b] border-b border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-6 pt-24"
+            >
+              <div className="flex flex-col gap-6">
+                {/* Navigation Section */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Navigation</span>
+                  {[
+                    { label: 'Gallery', action: () => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
+                    ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); } }] : []),
+                    { label: 'Rules', action: () => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } }
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={item.action}
+                      className="w-full text-left py-3 px-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-sm font-bold uppercase tracking-wider text-white/70 active:text-white cursor-pointer active:bg-white/[0.05] transition-all"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Account Section */}
+                <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Account details</span>
+                  {user ? (
+                    <div className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                      <div className="flex items-center gap-3">
+                        {user.photoURL ? (
+                          <img src={user.photoURL} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
+                            {user.displayName?.[0] || user.email?.[0] || 'U'}
+                          </div>
+                        )}
+                        <div className="flex flex-col leading-none gap-1">
+                          <span className="text-sm font-bold text-white">{user.displayName || user.email?.split('@')[0]}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
+                            <span className="text-[8px] font-mono uppercase tracking-widest text-emerald-400 font-bold">Online</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { handleDiscordLogin(); setIsMobileMenuOpen(false); }}
+                      className="flex items-center justify-center gap-3 w-full py-3.5 rounded-xl bg-[#5865F2] hover:bg-[#4e5dec] text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-98"
+                    >
+                      <img
+                        src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg"
+                        className="w-4 h-4 invert"
+                        alt=""
+                      />
+                      <span>Sign In with Discord</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Dashboard Panel Section */}
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <span className="text-xs font-bold text-white/40">Contest Admin Dashboard</span>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      isAdmin ? setShowAdminModal(true) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })();
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer',
+                      isAdmin ? 'bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange shadow-[0_4px_12px_rgba(234,88,12,0.1)]' : 'bg-white/5 border border-white/10 text-white/50'
+                    )}
+                  >
+                    <Settings size={13} className={isAdmin ? 'animate-spin-slow' : ''} />
+                    <span>Open Panel</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (
@@ -1389,7 +1511,7 @@ export default function App() {
                         <>
                           {/* Mobile: Full-screen overlay backdrop */}
                           <div
-                            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+                            className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-sm"
                             onClick={() => setIsCategoryMenuOpen(false)}
                           />
 
@@ -1399,7 +1521,7 @@ export default function App() {
                             animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
                             exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-45%' }}
                             transition={{ type: 'spring', stiffness: 350, damping: 26 }}
-                            className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2.5rem)] max-w-md p-6 rounded-3xl bg-fivem-dark border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl max-h-[85vh] overflow-y-auto"
+                            className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-2.5rem)] max-w-md p-6 rounded-3xl bg-fivem-dark border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl max-h-[85vh] overflow-y-auto"
                           >
                             <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
                               <span className="text-sm font-bold text-white uppercase tracking-wider font-display">Select Category</span>
@@ -1596,16 +1718,18 @@ export default function App() {
         {/* Main Content – 3 cols */}
         <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
           <section>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="text-3xl">{selectedCategory?.emoji || '📷'}</span>
-                  <h2 className="text-2xl font-display font-bold">{selectedCategory?.name || 'Entries'}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-1.5">
+                  <span className="text-3xl leading-none">{selectedCategory?.emoji || '📷'}</span>
+                  <h2 className="text-2xl font-display font-bold text-white">{selectedCategory?.name || 'Entries'}</h2>
                 </div>
-                <p className="text-sm text-white/40">{selectedCategory?.description}</p>
-                <p className="text-xs text-white/30 mt-1 font-mono">{photos.length} entries submitted</p>
+                {selectedCategory?.description && (
+                  <p className="text-sm text-white/50 leading-relaxed max-w-2xl">{selectedCategory?.description}</p>
+                )}
+                <p className="text-xs text-white/35 mt-1.5 font-mono">{photos.length} entries submitted</p>
               </div>
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shrink-0">
+              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shrink-0 self-start sm:self-auto">
                 <button
                   onClick={() => setSortBy('top')}
                   className={cn(
