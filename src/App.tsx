@@ -77,6 +77,36 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isCategorySticky, setIsCategorySticky] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const categorySentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 40);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const sentinel = categorySentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsCategorySticky(!entry.isIntersecting);
+      },
+      {
+        threshold: 0,
+        rootMargin: "-80px 0px 0px 0px"
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [categories]);
+
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [rulesMarkdown, setRulesMarkdown] = useState('');
   const [votingOpen, setVotingOpen] = useState(false);
@@ -784,7 +814,7 @@ export default function App() {
   const { scrollY } = useScroll();
   const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
   const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
-  const navBg = useTransform(scrollY, [0, 80], ['rgba(3,3,3,0.3)', 'rgba(3,3,3,0.85)']);
+  const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -794,7 +824,12 @@ export default function App() {
       <motion.header
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
-        className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
+        className={cn(
+          "fixed z-50 transition-all duration-500 overflow-hidden",
+          isScrolled
+            ? "top-0 left-0 right-0 border-b border-white/[0.06] shadow-lg"
+            : "top-0 sm:top-4 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto sm:w-[calc(100%-3rem)] sm:max-w-6xl sm:rounded-2xl border-b sm:border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(234,88,12,0.03)]"
+        )}
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -1338,6 +1373,61 @@ export default function App() {
       )}
 
       {/* Category Tab Bar — spring-animated (inspired by uitripled NativeTabs) */}
+
+      {/* Category Tab Bar — enhanced to avoid scroll on mobile and desktop */}
+
+      {/* Category Sentinel */}
+      {categories.length > 0 && <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />}
+
+      {/* Sticky Minimized Category Selector for Desktop */}
+      <AnimatePresence>
+        {isCategorySticky && categories.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            style={{ top: navH }}
+            className="fixed left-0 right-0 z-40 hidden sm:block bg-fivem-dark/95 border-b border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md"
+          >
+            <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 font-mono">Category</span>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 max-w-[70%]">
+                {categories.map((cat) => {
+                  const isActive = selectedCategory?.id === cat.id;
+                  const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border shrink-0",
+                        isActive
+                          ? "bg-fivem-orange text-white border-fivem-orange/60 shadow-[0_2px_10px_rgba(234,88,12,0.25)]"
+                          : "bg-white/5 border-transparent text-white/60 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      <span className="text-sm">{cat.emoji}</span>
+                      <span>{cat.name}</span>
+                      <span className={cn("text-[9px] font-mono px-1 rounded-full", isActive ? "bg-white/20 text-white" : "bg-white/5 text-white/40")}>
+                        {entryCount}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="text-[10px] font-mono text-white/30 shrink-0">
+                Active Category: <span className="font-bold text-fivem-orange">{selectedCategory?.name}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {
         categories.length > 0 && (
