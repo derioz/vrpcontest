@@ -825,55 +825,14 @@ export default function App() {
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
         className={cn(
-          "fixed z-50 transition-all duration-500 overflow-hidden",
+          "fixed z-50 transition-all duration-500 overflow-hidden backdrop-blur-xl",
           isScrolled
             ? "top-0 left-0 right-0 border-b border-white/[0.06] shadow-lg"
-            : "top-0 sm:top-4 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto sm:w-[calc(100%-3rem)] sm:max-w-6xl sm:rounded-2xl border-b sm:border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(234,88,12,0.03)]"
+            : "top-0 sm:top-4 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto sm:w-[calc(100%-3rem)] sm:max-w-6xl sm:rounded-2xl border-b sm:border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
         )}
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = ((e.clientX - rect.left) / rect.width) * 100;
-          e.currentTarget.style.setProperty('--mouse-x', `${x}%`);
-        }}
       >
-        {/* Multi-layer glass surface */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
-
-        {/* Mouse-reactive spotlight */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-700"
-          style={{
-            background: 'radial-gradient(600px circle at var(--mouse-x, 50%) 50%, rgba(234,88,12,0.06), transparent 60%)'
-          }}
-        />
-
-        {/* Scanline texture */}
-        <div className="scanline absolute inset-0 pointer-events-none z-0" />
-
-        {/* Top shimmer sweep */}
-        <motion.div
-          initial={{ x: '-100%', opacity: 0 }}
-          animate={{ x: '200%', opacity: [0, 1, 0] }}
-          transition={{ duration: 3, delay: 0.8, ease: 'easeInOut' }}
-          className="absolute top-0 left-0 w-1/3 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none z-10"
-        />
-
-        {/* Bottom glow seam — vivid orange */}
-        <motion.div
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 2, ease: 'easeOut' }}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-px pointer-events-none z-10"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(234,88,12,0.9) 30%, #fb923c 50%, rgba(234,88,12,0.9) 70%, transparent)' }}
-        />
-        {/* Softer outer bloom */}
-        <motion.div
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 2, ease: 'easeOut', delay: 0.1 }}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-4 pointer-events-none z-9"
-          style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(234,88,12,0.25), transparent 70%)', filter: 'blur(4px)' }}
-        />
+        {/* Subtle top shine */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
 
         {/* Hard bottom border line */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-white/[0.06]" />
@@ -891,14 +850,14 @@ export default function App() {
             {/* Orb — dual-ring scanner effect + Easter Egg */}
             <div
               id="easter-egg-orb"
-              className="relative w-10 h-10 flex items-center justify-center cursor-pointer select-none"
+              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none"
               onClick={handleLogoEasterEgg}
             >
               {/* Outer slow rotating ring */}
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: easterEggActive ? 0.5 : 8, repeat: Infinity, ease: 'linear' }}
-                className="absolute inset-[-3px] rounded-full"
+                className="absolute inset-[-2px] rounded-full"
                 style={{
                   background: easterEggActive
                     ? 'conic-gradient(from 0deg, #ea580c, #facc15, #34d399, #60a5fa, #a78bfa, #f472b6, #ea580c)'
@@ -911,50 +870,28 @@ export default function App() {
               <div
                 className={`absolute inset-0 rounded-full transition-all duration-500 ${
                   easterEggActive
-                    ? 'bg-fivem-orange/30 border-2 border-fivem-orange/80 shadow-[0_0_30px_rgba(234,88,12,0.8)]'
-                    : 'bg-fivem-orange/10 border border-fivem-orange/30 group-hover/brand:bg-fivem-orange/20 group-hover/brand:border-fivem-orange/60 group-hover/brand:shadow-[0_0_24px_rgba(234,88,12,0.5)]'
+                    ? 'bg-fivem-orange/30 border-2 border-fivem-orange/80 shadow-[0_0_20px_rgba(234,88,12,0.7)]'
+                    : 'bg-white/5 border border-white/10 group-hover/brand:border-fivem-orange/50 group-hover/brand:shadow-[0_0_15px_rgba(234,88,12,0.3)]'
                 }`}
               />
-              {/* Expand pulse on hover */}
-              <motion.div
-                className="absolute inset-[-6px] rounded-full border border-fivem-orange/20"
-                animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.3, 0, 0.3] }}
-                transition={{ duration: easterEggActive ? 0.4 : 3, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              {/* Rainbow ring burst when active */}
-              <AnimatePresence>
-                {easterEggActive && (
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: [1, 1.8, 2.2], opacity: [0.8, 0.4, 0] }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 1.5, ease: 'easeOut' }}
-                    className="absolute inset-[-12px] rounded-full pointer-events-none"
-                    style={{
-                      background: 'conic-gradient(from 0deg, #ea580c, #facc15, #34d399, #60a5fa, #a78bfa, #f472b6, #ea580c)',
-                      filter: 'blur(6px)',
-                    }}
-                  />
-                )}
-              </AnimatePresence>
               <motion.img
                 src="https://r2.fivemanage.com/image/W9MFd5GxTOKZ.png"
                 alt="Vital RP"
-                className="w-5 h-5 object-contain relative z-10 drop-shadow-[0_0_10px_rgba(234,88,12,1)]"
-                animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.3, 1] } : {}}
+                className="w-4.5 h-4.5 object-contain relative z-10 drop-shadow-[0_0_6px_rgba(234,88,12,0.8)]"
+                animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.25, 1] } : {}}
                 transition={easterEggActive ? { duration: 0.6, ease: 'easeInOut' } : {}}
               />
             </div>
 
             {/* Wordmark */}
             <div className="flex flex-col leading-none">
-              <span className="text-white font-display font-black text-sm tracking-[0.22em] leading-none">VITAL RP</span>
+              <span className="text-white font-display font-black text-xs tracking-[0.2em] leading-none uppercase">VITAL RP</span>
               <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange" style={{
+                <span className="w-1 h-1 rounded-full bg-fivem-orange" style={{
                   boxShadow: '0 0 6px rgba(234,88,12,0.9)',
                   animation: 'pulse 1.8s ease-in-out infinite'
                 }} />
-                <span className="text-white/40 font-mono text-[9px] uppercase tracking-[0.4em] leading-none">
+                <span className="text-white/30 font-mono text-[8px] uppercase tracking-[0.3em] leading-none">
                   {activeContest?.name || 'Photo Contest'}
                 </span>
               </div>
@@ -970,30 +907,18 @@ export default function App() {
           >
             {/* Previous Winners — gold trophy chip (only if enabled) */}
             {showWinnersToggle && (
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
+              <button
                 onClick={() => setShowArchivedWinners(true)}
-                className="group/win relative flex items-center gap-2.5 px-5 py-2.5 rounded-full overflow-hidden
-                  bg-gradient-to-r from-amber-500/10 to-orange-500/10
-                  border border-amber-500/25 hover:border-amber-400/60
-                  transition-all duration-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]"
+                className="group/win relative flex items-center gap-2 px-4 py-2 rounded-xl
+                  bg-white/[0.02] border border-white/10 hover:border-amber-500/40
+                  transition-all duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4)] cursor-pointer"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-orange-500/5 opacity-0 group-hover/win:opacity-100 transition-opacity duration-300" />
-                {/* Shimmer sweep on hover */}
-                <motion.div
-                  className="absolute inset-0 opacity-0 group-hover/win:opacity-100"
-                  style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.15) 50%, transparent 100%)' }}
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.5 }}
-                />
-                <Trophy size={14} className="text-amber-400 group-hover/win:text-amber-300 relative z-10 transition-colors drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
-                <span className="relative z-10 text-amber-400/80 group-hover/win:text-amber-300 font-display font-bold text-xs tracking-[0.2em] uppercase transition-colors">
+                <Trophy size={13} className="text-amber-400/80 group-hover/win:text-amber-400 relative z-10 transition-colors drop-shadow-[0_0_4px_rgba(245,158,11,0.5)]" />
+                <span className="relative z-10 text-white/60 group-hover/win:text-white font-display font-bold text-[10px] tracking-wider uppercase transition-colors">
                   Hall of Fame
                 </span>
-              </motion.button>
+              </button>
             )}
-
           </motion.div>
 
           {/* ── RIGHT: Action Cluster ── */}
@@ -1001,85 +926,77 @@ export default function App() {
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
-            className="flex items-center gap-2 shrink-0"
+            className="flex items-center gap-3 shrink-0"
           >
             {/* User avatar or Sign In */}
             {user ? (
-              <div className="group/user relative flex items-center gap-2.5 pl-2.5 pr-1 py-1 rounded-full
-                border border-transparent hover:border-white/[0.08] hover:bg-white/[0.04]
+              <div className="group/user relative flex items-center gap-2.5 pl-2.5 pr-1 py-1 rounded-xl
+                border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04]
                 transition-all duration-400"
               >
                 <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-bold text-white/85 leading-none">
+                  <span className="text-xs font-bold text-white/80 leading-none">
                     {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
                   </span>
-                  <span className="text-[9px] font-mono tracking-widest uppercase text-emerald-400/80 leading-none mt-0.5">Online</span>
+                  <span className="text-[8px] font-mono tracking-widest uppercase text-emerald-400/80 leading-none mt-1">Online</span>
                 </div>
                 <div className="relative">
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}
                       alt=""
-                      className="w-8 h-8 rounded-full ring-2 ring-[#5865F2]/40 group-hover/user:ring-[#5865F2]/80 transition-all duration-300"
+                      className="w-7 h-7 rounded-lg ring-1 ring-white/10 group-hover/user:ring-white/20 transition-all duration-300"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
+                    <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
                       {user.displayName?.[0] || user.email?.[0] || 'U'}
                     </div>
                   )}
                   {/* Green online pip */}
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#09090b]" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-[#09090b]" />
                 </div>
               </div>
             ) : (
               <button
                 onClick={handleDiscordLogin}
-                className="group/login relative flex items-center gap-2 px-4 h-9 rounded-full overflow-hidden
-                  bg-white/[0.04] border border-white/[0.10] hover:border-[#5865F2]/60
-                  transition-all duration-400"
+                className="group/login relative flex items-center gap-2 px-4 h-9 rounded-xl
+                  bg-[#5865F2] hover:bg-[#4e5dec] text-white transition-all duration-200 cursor-pointer active:scale-[0.98]"
               >
-                <div className="absolute inset-0 bg-[#5865F2]/15 -translate-x-full group-hover/login:translate-x-0 transition-transform duration-400 ease-out" />
                 <img
                   src="https://assets-global.website-files.com/6257adef93867e3c8405902d/636e0a2249ac060fd548bc35_discord-icon.svg"
-                  className="w-3.5 h-3.5 relative z-10 opacity-50 group-hover/login:opacity-100 transition-opacity duration-400"
-                  style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }}
+                  className="w-3.5 h-3.5 relative z-10 opacity-80 group-hover/login:opacity-100 transition-opacity duration-200 invert"
                   alt=""
                 />
-                <span className="relative z-10 text-[11px] font-display font-bold tracking-[0.18em] uppercase
-                  text-white/55 group-hover/login:text-white transition-colors duration-400"
-                >
+                <span className="relative z-10 text-[10px] font-display font-bold tracking-wider uppercase">
                   Sign In
                 </span>
               </button>
             )}
 
             {/* Divider */}
-            <div className="w-px h-5 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+            <div className="w-px h-4 bg-white/10" />
 
             {/* Admin / Settings gear */}
             <button
               onClick={() => isAdmin ? setShowAdminModal(true) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })()}
               className={cn(
-                'group/setting relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-500',
+                'group/setting relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300 cursor-pointer',
                 isAdmin
-                  ? 'hover:bg-fivem-orange/10 border border-fivem-orange/20 hover:border-fivem-orange/50'
-                  : 'hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08]'
+                  ? 'bg-fivem-orange/10 border border-fivem-orange/20 hover:border-fivem-orange/40'
+                  : 'bg-white/[0.02] border border-white/10 hover:border-white/20'
               )}
             >
-              {isAdmin && (
-                <div className="absolute inset-0 rounded-full bg-fivem-orange/5 animate-pulse opacity-60" />
-              )}
               <Settings
-                size={16}
+                size={14}
                 className={cn(
-                  'transition-all duration-[1s] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                  'transition-all duration-500',
                   isAdmin
-                    ? 'text-fivem-orange group-hover/setting:rotate-[360deg]'
-                    : 'text-white/35 group-hover/setting:text-white/80 group-hover/setting:rotate-90'
+                    ? 'text-fivem-orange group-hover/setting:rotate-90'
+                    : 'text-white/50 group-hover/setting:text-white group-hover/setting:rotate-45'
                 )}
               />
               {isAdmin && (
-                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_6px_rgba(234,88,12,1)]" />
+                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_6px_rgba(234,88,12,1)]" />
               )}
             </button>
           </motion.div>
@@ -1390,13 +1307,14 @@ export default function App() {
             style={{ top: navH }}
             className="fixed left-0 right-0 z-40 hidden sm:block bg-fivem-dark/95 border-b border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md"
           >
-            <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5 shrink-0">
+            <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 font-mono">Category</span>
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 max-w-[70%]">
+              {/* Flex-wrap container ensuring all categories are visible */}
+              <div className="flex flex-wrap items-center justify-center gap-2 py-0.5 flex-1">
                 {categories.map((cat) => {
                   const isActive = selectedCategory?.id === cat.id;
                   const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
@@ -1405,15 +1323,15 @@ export default function App() {
                       key={cat.id}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border shrink-0",
+                        "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border shrink-0",
                         isActive
                           ? "bg-fivem-orange text-white border-fivem-orange/60 shadow-[0_2px_10px_rgba(234,88,12,0.25)]"
                           : "bg-white/5 border-transparent text-white/60 hover:text-white hover:bg-white/10"
                       )}
                     >
-                      <span className="text-sm">{cat.emoji}</span>
+                      <span className="text-sm leading-none">{cat.emoji}</span>
                       <span>{cat.name}</span>
-                      <span className={cn("text-[9px] font-mono px-1 rounded-full", isActive ? "bg-white/20 text-white" : "bg-white/5 text-white/40")}>
+                      <span className={cn("text-[9px] font-mono px-1.5 py-0.5 rounded-md", isActive ? "bg-white/20 text-white" : "bg-white/5 text-white/40")}>
                         {entryCount}
                       </span>
                     </button>
@@ -1421,7 +1339,7 @@ export default function App() {
                 })}
               </div>
 
-              <div className="text-[10px] font-mono text-white/30 shrink-0">
+              <div className="text-[10px] font-mono text-white/30 shrink-0 hidden md:block">
                 Active Category: <span className="font-bold text-fivem-orange">{selectedCategory?.name}</span>
               </div>
             </div>
