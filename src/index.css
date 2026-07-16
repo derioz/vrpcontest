@@ -93,3 +93,66 @@
       rgba(0, 0, 0, 0.04) 2px,
       rgba(0, 0, 0, 0.04) 4px);
 }
+
+/* ═══════════════════════════════════════════════════════
+   MagicUI — Keyframe Animations
+   ═══════════════════════════════════════════════════════ */
+
+/* Border Beam — spinning conic gradient border */
+@keyframes border-beam-spin {
+  from { --border-beam-anchor: 0%; }
+  to   { --border-beam-anchor: 360%; }
+}
+
+@property --border-beam-anchor {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+/* Animated Shiny Text — sweeping light glare */
+@keyframes shiny-text {
+  0%, 90%, 100% {
+    background-position: calc(-100% - var(--shimmer-width, 100px)) 0;
+  }
+  30%, 60% {
+    background-position: calc(100% + var(--shimmer-width, 100px)) 0;
+  }
+}
+
+.animate-shiny-text {
+  animation: shiny-text 8s ease-in-out infinite;
+}
+
+/* Shimmer Slide — rotating conic gradient inside buttons */
+@keyframes shimmer-slide {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-shimmer-slide {
+  animation: shimmer-slide 3s linear infinite;
+}
+
+/* Admin Pulse — expanding ring for pulsating buttons */
+@keyframes admin-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--pulse-color, rgba(239, 68, 68, 0.6));
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animate-admin-pulse {
+  animation: admin-pulse var(--pulse-duration, 1.5s) ease-out infinite;
+}
+
+/* Dot Pattern — used in admin panel backgrounds */
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}

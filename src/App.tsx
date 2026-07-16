@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -65,12 +65,9 @@ import { Category, Photo, Rule, Theme } from './types';
 
 const UploadForm = lazy(() => import('./components/UploadForm'));
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
-const EditContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.EditContestManager })));
-const ArchiveContest = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.ArchiveContest })));
-const CreateContestManager = lazy(() => import('./components/admin/ContestManagers').then(m => ({ default: m.CreateContestManager })));
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
-const AdminSubmissionsPreview = lazy(() => import('./components/admin/AdminSubmissionsPreview'));
+const AdminPanel = lazy(() => import('./components/admin/AdminPanel'));
 
 
 
@@ -2059,396 +2056,54 @@ export default function App() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
 
           <Suspense fallback={<div className="p-10 text-center text-fivem-orange/50 animate-pulse font-mono flex items-center justify-center min-h-[500px]">Loading Admin Modules...</div>}>
-            <div className="relative z-10 flex flex-col -m-6">
-
-              {/* ── Header Bar ── */}
-              <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.08]">
-                <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
-                    <Settings size={20} className="text-fivem-orange" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black font-display text-white leading-none">Admin Settings</h2>
-                    <p className="text-[11px] text-white/30 font-mono mt-0.5">Contest Management Console</p>
-                  </div>
-                </div>
-                {isAdmin && (
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                      <span className="text-[11px] font-bold text-emerald-400 font-mono">Admin Authenticated</span>
+            {!isAdmin ? (
+              <div className="flex-1 flex items-center justify-center p-10">
+                {user ? (
+                  <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                      <Lock className="text-red-400" size={24} />
                     </div>
-                    <div className="text-[11px] text-white/30 font-mono px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-                      {user?.displayName || user?.email || 'Admin'}
-                    </div>
+                    <p className="font-bold text-red-400">Access Denied</p>
+                    <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
+                    <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
+                      Logout to switch accounts
+                    </button>
                   </div>
+                ) : (
+                  <LoginForm onDiscordLogin={handleDiscordLogin} />
                 )}
               </div>
-
-              {!isAdmin ? (
-                <div className="flex-1 flex items-center justify-center p-10">
-                  {user ? (
-                    <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
-                      <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
-                        <Lock className="text-red-400" size={24} />
-                      </div>
-                      <p className="font-bold text-red-400">Access Denied</p>
-                      <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
-                      <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
-                        Logout to switch accounts
-                      </button>
-                    </div>
-                  ) : (
-                    <LoginForm onDiscordLogin={handleDiscordLogin} />
-                  )}
-                </div>
-              ) : (
-                <div className="flex-1 p-4 sm:p-8 space-y-6 sm:space-y-8">
-
-                  {/* ── Glassmorphism Stats Row (uitripled stats-card pattern) ── */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                      { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
-                      { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
-                      { label: 'Total Entries', value: allPhotos.length, icon: ImageIcon, color: 'purple' },
-                      { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
-                    ].map((stat, i) => {
-                      const Icon = stat.icon;
-                      const colors: Record<string, string> = {
-                        orange: 'from-fivem-orange/20 border-fivem-orange/25 [--c:theme(colors.orange.500)]',
-                        blue: 'from-blue-500/15 border-blue-500/20 [--c:theme(colors.blue.400)]',
-                        purple: 'from-purple-500/15 border-purple-500/20 [--c:theme(colors.purple.400)]',
-                        emerald: 'from-emerald-500/15 border-emerald-500/20 [--c:theme(colors.emerald.400)]',
-                        red: 'from-red-500/15 border-red-500/20 [--c:theme(colors.red.400)]',
-                      };
-                      const iconColors: Record<string, string> = { orange: 'text-fivem-orange', blue: 'text-blue-400', purple: 'text-purple-400', emerald: 'text-emerald-400', red: 'text-red-400' };
-                      return (
-                        <motion.div
-                          key={stat.label}
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.07, duration: 0.4 }}
-                          className={cn("relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4", colors[stat.color])}
-                        >
-                          <div className="absolute top-0 right-0 w-20 h-20 blur-[40px] opacity-30 rounded-full bg-current" />
-                          <Icon size={16} className={cn("mb-3 relative z-10", iconColors[stat.color])} />
-                          <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">{stat.label}</p>
-                          <p className="text-sm font-black text-white leading-tight truncate">{String(stat.value)}</p>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-
-                  {/* ── Admin Submissions Preview ── */}
-                  <div className="relative overflow-hidden rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03]">
-                    <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/8 blur-[80px] rounded-full pointer-events-none" />
-                    
-                    <button 
-                      onClick={() => setAdminPreviewOpen(!adminPreviewOpen)}
-                      className="w-full px-6 pt-5 pb-4 border-b border-cyan-500/[0.12] flex items-center justify-between group hover:bg-cyan-500/[0.02] transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-1 h-4 bg-cyan-500/70 rounded-full" />
-                        <Eye size={13} className="text-cyan-500/80" />
-                        <h4 className="text-[11px] font-mono text-cyan-500/80 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">Admin Submissions Preview</h4>
-                        <span className="text-[10px] font-mono text-white/30 ml-2 hidden sm:inline-block">Decrypted view — only visible to admins</span>
-                      </div>
-                      <div className="text-cyan-500/50 group-hover:text-cyan-400 p-1 bg-cyan-500/10 rounded-md transition-colors">
-                        {adminPreviewOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </div>
-                    </button>
-                    
-                    <AnimatePresence initial={false}>
-                      {adminPreviewOpen && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: "easeInOut" }}
-                          className="relative z-10"
-                        >
-                          <div className="p-6">
-                            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-cyan-500" /></div>}>
-                              <AdminSubmissionsPreview
-                                allPhotos={allPhotos}
-                                categories={categories}
-                                onDeletePhoto={handleDeletePhoto}
-                              />
-                            </Suspense>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* ── Main 2-col Layout ── */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-                    {/* LEFT: Live Controls + Edit Contest */}
-                    <div className="space-y-6">
-
-                      {/* Live Controls card */}
-                      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/50 to-transparent" />
-                        <div className="flex items-center gap-2 mb-5">
-                          <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-                          <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Live Controls</h4>
-                        </div>
-                        <div className="space-y-4">
-                          {/* Voting Toggle */}
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="font-bold text-white">Voting Status</p>
-                              <p className="text-xs text-white/40 mt-0.5">Toggle public voting for all categories</p>
-                            </div>
-                            <button
-                              onClick={() => toggleVoting(!votingOpen)}
-                              className={cn(
-                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                                votingOpen
-                                  ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                                  : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
-                              )}
-                            >
-                              <span className="relative z-10 flex items-center gap-2">
-                                {votingOpen ? <Lock size={14} /> : <Unlock size={14} />}
-                                {votingOpen ? 'Close Voting' : 'Open Voting'}
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Divider */}
-                          <div className="h-px bg-white/[0.06]" />
-
-                          {/* Submissions Toggle */}
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="font-bold text-white">Submissions Status</p>
-                              <p className="text-xs text-white/40 mt-0.5">Allow or block new photo submissions</p>
-                            </div>
-                            <button
-                              onClick={() => toggleSubmissions(!submissionsOpen)}
-                              className={cn(
-                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                                submissionsOpen
-                                  ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                                  : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
-                              )}
-                            >
-                              <span className="relative z-10 flex items-center gap-2">
-                                {submissionsOpen ? <Lock size={14} /> : <Unlock size={14} />}
-                                {submissionsOpen ? 'Close Submissions' : 'Open Submissions'}
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Divider */}
-                          <div className="h-px bg-white/[0.06]" />
-
-                          {/* 1 Photo Per User Toggle */}
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="font-bold text-white">1 Photo Per User</p>
-                              <p className="text-xs text-white/40 mt-0.5">Limit each Discord account to one submission</p>
-                            </div>
-                            <button
-                              onClick={() => toggleOnePhotoPerUser(!onePhotoPerUser)}
-                              className={cn(
-                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                                onePhotoPerUser
-                                  ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
-                                  : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
-                              )}
-                            >
-                              <span className="relative z-10 flex items-center gap-2">
-                                {onePhotoPerUser ? <Lock size={14} /> : <Unlock size={14} />}
-                                {onePhotoPerUser ? 'Limit ON' : 'Limit OFF'}
-                              </span>
-                            </button>
-                          </div>
-                          {/* Divider */}
-                          <div className="h-px bg-white/[0.06]" />
-
-                          {/* Test Winner Announcement Toggle */}
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="font-bold text-white">Test Winner Announcement</p>
-                              <p className="text-xs text-white/40 mt-0.5">Force the winner showcase to appear above the hero</p>
-                            </div>
-                            <button
-                              onClick={() => toggleShowWinners(!showWinnersToggle)}
-                              className={cn(
-                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                                showWinnersToggle
-                                  ? "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 hover:bg-fivem-orange/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]"
-                                  : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
-                              )}
-                            >
-                              <span className="relative z-10 flex items-center gap-2">
-                                {showWinnersToggle ? <Unlock size={14} /> : <Lock size={14} />}
-                                {showWinnersToggle ? 'Showing' : 'Hidden'}
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Divider */}
-                          <div className="h-px bg-white/[0.06]" />
-
-                          {/* Image Censoring Keys */}
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="font-bold text-white">Security Keys (Censorship)</p>
-                              <p className="text-xs text-white/40 mt-0.5">Generate RSA Keys to encrypt image URLs securely</p>
-                            </div>
-                            <button
-                              onClick={handleGenerateKeys}
-                              className="relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.2)]"
-                            >
-                              <span className="relative z-10 flex items-center gap-2">
-                                {publicKey ? 'Regenerate Keys' : 'Generate Keys'}
-                              </span>
-                            </button>
-                          </div>
-
-                          <div className="h-px bg-white/[0.06]" />
-
-                          {/* Download Winners */}
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="font-bold text-white">Download Category Winners</p>
-                              <p className="text-xs text-white/40 mt-0.5">Download the current winning photo from each category</p>
-                            </div>
-                            <button
-                              onClick={handleDownloadWinningPhotos}
-                              disabled={!activeContest || winners.length === 0}
-                              className={cn(
-                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                                activeContest && winners.length > 0
-                                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
-                                  : "bg-white/5 text-white/40 border border-white/10 opacity-50 cursor-not-allowed"
-                              )}
-                            >
-                              <span className="relative z-10 flex items-center gap-2">
-                                <Download size={14} />
-                                Download Winners
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Reveal Test Toggle */}
-                          <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
-                            <div>
-                              <p className="font-bold text-emerald-400">Reveal Images (Testing Phase)</p>
-                              <p className="text-xs text-white/40 mt-0.5">Publish Private Key to decrypt images globally</p>
-                            </div>
-                            <button
-                              onClick={() => handleToggleReveal(!privateKey)}
-                              disabled={!publicKey}
-                              className={cn(
-                                "relative shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden",
-                                privateKey
-                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
-                                  : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10",
-                                !publicKey && "opacity-50 cursor-not-allowed"
-                              )}
-                            >
-                              <span className="relative z-10 flex items-center gap-2">
-                                {privateKey ? <Unlock size={14} /> : <Lock size={14} />}
-                                {privateKey ? 'Revealed' : 'Censored'}
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Edit Current Contest */}
-                      {activeContest && (
-                        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-                          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                          <div className="px-6 pt-5 pb-4 border-b border-white/[0.07] flex items-center gap-2">
-                            <div className="w-1 h-4 bg-white/30 rounded-full" />
-                            <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Edit Current Contest</h4>
-                          </div>
-                          <div className="p-6">
-                            <EditContestManager
-                              activeContest={activeContest}
-                              currentRules={rulesMarkdown}
-                              currentCategories={categories}
-                              onUpdated={() => window.location.reload()}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* RIGHT: Create + Danger */}
-                    <div className="space-y-6 flex flex-col">
-
-                      {/* Create New Contest */}
-                      <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/15 bg-fivem-orange/[0.03] flex-1">
-                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent" />
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-fivem-orange/8 blur-[80px] rounded-full pointer-events-none" />
-                        <div className="px-6 pt-5 pb-4 border-b border-fivem-orange/[0.12] flex items-center gap-2">
-                          <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-                          <h4 className="text-[11px] font-mono text-fivem-orange/70 uppercase tracking-[0.2em]">Create New Contest</h4>
-                        </div>
-                        <div className="p-6 relative z-10">
-                          <CreateContestManager onCreated={() => window.location.reload()} />
-                        </div>
-                      </div>
-
-                      {/* Danger Zone */}
-                      <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/[0.03]">
-                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
-                        <div className="px-6 pt-5 pb-4 border-b border-red-500/[0.12] flex items-center gap-2">
-                          <div className="w-1 h-4 bg-red-500/70 rounded-full" />
-                          <AlertCircle size={13} className="text-red-500/80" />
-                          <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Danger Zone</h4>
-                        </div>
-                        <div className="p-6">
-                          <ArchiveContest
-                            onArchived={() => window.location.reload()}
-                            activeContest={activeContest}
-                            categories={categories}
-                            allPhotos={allPhotos}
-                          />
-                        </div>
-                      </div>
-
-                      {/* View Analytics Dashboard */}
-                      <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 bg-blue-500/[0.03]">
-                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none" />
-                        <div className="px-6 pt-5 pb-4 border-b border-blue-500/[0.12] flex items-center gap-2">
-                          <div className="w-1 h-4 bg-blue-500/70 rounded-full" />
-                          <BarChart3 size={13} className="text-blue-500/80" />
-                          <h4 className="text-[11px] font-mono text-blue-500/80 uppercase tracking-[0.2em]">Analytics & Data</h4>
-                        </div>
-                        <div className="p-6 flex flex-col items-center">
-                          <button
-                            onClick={() => {
-                              setShowAdminModal(false);
-                              setShowAnalyticsDashboard(true);
-                            }}
-                            className="w-full relative px-6 py-4 rounded-xl font-bold transition-all duration-300 overflow-hidden bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.1)] hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] group"
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                            <span className="relative z-10 flex items-center justify-center gap-2">
-                              Launch Live Dashboard
-                              <ChevronRight size={16} className="text-blue-500/60 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
-                            </span>
-                          </button>
-                          <p className="text-xs text-white/40 mt-3 text-center">Gain deep insights into voting velocity and contest engagement.</p>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            ) : (
+              <AdminPanel
+                isAdmin={isAdmin}
+                user={user}
+                activeContest={activeContest}
+                categories={categories}
+                allPhotos={allPhotos}
+                votingOpen={votingOpen}
+                submissionsOpen={submissionsOpen}
+                onePhotoPerUser={onePhotoPerUser}
+                showWinnersToggle={showWinnersToggle}
+                publicKey={publicKey}
+                privateKey={privateKey}
+                rulesMarkdown={rulesMarkdown}
+                winners={winners}
+                onToggleVoting={toggleVoting}
+                onToggleSubmissions={toggleSubmissions}
+                onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
+                onToggleShowWinners={toggleShowWinners}
+                onGenerateKeys={handleGenerateKeys}
+                onToggleReveal={handleToggleReveal}
+                onDownloadWinners={handleDownloadWinningPhotos}
+                onDeletePhoto={handleDeletePhoto}
+                onOpenAnalytics={() => {
+                  setShowAdminModal(false);
+                  setShowAnalyticsDashboard(true);
+                }}
+              />
+            )}
           </Suspense>
+
         </DialogContent>
       </Dialog>
 
