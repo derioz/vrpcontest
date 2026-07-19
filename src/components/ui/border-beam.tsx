@@ -1,5 +1,5 @@
 /**
- * MagicUI Border Beam — animated glowing beam that travels along the border
+ * MagicUI Border Beam — animated glowing beam traveling strictly along the card border outline
  * Adapted from https://magicui.design/docs/components/border-beam
  */
 
@@ -9,7 +9,6 @@ import { cn } from "../../lib/utils";
 interface BorderBeamProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number;
   duration?: number;
-  anchor?: number;
   borderWidth?: number;
   colorFrom?: string;
   colorTo?: string;
@@ -19,9 +18,8 @@ interface BorderBeamProps extends React.HTMLAttributes<HTMLDivElement> {
 export function BorderBeam({
   className,
   size = 200,
-  duration = 15,
-  anchor = 90,
-  borderWidth = 1.5,
+  duration = 8,
+  borderWidth = 2,
   colorFrom = "#ea580c",
   colorTo = "#fb923c",
   delay = 0,
@@ -30,35 +28,24 @@ export function BorderBeam({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-0 rounded-[inherit]",
+        "pointer-events-none absolute inset-0 rounded-[inherit] z-30 overflow-hidden",
         className
       )}
-      style={
-        {
-          "--border-beam-size": `${size}px`,
-          "--border-beam-duration": `${duration}s`,
-          "--border-beam-anchor": `${anchor}%`,
-          "--border-beam-border-width": `${borderWidth}px`,
-          "--border-beam-color-from": colorFrom,
-          "--border-beam-color-to": colorTo,
-          "--border-beam-delay": `${delay}s`,
-        } as React.CSSProperties
-      }
+      style={{
+        padding: `${borderWidth}px`,
+        mask: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
+        maskComposite: `exclude`,
+        WebkitMask: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
+        WebkitMaskComposite: `destination-out`,
+      }}
       {...props}
     >
       <div
-        className="absolute inset-[0] rounded-[inherit]"
+        className="absolute inset-[-100%] animate-border-beam"
         style={{
-          borderWidth: "var(--border-beam-border-width)",
-          borderStyle: "solid",
-          borderImage: "none",
-          borderColor: "transparent",
-          maskImage: `conic-gradient(from calc(var(--border-beam-anchor) - 60deg) at 50% 50%, transparent 0%, #000 20%, #000 40%, transparent 50%)`,
-          WebkitMaskImage: `conic-gradient(from calc(var(--border-beam-anchor) - 60deg) at 50% 50%, transparent 0%, #000 20%, #000 40%, transparent 50%)`,
-          background: `conic-gradient(from calc(var(--border-beam-anchor) - 60deg) at 50% 50%, transparent 0%, var(--border-beam-color-from) 20%, var(--border-beam-color-to) 40%, transparent 50%)`,
-          backgroundClip: "border-box",
-          animation: `border-beam-spin var(--border-beam-duration) linear infinite`,
-          animationDelay: "var(--border-beam-delay)",
+          background: `conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 280deg, ${colorFrom} 330deg, ${colorTo} 360deg)`,
+          animationDuration: `${duration}s`,
+          animationDelay: `${delay}s`,
         }}
       />
     </div>

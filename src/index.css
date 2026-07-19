@@ -151,6 +151,95 @@
   animation: admin-pulse var(--pulse-duration, 1.5s) ease-out infinite;
 }
 
+/* Meteor — diagonal shooting star streak */
+@keyframes meteor {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(215deg) translateX(-500px);
+    opacity: 0;
+  }
+}
+
+.animate-meteor {
+  animation: meteor 5s linear infinite;
+}
+
+/* Marquee — infinite horizontal scroll */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+.animate-marquee {
+  animation: marquee var(--duration) linear infinite;
+}
+
+/* Marquee Vertical — infinite vertical scroll */
+@keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration) linear infinite;
+}
+
+/* Ripple — concentric pulsing rings */
+@keyframes ripple {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+.animate-ripple {
+  animation: ripple 4s ease-in-out infinite;
+}
+
+/* Retro Grid — 3D perspective scroll */
+@keyframes grid {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(60px);
+  }
+}
+
+.animate-grid {
+  animation: grid 15s linear infinite;
+}
+
+/* Border Beam — traveling glowing border beam */
+@keyframes border-beam {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-border-beam {
+  animation: border-beam 8s linear infinite;
+}
+
 /* Dot Pattern — used in admin panel backgrounds */
 .dot-pattern {
   background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);

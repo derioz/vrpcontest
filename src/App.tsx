@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -55,6 +55,19 @@ import { Input } from './components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
 import { VoteButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
+import { NumberTicker } from './components/ui/number-ticker';
+import { Meteors } from './components/ui/meteors';
+import { Marquee } from './components/ui/marquee';
+import { DotPattern } from './components/ui/dot-pattern';
+import { Particles } from './components/ui/particles';
+import { BorderBeam } from './components/ui/border-beam';
+import { ShimmerButton } from './components/ui/shimmer-button';
+import { AnimatedShinyText } from './components/ui/animated-shiny-text';
+import { SparklesText } from './components/ui/sparkles-text';
+import { MagicCard } from './components/ui/magic-card';
+import { BlurFade } from './components/ui/blur-fade';
+import { Ripple } from './components/ui/ripple';
+import { RetroGrid } from './components/ui/retro-grid';
 
 // Firebase Integrations
 import { auth, discordProvider, db } from './lib/firebase';
@@ -1166,6 +1179,15 @@ export default function App() {
               <div className="absolute left-[40%] top-[30%] w-[400px] h-[400px] rounded-full bg-orange-400/[0.03] blur-[100px] pointer-events-none" />
             </div>
 
+            {/* ── MagicUI Meteors — cinematic shooting stars ── */}
+            <Meteors number={15} className="z-[1] opacity-40" />
+
+            {/* ── MagicUI Ripple — concentric pulsing rings ── */}
+            <Ripple mainCircleSize={220} numCircles={6} mainCircleOpacity={0.15} className="z-[1] opacity-60 pointer-events-none" />
+
+            {/* ── MagicUI Particles — interactive ambient dots ── */}
+            <Particles className="absolute inset-0 z-[2]" quantity={40} color="#ea580c" size={0.3} staticity={80} ease={80} />
+
             {/* ── Spotlight Cursor Follower ── */}
             <div
               className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-500"
@@ -1175,7 +1197,8 @@ export default function App() {
             />
 
             {/* ── Grid dot overlay (uitripled texture detail) ── */}
-            <div className="absolute inset-0 opacity-[0.025] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+            {/* ── MagicUI DotPattern — cleaner SVG dot overlay ── */}
+            <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.04] z-[1]" />
 
             {/* ── Film grain ── */}
             <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
@@ -1202,7 +1225,9 @@ export default function App() {
                         <circle cx="12" cy="13" r="4" />
                       </svg>
                     </div>
-                    <span>Photo Contest</span>
+                    <AnimatedShinyText shimmerWidth={80}>
+                      <span className="text-white/60">Photo Contest</span>
+                    </AnimatedShinyText>
                     <span className="flex items-center gap-1.5 ml-1 pl-3 border-l border-white/10">
                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                       <span className="text-[9px] tracking-widest text-emerald-400 font-mono font-bold">LIVE</span>
@@ -1210,7 +1235,7 @@ export default function App() {
                   </div>
                 </motion.div>
 
-                {/* Title */}
+                {/* Title with MagicUI SparklesText */}
                 <motion.h2
                   variants={heroItemVariants}
                   className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5 text-white"
@@ -1222,12 +1247,12 @@ export default function App() {
                       const [main, ...rest] = activeContest.name.split(':');
                       return (
                         <>
-                          <span
+                          <SparklesText
+                            text={`${main}:`}
+                            sparklesCount={10}
                             className="block pb-1"
-                            style={{ backgroundImage: 'linear-gradient(to right, #ea580c, #fb923c, #fcd34d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', color: 'transparent' }}
-                          >
-                            {main}:
-                          </span>
+                            colors={{ first: '#ea580c', second: '#fcd34d' }}
+                          />
                           <span className="text-white block mt-1 text-2xl sm:text-3xl lg:text-4xl opacity-90">
                             {rest.join(':').trim()}
                           </span>
@@ -1241,45 +1266,48 @@ export default function App() {
                       <>
                         <span className="text-white">{words[0]}</span>
                         {words.length > 1 && (
-                          <span
-                            style={{ backgroundImage: 'linear-gradient(to right, #ea580c, #fb923c, #fcd34d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', color: 'transparent' }}
-                          >
-                            {' '}{words.slice(1).join(' ')}
-                          </span>
+                          <SparklesText
+                            text={` ${words.slice(1).join(' ')}`}
+                            sparklesCount={8}
+                            colors={{ first: '#ea580c', second: '#fcd34d' }}
+                          />
                         )}
                       </>
                     );
                   })()}
                 </motion.h2>
 
-                {/* Tagline */}
-                <motion.p variants={heroItemVariants} className="text-white/50 text-base leading-relaxed mb-8 max-w-md">
+                {/* Tagline — fixed stable text, zero layout shift */}
+                <motion.p variants={heroItemVariants} className="text-white/60 text-base leading-relaxed mb-8 max-w-md font-medium">
                   Capture the spirit of the city. Submit your finest in-game screenshot, share your story, and let the Vital RP community choose the winners.
                 </motion.p>
 
                 {/* CTAs */}
                 <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3.5 mb-10">
-                  <button
-                    onClick={handleUploadClick}
-                    disabled={!isSubmissionsOpen}
-                    className={cn(
-                      "group relative flex items-center gap-2.5 font-bold px-8 py-4 rounded-xl text-xs uppercase tracking-wider overflow-hidden transition-all duration-300 cursor-pointer active:scale-98",
-                      isSubmissionsOpen
-                        ? "bg-fivem-orange text-white hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(234,88,12,0.4)]"
-                        : "bg-white/10 text-white/30 cursor-not-allowed border border-white/10"
-                    )}
-                  >
-                    {isSubmissionsOpen && <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />}
-                    {isSubmissionsOpen ? (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+                  {isSubmissionsOpen ? (
+                    <ShimmerButton
+                      onClick={handleUploadClick}
+                      shimmerColor="#fb923c"
+                      shimmerDuration="3s"
+                      background="rgba(234,88,12,0.95)"
+                      borderRadius="0.75rem"
+                      className="px-8 py-4 text-xs uppercase tracking-wider cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(234,88,12,0.4)] transition-all duration-300"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
-                    ) : (
+                      Submit Your Shot
+                    </ShimmerButton>
+                  ) : (
+                    <button
+                      disabled
+                      className="group relative flex items-center gap-2.5 font-bold px-8 py-4 rounded-xl text-xs uppercase tracking-wider bg-white/10 text-white/30 cursor-not-allowed border border-white/10"
+                    >
                       <Lock size={15} className="relative z-10" />
-                    )}
-                    <span className="relative z-10">{isSubmissionsOpen ? 'Submit Your Shot' : 'Submissions Closed'}</span>
-                  </button>
+                      <span className="relative z-10">Submissions Closed</span>
+                    </button>
+                  )}
                   <a
                     href="#rules"
                     onClick={(e) => {
@@ -1294,19 +1322,24 @@ export default function App() {
                 </motion.div>
 
                 {/* Stats row inside left column for cohesive ElevenLabs look */}
-                <motion.div variants={heroItemVariants} className="grid grid-cols-4 gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[#0c0c0e]/40 backdrop-blur-sm max-w-md">
+                <motion.div variants={heroItemVariants} className="relative grid grid-cols-4 gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[#0c0c0e]/40 backdrop-blur-sm max-w-md overflow-hidden">
+                  <BorderBeam size={120} duration={12} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1} />
                   {[
-                    { value: categories.length, label: 'Topics' },
-                    { value: allPhotos.length, label: 'Submissions' },
-                    { value: allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Total Votes' },
-                    { value: isVotingOpen ? 'Open' : 'Closed', label: 'Voting Status', status: true }
+                    { value: categories.length, label: 'Topics', isNum: true },
+                    { value: allPhotos.length, label: 'Submissions', isNum: true },
+                    { value: allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Total Votes', isNum: true },
+                    { value: isVotingOpen ? 'Open' : 'Closed', label: 'Voting Status', status: true, isNum: false }
                   ].map((stat) => (
                     <div key={stat.label} className="flex flex-col leading-none">
                       <span className={cn(
                         "text-base font-black font-display mb-1",
                         stat.status ? (isVotingOpen ? "text-emerald-400" : "text-amber-400") : "text-white"
                       )}>
-                        {stat.value}
+                        {stat.isNum ? (
+                          <NumberTicker value={stat.value as number} delay={0.3} />
+                        ) : (
+                          stat.value
+                        )}
                       </span>
                       <span className="text-[8px] font-mono uppercase tracking-wider text-white/30">{stat.label}</span>
                     </div>
@@ -1560,8 +1593,8 @@ export default function App() {
               {/* ========================================= */}
               <div className="hidden sm:block relative overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.015] shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-6 backdrop-blur-md">
                 
-                {/* Background dot pattern overlay for dashboard aesthetics */}
-                <div className="absolute inset-0 dot-pattern opacity-30 pointer-events-none" />
+                {/* Background MagicUI DotPattern overlay */}
+                <DotPattern width={24} height={24} cr={1.2} className="opacity-35 z-0 pointer-events-none" />
                 
                 {/* Ambient glow light spot behind title */}
                 <div className="absolute -top-24 -left-24 w-64 h-64 bg-fivem-orange/10 blur-[90px] rounded-full pointer-events-none" />
@@ -1577,89 +1610,95 @@ export default function App() {
                       <h3 className="text-sm font-black text-white uppercase tracking-wider font-display">
                         Filter Submissions by Category
                       </h3>
-                      <span className="text-xs font-mono text-white/40">({categories.length} topics live)</span>
+                      <span className="text-xs font-mono text-white/40">(<NumberTicker value={categories.length} /> topics live)</span>
                     </div>
                     
                     <div className="flex items-center gap-4 text-xs font-mono text-white/40">
                       <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span>Contest Entries:</span>
-                        <span className="font-black text-white font-display text-base">{allPhotos.length}</span>
+                        <span className="font-black text-white font-display text-base"><NumberTicker value={allPhotos.length} /></span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Grid layout */}
+                  {/* Grid layout with MagicUI BlurFade & MagicCard */}
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {categories.map((cat) => {
+                    {categories.map((cat, catIdx) => {
                       const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
                       const isActive = selectedCategory?.id === cat.id;
                       const totalAll = allPhotos.length;
                       const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
 
                       return (
-                        <button
-                          key={cat.id}
-                          onClick={() => setSelectedCategory(cat)}
-                          className={cn(
-                            "group/cat relative flex flex-col justify-between p-5 rounded-2xl border text-left transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1 hover:shadow-lg",
-                            isActive
-                              ? "bg-gradient-to-b from-fivem-orange/[0.03] to-fivem-orange/[0.08] border-fivem-orange/60 text-white shadow-[0_8px_24px_rgba(234,88,12,0.18)]"
-                              : "bg-[#0b0b0d]/50 hover:bg-[#121215]/80 border-white/[0.06] hover:border-white/15 text-white/60 hover:text-white"
-                          )}
-                        >
-                          {/* Inner shining hover gradient overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.015] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        <BlurFade key={cat.id} delay={catIdx * 0.04} duration={0.3} className="h-full">
+                          <MagicCard
+                            active={isActive}
+                            borderBeamProps={{ size: 220, duration: 6, colorFrom: "#ea580c", colorTo: "#fcd34d", borderWidth: 2 }}
+                            gradientColor={isActive ? "rgba(234, 88, 12, 0.28)" : "rgba(255, 255, 255, 0.08)"}
+                            className={cn(
+                              "group/cat relative flex flex-col justify-between p-5 rounded-2xl border text-left transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1 hover:shadow-lg h-full",
+                              isActive
+                                ? "bg-gradient-to-b from-fivem-orange/[0.03] to-fivem-orange/[0.08] border-fivem-orange/60 text-white shadow-[0_8px_24px_rgba(234,88,12,0.18)]"
+                                : "bg-[#0b0b0d]/50 hover:bg-[#121215]/80 border-white/[0.06] hover:border-white/15 text-white/60 hover:text-white"
+                            )}
+                            onClick={() => setSelectedCategory(cat)}
+                          >
+                            {/* Inner shining hover gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.015] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-                          <div className="w-full">
-                            <div className="flex items-start justify-between gap-3 mb-3.5">
-                              <span className="text-3xl group-hover/cat:scale-110 transition-transform duration-350 leading-none block">{cat.emoji || '✨'}</span>
-                              <div className={cn(
-                                "w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-300",
-                                isActive 
-                                  ? "border-fivem-orange bg-fivem-orange/20 shadow-[0_0_8px_rgba(234,88,12,0.35)]"
-                                  : "border-white/15 bg-transparent group-hover/cat:border-white/30"
+                            <div className="w-full">
+                              <div className="flex items-start justify-between gap-3 mb-3.5">
+                                <span className="text-3xl group-hover/cat:scale-110 transition-transform duration-350 leading-none block">{cat.emoji || '✨'}</span>
+                                <div className={cn(
+                                  "w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-300",
+                                  isActive 
+                                    ? "border-fivem-orange bg-fivem-orange/20 shadow-[0_0_8px_rgba(234,88,12,0.35)]"
+                                    : "border-white/15 bg-transparent group-hover/cat:border-white/30"
+                                )}>
+                                  {isActive && (
+                                    <span className="w-1.5 h-1.5 rounded-sm bg-fivem-orange" />
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <span className={cn(
+                                "block text-[14px] font-bold leading-tight mb-1.5 transition-colors",
+                                isActive ? "text-white" : "text-white/80 group-hover/cat:text-white"
                               )}>
-                                {isActive && (
-                                  <span className="w-1.5 h-1.5 rounded-sm bg-fivem-orange" />
-                                )}
+                                {cat.name}
+                              </span>
+                              
+                              {cat.description && (
+                                <span className="block text-[11px] text-white/40 leading-relaxed mb-5">
+                                  {cat.description}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Stat details with progress bar & NumberTicker */}
+                            <div className="w-full mt-auto pt-3.5 border-t border-white/5 flex flex-col gap-2">
+                              <div className="flex items-center justify-between text-[9px] font-mono text-white/30">
+                                <span className="uppercase tracking-wider">
+                                  <NumberTicker value={entryCount} /> submissions
+                                </span>
+                                <span className={cn("font-bold transition-all", isActive ? "text-fivem-orange font-black" : "text-white/40")}>
+                                  {pct}%
+                                </span>
+                              </div>
+                              {/* Horizontal Progress Bar */}
+                              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all duration-500",
+                                    isActive ? "bg-gradient-to-r from-fivem-orange to-orange-400 shadow-[0_0_8px_rgba(234,88,12,0.4)]" : "bg-white/20 group-hover/cat:bg-white/40"
+                                  )}
+                                  style={{ width: `${pct}%` }}
+                                />
                               </div>
                             </div>
-                            
-                            <span className={cn(
-                              "block text-[14px] font-bold leading-tight mb-1.5 transition-colors",
-                              isActive ? "text-white" : "text-white/80 group-hover/cat:text-white"
-                            )}>
-                              {cat.name}
-                            </span>
-                            
-                            {cat.description && (
-                              <span className="block text-[11px] text-white/40 leading-relaxed mb-5">
-                                {cat.description}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Stat details with progress bar */}
-                          <div className="w-full mt-auto pt-3.5 border-t border-white/5 flex flex-col gap-2">
-                            <div className="flex items-center justify-between text-[9px] font-mono text-white/30">
-                              <span className="uppercase tracking-wider">{entryCount} submissions</span>
-                              <span className={cn("font-bold transition-all", isActive ? "text-fivem-orange font-black" : "text-white/40")}>
-                                {pct}%
-                              </span>
-                            </div>
-                            {/* Horizontal Progress Bar */}
-                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                              <div
-                                className={cn(
-                                  "h-full rounded-full transition-all duration-500",
-                                  isActive ? "bg-gradient-to-r from-fivem-orange to-orange-400 shadow-[0_0_8px_rgba(234,88,12,0.4)]" : "bg-white/20 group-hover/cat:bg-white/40"
-                                )}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                          </div>
-                        </button>
+                          </MagicCard>
+                        </BlurFade>
                       );
                     })}
                   </div>
@@ -1739,20 +1778,19 @@ export default function App() {
                   {sortedPhotos.map((photo, index) => {
                     const rankEmoji = sortBy === 'top' ? (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null) : null;
                     return (
-                      <motion.div
-                        layout
-                        key={photo.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className={cn(
-                          "relative group bg-fivem-card rounded-2xl overflow-hidden border transition-all",
-                          sortBy === 'top' && index === 0
-                            ? "md:col-span-2 ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
-                            : "border-white/5 hover:border-fivem-orange/30"
-                        )}
-                      >
-                        <div className={cn("relative overflow-hidden cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
+                        <BlurFade key={photo.id} delay={index * 0.04} duration={0.35} className={cn(sortBy === 'top' && index === 0 ? "md:col-span-2" : "")}>
+                          <MagicCard
+                            active={sortBy === 'top' && index === 0}
+                            borderBeamProps={{ size: 280, duration: 10, colorFrom: "#ea580c", colorTo: "#fcd34d", borderWidth: 2 }}
+                            gradientColor="rgba(234, 88, 12, 0.16)"
+                            className={cn(
+                              "relative group bg-fivem-card rounded-2xl overflow-hidden border transition-all h-full",
+                              sortBy === 'top' && index === 0
+                                ? "ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
+                                : "border-white/5 hover:border-fivem-orange/30"
+                            )}
+                          >
+                          <div className={cn("relative overflow-hidden cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
                           <img
                             src={photo.image_url}
                             alt={photo.caption}
@@ -1823,9 +1861,10 @@ export default function App() {
                             {new Date(photo.created_at).toLocaleDateString()}
                           </p>
                         </div>
-                      </motion.div>
-                    );
-                  })}
+                      </MagicCard>
+                    </BlurFade>
+                  );
+                })}
                 </AnimatePresence>
               </div>
             )}
@@ -1865,6 +1904,7 @@ export default function App() {
             <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Your Profile</h2>
             {user ? (
               <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-md">
+                <BorderBeam size={150} duration={14} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
                 <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-fivem-orange/10 blur-[50px] pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col gap-6">
@@ -1892,11 +1932,11 @@ export default function App() {
 
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     <div className="rounded-xl bg-black/20 p-3 border border-white/5 flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors cursor-default">
-                      <span className="text-2xl font-display font-bold text-white">{userSubmissionCount}</span>
+                      <span className="text-2xl font-display font-bold text-white"><NumberTicker value={userSubmissionCount} /></span>
                       <span className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Submissions</span>
                     </div>
                     <div className="rounded-xl bg-fivem-orange/10 p-3 border border-fivem-orange/20 flex flex-col items-center justify-center text-center hover:bg-fivem-orange/20 transition-colors cursor-default">
-                      <span className="text-2xl font-display font-bold text-fivem-orange">{userTotalVotes}</span>
+                      <span className="text-2xl font-display font-bold text-fivem-orange"><NumberTicker value={userTotalVotes} /></span>
                       <span className="text-[10px] text-fivem-orange/60 uppercase tracking-widest mt-1">Total Votes</span>
                     </div>
                   </div>
@@ -1987,25 +2027,27 @@ export default function App() {
             </button>
           </section>
 
-          {/* Contest Quick Facts */}
+          {/* Contest Quick Facts with RetroGrid */}
           {activeContest && (
-            <section className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-3">
-              <h3 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em]">Contest Info</h3>
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <Trophy size={14} className="text-fivem-orange shrink-0" />
-                  <p className="text-xs text-white/70 font-medium truncate">{activeContest.name}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar size={14} className="text-white/30 shrink-0" />
-                  <p className="text-xs text-white/40">{categories.length} categories active</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <ImageIcon size={14} className="text-white/30 shrink-0" />
-                  <p className="text-xs text-white/40">{allPhotos.length} total entries</p>
+            <section className="relative overflow-hidden p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-3">
+              <RetroGrid angle={65} className="z-0 opacity-25" />
+              <div className="relative z-10 space-y-3">
+                <h3 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em]">Contest Info</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <Trophy size={14} className="text-fivem-orange shrink-0" />
+                    <p className="text-xs text-white/70 font-medium truncate">{activeContest.name}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar size={14} className="text-white/30 shrink-0" />
+                    <p className="text-xs text-white/40">{categories.length} categories active</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <ImageIcon size={14} className="text-white/30 shrink-0" />
+                    <p className="text-xs text-white/40">{allPhotos.length} total entries</p>
+                  </div>
                 </div>
               </div>
-
             </section>
           )}
 
@@ -2143,6 +2185,28 @@ export default function App() {
       </AnimatePresence>
 
       {/* ── Footer ── */}
+      {/* ── MagicUI Marquee — scrolling community ticker ── */}
+      <div className="relative overflow-hidden border-t border-white/[0.07] bg-[#050505] py-3">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-[#050505] z-10 pointer-events-none" />
+        <Marquee pauseOnHover duration={50} className="[--gap:2rem]">
+          {[
+            '📸 Vital RP Photo Contest',
+            '🏆 Submit Your Best Shot',
+            '🎮 FiveM Community',
+            '⭐ Vote for Your Favorites',
+            '🔥 Capture the Spirit of the City',
+            '✨ Winners Announced Weekly',
+            '🎯 In-Game Screenshots Only',
+            '💎 Premium Photography Contest',
+          ].map((text, i) => (
+            <span key={i} className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.2em] text-white/20 whitespace-nowrap">
+              {text}
+              <span className="w-1 h-1 rounded-full bg-fivem-orange/30" />
+            </span>
+          ))}
+        </Marquee>
+      </div>
+
       <footer className="relative overflow-hidden border-t border-white/[0.07] bg-[#060606] mt-auto">
         {/* Ambient glow */}
         <div className="absolute inset-0 pointer-events-none">
