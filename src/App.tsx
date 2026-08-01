@@ -450,16 +450,24 @@ export default function App() {
     };
   }, [user]);
 
-  // Track which photos the current user has voted on (real-time)
-  useEffect(() => {
-    if (!user) {
-      setVotedPhotoIds(new Set());
-      return;
+  const getViewerId = (): string => {
+    let vid = localStorage.getItem('vrp_viewer_id');
+    if (!vid) {
+      vid = 'viewer_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+      localStorage.setItem('vrp_viewer_id', vid);
     }
-    const q = query(collection(db, 'votes'), where('voterUid', '==', user.uid));
+    return vid;
+  };
+
+  // Track which photos the current user/viewer has voted on (real-time)
+  useEffect(() => {
+    const currentUid = user?.uid || getViewerId();
+    const q = query(collection(db, 'votes'), where('voterUid', '==', currentUid));
     const unsub = onSnapshot(q, (snapshot) => {
       const ids = new Set(snapshot.docs.map(d => d.data().photoId as string));
       setVotedPhotoIds(ids);
+    }, (err) => {
+      console.error("Voted photos listener error:", err);
     });
     return () => unsub();
   }, [user]);
@@ -582,15 +590,20 @@ export default function App() {
     }
 
     let currentUser = user;
+    let voterUid = currentUser?.uid;
+
     if (!currentUser) {
       try {
         const userCred = await signInAnonymously(auth);
         currentUser = userCred.user;
+        voterUid = currentUser.uid;
       } catch (error) {
-        console.error("Anonymous auth error:", error);
-        toast.error('Failed to authenticate viewer for voting');
-        return;
+        console.warn("Anonymous auth unavailable, using persistent viewer ID:", error);
       }
+    }
+
+    if (!voterUid) {
+      voterUid = getViewerId();
     }
 
     let currentName = playerName;
@@ -605,11 +618,11 @@ export default function App() {
       localStorage.setItem('fivem_player_name', currentName);
     }
     if (!currentName) {
-      currentName = currentUser.displayName || 'Viewer';
+      currentName = currentUser?.displayName || 'Viewer';
     }
 
     try {
-      const voteRef = doc(db, 'votes', `${photoId}_${currentUser.uid}`);
+      const voteRef = doc(db, 'votes', `${photoId}_${voterUid}`);
       const voteSnap = await getDoc(voteRef);
       const photoRef = doc(db, 'photos', photoId);
 
@@ -623,16 +636,16 @@ export default function App() {
         await setDoc(voteRef, {
           photoId,
           voterName: currentName,
-          voterUid: currentUser.uid,
-          voterDiscord: currentUser.displayName || currentName,
+          voterUid: voterUid,
+          voterDiscord: currentUser?.displayName || currentName,
           timestamp: new Date().toISOString()
         });
         await updateDoc(photoRef, { vote_count: increment(1) });
         toast.success('Vote recorded!');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Vote Error:", error);
-      toast.error('Network error or vote failed');
+      toast.error(error?.message || 'Network error or vote failed');
     }
   };
 
@@ -1868,7 +1881,7 @@ export default function App() {
                               photoId={photo.id}
                               voteCount={photo.vote_count || 0}
                               hasVoted={votedPhotoIds.has(photo.id)}
-                              votingOpen={votingOpen}
+                              votingOpen={isVotingOpen}
                               categorySharePct={(() => {
                                 const total = photos.reduce((s, p) => s + (p.vote_count || 0), 0);
                                 return total > 0 ? Math.round(((photo.vote_count || 0) / total) * 100) : 0;
