@@ -72,7 +72,7 @@ import { RetroGrid } from './components/ui/retro-grid';
 
 // Firebase Integrations
 import { auth, discordProvider, db } from './lib/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User as FirebaseUser } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User as FirebaseUser } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
 import { Category, Photo, Rule, Theme } from './types';
@@ -315,7 +315,7 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
 
-      if (!currentUser) {
+      if (!currentUser || currentUser.isAnonymous) {
         setIsAdmin(false);
         return;
       }
@@ -400,7 +400,7 @@ export default function App() {
 
   // Track User Submissions and Votes
   useEffect(() => {
-    if (!user || !user.displayName) {
+    if (!user || user.isAnonymous || !user.displayName) {
       setUserSubmissionCount(0);
       setUserTotalVotes(0);
       return;
@@ -583,12 +583,18 @@ export default function App() {
 
     let currentUser = user;
     if (!currentUser) {
-      setShowSignInModal(true);
-      return;
+      try {
+        const userCred = await signInAnonymously(auth);
+        currentUser = userCred.user;
+      } catch (error) {
+        console.error("Anonymous auth error:", error);
+        toast.error('Failed to authenticate viewer for voting');
+        return;
+      }
     }
 
     let currentName = playerName;
-    if (!currentName) {
+    if (!currentName && currentUser && !currentUser.isAnonymous) {
       const promptedName = window.prompt("Please enter your Vital RP Character Name to vote:");
       if (!promptedName) {
         toast.error('Player name is required to vote');
@@ -597,6 +603,9 @@ export default function App() {
       currentName = promptedName;
       setPlayerName(currentName);
       localStorage.setItem('fivem_player_name', currentName);
+    }
+    if (!currentName) {
+      currentName = currentUser.displayName || 'Viewer';
     }
 
     try {
@@ -615,7 +624,7 @@ export default function App() {
           photoId,
           voterName: currentName,
           voterUid: currentUser.uid,
-          voterDiscord: currentUser.displayName,
+          voterDiscord: currentUser.displayName || currentName,
           timestamp: new Date().toISOString()
         });
         await updateDoc(photoRef, { vote_count: increment(1) });
@@ -995,7 +1004,7 @@ export default function App() {
             className="hidden md:flex items-center gap-3 shrink-0"
           >
             {/* User avatar or Sign In */}
-            {user ? (
+            {user && !user.isAnonymous ? (
               <div className="group/user relative flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-xl
                 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20
                 transition-all duration-300 shadow-sm cursor-default"
@@ -1107,7 +1116,7 @@ export default function App() {
                 {/* Account Section */}
                 <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
                   <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Account details</span>
-                  {user ? (
+                  {user && !user.isAnonymous ? (
                     <div className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
                       <div className="flex items-center gap-3">
                         {user.photoURL ? (
@@ -1920,7 +1929,7 @@ export default function App() {
           {/* Profile */}
           <section>
             <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Your Profile</h2>
-            {user ? (
+            {user && !user.isAnonymous ? (
               <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-md">
                 <BorderBeam size={150} duration={14} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
                 <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-fivem-orange/10 blur-[50px] pointer-events-none" />
