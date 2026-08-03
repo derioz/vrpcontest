@@ -70,9 +70,10 @@ import { BlurFade } from './components/ui/blur-fade';
 import { Ripple } from './components/ui/ripple';
 import { RetroGrid } from './components/ui/retro-grid';
 
-// Firebase Integrations
+// Integrations
 import { auth, discordProvider, db } from './lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User as FirebaseUser } from 'firebase/auth';
+import { supabase } from './lib/supabase';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
 import { Category, Photo, Rule, Theme } from './types';
@@ -143,7 +144,7 @@ export default function App() {
   const [showArchivedWinners, setShowArchivedWinners] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -310,65 +311,86 @@ export default function App() {
     toast.success('Link copied to clipboard!');
   };
 
-  // Listen for Firebase Auth state changes
+  // Listen for Supabase Auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-
-      if (!currentUser || currentUser.isAnonymous) {
+    const handleSessionUser = async (currentUser: any) => {
+      if (!currentUser) {
+        setUser(null);
         setIsAdmin(false);
         return;
       }
 
-      // Debug: Log user info to help troubleshoot
-      console.log('Firebase Auth User:', {
-        uid: currentUser.uid,
-        displayName: currentUser.displayName,
+      // Map Supabase user metadata for compatibility with existing UI
+      const meta = currentUser.user_metadata || {};
+      const displayName = meta.full_name || meta.name || meta.custom_claims?.global_name || currentUser.email || 'Discord User';
+      const photoURL = meta.avatar_url || meta.picture || '';
+
+      const normalizedUser = {
+        uid: currentUser.id,
+        id: currentUser.id,
+        displayName,
+        email: currentUser.email || '',
+        photoURL,
+        providerData: currentUser.identities ? currentUser.identities.map((id: any) => ({
+          providerId: id.provider === 'discord' ? 'oidc.discord' : id.provider,
+          uid: id.id || id.identity_data?.sub || currentUser.id,
+          displayName,
+          email: currentUser.email
+        })) : [{ providerId: 'oidc.discord', uid: currentUser.id, displayName, email: currentUser.email }],
+        rawSupabaseUser: currentUser,
+      };
+
+      setUser(normalizedUser);
+
+      console.log('Supabase Auth User:', {
+        uid: currentUser.id,
+        displayName,
         email: currentUser.email,
-        providerData: currentUser.providerData.map(p => ({
-          providerId: p.providerId,
-          uid: p.uid,
-          displayName: p.displayName,
-          email: p.email
-        }))
+        metadata: meta
       });
 
-      // Check for email/password user (admin) — email-link users are NOT admins
+      // Check for admin status - check user ID and discord sub ID against Firestore admins collection
       try {
-        const tokenResult = await currentUser.getIdTokenResult();
-        if (tokenResult.signInProvider === 'password') {
-          setIsAdmin(true);
-          return;
+        const idsToCheck = new Set<string>([currentUser.id]);
+        if (meta.sub) idsToCheck.add(meta.sub);
+        if (meta.provider_id) idsToCheck.add(meta.provider_id);
+        if (currentUser.identities) {
+          currentUser.identities.forEach((idObj: any) => {
+            if (idObj.id) idsToCheck.add(idObj.id);
+            if (idObj.identity_data?.sub) idsToCheck.add(idObj.identity_data.sub);
+          });
         }
-      } catch (e) {
-        console.warn('Could not determine sign-in provider:', e);
-      }
-
-      // Check for Discord admin â€” look up by document ID
-      try {
-        const discordProfile = currentUser.providerData.find(p => p.providerId === 'oidc.discord');
-        const idsToCheck = new Set([currentUser.uid]);
-        if (discordProfile?.uid) idsToCheck.add(discordProfile.uid);
 
         console.log('Admin check - trying IDs:', [...idsToCheck]);
 
         for (const id of idsToCheck) {
           const adminDoc = await getDoc(doc(db, 'admins', id));
           if (adminDoc.exists()) {
-            console.log('âœ… Admin matched:', id);
+            console.log('✅ Admin matched:', id);
             setIsAdmin(true);
             return;
           }
         }
 
-        console.log('âŒ No admin match. Add one of these IDs to the "admins" collection:', [...idsToCheck]);
+        console.log('❌ No admin match. Add one of these IDs to the "admins" collection:', [...idsToCheck]);
         setIsAdmin(false);
       } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
       }
+    };
+
+    // Fetch initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSessionUser(session?.user ?? null);
     });
-    return () => unsubscribe();
+
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleSessionUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Handle email link sign-in callback (magic link from email)
@@ -842,25 +864,33 @@ export default function App() {
 
   const handleDiscordLogin = async () => {
     try {
-      await signInWithPopup(auth, discordProvider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) {
+        toast.error(`Authentication failed: ${error.message}`);
+        return false;
+      }
       return true;
     } catch (error: any) {
       console.error("Detailed Discord Auth Error:", error);
-
-      if (error.code === 'auth/popup-closed-by-user') {
-        return false;
-      }
-
-      // Handle common configuration errors with helpful messages
-      if (error.code === 'auth/unauthorized-domain') {
-        toast.error('This domain is not authorized in Firebase. Add your Vercel URL to "Authorized Domains" in the Firebase Console.');
-      } else if (error.code === 'auth/operation-not-allowed') {
-        toast.error('Discord login is not enabled in Firebase. Enable it in the "Sign-in method" tab.');
-      } else {
-        toast.error(`Authentication failed: ${error.message || 'Unknown error'}`);
-      }
-
+      toast.error(`Authentication failed: ${error.message || 'Unknown error'}`);
       return false;
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setIsAdmin(false);
+      toast.success("Signed out successfully");
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      toast.error("Failed to sign out");
     }
   };
 
@@ -1018,31 +1048,40 @@ export default function App() {
           >
             {/* User avatar or Sign In */}
             {user && !user.isAnonymous ? (
-              <div className="group/user relative flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-xl
-                border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20
-                transition-all duration-300 shadow-sm cursor-default"
-              >
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt=""
-                    className="w-6 h-6 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
-                    {user.displayName?.[0] || user.email?.[0] || 'U'}
-                  </div>
-                )}
-                
-                <div className="flex flex-col items-start leading-none gap-0.5">
-                  <span className="text-[13px] font-bold text-white/80 group-hover/user:text-white transition-colors">
-                    {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
-                    <span className="text-[8px] font-mono tracking-widest uppercase text-emerald-400 font-bold">Online</span>
+              <div className="flex items-center gap-2">
+                <div className="group/user relative flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-xl
+                  border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20
+                  transition-all duration-300 shadow-sm cursor-default"
+                >
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt=""
+                      className="w-6 h-6 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
+                      {user.displayName?.[0] || user.email?.[0] || 'U'}
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col items-start leading-none gap-0.5">
+                    <span className="text-[13px] font-bold text-white/80 group-hover/user:text-white transition-colors">
+                      {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
+                      <span className="text-[8px] font-mono tracking-widest uppercase text-emerald-400 font-bold">Online</span>
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                  className="p-2 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-red-500/10 hover:border-red-500/30 text-white/50 hover:text-red-400 transition-all cursor-pointer"
+                >
+                  <LogOut size={14} />
+                </button>
               </div>
             ) : (
               <button
