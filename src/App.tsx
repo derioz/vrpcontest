@@ -358,7 +358,8 @@ export default function App() {
         metadata: meta
       });
 
-      // Check for admin status - check email, Discord ID, and Supabase User ID against Firestore admins collection
+      // Check for admin status
+      // Uses env-var list first (works without Firestore rules), then Firestore fallback
       try {
         // 1. Superadmin email check
         const userEmail = (currentUser.email || meta.email || '').toLowerCase();
@@ -382,22 +383,39 @@ export default function App() {
           });
         }
 
-        console.log('Admin check - trying IDs:', [...idsToCheck]);
+        console.log('Admin check - user IDs:', [...idsToCheck]);
 
+        // 3. Check against env-var admin list (primary — no Firestore rules needed)
+        const envAdminIds = (import.meta.env.VITE_ADMIN_DISCORD_IDS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
         for (const id of idsToCheck) {
-          try {
-            const adminDoc = await getDoc(doc(db, 'admins', id));
-            if (adminDoc.exists()) {
-              console.log('✅ Admin matched with ID:', id);
-              setIsAdmin(true);
-              return;
-            }
-          } catch (docErr) {
-            console.warn(`Firestore admin lookup warning for ID ${id}:`, docErr);
+          if (envAdminIds.includes(id)) {
+            console.log('✅ Admin matched via VITE_ADMIN_DISCORD_IDS env var, ID:', id);
+            setIsAdmin(true);
+            return;
           }
         }
 
-        console.log('❌ No admin match. Add one of these IDs to the "admins" collection:', [...idsToCheck]);
+        // 4. Firestore admins collection fallback
+        let firestoreChecked = false;
+        for (const id of idsToCheck) {
+          try {
+            const adminDoc = await getDoc(doc(db, 'admins', id));
+            firestoreChecked = true;
+            if (adminDoc.exists()) {
+              console.log('✅ Admin matched via Firestore admins collection, ID:', id);
+              setIsAdmin(true);
+              return;
+            }
+          } catch (docErr: any) {
+            console.warn(`Firestore admin lookup failed for ID ${id}:`, docErr?.code || docErr?.message || docErr);
+          }
+        }
+
+        if (!firestoreChecked) {
+          console.warn('⚠️ All Firestore admin lookups failed (rules may not be deployed). Add your Discord ID to VITE_ADMIN_DISCORD_IDS env var.');
+        }
+
+        console.log('❌ No admin match. Add one of these IDs to VITE_ADMIN_DISCORD_IDS or the Firestore "admins" collection:', [...idsToCheck]);
         setIsAdmin(false);
       } catch (error) {
         console.error("Error checking admin status:", error);
