@@ -325,18 +325,26 @@ export default function App() {
       const displayName = meta.full_name || meta.name || meta.custom_claims?.global_name || currentUser.email || 'Discord User';
       const photoURL = meta.avatar_url || meta.picture || '';
 
+      const discordId = 
+        meta.provider_id || 
+        meta.sub || 
+        currentUser.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
+        currentUser.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
+        currentUser.identities?.find((i: any) => i.provider === 'discord')?.id;
+
       const normalizedUser = {
         uid: currentUser.id,
         id: currentUser.id,
+        discordId: discordId ? String(discordId) : null,
         displayName,
         email: currentUser.email || '',
         photoURL,
         providerData: currentUser.identities ? currentUser.identities.map((id: any) => ({
           providerId: id.provider === 'discord' ? 'oidc.discord' : id.provider,
-          uid: id.id || id.identity_data?.sub || currentUser.id,
+          uid: discordId ? String(discordId) : (id.id || id.identity_data?.sub || currentUser.id),
           displayName,
           email: currentUser.email
-        })) : [{ providerId: 'oidc.discord', uid: currentUser.id, displayName, email: currentUser.email }],
+        })) : [{ providerId: 'oidc.discord', uid: discordId ? String(discordId) : currentUser.id, displayName, email: currentUser.email }],
         rawSupabaseUser: currentUser,
       };
 
@@ -344,20 +352,24 @@ export default function App() {
 
       console.log('Supabase Auth User:', {
         uid: currentUser.id,
+        discordId,
         displayName,
         email: currentUser.email,
         metadata: meta
       });
 
-      // Check for admin status - check user ID and discord sub ID against Firestore admins collection
+      // Check for admin status - check Discord ID and Supabase User ID against Firestore admins collection
       try {
-        const idsToCheck = new Set<string>([currentUser.id]);
-        if (meta.sub) idsToCheck.add(meta.sub);
-        if (meta.provider_id) idsToCheck.add(meta.provider_id);
+        const idsToCheck = new Set<string>();
+        if (discordId) idsToCheck.add(String(discordId));
+        idsToCheck.add(String(currentUser.id));
+        if (meta.sub) idsToCheck.add(String(meta.sub));
+        if (meta.provider_id) idsToCheck.add(String(meta.provider_id));
         if (currentUser.identities) {
           currentUser.identities.forEach((idObj: any) => {
-            if (idObj.id) idsToCheck.add(idObj.id);
-            if (idObj.identity_data?.sub) idsToCheck.add(idObj.identity_data.sub);
+            if (idObj.id) idsToCheck.add(String(idObj.id));
+            if (idObj.identity_data?.sub) idsToCheck.add(String(idObj.identity_data.sub));
+            if (idObj.identity_data?.provider_id) idsToCheck.add(String(idObj.identity_data.provider_id));
           });
         }
 
@@ -2496,22 +2508,30 @@ export default function App() {
                   </motion.button>
 
                   {user && (
-                    <div className="mt-4 p-3 rounded-2xl bg-black/40 border border-white/10 text-left space-y-1.5">
+                    <div className="mt-4 p-3 rounded-2xl bg-black/40 border border-white/10 text-left space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Your Admin Setup ID</span>
+                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Discord User ID</span>
                         <button
                           onClick={() => {
-                            const idToCopy = user.uid || user.id;
-                            navigator.clipboard.writeText(idToCopy);
-                            toast.success("User ID copied to clipboard!");
+                            const idToCopy = user.discordId || user.uid || user.id;
+                            navigator.clipboard.writeText(String(idToCopy));
+                            toast.success("Discord User ID copied to clipboard!");
                           }}
                           className="text-[10px] font-mono text-fivem-orange hover:underline cursor-pointer font-bold"
                         >
-                          Copy ID
+                          Copy Discord ID
                         </button>
                       </div>
-                      <p className="text-[11px] font-mono text-white/80 select-all break-all">{user.uid || user.id}</p>
-                      <p className="text-[10px] text-white/40 leading-snug">Add this ID as a document in the Firestore <code className="text-fivem-orange font-mono">admins</code> collection to gain admin access.</p>
+                      <p className="text-[11px] font-mono text-white/90 select-all break-all">{user.discordId || user.uid || user.id}</p>
+
+                      {user.discordId && user.discordId !== user.uid && (
+                        <div className="pt-1.5 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-white/30 uppercase tracking-wider">Supabase Auth ID</span>
+                          <span className="text-[10px] font-mono text-white/40 select-all break-all">{user.uid}</span>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-white/40 leading-snug pt-0.5">Ensure this Discord User ID exists as a document ID in the Firestore <code className="text-fivem-orange font-mono">admins</code> collection.</p>
                     </div>
                   )}
 
