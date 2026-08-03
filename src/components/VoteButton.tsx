@@ -46,13 +46,15 @@ export function VoteButton({
     const [voters, setVoters] = useState<Voter[]>([]);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Fetch up to 5 voter names when popup opens — keeps the list digestible
+    const [maxVoters, setMaxVoters] = useState<number>(5);
+
+    // Fetch voter names when popup opens — dynamic limit
     useEffect(() => {
         if (!isHovered) return;
         const q = query(
             collection(db, 'votes'),
             where('photoId', '==', photoId),
-            limit(5)
+            limit(maxVoters)
         );
         const unsub = onSnapshot(q, (snap) => {
             setVoters(
@@ -62,9 +64,11 @@ export function VoteButton({
                     uid: d.data().voterUid as string,
                 }))
             );
+        }, (err) => {
+            console.error("Fetch voters error:", err);
         });
         return () => unsub();
-    }, [isHovered, photoId]);
+    }, [isHovered, photoId, maxVoters]);
 
     const handleMouseEnter = useCallback(() => {
         if (hoverTimer.current) clearTimeout(hoverTimer.current);
@@ -72,7 +76,10 @@ export function VoteButton({
     }, []);
 
     const handleMouseLeave = useCallback(() => {
-        hoverTimer.current = setTimeout(() => setIsHovered(false), 180);
+        hoverTimer.current = setTimeout(() => {
+            setIsHovered(false);
+            setMaxVoters(5);
+        }, 220);
     }, []);
 
     const handleClick = (e: React.MouseEvent) => {
@@ -109,23 +116,24 @@ export function VoteButton({
                         transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
-                        className="absolute bottom-full right-0 mb-2.5 z-[200] w-52 rounded-2xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.7)] p-3"
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute bottom-full right-0 mb-2.5 z-[250] w-60 max-h-72 rounded-2xl border border-white/15 bg-[#0a0a0a]/98 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,0.85)] p-3 flex flex-col pointer-events-auto select-none"
                     >
                         {/* Header row */}
-                        <div className="flex items-center justify-between mb-2 px-0.5">
+                        <div className="flex items-center justify-between mb-2 px-0.5 shrink-0">
                             <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Voted by</span>
                             <span className="text-[10px] font-mono text-white/30">{voteCount.toLocaleString()} vote{voteCount !== 1 ? 's' : ''}</span>
                         </div>
 
-                        {/* Voter list — capped at 5 */}
+                        {/* Voter list — scrollable */}
                         {voters.length > 0 ? (
-                            <div className="space-y-1 mb-2">
+                            <div className="space-y-1 mb-2 max-h-36 overflow-y-auto pr-1 shrink-0 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
                                 {voters.map((v, i) => (
                                     <motion.div
                                         key={v.id}
                                         initial={{ opacity: 0, x: -8 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.025, duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+                                        transition={{ delay: i * 0.02, duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                                         className="flex items-center gap-2 py-0.5"
                                     >
                                         <div className="w-5 h-5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center shrink-0">
@@ -133,25 +141,41 @@ export function VoteButton({
                                                 {v.displayName.charAt(0)}
                                             </span>
                                         </div>
-                                        <span className="text-xs text-white/70 truncate">{v.displayName}</span>
+                                        <span className="text-xs text-white/80 truncate font-medium">{v.displayName}</span>
                                     </motion.div>
                                 ))}
-                                {voteCount > voters.length && (
-                                    <div className="flex items-center gap-1.5 pt-0.5">
-                                        <div className="flex-1 h-px bg-white/[0.06]" />
-                                        <span className="text-[10px] font-mono text-white/30 shrink-0">
-                                            +{(voteCount - voters.length).toLocaleString()} more
-                                        </span>
-                                        <div className="flex-1 h-px bg-white/[0.06]" />
-                                    </div>
-                                )}
+
+                                {/* Interactive View More / Show Less Button */}
+                                {voteCount > voters.length ? (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setMaxVoters(50);
+                                        }}
+                                        className="w-full text-center text-[10px] font-mono text-fivem-orange hover:text-white bg-fivem-orange/15 hover:bg-fivem-orange/30 border border-fivem-orange/30 py-1.5 rounded-lg transition-all mt-1 cursor-pointer font-bold shadow-sm"
+                                    >
+                                        +{(voteCount - voters.length).toLocaleString()} more (click to view all)
+                                    </button>
+                                ) : maxVoters > 5 && voters.length > 5 ? (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setMaxVoters(5);
+                                        }}
+                                        className="w-full text-center text-[10px] font-mono text-white/40 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 py-1.5 rounded-lg transition-all mt-1 cursor-pointer font-bold"
+                                    >
+                                        Show less
+                                    </button>
+                                ) : null}
                             </div>
                         ) : (
-                            <p className="text-[11px] text-white/25 italic mb-2 px-0.5">No votes yet</p>
+                            <p className="text-[11px] text-white/25 italic mb-2 px-0.5 shrink-0">No votes yet</p>
                         )}
 
                         {/* Category share bar */}
-                        <div className="border-t border-white/[0.06] pt-2">
+                        <div className="border-t border-white/[0.06] pt-2 shrink-0">
                             <div className="flex items-center justify-between mb-1">
                                 <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Category share</span>
                                 <span className="text-[10px] font-bold text-fivem-orange">{clampedPct}%</span>
@@ -169,7 +193,7 @@ export function VoteButton({
                         {/* Vote status hint */}
                         {votingOpen && (
                             <div className={cn(
-                                'flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider pt-2 border-t border-white/[0.06] mt-2',
+                                'flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider pt-2 border-t border-white/[0.06] mt-2 shrink-0',
                                 hasVoted ? 'text-emerald-400' : 'text-white/30'
                             )}>
                                 {hasVoted ? (
@@ -181,7 +205,7 @@ export function VoteButton({
                         )}
 
                         {/* Arrow */}
-                        <div className="absolute bottom-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0a]/95 border-r border-b border-white/10 rotate-45" />
+                        <div className="absolute bottom-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0a]/98 border-r border-b border-white/15 rotate-45 pointer-events-none" />
                     </motion.div>
                 )}
             </AnimatePresence>

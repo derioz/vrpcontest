@@ -1930,19 +1930,21 @@ export default function App() {
                             borderBeamProps={{ size: 280, duration: 10, colorFrom: "#ea580c", colorTo: "#fcd34d", borderWidth: 2 }}
                             gradientColor="rgba(234, 88, 12, 0.16)"
                             className={cn(
-                              "relative group bg-fivem-card rounded-2xl overflow-hidden border transition-all h-full",
+                              "relative group bg-fivem-card rounded-2xl border transition-all h-full",
                               sortBy === 'top' && index === 0
                                 ? "ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
                                 : "border-white/5 hover:border-fivem-orange/30"
                             )}
                           >
-                          <div className={cn("relative overflow-hidden cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
-                          <img
-                            src={photo.image_url}
-                            alt={photo.caption}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                          <div className={cn("relative cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
+                          <div className="absolute inset-0 overflow-hidden rounded-t-2xl">
+                            <img
+                              src={photo.image_url}
+                              alt={photo.caption}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                          </div>
 
                           {/* Top-left: rank badge + player name in one row */}
                           <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
