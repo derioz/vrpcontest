@@ -49,36 +49,35 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
 
-  // Subscribe to all votes in real time
-  useEffect(() => {
+  // Fetch votes on demand (using getDocs instead of live onSnapshot to prevent read quota exhaustion)
+  const fetchVotes = async () => {
     setIsLoading(true);
-    const q = query(collection(db, 'votes'));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const fetched: VoteRecord[] = snap.docs.map((d) => {
-          const data = d.data();
-          const voterDiscord = (data.voterDiscord as string) || (data.voterName as string) || 'Anonymous';
-          const voterName = (data.voterName as string) || voterDiscord;
-          return {
-            id: d.id,
-            photoId: String(data.photoId || ''),
-            voterUid: String(data.voterUid || d.id),
-            voterName,
-            voterDiscord,
-            timestamp: data.timestamp as string | undefined,
-          };
-        });
-        setVotes(fetched);
-        setIsLoading(false);
-      },
-      (err) => {
-        console.error('Failed to load votes for admin search:', err);
-        setIsLoading(false);
-      }
-    );
+    try {
+      const q = query(collection(db, 'votes'));
+      const snap = await getDocs(q);
+      const fetched: VoteRecord[] = snap.docs.map((d) => {
+        const data = d.data();
+        const voterDiscord = (data.voterDiscord as string) || (data.voterName as string) || 'Anonymous';
+        const voterName = (data.voterName as string) || voterDiscord;
+        return {
+          id: d.id,
+          photoId: String(data.photoId || ''),
+          voterUid: String(data.voterUid || d.id),
+          voterName,
+          voterDiscord,
+          timestamp: data.timestamp as string | undefined,
+        };
+      });
+      setVotes(fetched);
+    } catch (err) {
+      console.error('Failed to load votes for admin search:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return () => unsub();
+  useEffect(() => {
+    fetchVotes();
   }, []);
 
   // Subscribe to flagged_voters collection
@@ -169,6 +168,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           `Flagged ${voterName} as alt account. Removed ${votesRemovedCount} vote(s) and updated photo tallies!`,
           { id: toastId }
         );
+        await fetchVotes();
       } catch (err: any) {
         console.error('Failed to flag alt account:', err);
         toast.error('Error flagging alt account: ' + (err?.message || 'Unknown error'), { id: toastId });
@@ -262,21 +262,34 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           </p>
         </div>
 
-        {/* Flagged Alt Count Badge */}
-        {flaggedVoters.size > 0 && (
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowFlaggedOnly(!showFlaggedOnly)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer ${
-              showFlaggedOnly
-                ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-                : 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
-            }`}
+            onClick={fetchVotes}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer"
+            title="Re-fetch latest vote records from Firestore"
           >
-            <ShieldAlert size={14} className="text-red-400" />
-            <span>{flaggedVoters.size} Flagged Alt{flaggedVoters.size !== 1 ? 's' : ''}</span>
+            <RefreshCw size={13} className={isLoading ? "animate-spin text-cyan-400" : "text-white/60"} />
+            <span>Refresh Data</span>
           </button>
-        )}
+
+          {/* Flagged Alt Count Badge */}
+          {flaggedVoters.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowFlaggedOnly(!showFlaggedOnly)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer ${
+                showFlaggedOnly
+                  ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
+              }`}
+            >
+              <ShieldAlert size={14} className="text-red-400" />
+              <span>{flaggedVoters.size} Flagged Alt{flaggedVoters.size !== 1 ? 's' : ''}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search Input & Directory */}
