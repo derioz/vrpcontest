@@ -6,7 +6,7 @@
  *   • Hover popup showing voter names (NativeLikesCounter popup pattern)
  *   • Particle burst on click (custom)
  */
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { Heart, Users, Ban } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

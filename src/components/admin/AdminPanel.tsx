@@ -4,7 +4,7 @@
  */
 
 import React, { useState, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
@@ -67,7 +67,7 @@ export default function AdminPanel(props: AdminPanelProps) {
     isAdmin, user, activeContest, categories, allPhotos, votingOpen, submissionsOpen,
     onePhotoPerUser, showWinnersToggle, publicKey, privateKey, rulesMarkdown, winners,
     onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners,
-    onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onResetVotes, onOpenAnalytics,
+    onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
   } = props;
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');

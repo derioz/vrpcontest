@@ -38,7 +38,9 @@ import {
   ChevronUp,
   Loader2,
   Mail,
-  Menu
+  Menu,
+  Ban,
+  CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';

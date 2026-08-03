@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Category, Photo } from '../../types';
 import { decryptUrl } from '../../lib/crypto';
-import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../../lib/utils';
-import { db } from '../../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { Category, Photo } from '../../types';
-import { decryptUrl } from '../../lib/crypto';
 import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers, Ban, CheckCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';

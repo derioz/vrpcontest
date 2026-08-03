@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, User, Vote, Calendar, Users, Ban } from 'lucide-react';
 import { Photo } from '../types';
 import { VotersModal } from './VotersModal';

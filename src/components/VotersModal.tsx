@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { X, Search, Users, Heart, Sparkles, Info } from 'lucide-react';
 import { collection, onSnapshot, query, where, DocumentData } from 'firebase/firestore';
 import { db } from '../lib/firebase';
