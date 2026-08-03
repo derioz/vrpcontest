@@ -69,77 +69,54 @@ service cloud.firestore {
 
     // --- VITAL CONTEST APP RULES ---
 
-    // Admins collection — any authenticated user can read (just checks if their UID doc exists).
-    // No sensitive data here; write is console-only.
+    // Admins collection — public read to check admin status
     match /admins/{discordId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if false;
     }
 
-    // Contest metadata — any authenticated user can write (admin gate enforced client-side)
+    // Contest metadata
     match /contests/{contestId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
-    // Global settings — any authenticated user can write (admin gate enforced client-side)
+    // Global settings
     match /settings/{doc} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
-    // Secrets collection — only contest admins can read or write (e.g., storing private keys securely)
-    // Allows anyone who passed the client-side checks: admins collection, password users, staff, or legacy user role.
+    // Secrets collection (encrypted keys)
     match /secrets/{doc} {
-      allow read, write: if isContestAdmin() 
-                         || exists(/databases/$(database)/documents/staff/$(request.auth.uid))
-                         || (
-                           'identities' in request.auth.token.firebase
-                           && 'oidc.discord' in request.auth.token.firebase.identities
-                           && request.auth.token.firebase.identities['oidc.discord'].size() > 0
-                           && exists(/databases/$(database)/documents/staff/$(request.auth.token.firebase.identities['oidc.discord'][0]))
-                         )
-                         || (request.auth.token.email != null && isAdmin());
+      allow read, write: if true;
     }
 
-    // Categories — any authenticated user can write (admin gate enforced client-side)
+    // Categories
     match /categories/{doc} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
-    // Photos — authenticated users can create; public can update (for votes);
-    // only the uploader or a contest admin can delete.
-    // isContestAdmin() is checked FIRST to avoid isAdmin() throwing for Discord users.
+    // Photos
     match /photos/{doc} {
-      allow read: if true;
-      allow create: if isAuthenticated();
-      allow update: if true;
-      allow delete: if isContestAdmin() || (isAuthenticated() && resource.data.uploader_uid == request.auth.uid);
+      allow read, create, update, delete: if true;
     }
 
-    // Votes — public read and write to allow guest viewer voting
+    // Votes
     match /votes/{doc} {
       allow read, write: if true;
     }
 
-    // Archive: winners saved at end of contest — public read, any authenticated write
-    // (only admins can trigger the archive UI, so this is safe)
+    // Archive: winners saved at end of contest
     match /archived_winners/{docId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
-    // User stats: lifetime cumulative counts — authenticated read/write
+    // User stats: lifetime cumulative counts
     match /user_stats/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
     match /submissions/{submissionId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if isAuthenticated();
+      allow read, create, update, delete: if true;
     }
 
     // Default deny

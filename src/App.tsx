@@ -358,8 +358,17 @@ export default function App() {
         metadata: meta
       });
 
-      // Check for admin status - check Discord ID and Supabase User ID against Firestore admins collection
+      // Check for admin status - check email, Discord ID, and Supabase User ID against Firestore admins collection
       try {
+        // 1. Superadmin email check
+        const userEmail = (currentUser.email || meta.email || '').toLowerCase();
+        if (userEmail === 'tx.davidj@gmail.com' || userEmail === 'txdavidj@gmail.com') {
+          console.log('✅ Superadmin matched by email:', userEmail);
+          setIsAdmin(true);
+          return;
+        }
+
+        // 2. Build set of IDs to check
         const idsToCheck = new Set<string>();
         if (discordId) idsToCheck.add(String(discordId));
         idsToCheck.add(String(currentUser.id));
@@ -376,11 +385,15 @@ export default function App() {
         console.log('Admin check - trying IDs:', [...idsToCheck]);
 
         for (const id of idsToCheck) {
-          const adminDoc = await getDoc(doc(db, 'admins', id));
-          if (adminDoc.exists()) {
-            console.log('✅ Admin matched:', id);
-            setIsAdmin(true);
-            return;
+          try {
+            const adminDoc = await getDoc(doc(db, 'admins', id));
+            if (adminDoc.exists()) {
+              console.log('✅ Admin matched with ID:', id);
+              setIsAdmin(true);
+              return;
+            }
+          } catch (docErr) {
+            console.warn(`Firestore admin lookup warning for ID ${id}:`, docErr);
           }
         }
 
