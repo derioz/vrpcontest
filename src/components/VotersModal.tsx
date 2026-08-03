@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Search, Users, Heart, Sparkles } from 'lucide-react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { X, Search, Users, Heart, Sparkles, Info } from 'lucide-react';
+import { collection, onSnapshot, query, where, DocumentData } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export interface Voter {
   id: string;
   displayName: string;
+  isGeneric: boolean;
   uid: string;
+  rawFieldUsed?: string;
 }
 
 interface VotersModalProps {
@@ -17,6 +19,56 @@ interface VotersModalProps {
   voteCount: number;
   isOpen: boolean;
   onClose: () => void;
+}
+
+/**
+ * Robust helper to extract display name from a vote document
+ */
+function extractVoterDetails(id: string, data: DocumentData): Voter {
+  const uid = (data.voterUid as string) || (data.uid as string) || id;
+
+  const possibleNames = [
+    data.voterDiscord,
+    data.voterName,
+    data.displayName,
+    data.discordName,
+    data.userName,
+    data.username,
+    data.name,
+    data.voter_name,
+    data.voter_discord,
+  ];
+
+  for (const raw of possibleNames) {
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      const trimmed = raw.trim();
+      const lower = trimmed.toLowerCase();
+      const isGeneric = lower === 'voter' || lower === 'discord user' || lower === 'anonymous';
+      return {
+        id,
+        displayName: trimmed,
+        isGeneric,
+        uid,
+      };
+    }
+  }
+
+  // Check email prefix
+  if (data.voterEmail && typeof data.voterEmail === 'string' && data.voterEmail.includes('@')) {
+    return {
+      id,
+      displayName: data.voterEmail.split('@')[0],
+      isGeneric: false,
+      uid,
+    };
+  }
+
+  return {
+    id,
+    displayName: 'Anonymous Voter',
+    isGeneric: true,
+    uid,
+  };
 }
 
 export function VotersModal({
@@ -30,7 +82,7 @@ export function VotersModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Close on Escape key
+  // Close on Escape key and handle scroll lock
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -52,7 +104,7 @@ export function VotersModal({
     }
   }, [isOpen]);
 
-  // Fetch voters in real-time
+  // Fetch voters in real-time with comprehensive field matching
   useEffect(() => {
     if (!isOpen || !photoId) {
       setVoters([]);
@@ -61,32 +113,56 @@ export function VotersModal({
     }
 
     setIsLoading(true);
-    const q = query(
-      collection(db, 'votes'),
-      where('photoId', '==', photoId)
-    );
+    const photoIdStr = String(photoId).trim();
+    const photoIdNum = !isNaN(Number(photoIdStr)) ? Number(photoIdStr) : null;
 
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const fetched = snap.docs.map((d) => ({
-          id: d.id,
-          displayName:
-            (d.data().voterDiscord as string) ||
-            (d.data().voterName as string) ||
-            'Anonymous',
-          uid: (d.data().voterUid as string) || d.id,
-        }));
-        setVoters(fetched);
-        setIsLoading(false);
-      },
-      (err) => {
-        console.error('Failed to fetch voters:', err);
-        setIsLoading(false);
-      }
-    );
+    // We query multiple possible schema variations to ensure NO votes are missed:
+    // 1. photoId == string
+    // 2. photoId == number (if numeric)
+    // 3. photo_id == string
+    const queries = [
+      query(collection(db, 'votes'), where('photoId', '==', photoIdStr)),
+    ];
+    if (photoIdNum !== null) {
+      queries.push(query(collection(db, 'votes'), where('photoId', '==', photoIdNum)));
+    }
+    queries.push(query(collection(db, 'votes'), where('photo_id', '==', photoIdStr)));
 
-    return () => unsub();
+    const resultsMap = new Map<string, Voter>();
+    const unsubs: (() => void)[] = [];
+
+    let completedCount = 0;
+
+    queries.forEach((q) => {
+      const unsub = onSnapshot(
+        q,
+        (snap) => {
+          snap.docs.forEach((doc) => {
+            if (!resultsMap.has(doc.id)) {
+              resultsMap.set(doc.id, extractVoterDetails(doc.id, doc.data()));
+            }
+          });
+          completedCount++;
+          if (completedCount >= queries.length) {
+            setVoters(Array.from(resultsMap.values()));
+            setIsLoading(false);
+          }
+        },
+        (err) => {
+          console.error('Failed to fetch voters query:', err);
+          completedCount++;
+          if (completedCount >= queries.length) {
+            setVoters(Array.from(resultsMap.values()));
+            setIsLoading(false);
+          }
+        }
+      );
+      unsubs.push(unsub);
+    });
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
   }, [isOpen, photoId]);
 
   const filteredVoters = voters.filter((v) =>
@@ -114,7 +190,7 @@ export function VotersModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 12 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-lg h-[80vh] max-h-[620px] rounded-3xl border border-white/15 bg-[#0a0a0a]/98 backdrop-blur-2xl shadow-[0_25px_80px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col z-10 select-none my-auto"
+          className="relative w-full max-w-lg h-[82vh] max-h-[640px] rounded-3xl border border-white/15 bg-[#0a0a0a]/98 backdrop-blur-2xl shadow-[0_25px_80px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col z-10 select-none my-auto"
         >
           {/* Header */}
           <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between gap-4 bg-gradient-to-b from-white/[0.04] to-transparent shrink-0">
@@ -125,9 +201,9 @@ export function VotersModal({
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                    People Who Voted
+                    Voters List
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange text-xs font-mono font-bold shrink-0">
+                  <span className="px-2.5 py-0.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange text-xs font-mono font-bold shrink-0">
                     {voteCount.toLocaleString()} {voteCount === 1 ? 'Vote' : 'Votes'}
                   </span>
                 </div>
@@ -198,11 +274,18 @@ export function VotersModal({
                       {voter.displayName.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white/90 truncate group-hover:text-white transition-colors">
-                        {voter.displayName}
-                      </p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium text-white/90 truncate group-hover:text-white transition-colors">
+                          {voter.displayName}
+                        </p>
+                        {voter.isGeneric && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-white/50 shrink-0 font-mono" title="User voted with default account name">
+                            default
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] font-mono text-white/30 truncate">
-                        Voter #{index + 1}
+                        {voter.isGeneric && voter.uid ? `ID: ${voter.uid.slice(0, 8)}...` : `Voter #${index + 1}`}
                       </p>
                     </div>
                     <Heart
@@ -231,6 +314,16 @@ export function VotersModal({
             )}
           </div>
 
+          {/* Discrepancy Note if voteCount != voters.length */}
+          {!isLoading && voters.length < voteCount && (
+            <div className="px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 flex items-center gap-2 text-[11px] text-amber-300/80 shrink-0">
+              <Info size={14} className="shrink-0 text-amber-400" />
+              <span>
+                Showing all {voters.length} recorded voter profile{voters.length !== 1 ? 's' : ''} (photo counter: {voteCount}).
+              </span>
+            </div>
+          )}
+
           {/* Footer Summary */}
           <div className="p-3.5 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-white/40 font-mono shrink-0">
             <span>
@@ -239,7 +332,7 @@ export function VotersModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-fivem-orange hover:text-white font-bold transition-colors cursor-pointer px-2 py-1 rounded bg-fivem-orange/10 hover:bg-fivem-orange/20 border border-fivem-orange/30"
+              className="text-fivem-orange hover:text-white font-bold transition-colors cursor-pointer px-3 py-1 rounded-xl bg-fivem-orange/15 hover:bg-fivem-orange/30 border border-fivem-orange/30"
             >
               Done
             </button>

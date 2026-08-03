@@ -53,23 +53,38 @@ export function VoteButton({
     // Fetch top 5 voter names for quick hover preview
     useEffect(() => {
         if (!isHovered) return;
-        const q = query(
-            collection(db, 'votes'),
-            where('photoId', '==', photoId),
-            limit(5)
-        );
-        const unsub = onSnapshot(q, (snap) => {
-            setVoters(
-                snap.docs.map((d) => ({
-                    id: d.id,
-                    displayName: (d.data().voterDiscord as string) || (d.data().voterName as string) || 'Anonymous',
-                    uid: d.data().voterUid as string,
-                }))
-            );
-        }, (err) => {
-            console.error("Fetch voters preview error:", err);
+        const photoIdStr = String(photoId).trim();
+        const photoIdNum = !isNaN(Number(photoIdStr)) ? Number(photoIdStr) : null;
+
+        const queries = [
+            query(collection(db, 'votes'), where('photoId', '==', photoIdStr), limit(5)),
+        ];
+        if (photoIdNum !== null) {
+            queries.push(query(collection(db, 'votes'), where('photoId', '==', photoIdNum), limit(5)));
+        }
+
+        const map = new Map<string, Voter>();
+        const unsubs: (() => void)[] = [];
+
+        queries.forEach((q) => {
+            const unsub = onSnapshot(q, (snap) => {
+                snap.docs.forEach((d) => {
+                    if (!map.has(d.id)) {
+                        const data = d.data();
+                        const rawName = data.voterDiscord || data.voterName || data.displayName || data.name || data.username || data.voter_name;
+                        map.set(d.id, {
+                            id: d.id,
+                            displayName: (typeof rawName === 'string' && rawName.trim()) || 'Anonymous Voter',
+                            uid: (data.voterUid as string) || d.id,
+                        });
+                    }
+                });
+                setVoters(Array.from(map.values()).slice(0, 5));
+            });
+            unsubs.push(unsub);
         });
-        return () => unsub();
+
+        return () => unsubs.forEach((u) => u());
     }, [isHovered, photoId]);
 
     const handleMouseEnter = useCallback(() => {
