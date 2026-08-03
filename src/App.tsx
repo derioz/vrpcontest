@@ -679,7 +679,7 @@ export default function App() {
           photoId,
           voterName: currentName,
           voterUid: voterUid,
-          voterDiscord: currentUser?.displayName || currentName,
+          voterDiscord: user?.displayName || currentName,
           timestamp: new Date().toISOString()
         });
         await updateDoc(photoRef, { vote_count: increment(1) });
@@ -688,6 +688,53 @@ export default function App() {
     } catch (error: any) {
       console.error("Vote Error:", error);
       toast.error(error?.message || 'Network error or vote failed');
+    }
+  };
+
+  const handleResetVotes = async () => {
+    if (!isAdmin) return;
+    const toastId = toast.loading('Resetting all votes to 0...');
+    try {
+      // 1. Clear all vote records from 'votes' collection
+      const votesSnap = await getDocs(collection(db, 'votes'));
+      const batchSize = 450;
+      let batch = writeBatch(db);
+      let count = 0;
+
+      for (const voteDoc of votesSnap.docs) {
+        batch.delete(voteDoc.ref);
+        count++;
+        if (count % batchSize === 0) {
+          await batch.commit();
+          batch = writeBatch(db);
+        }
+      }
+      if (count % batchSize !== 0 && count > 0) {
+        await batch.commit();
+      }
+
+      // 2. Reset vote_count to 0 on all photos in 'photos' collection
+      const photosSnap = await getDocs(collection(db, 'photos'));
+      let photoBatch = writeBatch(db);
+      let pCount = 0;
+
+      for (const photoDoc of photosSnap.docs) {
+        photoBatch.update(photoDoc.ref, { vote_count: 0 });
+        pCount++;
+        if (pCount % batchSize === 0) {
+          await photoBatch.commit();
+          photoBatch = writeBatch(db);
+        }
+      }
+      if (pCount % batchSize !== 0 && pCount > 0) {
+        await photoBatch.commit();
+      }
+
+      setVotedPhotoIds(new Set());
+      toast.success('Successfully reset all votes to 0!', { id: toastId });
+    } catch (error: any) {
+      console.error('Failed to reset votes:', error);
+      toast.error('Failed to reset votes: ' + (error?.message || 'Unknown error'), { id: toastId });
     }
   };
 
@@ -2237,6 +2284,7 @@ export default function App() {
                 onToggleReveal={handleToggleReveal}
                 onDownloadWinners={handleDownloadWinningPhotos}
                 onDeletePhoto={handleDeletePhoto}
+                onResetVotes={handleResetVotes}
                 onOpenAnalytics={() => {
                   setShowAdminModal(false);
                   setShowAnalyticsDashboard(true);

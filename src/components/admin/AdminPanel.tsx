@@ -47,6 +47,7 @@ interface AdminPanelProps {
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
   onDeletePhoto: (photoId: string, discordName: string) => void;
+  onResetVotes?: () => void;
   onOpenAnalytics: () => void;
 }
 
@@ -63,7 +64,7 @@ export default function AdminPanel(props: AdminPanelProps) {
     isAdmin, user, activeContest, categories, allPhotos, votingOpen, submissionsOpen,
     onePhotoPerUser, showWinnersToggle, publicKey, privateKey, rulesMarkdown, winners,
     onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners,
-    onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onOpenAnalytics,
+    onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onResetVotes, onOpenAnalytics,
   } = props;
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
@@ -217,6 +218,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                   activeContest={activeContest}
                   categories={categories}
                   allPhotos={allPhotos}
+                  onResetVotes={onResetVotes}
                 />
               )}
             </motion.div>
@@ -600,8 +602,8 @@ function SecurityTab({ publicKey, privateKey, activeContest, winners, onGenerate
 /* ═══════════════════════════════════════════════════════════════════════
    TAB: Danger Zone
    ═══════════════════════════════════════════════════════════════════════ */
-function DangerTab({ activeContest, categories, allPhotos }: {
-  activeContest: any; categories: Category[]; allPhotos: Photo[];
+function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
+  activeContest: any; categories: Category[]; allPhotos: Photo[]; onResetVotes?: () => void;
 }) {
   return (
     <div className="space-y-6">
@@ -619,8 +621,37 @@ function DangerTab({ activeContest, categories, allPhotos }: {
           <p className="text-sm font-bold text-red-400 mb-1">Irreversible Actions</p>
           <p className="text-xs text-red-400/60 leading-relaxed">
             Archiving will save winners and user stats, then permanently delete all current photos and votes. 
-            Destroying will erase everything with no records saved. Both actions cannot be undone.
+            Resetting votes will clear all votes and set all photo counts to 0.
           </p>
+        </div>
+      </div>
+
+      {/* Reset Votes Section */}
+      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.03]">
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+        <div className="px-6 pt-5 pb-4 border-b border-amber-500/[0.12] flex items-center gap-2">
+          <div className="w-1 h-4 bg-amber-500/70 rounded-full" />
+          <AlertCircle size={13} className="text-amber-500/80" />
+          <h4 className="text-[11px] font-mono text-amber-500/80 uppercase tracking-[0.2em]">Vote Management</h4>
+        </div>
+        <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h5 className="text-sm font-bold text-white mb-0.5">Reset All Votes</h5>
+            <p className="text-xs text-white/40">
+              Clear all cast vote records and set `vote_count` back to 0 on every photo in the current contest.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to reset ALL votes to 0? This cannot be undone.')) {
+                onResetVotes?.();
+              }
+            }}
+            className="px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-2"
+          >
+            <AlertCircle size={14} />
+            Reset All Votes
+          </button>
         </div>
       </div>
 
