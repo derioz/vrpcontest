@@ -117,17 +117,17 @@ export function VoteButton({
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute bottom-full right-0 mb-2.5 z-[250] w-60 max-h-72 rounded-2xl border border-white/15 bg-[#0a0a0a]/98 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,0.85)] p-3 flex flex-col pointer-events-auto select-none"
+                        className="absolute bottom-full right-0 mb-2 z-[250] w-52 max-h-52 rounded-2xl border border-white/15 bg-[#0a0a0a]/98 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,0.85)] p-2.5 flex flex-col pointer-events-auto select-none"
                     >
                         {/* Header row */}
-                        <div className="flex items-center justify-between mb-2 px-0.5 shrink-0">
+                        <div className="flex items-center justify-between mb-1.5 px-0.5 shrink-0">
                             <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Voted by</span>
                             <span className="text-[10px] font-mono text-white/30">{voteCount.toLocaleString()} vote{voteCount !== 1 ? 's' : ''}</span>
                         </div>
 
-                        {/* Voter list — scrollable */}
+                        {/* Voter list — scrollable compact */}
                         {voters.length > 0 ? (
-                            <div className="space-y-1 mb-2 max-h-36 overflow-y-auto pr-1 shrink-0 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
+                            <div className="space-y-0.5 mb-1.5 max-h-24 overflow-y-auto pr-1 shrink-0 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
                                 {voters.map((v, i) => (
                                     <motion.div
                                         key={v.id}
@@ -136,8 +136,8 @@ export function VoteButton({
                                         transition={{ delay: i * 0.02, duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                                         className="flex items-center gap-2 py-0.5"
                                     >
-                                        <div className="w-5 h-5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center shrink-0">
-                                            <span className="text-[9px] font-bold text-fivem-orange uppercase leading-none">
+                                        <div className="w-4 h-4 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center shrink-0">
+                                            <span className="text-[8px] font-bold text-fivem-orange uppercase leading-none">
                                                 {v.displayName.charAt(0)}
                                             </span>
                                         </div>
@@ -153,9 +153,9 @@ export function VoteButton({
                                             e.stopPropagation();
                                             setMaxVoters(50);
                                         }}
-                                        className="w-full text-center text-[10px] font-mono text-fivem-orange hover:text-white bg-fivem-orange/15 hover:bg-fivem-orange/30 border border-fivem-orange/30 py-1.5 rounded-lg transition-all mt-1 cursor-pointer font-bold shadow-sm"
+                                        className="w-full text-center text-[9px] font-mono text-fivem-orange hover:text-white bg-fivem-orange/15 hover:bg-fivem-orange/30 border border-fivem-orange/30 py-1 rounded transition-all mt-1 cursor-pointer font-bold shadow-sm"
                                     >
-                                        +{(voteCount - voters.length).toLocaleString()} more (click to view all)
+                                        +{(voteCount - voters.length).toLocaleString()} more (view all)
                                     </button>
                                 ) : maxVoters > 5 && voters.length > 5 ? (
                                     <button
@@ -164,21 +164,21 @@ export function VoteButton({
                                             e.stopPropagation();
                                             setMaxVoters(5);
                                         }}
-                                        className="w-full text-center text-[10px] font-mono text-white/40 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 py-1.5 rounded-lg transition-all mt-1 cursor-pointer font-bold"
+                                        className="w-full text-center text-[9px] font-mono text-white/40 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 py-1 rounded transition-all mt-1 cursor-pointer font-bold"
                                     >
                                         Show less
                                     </button>
                                 ) : null}
                             </div>
                         ) : (
-                            <p className="text-[11px] text-white/25 italic mb-2 px-0.5 shrink-0">No votes yet</p>
+                            <p className="text-[10px] text-white/25 italic mb-1.5 px-0.5 shrink-0">No votes yet</p>
                         )}
 
                         {/* Category share bar */}
-                        <div className="border-t border-white/[0.06] pt-2 shrink-0">
+                        <div className="border-t border-white/[0.06] pt-1.5 shrink-0">
                             <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Category share</span>
-                                <span className="text-[10px] font-bold text-fivem-orange">{clampedPct}%</span>
+                                <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest">Category share</span>
+                                <span className="text-[9px] font-bold text-fivem-orange">{clampedPct}%</span>
                             </div>
                             <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                                 <motion.div
@@ -193,13 +193,13 @@ export function VoteButton({
                         {/* Vote status hint */}
                         {votingOpen && (
                             <div className={cn(
-                                'flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider pt-2 border-t border-white/[0.06] mt-2 shrink-0',
+                                'flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider pt-1.5 border-t border-white/[0.06] mt-1.5 shrink-0',
                                 hasVoted ? 'text-emerald-400' : 'text-white/30'
                             )}>
                                 {hasVoted ? (
-                                    <><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>You voted · click to undo</>
+                                    <><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>You voted · click to undo</>
                                 ) : (
-                                    <><Heart size={9} />Click to vote</>
+                                    <><Heart size={8} />Click to vote</>
                                 )}
                             </div>
                         )}

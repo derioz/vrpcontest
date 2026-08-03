@@ -1930,7 +1930,7 @@ export default function App() {
                             borderBeamProps={{ size: 280, duration: 10, colorFrom: "#ea580c", colorTo: "#fcd34d", borderWidth: 2 }}
                             gradientColor="rgba(234, 88, 12, 0.16)"
                             className={cn(
-                              "relative group bg-fivem-card rounded-2xl border transition-all h-full",
+                              "relative group bg-fivem-card rounded-2xl border transition-all h-full group-hover:z-30",
                               sortBy === 'top' && index === 0
                                 ? "ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
                                 : "border-white/5 hover:border-fivem-orange/30"
