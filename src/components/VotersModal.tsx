@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Search, Users, Heart, Sparkles } from 'lucide-react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
@@ -36,11 +37,15 @@ export function VotersModal({
     };
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
     }
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
   }, [isOpen, onClose]);
 
-  // Reset search on photo change or close
+  // Reset search on close
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery('');
@@ -90,9 +95,9 @@ export function VotersModal({
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 overflow-hidden">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -100,7 +105,7 @@ export function VotersModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+          className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
         />
 
         {/* Modal Window */}
@@ -109,25 +114,25 @@ export function VotersModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 12 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-lg rounded-3xl border border-white/15 bg-[#0a0a0a]/95 backdrop-blur-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[85vh] z-10 select-none"
+          className="relative w-full max-w-lg h-[80vh] max-h-[620px] rounded-3xl border border-white/15 bg-[#0a0a0a]/98 backdrop-blur-2xl shadow-[0_25px_80px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col z-10 select-none my-auto"
         >
           {/* Header */}
-          <div className="p-5 sm:p-6 border-b border-white/10 flex items-start justify-between gap-4 bg-gradient-to-b from-white/[0.04] to-transparent">
-            <div className="flex items-center gap-3">
+          <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between gap-4 bg-gradient-to-b from-white/[0.04] to-transparent shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange shadow-[0_0_20px_rgba(234,88,12,0.2)] shrink-0">
                 <Users size={20} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold text-white tracking-wide">
-                    Voters List
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                    People Who Voted
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange text-xs font-mono font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange text-xs font-mono font-bold shrink-0">
                     {voteCount.toLocaleString()} {voteCount === 1 ? 'Vote' : 'Votes'}
                   </span>
                 </div>
                 {photoCaption && (
-                  <p className="text-xs text-white/50 truncate max-w-xs mt-0.5 font-medium">
+                  <p className="text-xs text-white/50 truncate mt-0.5 font-medium">
                     "{photoCaption}"
                   </p>
                 )}
@@ -137,7 +142,7 @@ export function VotersModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-colors cursor-pointer"
+              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-colors cursor-pointer shrink-0"
               aria-label="Close modal"
             >
               <X size={18} />
@@ -145,7 +150,7 @@ export function VotersModal({
           </div>
 
           {/* Search Input Bar */}
-          <div className="p-4 border-b border-white/5 bg-black/40">
+          <div className="p-3.5 border-b border-white/5 bg-black/40 shrink-0">
             <div className="relative flex items-center">
               <Search
                 size={16}
@@ -171,9 +176,9 @@ export function VotersModal({
           </div>
 
           {/* Voter List Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent">
             {isLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center text-white/40 gap-3">
+              <div className="h-full py-12 flex flex-col items-center justify-center text-white/40 gap-3">
                 <div className="w-6 h-6 border-2 border-fivem-orange border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs font-mono uppercase tracking-wider">
                   Loading voters...
@@ -208,7 +213,7 @@ export function VotersModal({
                 ))}
               </div>
             ) : searchQuery ? (
-              <div className="py-12 flex flex-col items-center justify-center text-white/40 text-center px-4">
+              <div className="h-full py-12 flex flex-col items-center justify-center text-white/40 text-center px-4">
                 <Search size={32} className="mb-2 stroke-[1.5] text-white/20" />
                 <p className="text-sm font-medium text-white/70">No voters found</p>
                 <p className="text-xs text-white/40 mt-1">
@@ -216,7 +221,7 @@ export function VotersModal({
                 </p>
               </div>
             ) : (
-              <div className="py-12 flex flex-col items-center justify-center text-white/40 text-center px-4">
+              <div className="h-full py-12 flex flex-col items-center justify-center text-white/40 text-center px-4">
                 <Sparkles size={32} className="mb-2 stroke-[1.5] text-white/20" />
                 <p className="text-sm font-medium text-white/70">No votes recorded yet</p>
                 <p className="text-xs text-white/40 mt-1">
@@ -227,20 +232,22 @@ export function VotersModal({
           </div>
 
           {/* Footer Summary */}
-          <div className="p-3.5 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-white/40 font-mono">
+          <div className="p-3.5 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-white/40 font-mono shrink-0">
             <span>
               Showing {filteredVoters.length} of {voters.length} total voter{voters.length !== 1 ? 's' : ''}
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="text-fivem-orange hover:text-white font-bold transition-colors cursor-pointer"
+              className="text-fivem-orange hover:text-white font-bold transition-colors cursor-pointer px-2 py-1 rounded bg-fivem-orange/10 hover:bg-fivem-orange/20 border border-fivem-orange/30"
             >
-              Close
+              Done
             </button>
           </div>
         </motion.div>
       </div>
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 }
