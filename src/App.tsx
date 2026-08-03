@@ -2495,6 +2495,26 @@ export default function App() {
                     {['Walk away in silence', 'Fine, FINE.', 'I accept my fate 😔', 'okay I get it!!', 'please let me go', 'I WILL NEVER RETURN'][Math.min(notAdminClickCount - 1, 5)]}
                   </motion.button>
 
+                  {user && (
+                    <div className="mt-4 p-3 rounded-2xl bg-black/40 border border-white/10 text-left space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Your Admin Setup ID</span>
+                        <button
+                          onClick={() => {
+                            const idToCopy = user.uid || user.id;
+                            navigator.clipboard.writeText(idToCopy);
+                            toast.success("User ID copied to clipboard!");
+                          }}
+                          className="text-[10px] font-mono text-fivem-orange hover:underline cursor-pointer font-bold"
+                        >
+                          Copy ID
+                        </button>
+                      </div>
+                      <p className="text-[11px] font-mono text-white/80 select-all break-all">{user.uid || user.id}</p>
+                      <p className="text-[10px] text-white/40 leading-snug">Add this ID as a document in the Firestore <code className="text-fivem-orange font-mono">admins</code> collection to gain admin access.</p>
+                    </div>
+                  )}
+
                   <p className="text-center text-[10px] font-mono text-white/20 mt-3 tracking-widest uppercase">
                     hack attempt #{notAdminClickCount} logged
                   </p>
