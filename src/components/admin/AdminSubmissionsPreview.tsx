@@ -7,18 +7,34 @@ import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+import React, { useState, useEffect, useMemo } from 'react';
+import { Category, Photo } from '../../types';
+import { decryptUrl } from '../../lib/crypto';
+import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers, Ban, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../lib/utils';
+import { db } from '../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
 interface AdminSubmissionsPreviewProps {
   allPhotos: Photo[];
   categories: Category[];
   onDeletePhoto?: (photoId: string, discordName: string) => void;
+  onToggleDisqualifyPhoto?: (photoId: string, disqualify: boolean, reason?: string) => void;
 }
 
-export default function AdminSubmissionsPreview({ allPhotos, categories, onDeletePhoto }: AdminSubmissionsPreviewProps) {
+export default function AdminSubmissionsPreview({
+  allPhotos,
+  categories,
+  onDeletePhoto,
+  onToggleDisqualifyPhoto,
+}: AdminSubmissionsPreviewProps) {
   const [decryptedPhotos, setDecryptedPhotos] = useState<Map<string, string>>(new Map());
   const [decrypting, setDecrypting] = useState(false);
   const [decryptionFailedState, setDecryptionFailedState] = useState<'missing' | 'incorrect' | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disqualified'>('all');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Try to decrypt all photos using the local or remote private key
@@ -30,12 +46,10 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
     (async () => {
       let localPrivateKey = null;
       
-      // 1. ALWAYS prefer the synchronized key from Firestore first
       try {
         const secretSnap = await getDoc(doc(db, 'secrets', 'keys'));
         if (secretSnap.exists() && secretSnap.data().privateKey) {
           localPrivateKey = secretSnap.data().privateKey;
-          // Keep local storage perfectly in sync with the server key
           localStorage.setItem('vrp_private_key', localPrivateKey);
         } else {
           setErrorMsg("Secure key document 'secrets/keys' does not exist or is empty.");
@@ -45,7 +59,6 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
         setErrorMsg(error.message || "Failed to fetch secure keys due to a permissions or network error.");
       }
 
-      // 2. Fallback to localStorage ONLY if the server key couldn't be retrieved
       if (!localPrivateKey) {
         localPrivateKey = localStorage.getItem('vrp_private_key');
       }
@@ -91,9 +104,13 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
   }, [allPhotos]);
 
   const filteredPhotos = useMemo(() => {
-    if (!selectedCategoryId) return allPhotos;
-    return allPhotos.filter(p => p.category_id === selectedCategoryId);
-  }, [allPhotos, selectedCategoryId]);
+    return allPhotos.filter((p) => {
+      if (selectedCategoryId && p.category_id !== selectedCategoryId) return false;
+      if (statusFilter === 'active' && p.is_disqualified) return false;
+      if (statusFilter === 'disqualified' && !p.is_disqualified) return false;
+      return true;
+    });
+  }, [allPhotos, selectedCategoryId, statusFilter]);
 
   const sortedPhotos = useMemo(() => {
     return [...filteredPhotos].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -120,7 +137,7 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
   return (
     <div className="space-y-5">
       {/* Header with status */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold",
@@ -140,36 +157,41 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
           </div>
           <span className="text-xs text-white/30 font-mono">{sortedPhotos.length} photos</span>
         </div>
-      </div>
 
-      {/* Decryption warning */}
-      {decryptionFailedState === 'missing' && (
-        <div className="flex flex-col gap-2 p-3 bg-amber-500/5 border border-amber-500/15 rounded-xl">
-          <div className="flex items-center gap-3">
-            <Lock size={14} className="text-amber-400 shrink-0" />
-            <p className="text-xs text-amber-400/80">
-              Private key not found. Showing censored versions. 
-            </p>
-          </div>
-          {errorMsg && (
-            <p className="text-[10px] ml-6 text-amber-400/60 font-mono">Error details: {errorMsg}</p>
-          )}
+        {/* Status Filter Toggle */}
+        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 text-xs">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={cn(
+              "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
+              statusFilter === 'all' ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
+            )}
+          >
+            All ({allPhotos.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('active')}
+            className={cn(
+              "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
+              statusFilter === 'active' ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-white/40 hover:text-white"
+            )}
+          >
+            Active ({allPhotos.filter(p => !p.is_disqualified).length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('disqualified')}
+            className={cn(
+              "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
+              statusFilter === 'disqualified' ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-white/40 hover:text-white"
+            )}
+          >
+            Disqualified ({allPhotos.filter(p => p.is_disqualified).length})
+          </button>
         </div>
-      )}
-      
-      {decryptionFailedState === 'incorrect' && (
-        <div className="flex flex-col gap-2 p-3 bg-red-500/5 border border-red-500/15 rounded-xl">
-          <div className="flex items-center gap-3">
-            <Lock size={14} className="text-red-400 shrink-0" />
-            <p className="text-xs text-red-400/80 font-bold">
-              Key Mismatch Detected
-            </p>
-          </div>
-          <p className="text-[10px] ml-6 text-red-400/60 font-mono">
-            A private key was found, but it failed to decrypt any of these photos. This means the photos were encrypted with an older, different key. Delete and re-upload the photos to sync them with the current key.
-          </p>
-        </div>
-      )}
+      </div>
 
       {/* Category filter pills */}
       {categories.length > 1 && (
@@ -218,7 +240,10 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ delay: Math.min(index * 0.03, 0.3) }}
-              className="group relative aspect-video rounded-xl overflow-hidden bg-fivem-card border border-white/5 hover:border-fivem-orange/30 transition-all cursor-pointer"
+              className={cn(
+                "group relative aspect-video rounded-xl overflow-hidden bg-fivem-card border border-white/5 hover:border-fivem-orange/30 transition-all cursor-pointer",
+                photo.is_disqualified && "ring-2 ring-red-500/80 grayscale-[40%] opacity-85"
+              )}
               onClick={() => setLightboxIndex(index)}
             >
               <img
@@ -229,6 +254,14 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
               />
               {/* Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              {/* DISQUALIFIED Permanent Banner */}
+              {photo.is_disqualified && (
+                <div className="absolute top-0 inset-x-0 bg-red-600/90 text-white font-black text-[10px] uppercase tracking-widest py-1 px-2 flex items-center justify-center gap-1 z-20 border-b border-red-400/40 shadow-md">
+                  <Ban size={11} className="stroke-[2.5]" />
+                  <span>DISQUALIFIED</span>
+                </div>
+              )}
 
               {/* Player info on hover */}
               <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
@@ -244,17 +277,44 @@ export default function AdminSubmissionsPreview({ allPhotos, categories, onDelet
 
               {/* Action buttons on hover */}
               <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                {onToggleDisqualifyPhoto && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (photo.is_disqualified) {
+                        onToggleDisqualifyPhoto(photo.id, false);
+                      } else {
+                        const reason = window.prompt("Reason for disqualifying this photo (optional):");
+                        if (reason !== null) {
+                          onToggleDisqualifyPhoto(photo.id, true, reason || undefined);
+                        }
+                      }
+                    }}
+                    className={cn(
+                      "bg-black/60 backdrop-blur-md p-1.5 rounded-lg border transition-colors cursor-pointer",
+                      photo.is_disqualified
+                        ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                        : "border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white"
+                    )}
+                    title={photo.is_disqualified ? "Re-qualify photo" : "Disqualify photo"}
+                  >
+                    {photo.is_disqualified ? <CheckCircle size={12} /> : <Ban size={12} />}
+                  </button>
+                )}
                 <button
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(index); }}
-                  className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-white hover:bg-white/20 transition-colors"
+                  className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
                   title="View fullsize"
                 >
                   <Maximize2 size={12} />
                 </button>
                 {onDeletePhoto && (
                   <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); onDeletePhoto(photo.id, photo.discord_name); }}
-                    className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                    className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
                     title="Delete photo"
                   >
                     <Trash2 size={12} />

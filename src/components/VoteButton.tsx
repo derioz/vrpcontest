@@ -7,7 +7,7 @@
  *   • Particle burst on click (custom)
  */
 import { AnimatePresence, motion } from 'framer-motion';
-import { Heart, Users } from 'lucide-react';
+import { Heart, Users, Ban } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
@@ -28,6 +28,7 @@ interface VoteButtonProps {
     hasVoted: boolean;
     votingOpen: boolean;
     categorySharePct: number; // 0–100
+    isDisqualified?: boolean;
     onVote: () => void;
     className?: string;
 }
@@ -42,6 +43,7 @@ export function VoteButton({
     hasVoted,
     votingOpen,
     categorySharePct,
+    isDisqualified,
     onVote,
     className,
 }: VoteButtonProps) {
@@ -135,7 +137,7 @@ export function VoteButton({
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!votingOpen) return;
+        if (!votingOpen || isDisqualified) return;
         setIsBursting(true);
         setTimeout(() => setIsBursting(false), 750);
         onVote();
@@ -286,21 +288,31 @@ export function VoteButton({
                 </AnimatePresence>
 
                 {/* ── The button ── */}
-                <motion.button
-                    onClick={handleClick}
-                    disabled={!votingOpen}
-                    whileTap={votingOpen ? { scale: 0.78 } : {}}
-                    animate={isBursting ? { scale: [1, 1.28, 0.9, 1.1, 1] } : { scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 480, damping: 16 }}
-                    className={cn(
-                        'relative flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm overflow-hidden cursor-pointer',
-                        !votingOpen
-                            ? 'bg-white/10 text-white/40 cursor-not-allowed'
-                            : hasVoted
-                                ? 'bg-white text-fivem-orange border border-fivem-orange/40 shadow-[0_0_12px_rgba(234,88,12,0.35)] hover:bg-red-50/10 hover:text-red-400 hover:border-red-400/40'
-                                : 'bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_28px_rgba(234,88,12,0.8)]'
-                    )}
-                >
+                {isDisqualified ? (
+                    <button
+                        type="button"
+                        disabled
+                        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs bg-red-500/20 text-red-400 border border-red-500/40 cursor-not-allowed uppercase tracking-wider select-none shadow-[0_0_12px_rgba(239,68,68,0.25)]"
+                    >
+                        <Ban size={13} className="shrink-0 text-red-400" />
+                        <span>Disqualified</span>
+                    </button>
+                ) : (
+                    <motion.button
+                        onClick={handleClick}
+                        disabled={!votingOpen}
+                        whileTap={votingOpen ? { scale: 0.78 } : {}}
+                        animate={isBursting ? { scale: [1, 1.28, 0.9, 1.1, 1] } : { scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 480, damping: 16 }}
+                        className={cn(
+                            'relative flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm overflow-hidden cursor-pointer',
+                            !votingOpen
+                                ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                                : hasVoted
+                                    ? 'bg-white text-fivem-orange border border-fivem-orange/40 shadow-[0_0_12px_rgba(234,88,12,0.35)] hover:bg-red-50/10 hover:text-red-400 hover:border-red-400/40'
+                                    : 'bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_28px_rgba(234,88,12,0.8)]'
+                        )}
+                    >
                     {/* Liquid fill background — shows category share */}
                     {votingOpen && (
                         <motion.div
@@ -362,6 +374,7 @@ export function VoteButton({
                         )}
                     </AnimatePresence>
                 </motion.button>
+                )}
             </div>
 
             {/* ── Hover popover rendered via Portal to prevent overflow clipping ── */}

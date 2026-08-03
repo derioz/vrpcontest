@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Vote, Calendar, Users } from 'lucide-react';
+import { X, User, Vote, Calendar, Users, Ban } from 'lucide-react';
 import { Photo } from '../types';
 import { VotersModal } from './VotersModal';
 
@@ -27,6 +27,7 @@ export default function LightboxModal({ photo, privateKey, onClose }: LightboxMo
                         />
 
                         <button
+                            type="button"
                             onClick={onClose}
                             className="absolute top-4 right-4 md:top-8 md:right-8 p-3 bg-white/5 hover:bg-white/15 rounded-full text-white backdrop-blur-xl transition-all hover:scale-105 z-50 border border-white/10 cursor-pointer"
                         >
@@ -42,12 +43,25 @@ export default function LightboxModal({ photo, privateKey, onClose }: LightboxMo
                                 <img
                                     src={photo.image_url}
                                     alt={photo.caption}
-                                    className="max-w-full max-h-full object-contain pointer-events-auto rounded-md shadow-[0_0_50px_rgba(234,88,12,0.15)] ring-1 ring-white/10"
+                                    className={`max-w-full max-h-full object-contain pointer-events-auto rounded-md shadow-[0_0_50px_rgba(234,88,12,0.15)] ring-1 ring-white/10 ${
+                                        photo.is_disqualified ? 'grayscale-[40%] opacity-85 ring-2 ring-red-500' : ''
+                                    }`}
                                 />
                             </div>
 
                             {/* Caption & Stats Bar */}
                             <div className="shrink-0 flex flex-col items-center text-center max-w-3xl px-4 pointer-events-auto mb-2 md:mb-6">
+                                {photo.is_disqualified && (
+                                    <div className="flex items-center gap-2 bg-red-500/20 backdrop-blur-xl px-4 py-2 rounded-full border border-red-500/40 text-red-400 text-xs font-bold uppercase tracking-wider mb-3 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                                        <Ban size={16} />
+                                        <span>DISQUALIFIED</span>
+                                        {photo.disqualification_reason && (
+                                            <span className="normal-case font-normal text-white/80 font-mono">
+                                                — {photo.disqualification_reason}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                                 <p className="text-white md:text-lg font-medium tracking-wide mb-4">
                                     {photo.caption || "No caption provided"}
                                 </p>

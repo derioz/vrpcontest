@@ -74,7 +74,7 @@ import { RetroGrid } from './components/ui/retro-grid';
 import { auth, discordProvider, db } from './lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User as FirebaseUser } from 'firebase/auth';
 import { supabase } from './lib/supabase';
-import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch, deleteField } from 'firebase/firestore';
 
 import { Category, Photo, Rule, Theme } from './types';
 
@@ -234,7 +234,7 @@ export default function App() {
   const winners = useMemo(() => {
     if (!categories.length || !allPhotos.length) return [];
     return categories.map(cat => {
-      const catPhotos = allPhotos.filter(p => p.category_id === cat.id);
+      const catPhotos = allPhotos.filter(p => p.category_id === cat.id && !p.is_disqualified);
       if (!catPhotos.length) return null;
       const topPhoto = [...catPhotos].sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))[0];
       return {
@@ -644,6 +644,45 @@ export default function App() {
     return () => unsub();
   }, [activeContest, categories, privateKey]);
 
+  // Subscribe to flagged_voters collection
+  const [flaggedVoterIds, setFlaggedVoterIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const q = query(collection(db, 'flagged_voters'));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setFlaggedVoterIds(new Set(snap.docs.map((d) => d.id)));
+      },
+      (err) => {
+        console.error('Flagged voters listener error:', err);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  const handleToggleDisqualifyPhoto = async (photoId: string, disqualify: boolean, reason?: string) => {
+    try {
+      const photoRef = doc(db, 'photos', photoId);
+      if (disqualify) {
+        await updateDoc(photoRef, {
+          is_disqualified: true,
+          disqualification_reason: reason || 'Disqualified by admin',
+        });
+        toast.success('Photo marked as Disqualified');
+      } else {
+        await updateDoc(photoRef, {
+          is_disqualified: false,
+          disqualification_reason: deleteField(),
+        });
+        toast.success('Photo re-qualified successfully');
+      }
+    } catch (error: any) {
+      console.error('Failed to update disqualification status:', error);
+      toast.error('Failed to update disqualification status: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
   const handleVote = async (photoId: string) => {
     if (!isVotingOpen) {
       toast.error('Voting is currently closed');
@@ -657,6 +696,17 @@ export default function App() {
     }
 
     const voterUid = user.uid;
+
+    if (flaggedVoterIds.has(voterUid)) {
+      toast.error('Your account has been flagged as an alt account and cannot vote.');
+      return;
+    }
+
+    const targetPhoto = allPhotos.find((p) => p.id === photoId);
+    if (targetPhoto?.is_disqualified) {
+      toast.error('This photo is disqualified and cannot receive votes.');
+      return;
+    }
 
     let currentName = playerName;
     if (!currentName) {
@@ -1931,9 +1981,11 @@ export default function App() {
                             gradientColor="rgba(234, 88, 12, 0.16)"
                             className={cn(
                               "relative group bg-fivem-card rounded-2xl border transition-all h-full group-hover:z-30",
-                              sortBy === 'top' && index === 0
-                                ? "ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
-                                : "border-white/5 hover:border-fivem-orange/30"
+                              photo.is_disqualified
+                                ? "ring-2 ring-red-500/80 border-red-500/50"
+                                : sortBy === 'top' && index === 0
+                                  ? "ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
+                                  : "border-white/5 hover:border-fivem-orange/30"
                             )}
                           >
                           <div className={cn("relative cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
@@ -1941,13 +1993,29 @@ export default function App() {
                             <img
                               src={photo.image_url}
                               alt={photo.caption}
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              className={cn(
+                                "w-full h-full object-cover transition-transform duration-700 group-hover:scale-105",
+                                photo.is_disqualified && "grayscale-[40%] opacity-80"
+                              )}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                           </div>
 
+                          {/* DISQUALIFIED Permanent Banner */}
+                          {photo.is_disqualified && (
+                            <div className="absolute top-0 inset-x-0 bg-red-600/95 text-white font-black text-xs uppercase tracking-widest py-1.5 px-3 flex items-center justify-center gap-1.5 z-30 shadow-lg border-b border-red-400/40">
+                              <Ban size={14} className="stroke-[2.5]" />
+                              <span>DISQUALIFIED</span>
+                              {photo.disqualification_reason && (
+                                <span className="font-normal text-[10px] opacity-90 truncate max-w-[150px] font-mono">
+                                  ({photo.disqualification_reason})
+                                </span>
+                              )}
+                            </div>
+                          )}
+
                           {/* Top-left: rank badge + player name in one row */}
-                          <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+                          <div className={cn("absolute left-3 flex items-center gap-2 z-10", photo.is_disqualified ? "top-9" : "top-3")}>
                             {rankEmoji && (
                               <span className="text-2xl drop-shadow-lg leading-none">{rankEmoji}</span>
                             )}
@@ -1960,7 +2028,31 @@ export default function App() {
                           </div>
 
                           {/* Top-right: action buttons (hover) */}
-                          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                          <div className={cn("absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10", photo.is_disqualified ? "top-9" : "top-3")}>
+                            {isAdmin && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (photo.is_disqualified) {
+                                    handleToggleDisqualifyPhoto(photo.id, false);
+                                  } else {
+                                    const reason = window.prompt("Reason for disqualifying this photo (optional):");
+                                    if (reason !== null) {
+                                      handleToggleDisqualifyPhoto(photo.id, true, reason || undefined);
+                                    }
+                                  }
+                                }}
+                                className={cn(
+                                  "bg-black/60 backdrop-blur-md p-2 rounded-full border transition-colors cursor-pointer",
+                                  photo.is_disqualified
+                                    ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                                    : "border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white"
+                                )}
+                                title={photo.is_disqualified ? "Re-qualify Photo" : "Disqualify Photo"}
+                              >
+                                {photo.is_disqualified ? <CheckCircle size={14} /> : <Ban size={14} />}
+                              </button>
+                            )}
                             {(isAdmin || (user && (user.displayName === photo.discord_name || user.providerData.some(p => p.displayName === photo.discord_name)))) && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id, photo.discord_name); }}
@@ -1991,6 +2083,7 @@ export default function App() {
                               voteCount={photo.vote_count || 0}
                               hasVoted={votedPhotoIds.has(photo.id)}
                               votingOpen={isVotingOpen}
+                              isDisqualified={photo.is_disqualified}
                               categorySharePct={(() => {
                                 const total = photos.reduce((s, p) => s + (p.vote_count || 0), 0);
                                 return total > 0 ? Math.round(((photo.vote_count || 0) / total) * 100) : 0;
@@ -2287,6 +2380,7 @@ export default function App() {
                 onToggleReveal={handleToggleReveal}
                 onDownloadWinners={handleDownloadWinningPhotos}
                 onDeletePhoto={handleDeletePhoto}
+                onToggleDisqualifyPhoto={handleToggleDisqualifyPhoto}
                 onResetVotes={handleResetVotes}
                 onOpenAnalytics={() => {
                   setShowAdminModal(false);

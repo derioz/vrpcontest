@@ -16,6 +16,8 @@ export interface Photo {
     caption: string;
     created_at: string;
     vote_count: number;
+    is_disqualified?: boolean;
+    disqualification_reason?: string;
 }
 
 export interface ArchivedWinner {

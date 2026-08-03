@@ -48,6 +48,7 @@ interface AdminPanelProps {
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
   onDeletePhoto: (photoId: string, discordName: string) => void;
+  onToggleDisqualifyPhoto?: (photoId: string, disqualify: boolean, reason?: string) => void;
   onResetVotes?: () => void;
   onOpenAnalytics: () => void;
 }
@@ -182,6 +183,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                   adminPreviewOpen={adminPreviewOpen}
                   setAdminPreviewOpen={setAdminPreviewOpen}
                   onDeletePhoto={onDeletePhoto}
+                  onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
                   onOpenAnalytics={onOpenAnalytics}
                 />
               )}
@@ -241,10 +243,12 @@ export default function AdminPanel(props: AdminPanelProps) {
 /* ═══════════════════════════════════════════════════════════════════════
    TAB: Dashboard
    ═══════════════════════════════════════════════════════════════════════ */
-function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminPreviewOpen, setAdminPreviewOpen, onDeletePhoto, onOpenAnalytics }: {
+function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminPreviewOpen, setAdminPreviewOpen, onDeletePhoto, onToggleDisqualifyPhoto, onOpenAnalytics }: {
   activeContest: any; categories: Category[]; allPhotos: Photo[]; votingOpen: boolean;
   adminPreviewOpen: boolean; setAdminPreviewOpen: (v: boolean) => void;
-  onDeletePhoto: (id: string, name: string) => void; onOpenAnalytics: () => void;
+  onDeletePhoto: (id: string, name: string) => void;
+  onToggleDisqualifyPhoto?: (id: string, disqualify: boolean, reason?: string) => void;
+  onOpenAnalytics: () => void;
 }) {
   return (
     <div className="space-y-6">
@@ -332,6 +336,7 @@ function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminP
                     allPhotos={allPhotos}
                     categories={categories}
                     onDeletePhoto={onDeletePhoto}
+                    onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
                   />
                 </Suspense>
               </div>

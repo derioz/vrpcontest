@@ -119,6 +119,11 @@ service cloud.firestore {
       allow read, create, update, delete: if true;
     }
 
+    // Flagged alt voters
+    match /flagged_voters/{doc} {
+      allow read, write: if true;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;
