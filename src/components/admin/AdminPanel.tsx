@@ -4,11 +4,11 @@
  */
 
 import React, { useState, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
-  Eye, Download, Loader2, BarChart3, Shield, Zap, LayoutDashboard
+  Eye, Download, Loader2, BarChart3, Shield, Zap, LayoutDashboard, UserCheck
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
@@ -17,13 +17,14 @@ import { AnimatedShinyText } from '../ui/animated-shiny-text';
 import { ShimmerButton } from '../ui/shimmer-button';
 import { PulsatingButton } from '../ui/pulsating-button';
 import { AdminToggle } from '../ui/admin-toggle';
+import { AdminVoterSearch } from './AdminVoterSearch';
 
 const EditContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.EditContestManager })));
 const ArchiveContest = lazy(() => import('./ContestManagers').then(m => ({ default: m.ArchiveContest })));
 const CreateContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.CreateContestManager })));
 const AdminSubmissionsPreview = lazy(() => import('./AdminSubmissionsPreview'));
 
-type AdminTab = 'dashboard' | 'controls' | 'contest' | 'security' | 'danger';
+type AdminTab = 'dashboard' | 'controls' | 'voters' | 'contest' | 'security' | 'danger';
 
 interface AdminPanelProps {
   isAdmin: boolean;
@@ -54,6 +55,7 @@ interface AdminPanelProps {
 const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-fivem-orange' },
   { id: 'controls', label: 'Controls', icon: Zap, color: 'text-emerald-400' },
+  { id: 'voters', label: 'Voter Search', icon: UserCheck, color: 'text-cyan-400' },
   { id: 'contest', label: 'Contest', icon: Trophy, color: 'text-amber-400' },
   { id: 'security', label: 'Security', icon: Shield, color: 'text-purple-400' },
   { id: 'danger', label: 'Danger Zone', icon: AlertCircle, color: 'text-red-400' },
@@ -193,6 +195,12 @@ export default function AdminPanel(props: AdminPanelProps) {
                   onToggleSubmissions={onToggleSubmissions}
                   onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
                   onToggleShowWinners={onToggleShowWinners}
+                />
+              )}
+              {activeTab === 'voters' && (
+                <AdminVoterSearch
+                  allPhotos={allPhotos}
+                  categories={categories}
                 />
               )}
               {activeTab === 'contest' && (
