@@ -472,18 +472,14 @@ export default function App() {
     };
   }, [user]);
 
-  const getViewerId = (): string => {
-    let vid = localStorage.getItem('vrp_viewer_id');
-    if (!vid) {
-      vid = 'viewer_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-      localStorage.setItem('vrp_viewer_id', vid);
-    }
-    return vid;
-  };
 
-  // Track which photos the current user/viewer has voted on (real-time)
+  // Track which photos the current user has voted on (real-time)
   useEffect(() => {
-    const currentUid = user?.uid || getViewerId();
+    if (!user) {
+      setVotedPhotoIds(new Set());
+      return;
+    }
+    const currentUid = user.uid;
     const q = query(collection(db, 'votes'), where('voterUid', '==', currentUid));
     const unsub = onSnapshot(q, (snapshot) => {
       const ids = new Set(snapshot.docs.map(d => d.data().photoId as string));
@@ -611,36 +607,17 @@ export default function App() {
       return;
     }
 
-    let currentUser = user;
-    let voterUid = currentUser?.uid;
-
-    if (!currentUser) {
-      try {
-        const userCred = await signInAnonymously(auth);
-        currentUser = userCred.user;
-        voterUid = currentUser.uid;
-      } catch (error) {
-        console.warn("Anonymous auth unavailable, using persistent viewer ID:", error);
-      }
+    if (!user) {
+      toast.error('Please sign in with Discord to vote!');
+      setShowSignInModal(true);
+      return;
     }
 
-    if (!voterUid) {
-      voterUid = getViewerId();
-    }
+    const voterUid = user.uid;
 
     let currentName = playerName;
-    if (!currentName && currentUser && !currentUser.isAnonymous) {
-      const promptedName = window.prompt("Please enter your Vital RP Character Name to vote:");
-      if (!promptedName) {
-        toast.error('Player name is required to vote');
-        return;
-      }
-      currentName = promptedName;
-      setPlayerName(currentName);
-      localStorage.setItem('fivem_player_name', currentName);
-    }
     if (!currentName) {
-      currentName = currentUser?.displayName || 'Viewer';
+      currentName = user.displayName || 'Discord User';
     }
 
     try {
