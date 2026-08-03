@@ -1,0 +1,246 @@
+import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X, Search, Users, Heart, Sparkles } from 'lucide-react';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
+export interface Voter {
+  id: string;
+  displayName: string;
+  uid: string;
+}
+
+interface VotersModalProps {
+  photoId: string | null;
+  photoCaption?: string;
+  voteCount: number;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function VotersModal({
+  photoId,
+  photoCaption,
+  voteCount,
+  isOpen,
+  onClose,
+}: VotersModalProps) {
+  const [voters, setVoters] = useState<Voter[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Reset search on photo change or close
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('');
+    }
+  }, [isOpen]);
+
+  // Fetch voters in real-time
+  useEffect(() => {
+    if (!isOpen || !photoId) {
+      setVoters([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const q = query(
+      collection(db, 'votes'),
+      where('photoId', '==', photoId)
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const fetched = snap.docs.map((d) => ({
+          id: d.id,
+          displayName:
+            (d.data().voterDiscord as string) ||
+            (d.data().voterName as string) ||
+            'Anonymous',
+          uid: (d.data().voterUid as string) || d.id,
+        }));
+        setVoters(fetched);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error('Failed to fetch voters:', err);
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsub();
+  }, [isOpen, photoId]);
+
+  const filteredVoters = voters.filter((v) =>
+    v.displayName.toLowerCase().includes(searchQuery.toLowerCase().trim())
+  );
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+        />
+
+        {/* Modal Window */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full max-w-lg rounded-3xl border border-white/15 bg-[#0a0a0a]/95 backdrop-blur-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[85vh] z-10 select-none"
+        >
+          {/* Header */}
+          <div className="p-5 sm:p-6 border-b border-white/10 flex items-start justify-between gap-4 bg-gradient-to-b from-white/[0.04] to-transparent">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange shadow-[0_0_20px_rgba(234,88,12,0.2)] shrink-0">
+                <Users size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-white tracking-wide">
+                    Voters List
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange text-xs font-mono font-bold">
+                    {voteCount.toLocaleString()} {voteCount === 1 ? 'Vote' : 'Votes'}
+                  </span>
+                </div>
+                {photoCaption && (
+                  <p className="text-xs text-white/50 truncate max-w-xs mt-0.5 font-medium">
+                    "{photoCaption}"
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-colors cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Search Input Bar */}
+          <div className="p-4 border-b border-white/5 bg-black/40">
+            <div className="relative flex items-center">
+              <Search
+                size={16}
+                className="absolute left-3.5 text-white/40 pointer-events-none"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search voters by name..."
+                className="w-full bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.1] text-white text-sm rounded-xl pl-10 pr-9 py-2.5 border border-white/10 focus:border-fivem-orange/50 outline-none transition-all placeholder:text-white/30"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 text-white/40 hover:text-white p-1 cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Voter List Body */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent">
+            {isLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center text-white/40 gap-3">
+                <div className="w-6 h-6 border-2 border-fivem-orange border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-mono uppercase tracking-wider">
+                  Loading voters...
+                </span>
+              </div>
+            ) : filteredVoters.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {filteredVoters.map((voter, index) => (
+                  <motion.div
+                    key={voter.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15, delay: Math.min(index * 0.02, 0.3) }}
+                    className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] hover:border-fivem-orange/30 transition-all group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fivem-orange/30 to-amber-600/20 border border-fivem-orange/40 flex items-center justify-center text-fivem-orange text-xs font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                      {voter.displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white/90 truncate group-hover:text-white transition-colors">
+                        {voter.displayName}
+                      </p>
+                      <p className="text-[10px] font-mono text-white/30 truncate">
+                        Voter #{index + 1}
+                      </p>
+                    </div>
+                    <Heart
+                      size={14}
+                      className="text-fivem-orange/30 group-hover:text-fivem-orange transition-colors shrink-0 mr-1 fill-fivem-orange/20"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            ) : searchQuery ? (
+              <div className="py-12 flex flex-col items-center justify-center text-white/40 text-center px-4">
+                <Search size={32} className="mb-2 stroke-[1.5] text-white/20" />
+                <p className="text-sm font-medium text-white/70">No voters found</p>
+                <p className="text-xs text-white/40 mt-1">
+                  No matching voters for "{searchQuery}"
+                </p>
+              </div>
+            ) : (
+              <div className="py-12 flex flex-col items-center justify-center text-white/40 text-center px-4">
+                <Sparkles size={32} className="mb-2 stroke-[1.5] text-white/20" />
+                <p className="text-sm font-medium text-white/70">No votes recorded yet</p>
+                <p className="text-xs text-white/40 mt-1">
+                  Be the first to vote on this submission!
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Summary */}
+          <div className="p-3.5 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-white/40 font-mono">
+            <span>
+              Showing {filteredVoters.length} of {voters.length} total voter{voters.length !== 1 ? 's' : ''}
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-fivem-orange hover:text-white font-bold transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}

@@ -1987,6 +1987,7 @@ export default function App() {
                           <div className="absolute bottom-3 right-3 z-20">
                             <VoteButton
                               photoId={photo.id}
+                              photoCaption={photo.caption}
                               voteCount={photo.vote_count || 0}
                               hasVoted={votedPhotoIds.has(photo.id)}
                               votingOpen={isVotingOpen}
