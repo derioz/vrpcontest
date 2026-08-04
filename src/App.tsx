@@ -423,17 +423,27 @@ export default function App() {
         return;
       }
 
-      if (session.provider_token) {
-        const verifyRes = await verifyDiscordGuildAndRole(session.provider_token);
-        if (!verifyRes.allowed) {
-          console.warn("🚫 Discord server/role check failed:", verifyRes);
-          setDiscordReqReason(verifyRes.reason || 'not_in_server');
-          setDiscordReqMessage(verifyRes.message || 'Access denied.');
-          setShowDiscordReqModal(true);
-          await supabase.auth.signOut();
-          handleSessionUser(null);
-          return;
-        }
+      const discordId =
+        session.user.user_metadata?.provider_id ||
+        session.user.user_metadata?.sub ||
+        session.user.identities?.find((i: any) => i.provider === 'discord')?.id ||
+        session.user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
+        session.user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub;
+
+      const verifyRes = await verifyDiscordGuildAndRole({
+        providerToken: session.provider_token || null,
+        discordId: discordId ? String(discordId) : null,
+      });
+
+      if (!verifyRes.allowed) {
+        console.warn("🚫 Discord server/role check failed:", verifyRes);
+        setDiscordReqReason(verifyRes.reason || 'not_in_server');
+        setDiscordReqMessage(verifyRes.message || 'Access denied.');
+        setShowDiscordReqModal(true);
+        await supabase.auth.signOut();
+        localStorage.removeItem('discord_provider_token');
+        handleSessionUser(null);
+        return;
       }
 
       handleSessionUser(session.user);
@@ -1002,7 +1012,8 @@ export default function App() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin,
+          scopes: 'identify email guilds.members.read'
         }
       });
       if (error) {
@@ -1020,6 +1031,7 @@ export default function App() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
+      localStorage.removeItem('discord_provider_token');
       setUser(null);
       setIsAdmin(false);
       toast.success("Signed out successfully");
