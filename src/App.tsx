@@ -52,6 +52,8 @@ import Picker from '@emoji-mart/react';
 import { cn, pixelateImage } from './lib/utils';
 import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
 import { downloadPhoto } from './lib/download';
+import { verifyDiscordGuildAndRole } from './lib/discord';
+import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
@@ -153,6 +155,9 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showNotAdminModal, setShowNotAdminModal] = useState(false);
+  const [showDiscordReqModal, setShowDiscordReqModal] = useState(false);
+  const [discordReqReason, setDiscordReqReason] = useState<'not_in_server' | 'missing_role' | 'api_error' | null>(null);
+  const [discordReqMessage, setDiscordReqMessage] = useState<string | null>(null);
   const [notAdminClickCount, setNotAdminClickCount] = useState(0);
   const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
@@ -412,14 +417,36 @@ export default function App() {
       }
     };
 
+    const processSession = async (session: any) => {
+      if (!session || !session.user) {
+        handleSessionUser(null);
+        return;
+      }
+
+      if (session.provider_token) {
+        const verifyRes = await verifyDiscordGuildAndRole(session.provider_token);
+        if (!verifyRes.allowed) {
+          console.warn("🚫 Discord server/role check failed:", verifyRes);
+          setDiscordReqReason(verifyRes.reason || 'not_in_server');
+          setDiscordReqMessage(verifyRes.message || 'Access denied.');
+          setShowDiscordReqModal(true);
+          await supabase.auth.signOut();
+          handleSessionUser(null);
+          return;
+        }
+      }
+
+      handleSessionUser(session.user);
+    };
+
     // Fetch initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSessionUser(session?.user ?? null);
+      processSession(session);
     });
 
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSessionUser(session?.user ?? null);
+      processSession(session);
     });
 
     return () => subscription.unsubscribe();
@@ -2388,6 +2415,18 @@ export default function App() {
       <Suspense fallback={null}>
         <LightboxModal photo={lightboxPhoto} privateKey={privateKey} onClose={() => setLightboxPhoto(null)} />
       </Suspense>
+
+      {/* Discord Server & Role Requirement Modal */}
+      <DiscordRequirementsModal
+        isOpen={showDiscordReqModal}
+        onClose={() => setShowDiscordReqModal(false)}
+        onRetry={() => {
+          setShowDiscordReqModal(false);
+          handleDiscordLogin();
+        }}
+        reason={discordReqReason}
+        message={discordReqMessage}
+      />
 
       {/* Analytics Dashboard Fullscreen Render */}
       <AnimatePresence>
