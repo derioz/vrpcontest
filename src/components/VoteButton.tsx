@@ -68,6 +68,10 @@ export function VoteButton({
         });
     }, []);
 
+// Module-level cache for top hover voters to prevent repeated Firestore reads
+const voterHoverCache = new Map<string, { voters: Voter[]; timestamp: number }>();
+const CACHE_TTL_MS = 60000; // 60 seconds
+
     // Fetch top 5 voter names for quick hover preview
     useEffect(() => {
         if (!isHovered) return;
@@ -75,6 +79,18 @@ export function VoteButton({
         updateCoords();
 
         const photoIdStr = String(photoId).trim();
+        const cached = voterHoverCache.get(photoIdStr);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+            setVoters(cached.voters);
+            const handleScroll = () => updateCoords();
+            window.addEventListener('scroll', handleScroll, { passive: true });
+            window.addEventListener('resize', handleScroll, { passive: true });
+            return () => {
+                window.removeEventListener('scroll', handleScroll);
+                window.removeEventListener('resize', handleScroll);
+            };
+        }
+
         const photoIdNum = !isNaN(Number(photoIdStr)) ? Number(photoIdStr) : null;
 
         const queries = [
@@ -100,7 +116,9 @@ export function VoteButton({
                         });
                     }
                 });
-                setVoters(Array.from(map.values()).slice(0, 5));
+                const topVoters = Array.from(map.values()).slice(0, 5);
+                setVoters(topVoters);
+                voterHoverCache.set(photoIdStr, { voters: topVoters, timestamp: Date.now() });
             });
             unsubs.push(unsub);
         });

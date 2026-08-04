@@ -473,8 +473,28 @@ export default function App() {
       return;
     }
 
+    let archivedSubs = 0;
+    let archivedVotes = 0;
+    let statsFetched = false;
+
+    const fetchArchivedStats = async () => {
+      if (statsFetched) return;
+      try {
+        const statDoc = await getDoc(doc(db, 'user_stats', user.displayName!));
+        if (statDoc.exists()) {
+          const stats = statDoc.data();
+          archivedSubs = stats.archived_submissions || 0;
+          archivedVotes = stats.archived_votes || 0;
+        }
+      } catch (e) {
+        console.error("Failed fetching user_stats", e);
+      } finally {
+        statsFetched = true;
+      }
+    };
+
     const q = query(collection(db, 'photos'), where('discord_name', '==', user.displayName));
-    const unsubPhotos = onSnapshot(q, (snapshot) => {
+    const unsubPhotos = onSnapshot(q, async (snapshot) => {
       let currentSubs = snapshot.size;
       let currentVotes = 0;
       snapshot.forEach(doc => {
@@ -482,38 +502,15 @@ export default function App() {
         currentVotes += (data.vote_count || 0);
       });
 
-      // Fetch permanent archived stats 
-      getDoc(doc(db, 'user_stats', user.displayName!)).then((statDoc) => {
-        if (statDoc.exists()) {
-          const stats = statDoc.data();
-          setUserSubmissionCount(currentSubs + (stats.archived_submissions || 0));
-          setUserTotalVotes(currentVotes + (stats.archived_votes || 0));
-        } else {
-          setUserSubmissionCount(currentSubs);
-          setUserTotalVotes(currentVotes);
-        }
-      }).catch((e) => {
-        console.error("Failed fetching user_stats", e);
-        setUserSubmissionCount(currentSubs);
-        setUserTotalVotes(currentVotes);
-      });
-
+      await fetchArchivedStats();
+      setUserSubmissionCount(currentSubs + archivedSubs);
+      setUserTotalVotes(currentVotes + archivedVotes);
     }, (err) => {
       console.error("User submissions listener error", err);
     });
 
-    // Also set up realtime listener on user_stats just in case it updates while active
-    const unsubStats = onSnapshot(doc(db, 'user_stats', user.displayName), (statDoc) => {
-      // We won't tightly re-query photos here, but just trigger a state refresh of the photos query
-      // to recalculate. However, it's easier to just rely on the photos snapshot for active counters,
-      // and only read the stats doc once. Or handle it symmetrically. 
-      // For speed, let's just keep simplest implementation: the one above updates whenever photos update.
-      // We'll leave it simple.
-    });
-
     return () => {
       unsubPhotos();
-      unsubStats();
     };
   }, [user]);
 
@@ -614,13 +611,18 @@ export default function App() {
     }
   }, [currentTheme]);
 
+  const activeContestId = activeContest?.id;
+  const categoryIdsKey = useMemo(() => categories.map(c => c.id).sort().join(','), [categories]);
+
   // Listen to ALL photos for all categories in the active contest
   useEffect(() => {
-    if (!activeContest || categories.length === 0) {
+    if (!activeContestId || !categoryIdsKey) {
       setAllPhotos([]);
       return;
     }
-    const catIds = categories.map(c => c.id);
+    const catIds = categoryIdsKey.split(',').filter(Boolean);
+    if (catIds.length === 0) return;
+
     const q = query(collection(db, 'photos'), where('category_id', 'in', catIds));
     const unsub = onSnapshot(q, async (snapshot) => {
       const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Photo[];
@@ -644,7 +646,7 @@ export default function App() {
       toast.error('Failed to load photos');
     });
     return () => unsub();
-  }, [activeContest, categories, privateKey]);
+  }, [activeContestId, categoryIdsKey, privateKey]);
 
   // Subscribe to flagged_voters collection
   const [flaggedVoterIds, setFlaggedVoterIds] = useState<Set<string>>(new Set());
