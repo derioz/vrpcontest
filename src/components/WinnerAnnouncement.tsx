@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Download, Trophy } from "lucide-react";
+import { downloadPhoto } from "../lib/download";
 
 interface Winner {
     id: string;
@@ -74,30 +75,15 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
         const toastId = `download-${winner.id}`;
         toast.loading("Preparing download...", { id: toastId });
 
-        try {
-            const response = await fetch(winner.imageUrl);
-            if (!response.ok) {
-                throw new Error(`Download failed with status ${response.status}`);
-            }
+        const contestPart = contestName ? sanitizeFilePart(contestName) : "current-contest";
+        const categoryPart = sanitizeFilePart(winner.categoryName) || "winner";
+        const playerPart = sanitizeFilePart(winner.playerName) || "player";
+        const filename = `${contestPart}-${categoryPart}-${playerPart}.jpg`;
 
-            const blob = await response.blob();
-            const objectUrl = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            const contestPart = contestName ? sanitizeFilePart(contestName) : "current-contest";
-            const categoryPart = sanitizeFilePart(winner.categoryName) || "winner";
-            const playerPart = sanitizeFilePart(winner.playerName) || "player";
-            const extension = blob.type.split("/")[1] || "jpg";
-
-            link.href = objectUrl;
-            link.download = `${contestPart}-${categoryPart}-${playerPart}.${extension}`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(objectUrl);
-
+        const success = await downloadPhoto(winner.imageUrl, filename);
+        if (success) {
             toast.success("Winning photo downloaded.", { id: toastId });
-        } catch (error) {
-            console.error("Winner download failed:", error);
+        } else {
             toast.error("Could not download that image.", { id: toastId });
         }
     };

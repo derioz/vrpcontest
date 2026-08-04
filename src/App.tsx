@@ -51,6 +51,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { cn, pixelateImage } from './lib/utils';
 import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
+import { downloadPhoto } from './lib/download';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
@@ -270,32 +271,18 @@ export default function App() {
     let successCount = 0;
 
     for (const winner of winners) {
-      try {
-        const response = await fetch(winner.imageUrl);
-        if (!response.ok) {
-          throw new Error(`Download failed with status ${response.status}`);
-        }
+      const contestPart = sanitizeDownloadPart(activeContest.name) || 'current-contest';
+      const categoryPart = sanitizeDownloadPart(winner.categoryName) || 'winner';
+      const playerPart = sanitizeDownloadPart(winner.playerName) || 'player';
+      const filename = `${contestPart}-${categoryPart}-${playerPart}.jpg`;
 
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        const contestPart = sanitizeDownloadPart(activeContest.name) || 'current-contest';
-        const categoryPart = sanitizeDownloadPart(winner.categoryName) || 'winner';
-        const playerPart = sanitizeDownloadPart(winner.playerName) || 'player';
-        const extension = blob.type.split('/')[1] || 'jpg';
-
-        link.href = objectUrl;
-        link.download = `${contestPart}-${categoryPart}-${playerPart}.${extension}`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(objectUrl);
+      const ok = await downloadPhoto(winner.imageUrl, filename);
+      if (ok) {
         successCount += 1;
-
-        await new Promise((resolve) => window.setTimeout(resolve, 150));
-      } catch (error) {
-        console.error('Admin winner download failed:', winner.id, error);
+      } else {
+        console.error('Admin winner download failed:', winner.id);
       }
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
     }
 
     if (successCount === winners.length) {
@@ -2335,7 +2322,7 @@ export default function App() {
       <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
-          className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-x-hidden"
+          className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl h-[85vh] min-h-[600px] max-h-[850px] bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-hidden flex flex-col"
         >
 
           {/* Ambient glows — uitripled glassmorphism pattern */}

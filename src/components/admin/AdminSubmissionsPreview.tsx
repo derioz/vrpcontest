@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Category, Photo } from '../../types';
 import { decryptUrl } from '../../lib/crypto';
-import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers, Ban, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers, Ban, CheckCircle, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { downloadPhoto } from '../../lib/download';
+import { toast } from 'sonner';
 
 interface AdminSubmissionsPreviewProps {
   allPhotos: Photo[];
@@ -298,6 +300,22 @@ export default function AdminSubmissionsPreview({
                   title="View fullsize"
                 >
                   <Maximize2 size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const src = decryptedPhotos.get(photo.id) || photo.image_url;
+                    const name = photo.player_name ? photo.player_name.replace(/[^a-z0-9]/gi, '_') : 'photo';
+                    const filename = `submission-${name}-${photo.id.slice(0, 6)}.jpg`;
+                    const ok = await downloadPhoto(src, filename);
+                    if (ok) toast.success("Downloaded photo!");
+                    else toast.error("Failed to download photo.");
+                  }}
+                  className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors cursor-pointer"
+                  title="Download photo"
+                >
+                  <Download size={12} />
                 </button>
                 {onDeletePhoto && (
                   <button

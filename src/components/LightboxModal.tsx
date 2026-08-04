@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Vote, Calendar, Users, Ban } from 'lucide-react';
+import { X, User, Vote, Calendar, Users, Ban, Download } from 'lucide-react';
 import { Photo } from '../types';
 import { VotersModal } from './VotersModal';
+import { downloadPhoto } from '../lib/download';
+import { toast } from 'sonner';
 
 interface LightboxModalProps {
     photo: Photo | null;
@@ -12,6 +14,21 @@ interface LightboxModalProps {
 
 export default function LightboxModal({ photo, privateKey, onClose }: LightboxModalProps) {
     const [isVotersModalOpen, setIsVotersModalOpen] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownload = async () => {
+        if (!photo) return;
+        setIsDownloading(true);
+        const playerPart = photo.player_name ? photo.player_name.replace(/[^a-z0-9]/gi, '_') : 'photo';
+        const filename = `contest-${playerPart}-${photo.id.slice(0, 6)}.jpg`;
+        const success = await downloadPhoto(photo.image_url, filename);
+        if (success) {
+            toast.success("Photo downloaded!");
+        } else {
+            toast.error("Failed to download photo.");
+        }
+        setIsDownloading(false);
+    };
 
     return (
         <AnimatePresence>
@@ -83,6 +100,18 @@ export default function LightboxModal({ photo, privateKey, onClose }: LightboxMo
                                             {photo.vote_count || 0} Votes
                                         </span>
                                         <Users size={12} className="opacity-70 group-hover:opacity-100 transition-opacity ml-0.5" />
+                                    </button>
+                                     <button
+                                        type="button"
+                                        onClick={handleDownload}
+                                        disabled={isDownloading}
+                                        className="flex items-center gap-2 bg-white/10 hover:bg-white/20 cursor-pointer backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 text-white transition-all hover:scale-105"
+                                        title="Download this photo"
+                                    >
+                                        <Download size={14} className="text-white/80" />
+                                        <span className="text-xs font-bold uppercase tracking-wider">
+                                            {isDownloading ? 'Downloading...' : 'Download'}
+                                        </span>
                                     </button>
                                     <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg hidden sm:flex">
                                         <Calendar size={14} className="text-white/40" />

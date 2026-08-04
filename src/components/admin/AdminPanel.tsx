@@ -1,6 +1,6 @@
 /**
  * AdminPanel — Tabbed admin settings panel
- * Inspired by ElevenLabs UI (tabbed sidebar), MagicUI (animated effects), UITripled (glassmorphism)
+ * Fixed-height layout with reorganized domain-focused sections.
  */
 
 import React, { useState, Suspense, lazy } from 'react';
@@ -15,7 +15,6 @@ import { Category, Photo } from '../../types';
 import { BorderBeam } from '../ui/border-beam';
 import { AnimatedShinyText } from '../ui/animated-shiny-text';
 import { ShimmerButton } from '../ui/shimmer-button';
-import { PulsatingButton } from '../ui/pulsating-button';
 import { AdminToggle } from '../ui/admin-toggle';
 import { AdminVoterSearch } from './AdminVoterSearch';
 
@@ -24,7 +23,7 @@ const ArchiveContest = lazy(() => import('./ContestManagers').then(m => ({ defau
 const CreateContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.CreateContestManager })));
 const AdminSubmissionsPreview = lazy(() => import('./AdminSubmissionsPreview'));
 
-type AdminTab = 'dashboard' | 'controls' | 'voters' | 'contest' | 'security' | 'danger';
+type AdminTab = 'dashboard' | 'submissions' | 'voters' | 'contest' | 'controls' | 'danger';
 
 interface AdminPanelProps {
   isAdmin: boolean;
@@ -53,13 +52,13 @@ interface AdminPanelProps {
   onOpenAnalytics: () => void;
 }
 
-const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-fivem-orange' },
-  { id: 'controls', label: 'Controls', icon: Zap, color: 'text-emerald-400' },
-  { id: 'voters', label: 'Voter Search', icon: UserCheck, color: 'text-cyan-400' },
-  { id: 'contest', label: 'Contest', icon: Trophy, color: 'text-amber-400' },
-  { id: 'security', label: 'Security', icon: Shield, color: 'text-purple-400' },
-  { id: 'danger', label: 'Danger Zone', icon: AlertCircle, color: 'text-red-400' },
+const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string; description: string }[] = [
+  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, color: 'text-fivem-orange', description: 'Metrics & status' },
+  { id: 'submissions', label: 'Submissions', icon: ImageIcon, color: 'text-cyan-400', description: 'Photos & decryption' },
+  { id: 'voters', label: 'Voter Audit', icon: UserCheck, color: 'text-blue-400', description: 'Search & fraud check' },
+  { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', description: 'Edit rules & winners' },
+  { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-emerald-400', description: 'Toggles & RSA keys' },
+  { id: 'danger', label: 'Danger Zone', icon: AlertCircle, color: 'text-red-400', description: 'Reset & archive' },
 ];
 
 export default function AdminPanel(props: AdminPanelProps) {
@@ -71,14 +70,13 @@ export default function AdminPanel(props: AdminPanelProps) {
   } = props;
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
-  const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
 
   if (!isAdmin) return null;
 
   return (
-    <div className="relative z-10 flex flex-col -m-6">
+    <div className="relative z-10 flex flex-col h-full overflow-hidden">
       {/* ── Header Bar ── */}
-      <div className="relative overflow-hidden flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.08]">
+      <div className="shrink-0 relative overflow-hidden flex items-center justify-between px-4 sm:px-8 py-4 border-b border-white/[0.08] bg-black/40">
         <BorderBeam size={300} duration={12} colorFrom="#ea580c" colorTo="#fb923c" />
         <div className="flex items-center gap-4">
           <div className="p-2.5 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
@@ -86,9 +84,9 @@ export default function AdminPanel(props: AdminPanelProps) {
           </div>
           <div>
             <h2 className="text-lg font-black font-display text-white leading-none">
-              <AnimatedShinyText shimmerWidth={150}>Admin Settings</AnimatedShinyText>
+              <AnimatedShinyText shimmerWidth={150}>Admin Console</AnimatedShinyText>
             </h2>
-            <p className="text-[11px] text-white/30 font-mono mt-0.5">Contest Management Console</p>
+            <p className="text-[11px] text-white/30 font-mono mt-0.5">Contest Management & Operations</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -102,11 +100,11 @@ export default function AdminPanel(props: AdminPanelProps) {
         </div>
       </div>
 
-      {/* ── Tab Navigation + Content ── */}
-      <div className="flex flex-col lg:flex-row flex-1 min-h-[500px]">
+      {/* ── Tab Navigation + Content Area ── */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
 
-        {/* ── Sidebar Tabs (ElevenLabs style) ── */}
-        <div className="lg:w-56 shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-white/[0.01]">
+        {/* ── Sidebar Tabs ── */}
+        <div className="lg:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-white/[0.01] overflow-y-auto">
           {/* Mobile: horizontal scrollable tabs */}
           <div className="lg:hidden flex items-center gap-1 p-2 overflow-x-auto no-scrollbar">
             {TABS.map((tab) => {
@@ -141,88 +139,117 @@ export default function AdminPanel(props: AdminPanelProps) {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer text-left w-full",
+                    "relative flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 cursor-pointer text-left w-full",
                     isActive
-                      ? "bg-white/[0.08] text-white"
-                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
+                      ? "bg-white/[0.08] text-white shadow-sm border border-white/10"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.03] border border-transparent"
                   )}
                 >
-                  {/* Active indicator bar */}
                   {isActive && (
                     <motion.div
                       layoutId="admin-tab-indicator"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-fivem-orange rounded-full"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-fivem-orange rounded-full"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <Icon size={16} className={isActive ? tab.color : ''} />
-                  <span>{tab.label}</span>
-                  {isActive && <ChevronRight size={12} className="ml-auto text-white/20" />}
+                  <div className={cn("p-1.5 rounded-lg bg-white/5 border border-white/5", isActive && "bg-white/10 border-white/10")}>
+                    <Icon size={16} className={isActive ? tab.color : 'text-white/40'} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn("text-xs font-bold leading-tight truncate", isActive ? "text-white" : "text-white/70")}>{tab.label}</p>
+                    <p className="text-[10px] text-white/30 truncate mt-0.5 font-mono">{tab.description}</p>
+                  </div>
+                  {isActive && <ChevronRight size={14} className="ml-auto text-white/30 shrink-0" />}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* ── Tab Content ── */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 max-h-[70vh]">
+        {/* ── Active Tab Scrollable Content Container ── */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 h-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.18 }}
+              className="max-w-5xl mx-auto"
             >
               {activeTab === 'dashboard' && (
-                <DashboardTab
+                <OverviewTab
                   activeContest={activeContest}
                   categories={categories}
                   allPhotos={allPhotos}
                   votingOpen={votingOpen}
-                  adminPreviewOpen={adminPreviewOpen}
-                  setAdminPreviewOpen={setAdminPreviewOpen}
-                  onDeletePhoto={onDeletePhoto}
-                  onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
+                  submissionsOpen={submissionsOpen}
+                  setActiveTab={setActiveTab}
                   onOpenAnalytics={onOpenAnalytics}
                 />
               )}
+
+              {activeTab === 'submissions' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
+                      <ImageIcon size={20} className="text-cyan-400" /> Submissions Management
+                    </h3>
+                    <p className="text-sm text-white/40">Review decrypted photo submissions, disqualify entries, or delete photos.</p>
+                  </div>
+                  <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-cyan-400" /></div>}>
+                    <AdminSubmissionsPreview
+                      allPhotos={allPhotos}
+                      categories={categories}
+                      onDeletePhoto={onDeletePhoto}
+                      onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
+                    />
+                  </Suspense>
+                </div>
+              )}
+
+              {activeTab === 'voters' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
+                      <UserCheck size={20} className="text-blue-400" /> Voter Audit & Fraud Check
+                    </h3>
+                    <p className="text-sm text-white/40">Search voters by Discord username or UID, inspect vote distribution, and clear flagged votes.</p>
+                  </div>
+                  <AdminVoterSearch
+                    allPhotos={allPhotos}
+                    categories={categories}
+                  />
+                </div>
+              )}
+
+              {activeTab === 'contest' && (
+                <ContestSetupTab
+                  activeContest={activeContest}
+                  categories={categories}
+                  rulesMarkdown={rulesMarkdown}
+                  winners={winners}
+                  onDownloadWinners={onDownloadWinners}
+                />
+              )}
+
               {activeTab === 'controls' && (
-                <ControlsTab
+                <ControlsAndSecurityTab
                   votingOpen={votingOpen}
                   submissionsOpen={submissionsOpen}
                   onePhotoPerUser={onePhotoPerUser}
                   showWinnersToggle={showWinnersToggle}
+                  publicKey={publicKey}
+                  privateKey={privateKey}
                   onToggleVoting={onToggleVoting}
                   onToggleSubmissions={onToggleSubmissions}
                   onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
                   onToggleShowWinners={onToggleShowWinners}
-                />
-              )}
-              {activeTab === 'voters' && (
-                <AdminVoterSearch
-                  allPhotos={allPhotos}
-                  categories={categories}
-                />
-              )}
-              {activeTab === 'contest' && (
-                <ContestTab
-                  activeContest={activeContest}
-                  categories={categories}
-                  rulesMarkdown={rulesMarkdown}
-                />
-              )}
-              {activeTab === 'security' && (
-                <SecurityTab
-                  publicKey={publicKey}
-                  privateKey={privateKey}
-                  activeContest={activeContest}
-                  winners={winners}
                   onGenerateKeys={onGenerateKeys}
                   onToggleReveal={onToggleReveal}
-                  onDownloadWinners={onDownloadWinners}
                 />
               )}
+
               {activeTab === 'danger' && (
                 <DangerTab
                   activeContest={activeContest}
@@ -241,21 +268,18 @@ export default function AdminPanel(props: AdminPanelProps) {
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TAB: Dashboard
+   TAB: Overview
    ═══════════════════════════════════════════════════════════════════════ */
-function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminPreviewOpen, setAdminPreviewOpen, onDeletePhoto, onToggleDisqualifyPhoto, onOpenAnalytics }: {
-  activeContest: any; categories: Category[]; allPhotos: Photo[]; votingOpen: boolean;
-  adminPreviewOpen: boolean; setAdminPreviewOpen: (v: boolean) => void;
-  onDeletePhoto: (id: string, name: string) => void;
-  onToggleDisqualifyPhoto?: (id: string, disqualify: boolean, reason?: string) => void;
-  onOpenAnalytics: () => void;
+function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submissionsOpen, setActiveTab, onOpenAnalytics }: {
+  activeContest: any; categories: Category[]; allPhotos: Photo[]; votingOpen: boolean; submissionsOpen: boolean;
+  setActiveTab: (tab: AdminTab) => void; onOpenAnalytics: () => void;
 }) {
   return (
     <div className="space-y-6">
       {/* Section heading */}
       <div>
         <h3 className="text-xl font-black font-display text-white mb-1">Dashboard Overview</h3>
-        <p className="text-sm text-white/40">Real-time snapshot of your active contest.</p>
+        <p className="text-sm text-white/40">Real-time snapshot of contest state and quick navigation hub.</p>
       </div>
 
       {/* Stats Grid */}
@@ -286,7 +310,7 @@ function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminP
               key={stat.label}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07, duration: 0.4 }}
+              transition={{ delay: i * 0.05, duration: 0.3 }}
               className={cn(
                 "relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4",
                 colors[stat.color]
@@ -301,48 +325,49 @@ function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminP
         })}
       </div>
 
-      {/* Admin Submissions Preview */}
-      <div className="relative overflow-hidden rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03]">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
-        <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/8 blur-[80px] rounded-full pointer-events-none" />
-
+      {/* Quick Jump Shortcuts */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
-          onClick={() => setAdminPreviewOpen(!adminPreviewOpen)}
-          className="w-full px-6 pt-5 pb-4 border-b border-cyan-500/[0.12] flex items-center justify-between group hover:bg-cyan-500/[0.02] transition-colors text-left"
+          onClick={() => setActiveTab('submissions')}
+          className="p-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] hover:bg-cyan-500/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
         >
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-4 bg-cyan-500/70 rounded-full" />
-            <Eye size={13} className="text-cyan-500/80" />
-            <h4 className="text-[11px] font-mono text-cyan-500/80 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">Admin Submissions Preview</h4>
-            <span className="text-[10px] font-mono text-white/30 ml-2 hidden sm:inline-block">Decrypted view — only visible to admins</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400">
+              <ImageIcon size={18} />
+            </div>
+            <ChevronRight size={16} className="text-cyan-400/50 group-hover:translate-x-1 transition-transform" />
           </div>
-          <div className="text-cyan-500/50 group-hover:text-cyan-400 p-1 bg-cyan-500/10 rounded-md transition-colors">
-            {adminPreviewOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
+          <p className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">Submissions Manager</p>
+          <p className="text-xs text-white/40 mt-1">Decrypt, disqualify, or delete photo entries.</p>
         </button>
 
-        <AnimatePresence initial={false}>
-          {adminPreviewOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="relative z-10"
-            >
-              <div className="p-6">
-                <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-cyan-500" /></div>}>
-                  <AdminSubmissionsPreview
-                    allPhotos={allPhotos}
-                    categories={categories}
-                    onDeletePhoto={onDeletePhoto}
-                    onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
-                  />
-                </Suspense>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <button
+          onClick={() => setActiveTab('voters')}
+          className="p-5 rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] hover:bg-blue-500/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400">
+              <UserCheck size={18} />
+            </div>
+            <ChevronRight size={16} className="text-blue-400/50 group-hover:translate-x-1 transition-transform" />
+          </div>
+          <p className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Voter Search & Audit</p>
+          <p className="text-xs text-white/40 mt-1">Audit voter logs and revoke suspicious votes.</p>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('controls')}
+          className="p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+              <Zap size={18} />
+            </div>
+            <ChevronRight size={16} className="text-emerald-400/50 group-hover:translate-x-1 transition-transform" />
+          </div>
+          <p className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">Controls & Security</p>
+          <p className="text-xs text-white/40 mt-1">Toggle voting, submissions, or RSA keys.</p>
+        </button>
       </div>
 
       {/* Analytics Launcher */}
@@ -352,7 +377,7 @@ function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminP
         <div className="px-6 pt-5 pb-4 border-b border-blue-500/[0.12] flex items-center gap-2">
           <div className="w-1 h-4 bg-blue-500/70 rounded-full" />
           <BarChart3 size={13} className="text-blue-500/80" />
-          <h4 className="text-[11px] font-mono text-blue-500/80 uppercase tracking-[0.2em]">Analytics & Data</h4>
+          <h4 className="text-[11px] font-mono text-blue-500/80 uppercase tracking-[0.2em]">Analytics & Data Insights</h4>
         </div>
         <div className="p-6 flex flex-col items-center">
           <ShimmerButton
@@ -360,10 +385,10 @@ function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminP
             shimmerColor="#3b82f6"
             className="w-full text-sm"
           >
-            Launch Live Dashboard
+            Launch Live Analytics Dashboard
             <ChevronRight size={16} className="text-blue-400/60" />
           </ShimmerButton>
-          <p className="text-xs text-white/40 mt-3 text-center">Gain deep insights into voting velocity and contest engagement.</p>
+          <p className="text-xs text-white/40 mt-3 text-center">Interactive charts, voting velocity, and submission trends across all categories.</p>
         </div>
       </div>
     </div>
@@ -372,93 +397,55 @@ function DashboardTab({ activeContest, categories, allPhotos, votingOpen, adminP
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TAB: Controls
+   TAB: Contest Setup (Edit, Create, & Download Winners)
    ═══════════════════════════════════════════════════════════════════════ */
-function ControlsTab({ votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners }: {
-  votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean;
-  onToggleVoting: (v: boolean) => void; onToggleSubmissions: (v: boolean) => void;
-  onToggleOnePhotoPerUser: (v: boolean) => void; onToggleShowWinners: (v: boolean) => void;
-}) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-black font-display text-white mb-1">Live Controls</h3>
-        <p className="text-sm text-white/40">Manage voting, submissions, and display settings in real-time.</p>
-      </div>
-
-      {/* Voting & Submissions Group */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-1">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/40 to-transparent" />
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Contest State</p>
-        </div>
-        <div className="space-y-1 px-2 pb-2">
-          <AdminToggle
-            label="Voting"
-            description="Allow users to vote on contest submissions"
-            checked={votingOpen}
-            onToggle={onToggleVoting}
-            activeColor="bg-emerald-500"
-            activeGlow="shadow-[0_0_12px_rgba(34,197,94,0.5)]"
-            icon={<Unlock size={16} />}
-          />
-          <AdminToggle
-            label="Submissions"
-            description="Allow new photo submissions from users"
-            checked={submissionsOpen}
-            onToggle={onToggleSubmissions}
-            activeColor="bg-fivem-orange"
-            activeGlow="shadow-[0_0_12px_rgba(234,88,12,0.5)]"
-            icon={<ImageIcon size={16} />}
-          />
-        </div>
-      </div>
-
-      {/* Limits & Display Group */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-1">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Limits & Display</p>
-        </div>
-        <div className="space-y-1 px-2 pb-2">
-          <AdminToggle
-            label="1 Photo Per User"
-            description="Limit each Discord account to a single submission"
-            checked={onePhotoPerUser}
-            onToggle={onToggleOnePhotoPerUser}
-            activeColor="bg-amber-500"
-            activeGlow="shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-            icon={<Lock size={16} />}
-          />
-          <AdminToggle
-            label="Winner Announcement"
-            description="Show the winner showcase banner above the hero section"
-            checked={showWinnersToggle}
-            onToggle={onToggleShowWinners}
-            activeColor="bg-purple-500"
-            activeGlow="shadow-[0_0_12px_rgba(168,85,247,0.5)]"
-            icon={<Trophy size={16} />}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   TAB: Contest
-   ═══════════════════════════════════════════════════════════════════════ */
-function ContestTab({ activeContest, categories, rulesMarkdown }: {
-  activeContest: any; categories: Category[]; rulesMarkdown: string;
+function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, onDownloadWinners }: {
+  activeContest: any; categories: Category[]; rulesMarkdown: string; winners: any[];
+  onDownloadWinners: () => void;
 }) {
   const [showCreate, setShowCreate] = useState(false);
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-black font-display text-white mb-1">Contest Management</h3>
-        <p className="text-sm text-white/40">Edit the current contest or create a new one.</p>
+        <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
+          <Trophy size={20} className="text-amber-400" /> Contest Setup & Winner Assets
+        </h3>
+        <p className="text-sm text-white/40">Edit active contest rules and categories, export winner photos, or create new contests.</p>
+      </div>
+
+      {/* Download Winners Section */}
+      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-6">
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Download size={16} className="text-amber-400" />
+              <h4 className="text-sm font-bold text-white">Download Category Winners</h4>
+              {winners.length > 0 && (
+                <span className="text-[10px] font-mono bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold">
+                  {winners.length} Ready
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-white/40 leading-relaxed">
+              Download the current leading photo from each category as high-resolution files.
+            </p>
+          </div>
+          <button
+            onClick={onDownloadWinners}
+            disabled={!activeContest || winners.length === 0}
+            className={cn(
+              "px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 shrink-0 flex items-center gap-2 cursor-pointer",
+              activeContest && winners.length > 0
+                ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                : "bg-white/5 text-white/30 border border-white/10 opacity-50 cursor-not-allowed"
+            )}
+          >
+            <Download size={14} />
+            Download {winners.length} Winner{winners.length !== 1 ? 's' : ''}
+          </button>
+        </div>
       </div>
 
       {/* Edit Current Contest */}
@@ -467,7 +454,7 @@ function ContestTab({ activeContest, categories, rulesMarkdown }: {
           <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <div className="px-6 pt-5 pb-4 border-b border-white/[0.07] flex items-center gap-2">
             <div className="w-1 h-4 bg-white/30 rounded-full" />
-            <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Edit Current Contest</h4>
+            <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Edit Active Contest Details</h4>
             <span className="ml-auto text-[10px] font-mono text-fivem-orange/60 bg-fivem-orange/10 px-2 py-0.5 rounded-full">{activeContest.name}</span>
           </div>
           <div className="p-6">
@@ -495,7 +482,7 @@ function ContestTab({ activeContest, categories, rulesMarkdown }: {
         <div className="absolute top-0 right-0 w-48 h-48 bg-fivem-orange/8 blur-[80px] rounded-full pointer-events-none" />
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="w-full px-6 pt-5 pb-4 border-b border-fivem-orange/[0.12] flex items-center justify-between group hover:bg-fivem-orange/[0.02] transition-colors text-left"
+          className="w-full px-6 pt-5 pb-4 border-b border-fivem-orange/[0.12] flex items-center justify-between group hover:bg-fivem-orange/[0.02] transition-colors text-left cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <div className="w-1 h-4 bg-fivem-orange rounded-full" />
@@ -529,82 +516,117 @@ function ContestTab({ activeContest, categories, rulesMarkdown }: {
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TAB: Security
+   TAB: Controls & Security
    ═══════════════════════════════════════════════════════════════════════ */
-function SecurityTab({ publicKey, privateKey, activeContest, winners, onGenerateKeys, onToggleReveal, onDownloadWinners }: {
-  publicKey: string | null; privateKey: string | null; activeContest: any; winners: any[];
-  onGenerateKeys: () => void; onToggleReveal: (reveal: boolean) => void; onDownloadWinners: () => void;
+function ControlsAndSecurityTab({
+  votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, publicKey, privateKey,
+  onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners,
+  onGenerateKeys, onToggleReveal
+}: {
+  votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean;
+  publicKey: string | null; privateKey: string | null;
+  onToggleVoting: (v: boolean) => void; onToggleSubmissions: (v: boolean) => void;
+  onToggleOnePhotoPerUser: (v: boolean) => void; onToggleShowWinners: (v: boolean) => void;
+  onGenerateKeys: () => void; onToggleReveal: (v: boolean) => void;
 }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-black font-display text-white mb-1">Security & Encryption</h3>
-        <p className="text-sm text-white/40">Manage image censorship, RSA keys, and bulk downloads.</p>
+        <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
+          <Zap size={20} className="text-emerald-400" /> Controls & Security
+        </h3>
+        <p className="text-sm text-white/40">Manage real-time contest switches, entry constraints, and image encryption parameters.</p>
       </div>
 
-      {/* RSA Keys */}
-      <div className="relative overflow-hidden rounded-2xl border border-purple-500/15 bg-purple-500/[0.03] p-6">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
-        <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
+      {/* Voting & Submissions Group */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-1">
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/40 to-transparent" />
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Contest Real-Time Switches</p>
+        </div>
+        <div className="space-y-1 px-2 pb-2">
+          <AdminToggle
+            label="Voting"
+            description="Allow users to vote on contest submissions"
+            checked={votingOpen}
+            onToggle={onToggleVoting}
+            activeColor="bg-emerald-500"
+            activeGlow="shadow-[0_0_12px_rgba(34,197,94,0.5)]"
+            icon={<Unlock size={16} />}
+          />
+          <AdminToggle
+            label="Submissions"
+            description="Allow new photo submissions from users"
+            checked={submissionsOpen}
+            onToggle={onToggleSubmissions}
+            activeColor="bg-fivem-orange"
+            activeGlow="shadow-[0_0_12px_rgba(234,88,12,0.5)]"
+            icon={<ImageIcon size={16} />}
+          />
+        </div>
+      </div>
 
-        <div className="relative z-10 space-y-4">
+      {/* Limits & Display Group */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-1">
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Rules & Showcase Display</p>
+        </div>
+        <div className="space-y-1 px-2 pb-2">
+          <AdminToggle
+            label="1 Photo Per User"
+            description="Limit each Discord account to a single submission"
+            checked={onePhotoPerUser}
+            onToggle={onToggleOnePhotoPerUser}
+            activeColor="bg-amber-500"
+            activeGlow="shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+            icon={<Lock size={16} />}
+          />
+          <AdminToggle
+            label="Winner Announcement"
+            description="Show the winner showcase banner above the hero section"
+            checked={showWinnersToggle}
+            onToggle={onToggleShowWinners}
+            activeColor="bg-purple-500"
+            activeGlow="shadow-[0_0_12px_rgba(168,85,247,0.5)]"
+            icon={<Trophy size={16} />}
+          />
+        </div>
+      </div>
+
+      {/* Security & Encryption Section */}
+      <div className="relative overflow-hidden rounded-2xl border border-purple-500/15 bg-purple-500/[0.03] p-6 space-y-4">
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield size={16} className="text-purple-400" />
             <h4 className="text-sm font-bold text-white">RSA Security Keys</h4>
             {publicKey && (
-              <span className="text-[9px] font-mono bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Active</span>
+              <span className="text-[9px] font-mono bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Keys Active</span>
             )}
           </div>
-          <p className="text-xs text-white/40 leading-relaxed">
-            Generate RSA key pairs to encrypt image URLs. This prevents users from accessing original images until you reveal them.
-          </p>
           <button
             onClick={onGenerateKeys}
-            className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+            className="px-4 py-2 rounded-xl font-bold text-xs transition-all duration-300 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
           >
             {publicKey ? '🔄 Regenerate Keys' : '🔐 Generate Keys'}
           </button>
         </div>
-      </div>
+        <p className="text-xs text-white/40 leading-relaxed">
+          RSA key pairs encrypt submission URLs on upload, preventing participants from discovering uncensored photos before the official reveal.
+        </p>
 
-      {/* Image Reveal Toggle */}
-      <AdminToggle
-        label="Reveal Images"
-        description="Publish the private key to decrypt images for all users globally"
-        checked={!!privateKey}
-        onToggle={(checked) => onToggleReveal(checked)}
-        activeColor="bg-emerald-500"
-        activeGlow="shadow-[0_0_12px_rgba(34,197,94,0.5)]"
-        icon={<Eye size={16} />}
-        disabled={!publicKey}
-      />
-
-      {/* Download Winners */}
-      <div className="relative overflow-hidden rounded-2xl border border-blue-500/15 bg-blue-500/[0.03] p-6">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center gap-2">
-            <Download size={16} className="text-blue-400" />
-            <h4 className="text-sm font-bold text-white">Download Category Winners</h4>
-          </div>
-          <p className="text-xs text-white/40 leading-relaxed">
-            Download the current winning photo from each category as individual files.
-          </p>
-          <button
-            onClick={onDownloadWinners}
-            disabled={!activeContest || winners.length === 0}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300",
-              activeContest && winners.length > 0
-                ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-                : "bg-white/5 text-white/30 border border-white/10 opacity-50 cursor-not-allowed"
-            )}
-          >
-            <span className="flex items-center gap-2">
-              <Download size={14} />
-              Download {winners.length} Winner{winners.length !== 1 ? 's' : ''}
-            </span>
-          </button>
+        <div className="pt-2 border-t border-purple-500/10">
+          <AdminToggle
+            label="Global Image Decryption"
+            description="Publish private key globally to un-censor images for all visitors"
+            checked={!!privateKey}
+            onToggle={(checked) => onToggleReveal(checked)}
+            activeColor="bg-emerald-500"
+            activeGlow="shadow-[0_0_12px_rgba(34,197,94,0.5)]"
+            icon={<Eye size={16} />}
+            disabled={!publicKey}
+          />
         </div>
       </div>
     </div>
@@ -634,7 +656,7 @@ function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
           <p className="text-sm font-bold text-red-400 mb-1">Irreversible Actions</p>
           <p className="text-xs text-red-400/60 leading-relaxed">
             Archiving will save winners and user stats, then permanently delete all current photos and votes. 
-            Resetting votes will clear all votes and set all photo counts to 0.
+            Resetting votes will clear all cast votes and set all photo counts to 0.
           </p>
         </div>
       </div>
@@ -660,7 +682,7 @@ function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
                 onResetVotes?.();
               }
             }}
-            className="px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-2"
+            className="px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-2 cursor-pointer"
           >
             <AlertCircle size={14} />
             Reset All Votes
