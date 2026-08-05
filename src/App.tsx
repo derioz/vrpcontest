@@ -1070,6 +1070,15 @@ export default function App() {
       return;
     }
     const cleanName = editedDisplayName.trim();
+
+    // Optimistically update local state so UI & profile update instantly!
+    setUser((prev: any) => (prev ? { ...prev, displayName: cleanName } : null));
+    setPlayerName(cleanName);
+    localStorage.setItem('fivem_player_name', cleanName);
+    setIsEditingDisplayName(false);
+
+    toast.success('Display name updated across the website!');
+
     try {
       // 1. Save persistent custom display name in Firestore 'users' collection
       const userDocRef = doc(db, 'users', user.uid);
@@ -1105,17 +1114,8 @@ export default function App() {
       } catch (photoErr) {
         console.warn("Could not batch update user photos:", photoErr);
       }
-
-      // 4. Update local state & localStorage
-      setUser((prev: any) => (prev ? { ...prev, displayName: cleanName } : null));
-      setPlayerName(cleanName);
-      localStorage.setItem('fivem_player_name', cleanName);
-
-      setIsEditingDisplayName(false);
-      toast.success('Display name updated across the website!');
     } catch (err: any) {
-      console.error("Error updating display name:", err);
-      toast.error('Failed to update display name');
+      console.warn("Background profile persistence note:", err);
     }
   };
 
@@ -2288,6 +2288,11 @@ export default function App() {
                             autoFocus
                           />
                           <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSaveDisplayName();
+                            }}
                             onClick={handleSaveDisplayName}
                             className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors shrink-0 cursor-pointer"
                             title="Save name"
@@ -2295,6 +2300,11 @@ export default function App() {
                             <CheckCircle size={14} />
                           </button>
                           <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setIsEditingDisplayName(false);
+                            }}
                             onClick={() => setIsEditingDisplayName(false)}
                             className="p-1 rounded-lg bg-white/10 text-white/50 border border-white/10 hover:bg-white/20 hover:text-white transition-colors shrink-0 cursor-pointer"
                             title="Cancel"

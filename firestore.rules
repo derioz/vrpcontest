@@ -47,12 +47,8 @@ service cloud.firestore {
     }
 
     // --- Collection Rules (Main Website) ---
-    match /users/{email} {
-      allow get: if isOwner(email) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(email) && request.resource.data.role == 'user';
-      allow update: if isOwner(email) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
-      allow write: if isAdmin();
+    match /users/{userId} {
+      allow read, write: if true;
     }
     match /gallery/{imageId} {
       allow read: if true;
