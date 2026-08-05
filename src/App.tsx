@@ -319,7 +319,7 @@ export default function App() {
 
       // Map Supabase user metadata for compatibility with existing UI
       const meta = currentUser.user_metadata || {};
-      const displayName = meta.full_name || meta.name || meta.custom_claims?.global_name || currentUser.email || 'Discord User';
+      let displayName = meta.full_name || meta.name || meta.custom_claims?.global_name || currentUser.email || 'Discord User';
       const photoURL = meta.avatar_url || meta.picture || '';
 
       const discordId = 
@@ -328,6 +328,25 @@ export default function App() {
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.id;
+
+      // Check Firestore persistent profile for custom display name
+      try {
+        const userDocRef = doc(db, 'users', currentUser.id);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists() && userDoc.data().custom_display_name) {
+          displayName = userDoc.data().custom_display_name;
+        } else {
+          await setDoc(userDocRef, {
+            uid: currentUser.id,
+            discord_id: discordId ? String(discordId) : null,
+            custom_display_name: displayName,
+            default_discord_name: meta.full_name || meta.name || 'Discord User',
+            updated_at: new Date().toISOString(),
+          }, { merge: true });
+        }
+      } catch (userErr) {
+        console.warn("User profile doc fetch error:", userErr);
+      }
 
       const normalizedUser = {
         uid: currentUser.id,
@@ -897,7 +916,8 @@ export default function App() {
         category_id: categoryId,
         player_name: formPlayerName,
         discord_name: discordName,
-        uploader_uid: auth.currentUser?.uid || '',
+        user_id: user?.uid || auth.currentUser?.uid || '',
+        uploader_uid: auth.currentUser?.uid || user?.uid || '',
         image_url: publicKey ? censoredURL : downloadURL,
         censored_image_url: censoredURL,
         encrypted_image_url: encryptedURL,
@@ -1045,13 +1065,22 @@ export default function App() {
   };
 
   const handleSaveDisplayName = async () => {
-    if (!editedDisplayName.trim()) {
+    if (!editedDisplayName.trim() || !user) {
       toast.error('Display name cannot be empty');
       return;
     }
     const cleanName = editedDisplayName.trim();
     try {
-      // 1. Update Supabase Auth user metadata
+      // 1. Save persistent custom display name in Firestore 'users' collection
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        discord_id: user.discordId || null,
+        custom_display_name: cleanName,
+        updated_at: new Date().toISOString(),
+      }, { merge: true });
+
+      // 2. Update Supabase Auth user metadata
       const { error } = await supabase.auth.updateUser({
         data: { full_name: cleanName, name: cleanName }
       });
@@ -1059,13 +1088,31 @@ export default function App() {
         console.warn("Supabase name update warning:", error);
       }
 
-      // 2. Update local state & localStorage
+      // 3. Batch update existing photo submissions by this user in Firestore so their new name updates for ALL website visitors retroactively!
+      try {
+        const photosQuery = query(collection(db, 'photos'), where('user_id', '==', user.uid));
+        const photosSnap = await getDocs(photosQuery);
+        if (!photosSnap.empty) {
+          const batch = writeBatch(db);
+          photosSnap.docs.forEach(photoDoc => {
+            batch.update(photoDoc.ref, {
+              player_name: cleanName,
+              discord_name: cleanName,
+            });
+          });
+          await batch.commit();
+        }
+      } catch (photoErr) {
+        console.warn("Could not batch update user photos:", photoErr);
+      }
+
+      // 4. Update local state & localStorage
       setUser((prev: any) => (prev ? { ...prev, displayName: cleanName } : null));
       setPlayerName(cleanName);
       localStorage.setItem('fivem_player_name', cleanName);
 
       setIsEditingDisplayName(false);
-      toast.success('Display name updated!');
+      toast.success('Display name updated across the website!');
     } catch (err: any) {
       console.error("Error updating display name:", err);
       toast.error('Failed to update display name');
