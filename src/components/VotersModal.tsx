@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { X, Search, Users, Heart, Sparkles, Info } from 'lucide-react';
-import { collection, onSnapshot, query, where, DocumentData } from 'firebase/firestore';
+import { collection, getDocs, query, where, DocumentData } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export interface Voter {
@@ -129,39 +129,28 @@ export function VotersModal({
     queries.push(query(collection(db, 'votes'), where('photo_id', '==', photoIdStr)));
 
     const resultsMap = new Map<string, Voter>();
-    const unsubs: (() => void)[] = [];
+    let isSubscribed = true;
 
-    let completedCount = 0;
-
-    queries.forEach((q) => {
-      const unsub = onSnapshot(
-        q,
-        (snap) => {
+    Promise.all(queries.map(q => getDocs(q)))
+      .then((snaps) => {
+        if (!isSubscribed) return;
+        snaps.forEach(snap => {
           snap.docs.forEach((doc) => {
             if (!resultsMap.has(doc.id)) {
               resultsMap.set(doc.id, extractVoterDetails(doc.id, doc.data()));
             }
           });
-          completedCount++;
-          if (completedCount >= queries.length) {
-            setVoters(Array.from(resultsMap.values()));
-            setIsLoading(false);
-          }
-        },
-        (err) => {
-          console.error('Failed to fetch voters query:', err);
-          completedCount++;
-          if (completedCount >= queries.length) {
-            setVoters(Array.from(resultsMap.values()));
-            setIsLoading(false);
-          }
-        }
-      );
-      unsubs.push(unsub);
-    });
+        });
+        setVoters(Array.from(resultsMap.values()));
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch voters query:', err);
+        if (isSubscribed) setIsLoading(false);
+      });
 
     return () => {
-      unsubs.forEach((unsub) => unsub());
+      isSubscribed = false;
     };
   }, [isOpen, photoId]);
 

@@ -511,7 +511,31 @@ export default function App() {
     }
   }, []);
 
-  // Track User Submissions and Votes (real-time from memory + user_stats)
+  const [archivedStats, setArchivedStats] = useState({ subs: 0, votes: 0 });
+
+  // Fetch archived cumulative stats ONCE per user login (prevents repeated Firestore reads)
+  useEffect(() => {
+    if (!user || user.isAnonymous) {
+      setArchivedStats({ subs: 0, votes: 0 });
+      return;
+    }
+    let cancelled = false;
+    const lookupKey = user.displayName || user.uid;
+    if (lookupKey) {
+      getDoc(doc(db, 'user_stats', lookupKey)).then((statDoc) => {
+        if (statDoc.exists() && !cancelled) {
+          const stats = statDoc.data();
+          setArchivedStats({
+            subs: stats.archived_submissions || 0,
+            votes: stats.archived_votes || 0,
+          });
+        }
+      }).catch(e => console.error("Failed fetching user_stats", e));
+    }
+    return () => { cancelled = true; };
+  }, [user?.uid, user?.displayName]);
+
+  // Compute User Submissions and Received Votes synchronously from memory
   useEffect(() => {
     if (!user || user.isAnonymous) {
       setUserSubmissionCount(0);
@@ -519,27 +543,6 @@ export default function App() {
       return;
     }
 
-    let archivedSubs = 0;
-    let archivedVotes = 0;
-    let cancelled = false;
-
-    const fetchArchivedStats = async () => {
-      try {
-        const lookupKey = user.displayName || user.uid;
-        if (lookupKey) {
-          const statDoc = await getDoc(doc(db, 'user_stats', lookupKey));
-          if (statDoc.exists() && !cancelled) {
-            const stats = statDoc.data();
-            archivedSubs = stats.archived_submissions || 0;
-            archivedVotes = stats.archived_votes || 0;
-          }
-        }
-      } catch (e) {
-        console.error("Failed fetching user_stats", e);
-      }
-    };
-
-    // Filter user photos cleanly from allPhotos (matches user.uid OR user.displayName)
     const userPhotos = allPhotos.filter(p =>
       (user.uid && p.user_id === user.uid) ||
       (user.displayName && p.discord_name === user.displayName)
@@ -548,17 +551,9 @@ export default function App() {
     const currentSubs = userPhotos.length;
     const currentVotes = userPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0);
 
-    fetchArchivedStats().then(() => {
-      if (!cancelled) {
-        setUserSubmissionCount(currentSubs + archivedSubs);
-        setUserTotalVotes(currentVotes + archivedVotes);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, allPhotos]);
+    setUserSubmissionCount(currentSubs + archivedStats.subs);
+    setUserTotalVotes(currentVotes + archivedStats.votes);
+  }, [user, allPhotos, archivedStats]);
 
 
   // Track which photos the current user has voted on (real-time)

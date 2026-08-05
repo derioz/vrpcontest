@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Heart, Users, Ban } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, limit, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { VotersModal } from './VotersModal';
@@ -101,10 +101,11 @@ const CACHE_TTL_MS = 60000; // 60 seconds
         }
 
         const map = new Map<string, Voter>();
-        const unsubs: (() => void)[] = [];
+        let isSubscribed = true;
 
-        queries.forEach((q) => {
-            const unsub = onSnapshot(q, (snap) => {
+        Promise.all(queries.map(q => getDocs(q))).then((snaps) => {
+            if (!isSubscribed) return;
+            snaps.forEach(snap => {
                 snap.docs.forEach((d) => {
                     if (!map.has(d.id)) {
                         const data = d.data();
@@ -116,12 +117,11 @@ const CACHE_TTL_MS = 60000; // 60 seconds
                         });
                     }
                 });
-                const topVoters = Array.from(map.values()).slice(0, 5);
-                setVoters(topVoters);
-                voterHoverCache.set(photoIdStr, { voters: topVoters, timestamp: Date.now() });
             });
-            unsubs.push(unsub);
-        });
+            const topVoters = Array.from(map.values()).slice(0, 5);
+            setVoters(topVoters);
+            voterHoverCache.set(photoIdStr, { voters: topVoters, timestamp: Date.now() });
+        }).catch(err => console.error("Vote hover fetch error:", err));
 
         // Recalculate position on resize/scroll
         const handleScroll = () => updateCoords();
@@ -129,7 +129,7 @@ const CACHE_TTL_MS = 60000; // 60 seconds
         window.addEventListener('resize', handleScroll, { passive: true });
 
         return () => {
-            unsubs.forEach((u) => u());
+            isSubscribed = false;
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleScroll);
         };
