@@ -8,8 +8,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
-  Eye, Download, Loader2, BarChart3, Shield, Zap, LayoutDashboard, UserCheck
+  Eye, Download, Loader2, BarChart3, Shield, Zap, LayoutDashboard, UserCheck,
+  Bug, CheckCircle2, Trash2, Clock
 } from 'lucide-react';
+import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
 import { BorderBeam } from '../ui/border-beam';
@@ -275,31 +279,127 @@ export default function AdminPanel(props: AdminPanelProps) {
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TAB: Overview
+   TAB: Overview — Elevated Dashboard with Live Bug Reports Inbox
    ═══════════════════════════════════════════════════════════════════════ */
+interface BugReport {
+  id: string;
+  title: string;
+  description: string;
+  contactEmail?: string;
+  reportedBy?: string;
+  status: 'Open' | 'Resolved';
+  createdAt?: any;
+  dateStr?: string;
+}
+
 function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submissionsOpen, setActiveTab, onOpenAnalytics }: {
   activeContest: any; categories: Category[]; allPhotos: Photo[]; votingOpen: boolean; submissionsOpen: boolean;
   setActiveTab: (tab: AdminTab) => void; onOpenAnalytics: () => void;
 }) {
+  const [bugReports, setBugReports] = useState<BugReport[]>([]);
+  const [bugFilter, setBugFilter] = useState<'All' | 'Open' | 'Resolved'>('Open');
+
+  // Load Bug Reports from Firestore & Local Storage
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, 'bug_reports'), orderBy('createdAt', 'desc')),
+      (snapshot) => {
+        const firestoreReports: BugReport[] = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<BugReport, 'id'>),
+        }));
+
+        // Merge with local fallback storage
+        const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+        const mergedMap = new Map<string, BugReport>();
+
+        firestoreReports.forEach((r) => mergedMap.set(r.id, r));
+        localReports.forEach((r) => {
+          if (!mergedMap.has(r.id)) mergedMap.set(r.id, r);
+        });
+
+        setBugReports(Array.from(mergedMap.values()));
+      },
+      (error) => {
+        console.warn('Firestore bug snapshot fallback to local storage:', error);
+        const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+        setBugReports(localReports);
+      }
+    );
+
+    return () => unsub();
+  }, []);
+
+  const handleToggleBugStatus = async (bug: BugReport) => {
+    const newStatus = bug.status === 'Open' ? 'Resolved' : 'Open';
+    try {
+      if (!bug.id.startsWith('local-')) {
+        await updateDoc(doc(db, 'bug_reports', bug.id), { status: newStatus });
+      }
+      setBugReports((prev) =>
+        prev.map((item) => (item.id === bug.id ? { ...item, status: newStatus } : item))
+      );
+
+      // Update local storage
+      const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+      const updatedLocal = localReports.map((item) => (item.id === bug.id ? { ...item, status: newStatus } : item));
+      localStorage.setItem('local_bug_reports', JSON.stringify(updatedLocal));
+
+      toast.success(`Bug report marked as ${newStatus}`);
+    } catch (err) {
+      toast.error('Could not update bug report status');
+    }
+  };
+
+  const handleDeleteBug = async (id: string) => {
+    try {
+      if (!id.startsWith('local-')) {
+        await deleteDoc(doc(db, 'bug_reports', id));
+      }
+      setBugReports((prev) => prev.filter((item) => item.id !== id));
+
+      const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+      const updatedLocal = localReports.filter((item) => item.id !== id);
+      localStorage.setItem('local_bug_reports', JSON.stringify(updatedLocal));
+
+      toast.success('Bug report deleted');
+    } catch (err) {
+      toast.error('Could not delete report');
+    }
+  };
+
+  const openBugCount = bugReports.filter((b) => b.status === 'Open').length;
+  const filteredBugs = bugReports.filter((b) => bugFilter === 'All' || b.status === bugFilter);
+
   return (
     <div className="space-y-6">
       {/* Section heading */}
-      <div>
-        <h3 className="text-xl font-black font-display text-white mb-1">Dashboard Overview</h3>
-        <p className="text-sm text-white/40">Real-time snapshot of contest state and quick navigation hub.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-black font-display text-white mb-1">Dashboard Overview</h3>
+          <p className="text-sm text-white/40">Real-time snapshot of contest state, analytics launcher, and bug reports inbox.</p>
+        </div>
+        
+        {openBugCount > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-xs font-bold font-mono animate-pulse">
+            <Bug size={14} />
+            <span>{openBugCount} Pending Bug{openBugCount !== 1 ? 's' : ''}</span>
+          </div>
+        )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Hero Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
         {[
           { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
           { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
           { label: 'Total Entries', value: allPhotos.length, icon: ImageIcon, color: 'purple' },
           { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
+          { label: 'Pending Bugs', value: openBugCount, icon: Bug, color: openBugCount > 0 ? 'orange' : 'emerald' },
         ].map((stat, i) => {
           const Icon = stat.icon;
           const colors: Record<string, string> = {
-            orange: 'from-fivem-orange/20 border-fivem-orange/25',
+            orange: 'from-fivem-orange/20 border-fivem-orange/30',
             blue: 'from-blue-500/15 border-blue-500/20',
             purple: 'from-purple-500/15 border-purple-500/20',
             emerald: 'from-emerald-500/15 border-emerald-500/20',
@@ -315,21 +415,136 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
           return (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.3 }}
+              transition={{ delay: i * 0.04, duration: 0.25 }}
               className={cn(
-                "relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4",
+                "relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4 shadow-sm",
                 colors[stat.color]
               )}
             >
-              <div className="absolute top-0 right-0 w-20 h-20 blur-[40px] opacity-30 rounded-full bg-current" />
-              <Icon size={16} className={cn("mb-3 relative z-10", iconColors[stat.color])} />
+              <div className="absolute top-0 right-0 w-16 h-16 blur-[30px] opacity-30 rounded-full bg-current" />
+              <Icon size={16} className={cn("mb-2.5 relative z-10", iconColors[stat.color])} />
               <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">{stat.label}</p>
-              <p className="text-sm font-black text-white leading-tight truncate">{String(stat.value)}</p>
+              <p className="text-sm sm:text-base font-black text-white leading-tight truncate">{String(stat.value)}</p>
             </motion.div>
           );
         })}
+      </div>
+
+      {/* ── SUBMITTED BUG REPORTS INBOX ── */}
+      <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/30 bg-[#0a0a0d]/90 p-5 sm:p-6 shadow-xl">
+        <BorderBeam size={200} duration={12} colorFrom="#ea580c" colorTo="#fb923c" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl text-fivem-orange">
+              <Bug size={18} />
+            </div>
+            <div>
+              <h4 className="text-base font-bold font-display text-white flex items-center gap-2">
+                <span>Submitted Bug Reports Inbox</span>
+                <span className="text-xs font-mono bg-fivem-orange/20 text-fivem-orange px-2 py-0.5 rounded-md border border-fivem-orange/30">
+                  {bugReports.length} Total
+                </span>
+              </h4>
+              <p className="text-xs text-white/40 mt-0.5">Issues & feedback submitted by users directly to Damon.</p>
+            </div>
+          </div>
+
+          {/* Bug Filter Tabs */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/5 border border-white/10 shrink-0">
+            {(['Open', 'Resolved', 'All'] as const).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setBugFilter(filter)}
+                className={cn(
+                  "px-3 py-1 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer",
+                  bugFilter === filter
+                    ? "bg-fivem-orange text-white shadow-sm"
+                    : "text-white/50 hover:text-white"
+                )}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bug Feed List */}
+        {filteredBugs.length === 0 ? (
+          <div className="py-8 text-center border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
+            <Bug size={24} className="mx-auto text-white/20 mb-2" />
+            <p className="text-xs font-bold text-white/40 font-mono">No {bugFilter !== 'All' ? bugFilter.toLowerCase() : ''} bug reports found</p>
+            <p className="text-[11px] text-white/20 mt-1">Users can submit reports via the "Report Bug" header button.</p>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
+            {filteredBugs.map((bug) => (
+              <motion.div
+                key={bug.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+                  bug.status === 'Open'
+                    ? "bg-fivem-orange/[0.04] border-fivem-orange/20 hover:border-fivem-orange/40"
+                    : "bg-white/[0.02] border-white/5 opacity-70"
+                )}
+              >
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={cn(
+                      "text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                      bug.status === 'Open'
+                        ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                        : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                    )}>
+                      {bug.status}
+                    </span>
+                    <h5 className="text-xs sm:text-sm font-bold text-white truncate">{bug.title}</h5>
+                  </div>
+                  <p className="text-xs text-white/70 leading-relaxed font-sans">{bug.description}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-[10px] font-mono text-white/30 pt-1">
+                    <span>Reported by: <strong className="text-white/60">{bug.reportedBy || 'Visitor'}</strong></span>
+                    {bug.contactEmail && bug.contactEmail !== 'Not provided' && (
+                      <span className="text-fivem-orange/80">Contact: {bug.contactEmail}</span>
+                    )}
+                    {bug.dateStr && (
+                      <span className="flex items-center gap-1"><Clock size={10} /> {bug.dateStr}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status Toggle & Delete Actions */}
+                <div className="flex items-center gap-2 shrink-0 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleBugStatus(bug)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border",
+                      bug.status === 'Open'
+                        ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
+                        : "bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25"
+                    )}
+                  >
+                    <CheckCircle2 size={13} />
+                    <span>{bug.status === 'Open' ? 'Mark Resolved' : 'Reopen'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBug(bug.id)}
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 text-white/40 hover:text-red-400 transition-all cursor-pointer"
+                    title="Delete Bug Report"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Quick Jump Shortcuts */}
@@ -363,17 +578,17 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
         </button>
 
         <button
-          onClick={() => setActiveTab('controls')}
-          className="p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
+          onClick={() => setActiveTab('changelogs')}
+          className="p-5 rounded-2xl border border-fivem-orange/20 bg-fivem-orange/[0.04] hover:bg-fivem-orange/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-              <Zap size={18} />
+            <div className="p-2 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange">
+              <Layers size={18} />
             </div>
-            <ChevronRight size={16} className="text-emerald-400/50 group-hover:translate-x-1 transition-transform" />
+            <ChevronRight size={16} className="text-fivem-orange/50 group-hover:translate-x-1 transition-transform" />
           </div>
-          <p className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">Controls & Security</p>
-          <p className="text-xs text-white/40 mt-1">Toggle voting, submissions, or RSA keys.</p>
+          <p className="text-sm font-bold text-white group-hover:text-fivem-orange transition-colors">Changelogs & Damon Credits</p>
+          <p className="text-xs text-white/40 mt-1">View release history and publishing tools.</p>
         </button>
       </div>
 
@@ -390,7 +605,7 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
           <ShimmerButton
             onClick={onOpenAnalytics}
             shimmerColor="#3b82f6"
-            className="w-full text-sm"
+            className="w-full text-sm cursor-pointer"
           >
             Launch Live Analytics Dashboard
             <ChevronRight size={16} className="text-blue-400/60" />

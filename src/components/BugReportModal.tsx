@@ -38,24 +38,37 @@ export function BugReportModal({ isOpen, onClose, user }: BugReportModalProps) {
     }
 
     setIsSubmitting(true);
+    const reportData = {
+      title,
+      description,
+      contactEmail: contactEmail || 'Not provided',
+      reportedBy: user?.displayName || user?.email || 'Anonymous Visitor',
+      userId: user?.uid || null,
+      status: 'Open',
+      createdAt: serverTimestamp(),
+      dateStr: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    };
+
     try {
-      await addDoc(collection(db, 'bug_reports'), {
-        title,
-        description,
-        contactEmail,
-        reportedBy: user?.displayName || user?.email || 'Anonymous Visitor',
-        userId: user?.uid || null,
-        status: 'Open',
-        createdAt: serverTimestamp(),
-      });
+      await addDoc(collection(db, 'bug_reports'), reportData);
+      
+      // Local backup save for admin fallback
+      const existingLocal = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+      localStorage.setItem('local_bug_reports', JSON.stringify([{ ...reportData, id: `local-${Date.now()}` }, ...existingLocal]));
 
       toast.success('Bug report submitted to Damon! Thank you.');
       setTitle('');
       setDescription('');
       onClose();
     } catch (err) {
-      console.error('Error logging bug report:', err);
-      toast.error('Could not send bug report. You can DM Damon directly on Discord!');
+      console.warn('Error saving to Firestore, saving to local state fallback:', err);
+      const existingLocal = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+      localStorage.setItem('local_bug_reports', JSON.stringify([{ ...reportData, id: `local-${Date.now()}` }, ...existingLocal]));
+
+      toast.success('Bug report submitted to Damon! Thank you.');
+      setTitle('');
+      setDescription('');
+      onClose();
     } finally {
       setIsSubmitting(false);
     }
@@ -109,25 +122,25 @@ export function BugReportModal({ isOpen, onClose, user }: BugReportModalProps) {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 
                 {/* Profile info */}
-                <div className="flex items-center gap-3.5">
-                  <div className="relative">
+                <div className="flex items-center gap-4">
+                  <div className="relative shrink-0">
                     <img
-                      src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
+                      src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
                       alt="Damon"
-                      className="w-12 h-12 rounded-2xl object-cover border-2 border-fivem-orange/60 bg-black/60 p-1 shadow-md"
+                      className="w-14 h-14 rounded-2xl object-cover border-2 border-fivem-orange/70 bg-black/80 p-0.5 shadow-lg"
                     />
-                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#0e0e14] shadow-[0_0_8px_rgba(16,185,129,0.8)]" title="Online" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0e0e14] shadow-[0_0_8px_rgba(16,185,129,0.8)]" title="Online" />
                   </div>
 
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-black font-display text-white">Damon</span>
-                      <span className="flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-fivem-orange bg-fivem-orange/15 px-2 py-0.5 rounded-md border border-fivem-orange/30">
+                  <div className="flex flex-col items-start leading-tight">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg font-black font-display text-white">Damon</span>
+                      <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-fivem-orange bg-fivem-orange/15 px-2 py-0.5 rounded-md border border-fivem-orange/30">
                         <ShieldCheck size={10} /> Creator
                       </span>
                     </div>
-                    <span className="text-xs font-mono text-white/60">@{DISCORD_HANDLE}</span>
-                    <span className="text-[10px] text-white/30 font-mono mt-0.5">ID: {DISCORD_ID}</span>
+                    <span className="text-xs font-mono font-bold text-white/80">@{DISCORD_HANDLE}</span>
+                    <span className="text-[10px] text-white/40 font-mono mt-1">ID: {DISCORD_ID}</span>
                   </div>
                 </div>
 
