@@ -63,18 +63,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/u
 import { VoteButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 import { NumberTicker } from './components/ui/number-ticker';
-import { Meteors } from './components/ui/meteors';
 import { Marquee } from './components/ui/marquee';
 import { DotPattern } from './components/ui/dot-pattern';
-import { Particles } from './components/ui/particles';
 import { BorderBeam } from './components/ui/border-beam';
 import { ShimmerButton } from './components/ui/shimmer-button';
 import { AnimatedShinyText } from './components/ui/animated-shiny-text';
-import { SparklesText } from './components/ui/sparkles-text';
 import { MagicCard } from './components/ui/magic-card';
 import { BlurFade } from './components/ui/blur-fade';
-import { Ripple } from './components/ui/ripple';
 import { RetroGrid } from './components/ui/retro-grid';
+import { Spotlight } from './components/ui/spotlight';
+import { Lens } from './components/ui/lens';
+import { FlipWords } from './components/ui/flip-words';
+
 
 // Integrations
 import { auth, discordProvider, db } from './lib/firebase';
@@ -1444,9 +1444,10 @@ export default function App() {
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (
         <WinnerAnnouncement winners={winners} contestName={activeContest.name} />
-      )}      {/* Hero Banner — GlowyWavesHero + NewHeroSection patterns from uitripled */}
+      )}
+
+      {/* Hero Banner — Spotlight Stage (Aceternity-inspired redesign) */}
       {activeContest ? (() => {
-        // uitripled containerVariants / itemVariants / statsVariants pattern
         const heroContainerVariants = {
           hidden: { opacity: 0 },
           visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
@@ -1455,55 +1456,29 @@ export default function App() {
           hidden: { opacity: 0, y: 24 },
           visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
         };
+        // Text-generate stagger: split title into words, animate each
+        const titleWords = activeContest.name.split(' ');
 
         return (
           <section
-            onMouseMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              const y = e.clientY - rect.top;
-              e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
-              e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
-            }}
             className="relative overflow-hidden border-b border-white/10 pt-20 sm:pt-28"
             style={{ minHeight: '520px' }}
           >
             {/* ── Deep dark base ── */}
             <div className="absolute inset-0 bg-[#060606]" />
 
-            {/* ── Animated ambient orbs (uitripled GlassmorphismHeroBlock pattern) ── */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <div className="absolute left-[10%] top-[-10%] w-[700px] h-[700px] rounded-full bg-fivem-orange/[0.07] blur-[160px] animate-pulse" style={{ animationDuration: '6s' }} />
-              <div className="absolute right-[5%] bottom-[-20%] w-[500px] h-[500px] rounded-full bg-fivem-orange/[0.05] blur-[120px] animate-pulse" style={{ animationDuration: '9s', animationDelay: '2s' }} />
-              <div className="absolute left-[40%] top-[30%] w-[400px] h-[400px] rounded-full bg-orange-400/[0.03] blur-[100px] pointer-events-none" />
-            </div>
-
-            {/* ── MagicUI Meteors — cinematic shooting stars ── */}
-            <Meteors number={15} className="z-[1] opacity-40" />
-
-            {/* ── MagicUI Ripple — concentric pulsing rings ── */}
-            <Ripple mainCircleSize={220} numCircles={6} mainCircleOpacity={0.15} className="z-[1] opacity-60 pointer-events-none" />
-
-            {/* ── MagicUI Particles — interactive ambient dots ── */}
-            <Particles className="absolute inset-0 z-[2]" quantity={40} color="#ea580c" size={0.3} staticity={80} ease={80} />
-
-            {/* ── Spotlight Cursor Follower ── */}
-            <div
-              className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-500"
-              style={{
-                background: 'radial-gradient(500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(234,88,12,0.035), transparent 70%)'
-              }}
+            {/* ── Aceternity Spotlight Beams — the ONE dominant atmosphere effect ── */}
+            <Spotlight
+              className="-top-40 left-0 md:left-60 md:-top-20"
+              fill="rgba(234, 88, 12, 0.35)"
+            />
+            <Spotlight
+              className="top-10 left-full -translate-x-[70%] h-[80vh] w-[50vw]"
+              fill="rgba(251, 146, 60, 0.18)"
             />
 
-            {/* ── Grid dot overlay (uitripled texture detail) ── */}
-            {/* ── MagicUI DotPattern — cleaner SVG dot overlay ── */}
-            <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.04] z-[1]" />
-
-            {/* ── Film grain ── */}
-            <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
-              backgroundSize: '128px 128px'
-            }} />
+            {/* ── DotPattern — kept as subtle texture ── */}
+            <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.06] z-[1]" />
 
             {/* ── Main 2-col layout ── */}
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center" style={{ paddingTop: '2.5rem', paddingBottom: '3.5rem' }}>
@@ -1534,52 +1509,50 @@ export default function App() {
                   </div>
                 </motion.div>
 
-                {/* Title with MagicUI SparklesText */}
+                {/* Title — Text Generate Effect: each word staggers in from blur */}
                 <motion.h2
                   variants={heroItemVariants}
-                  className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5 text-white"
+                  className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5"
                   style={{ textWrap: 'balance' }}
                 >
-                  {(() => {
-                    const hasColon = activeContest.name.includes(':');
-                    if (hasColon) {
-                      const [main, ...rest] = activeContest.name.split(':');
-                      return (
-                        <>
-                          <SparklesText
-                            text={`${main}:`}
-                            sparklesCount={10}
-                            className="block pb-1"
-                            colors={{ first: '#ea580c', second: '#fcd34d' }}
-                          />
-                          <span className="text-white block mt-1 text-2xl sm:text-3xl lg:text-4xl opacity-90">
-                            {rest.join(':').trim()}
-                          </span>
-                        </>
-                      );
-                    }
-
-                    // Fallback for names without colons
-                    const words = activeContest.name.split(' ');
-                    return (
-                      <>
-                        <span className="text-white">{words[0]}</span>
-                        {words.length > 1 && (
-                          <SparklesText
-                            text={` ${words.slice(1).join(' ')}`}
-                            sparklesCount={8}
-                            colors={{ first: '#ea580c', second: '#fcd34d' }}
-                          />
-                        )}
-                      </>
-                    );
-                  })()}
+                  {titleWords.map((word, idx) => (
+                    <motion.span
+                      key={`${word}-${idx}`}
+                      initial={{ opacity: 0, filter: 'blur(10px)', y: 10 }}
+                      animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                      transition={{
+                        duration: 0.5,
+                        delay: 0.3 + idx * 0.08,
+                        ease: 'easeOut',
+                      }}
+                      className="inline-block mr-[0.25em]"
+                      style={{
+                        backgroundImage: idx < 2
+                          ? 'linear-gradient(to right, #ea580c, #fb923c, #fcd34d)'
+                          : 'linear-gradient(to right, #ffffff, #e5e5e5)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                      }}
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
                 </motion.h2>
 
-                {/* Tagline — fixed stable text, zero layout shift */}
-                <motion.p variants={heroItemVariants} className="text-white/60 text-base leading-relaxed mb-8 max-w-md font-medium">
-                  Capture the spirit of the city. Submit your finest in-game screenshot, share your story, and let the Vital RP community choose the winners.
-                </motion.p>
+                {/* Tagline — FlipWords cycling phrases */}
+                <motion.div variants={heroItemVariants} className="text-white/60 text-base leading-relaxed mb-8 max-w-md font-medium h-[3em]">
+                  <FlipWords
+                    words={[
+                      "Capture the spirit of the city through your lens.",
+                      "Share your finest in-game screenshot.",
+                      "Let the community choose the winners.",
+                    ]}
+                    duration={3500}
+                    className="text-white/60"
+                  />
+                </motion.div>
 
                 {/* CTAs */}
                 <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3.5 mb-10">
@@ -1620,7 +1593,7 @@ export default function App() {
                   </a>
                 </motion.div>
 
-                {/* Stats row inside left column for cohesive ElevenLabs look */}
+                {/* Stats row */}
                 <motion.div variants={heroItemVariants} className="relative grid grid-cols-4 gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[#0c0c0e]/40 backdrop-blur-sm max-w-md overflow-hidden">
                   <BorderBeam size={120} duration={12} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1} />
                   {[
@@ -1646,30 +1619,28 @@ export default function App() {
                 </motion.div>
               </motion.div>
 
-              {/* RIGHT — Bento Grid Gallery & Viewfinder Overlay */}
+              {/* RIGHT — Bento Grid with Lens-enhanced hero photo */}
               <motion.div
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
                 className="hidden lg:block relative"
               >
-                {/* Simulated Floating Viewfinder / Bento Box */}
                 <div className="grid grid-cols-6 grid-rows-6 gap-3.5 h-[440px] max-w-[520px] mx-auto relative z-10">
                   
-                  {/* Bento Box 1: Large Main Image (Col Span 4, Row Span 4) */}
-                  <div className="col-span-4 row-span-4 rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden group relative shadow-lg">
+                  {/* Bento Box 1: Large Main Image with Lens magnifier */}
+                  <div className="col-span-4 row-span-4 rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden shadow-lg">
                     {photos[0] ? (
-                      <>
-                        <img src={photos[0].image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-350" />
-                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-350 z-10">
-                          <span className="text-xs font-bold text-white truncate max-w-[150px]">{photos[0].player_name}</span>
+                      <Lens zoomFactor={1.6} lensSize={150} className="w-full h-full">
+                        <img src={photos[0].image_url} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
+                          <span className="text-xs font-bold text-white truncate max-w-[150px] drop-shadow-lg">{photos[0].player_name}</span>
                           <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
                             <span className="text-[10px]">❤️</span>
                             <span className="text-[10px] font-bold text-white">{photos[0].vote_count || 0}</span>
                           </div>
                         </div>
-                      </>
+                      </Lens>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-fivem-orange/10 to-transparent p-6 text-center">
                         <span className="text-4xl mb-2">📸</span>
@@ -1679,41 +1650,41 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Bento Box 2: Camera Viewfinder Parameter Panel (Col Span 2, Row Span 4) */}
+                  {/* Bento Box 2: Featured Shot info card (simplified from viewfinder) */}
                   <div className="col-span-2 row-span-4 rounded-3xl border border-white/10 bg-[#0c0c0e]/90 p-4 flex flex-col justify-between overflow-hidden relative group shadow-lg">
-                    {/* Viewfinder crosshairs */}
-                    <div className="absolute inset-2 border border-white/[0.03] rounded-2xl pointer-events-none flex items-center justify-center">
-                      <div className="w-4 h-4 border-l border-t border-white/10 absolute top-0 left-0" />
-                      <div className="w-4 h-4 border-r border-t border-white/10 absolute top-0 right-0" />
-                      <div className="w-4 h-4 border-l border-b border-white/10 absolute bottom-0 left-0" />
-                      <div className="w-4 h-4 border-r border-b border-white/10 absolute bottom-0 right-0" />
-                      <div className="w-2 h-px bg-white/15" />
-                      <div className="h-2 w-px bg-white/15" />
+                    {/* Corner brackets */}
+                    <div className="absolute inset-2 border border-white/[0.03] rounded-2xl pointer-events-none">
+                      <div className="w-3 h-3 border-l border-t border-fivem-orange/20 absolute top-0 left-0" />
+                      <div className="w-3 h-3 border-r border-t border-fivem-orange/20 absolute top-0 right-0" />
+                      <div className="w-3 h-3 border-l border-b border-fivem-orange/20 absolute bottom-0 left-0" />
+                      <div className="w-3 h-3 border-r border-b border-fivem-orange/20 absolute bottom-0 right-0" />
                     </div>
 
-                    <div className="relative z-10 flex flex-col gap-1 font-mono text-[9px] text-white/40">
-                      <div className="flex items-center justify-between">
-                        <span>ISO 400</span>
+                    <div className="relative z-10 flex flex-col gap-1.5">
+                      <span className="text-[9px] font-mono uppercase tracking-widest text-fivem-orange/60">Featured</span>
+                      <span className="text-sm font-bold text-white/90 leading-tight">
+                        {photos[0]?.player_name || 'Awaiting Entries'}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[8px] font-mono text-white/40 uppercase tracking-wider">Gallery Live</span>
                       </div>
-                      <span>F/2.8</span>
-                      <span>1/250S</span>
-                      <span>EV 0.0</span>
                     </div>
 
                     <div className="relative z-10 flex flex-col items-center justify-center my-auto py-4 text-center">
-                      <span className="text-2xl text-fivem-orange/95 group-hover:scale-110 transition-transform duration-300">📷</span>
-                      <span className="text-[9px] font-mono tracking-widest text-white/50 uppercase mt-2">Viewfinder</span>
-                      <span className="text-[7.5px] font-mono text-fivem-orange/60 animate-pulse uppercase mt-0.5">Live Capture</span>
+                      <span className="text-3xl group-hover:scale-110 transition-transform duration-300">📷</span>
+                      <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase mt-2">
+                        {allPhotos.length} Shot{allPhotos.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
 
-                    <div className="relative z-10 flex flex-col gap-1 font-mono text-[9px] text-white/40 border-t border-white/5 pt-2">
-                      <span>AF-C</span>
-                      <span>RAW</span>
+                    <div className="relative z-10 flex flex-col gap-1 font-mono text-[9px] text-white/30 border-t border-white/5 pt-2">
+                      <span>Hover photo to inspect</span>
+                      <span className="text-fivem-orange/50">🔍 Lens active</span>
                     </div>
                   </div>
 
-                  {/* Bento Box 3: Metrics Stats Display (Col Span 2, Row Span 2) */}
+                  {/* Bento Box 3: Voting Status */}
                   <div className="col-span-2 row-span-2 rounded-3xl border border-white/10 bg-white/[0.015] hover:bg-white/[0.04] p-4 flex flex-col justify-between transition-colors group shadow-lg">
                     <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Voting Phase</span>
                     <div className="flex items-baseline gap-1 mt-1.5">
@@ -1726,7 +1697,7 @@ export default function App() {
                     </span>
                   </div>
 
-                  {/* Bento Box 4: Secondary Image Landscape (Col Span 4, Row Span 2) */}
+                  {/* Bento Box 4: Secondary Image */}
                   <div className="col-span-4 row-span-2 rounded-3xl border border-white/10 bg-white/[0.015] overflow-hidden group relative shadow-lg">
                     {photos[1] ? (
                       <>
@@ -1741,18 +1712,18 @@ export default function App() {
                         </div>
                       </>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-between p-5 bg-gradient-to-r from-purple-500/10 to-transparent">
+                      <div className="w-full h-full flex items-center justify-between p-5 bg-gradient-to-r from-fivem-orange/10 to-transparent">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest leading-none">Contest Rules</span>
                           <span className="text-sm font-bold text-white mt-1">Read guidelines</span>
                         </div>
-                        <span className="text-2xl text-purple-400/80">✨</span>
+                        <span className="text-2xl text-fivem-orange/60">✨</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Aperture background watermark decoration */}
+                {/* Aperture watermark */}
                 <div className="absolute -bottom-10 -right-10 w-44 h-44 opacity-[0.025] pointer-events-none z-0">
                   <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="100" cy="100" r="98" stroke="white" strokeWidth="2" />
@@ -1777,8 +1748,8 @@ export default function App() {
       })() : (
         <section className="relative overflow-hidden border-b border-white/10 py-28 flex flex-col items-center justify-center text-center px-6">
           <div className="absolute inset-0 bg-[#060606]" />
-          <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-fivem-orange/[0.04] blur-[160px] rounded-full pointer-events-none" />
+          <Spotlight className="-top-40 left-1/2 -translate-x-1/2" fill="rgba(234, 88, 12, 0.2)" />
+          <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.04] z-[1]" />
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative mb-6">
             <div className="absolute inset-0 bg-white/5 blur-3xl scale-150 rounded-full" />
             <img src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
