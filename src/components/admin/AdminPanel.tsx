@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
-  Eye, Download, Loader2, BarChart3, Shield, Zap, LayoutDashboard, UserCheck,
+  Eye, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
   Bug, CheckCircle2, Trash2, Clock
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';

@@ -24,9 +24,9 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1845',
+    id: 'release-20260808-1847',
     version: 'v1.5.0',
-    title: 'Aceternity Admin Sidebar, WebGL Shader Background & Instant Console Loader',
+    title: 'Aceternity Admin Sidebar, WebGL Shader Background & Console Fix',
     category: 'Feature',
     description: `• Hero Section: Rebuilt with Aceternity Spotlight SVG beams & Lens photo magnifier.
 • Lightbox Showcase: Re-engineered photo Lightbox into a dark cinematic stage with viewfinder corner accents.
@@ -34,14 +34,15 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
 • Aceternity Admin Sidebar: Re-architected Admin Console with collapsible dark glass sidebar dock, animated link indicators, and Damon Creator profile footer.
 • WebGL Shader Canvas: Implemented interactive FiveM Orange WebGL fluid gradient canvas background across the main page.
-• Instant Admin Console Loading: Converted AdminPanel to static synchronous imports, resolving lazy chunk loading network delays and preventing blank page crashes.
+• Admin Console Fix: Added missing ShieldCheck icon import in AdminPanel.tsx resolving runtime ReferenceError and restoring instant console rendering.
+• Instant Admin Console Loading: Converted AdminPanel to static synchronous imports, resolving lazy chunk loading network delays.
 • Admin Console Hardening: Added fallback default values to AdminPanel props, wrapped Firestore snapshot listeners in try/catch blocks, and added context fallbacks in useSidebar.
 • Changelog DB & Credits: Built Firestore Changelog system with prominent "Website Created & Designed by Damon" credit banner.
 • Discord Profile & DM Launcher: Added Damon's custom Discord avatar (qePVNvTsc65p.png), fixed profile card text alignment (@mcspace / ID: 150580708144840704), and integrated smart Discord App + Web DM launcher.
 • Admin Overview Inbox: Redesigned Admin Console Overview section into an elevated dashboard with a live Bug Reports Inbox and status controls.
 • Compact Changelog Layout: Redesigned changelog release cards to use compact inline bullet items with subtle thin divider lines and single-line Date/Time pills.`,
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:45 PM',
+    date: 'Aug 8, 2026 at 6:47 PM',
   },
   {
     id: 'init-4',
