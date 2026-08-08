@@ -24,7 +24,7 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1841',
+    id: 'release-20260808-1843',
     version: 'v1.5.0',
     title: 'Aceternity Admin Sidebar, WebGL Shader Background & Mobile Polish',
     category: 'Feature',
@@ -34,13 +34,13 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
 • Aceternity Admin Sidebar: Re-architected Admin Console with collapsible dark glass sidebar dock, animated link indicators, and Damon Creator profile footer.
 • WebGL Shader Canvas: Implemented interactive FiveM Orange WebGL fluid gradient canvas background across the main page.
-• Admin Console Fix: Fixed duplicate layoutId render conflict and added dedicated mobile horizontal tab switcher preventing blank page crashes on open.
+• Admin Console Hardening: Added fallback default values to AdminPanel props, wrapped Firestore snapshot listeners in try/catch blocks, and added context fallbacks in useSidebar preventing blank page crashes.
 • Changelog DB & Credits: Built Firestore Changelog system with prominent "Website Created & Designed by Damon" credit banner.
 • Discord Profile & DM Launcher: Added Damon's custom Discord avatar (qePVNvTsc65p.png), fixed profile card text alignment (@mcspace / ID: 150580708144840704), and integrated smart Discord App + Web DM launcher.
 • Admin Overview Inbox: Redesigned Admin Console Overview section into an elevated dashboard with a live Bug Reports Inbox and status controls.
 • Compact Changelog Layout: Redesigned changelog release cards to use compact inline bullet items with subtle thin divider lines and single-line Date/Time pills.`,
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:41 PM',
+    date: 'Aug 8, 2026 at 6:43 PM',
   },
   {
     id: 'init-4',

@@ -71,8 +71,8 @@ const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string;
 
 export default function AdminPanel(props: AdminPanelProps) {
   const {
-    isAdmin, user, activeContest, categories, allPhotos, votingOpen, submissionsOpen,
-    onePhotoPerUser, showWinnersToggle, publicKey, privateKey, rulesMarkdown, winners,
+    isAdmin, user, activeContest, categories = [], allPhotos = [], votingOpen, submissionsOpen,
+    onePhotoPerUser, showWinnersToggle, publicKey, privateKey, rulesMarkdown, winners = [],
     onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners,
     onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
   } = props;
@@ -326,33 +326,51 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
 
   // Load Bug Reports from Firestore & Local Storage
   useEffect(() => {
-    const unsub = onSnapshot(
-      query(collection(db, 'bug_reports'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        const firestoreReports: BugReport[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<BugReport, 'id'>),
-        }));
+    let unsub = () => {};
+    try {
+      if (db) {
+        unsub = onSnapshot(
+          query(collection(db, 'bug_reports')),
+          (snapshot) => {
+            try {
+              const firestoreReports: BugReport[] = snapshot.docs.map((d) => ({
+                id: d.id,
+                ...(d.data() as Omit<BugReport, 'id'>),
+              }));
 
-        // Merge with local fallback storage
-        const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
-        const mergedMap = new Map<string, BugReport>();
+              const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+              const mergedMap = new Map<string, BugReport>();
 
-        firestoreReports.forEach((r) => mergedMap.set(r.id, r));
-        localReports.forEach((r) => {
-          if (!mergedMap.has(r.id)) mergedMap.set(r.id, r);
-        });
+              firestoreReports.forEach((r) => mergedMap.set(r.id, r));
+              localReports.forEach((r) => {
+                if (!mergedMap.has(r.id)) mergedMap.set(r.id, r);
+              });
 
-        setBugReports(Array.from(mergedMap.values()));
-      },
-      (error) => {
-        console.warn('Firestore bug snapshot fallback to local storage:', error);
+              setBugReports(Array.from(mergedMap.values()));
+            } catch (e) {
+              console.warn('Error parsing bug snapshot:', e);
+            }
+          },
+          (error) => {
+            console.warn('Firestore bug snapshot fallback to local storage:', error);
+            try {
+              const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
+              setBugReports(localReports);
+            } catch (e) {}
+          }
+        );
+      }
+    } catch (err) {
+      console.warn('Firestore bug query init error, falling back to local storage:', err);
+      try {
         const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
         setBugReports(localReports);
-      }
-    );
+      } catch (e) {}
+    }
 
-    return () => unsub();
+    return () => {
+      try { unsub(); } catch (e) {}
+    };
   }, []);
 
   const handleToggleBugStatus = async (bug: BugReport) => {
