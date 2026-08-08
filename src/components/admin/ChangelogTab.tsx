@@ -97,7 +97,7 @@ function renderFormattedDescription(description: string) {
   }
 
   return (
-    <div className="space-y-2.5 my-3">
+    <div className="space-y-2 mt-3 text-xs sm:text-sm font-sans leading-relaxed">
       {lines.map((line, idx) => {
         const cleanLine = line.replace(/^[•\-]\s*/, '').trim();
         const parts = cleanLine.split(':');
@@ -106,28 +106,25 @@ function renderFormattedDescription(description: string) {
         const body = hasTitle ? parts.slice(1).join(':').trim() : cleanLine;
 
         return (
-          <div key={idx} className="relative group/item">
-            {/* Gradient Separator between grouped sub-sections when idx > 0 */}
+          <React.Fragment key={idx}>
+            {/* Subtle line separator between grouped sub-sections */}
             {idx > 0 && (
-              <div className="my-2.5 flex items-center gap-2">
-                <div className="h-px bg-gradient-to-r from-fivem-orange/40 via-white/10 to-transparent flex-1" />
-                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange/50 shadow-[0_0_6px_rgba(234,88,12,0.8)]" />
-              </div>
+              <div className="my-2 border-t border-white/10" />
             )}
 
-            {/* Bullet item card tile */}
-            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-gradient-to-r from-white/[0.03] to-transparent border border-white/10 hover:border-fivem-orange/40 hover:bg-white/[0.06] transition-all shadow-sm">
-              <div className="mt-1 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-fivem-orange to-amber-400 shadow-[0_0_10px_rgba(234,88,12,0.9)] shrink-0" />
-              <div className="flex-1 min-w-0 text-xs sm:text-sm font-sans leading-relaxed">
+            {/* Compact inline bullet item */}
+            <div className="flex items-start gap-2.5">
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_6px_rgba(234,88,12,0.8)]" />
+              <div className="flex-1 min-w-0">
                 {hasTitle && (
-                  <span className="font-bold text-fivem-orange font-display text-xs uppercase tracking-wider block sm:inline sm:mr-2 mb-0.5 sm:mb-0">
+                  <strong className="font-bold text-fivem-orange font-display text-xs uppercase tracking-wide mr-1.5">
                     {title}:
-                  </span>
+                  </strong>
                 )}
-                <span className="text-white/85">{body}</span>
+                <span className="text-white/80">{body}</span>
               </div>
             </div>
-          </div>
+          </React.Fragment>
         );
       })}
     </div>
