@@ -24,7 +24,7 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1822',
+    id: 'release-20260808-1829',
     version: 'v1.5.0',
     title: 'Spotlight Hero, Admin Console Redesign & Discord Bug Reporting',
     category: 'Feature',
@@ -33,10 +33,11 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Typography & Mobile Polish: Upgraded font system to Space Grotesk & Outfit; polished phone viewports across site & Admin Panel.
 • Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
 • Changelog DB & Credits: Built Firestore Changelog system with prominent "Website Created & Designed by Damon" credit banner.
-• Discord Bug Reporting: Added Bug Report modal with Discord App + Web DM launcher (@mcspace / ID: 150580708144840704) and live pulse indicator.
-• Admin Overview Inbox: Added live Bug Reports Inbox in Admin Console Overview tab with resolution controls.`,
+• Discord Profile & DM Launcher: Added Damon's custom Discord avatar (qePVNvTsc65p.png), fixed profile card text alignment (@mcspace / ID: 150580708144840704), and integrated smart Discord App + Web DM launcher.
+• Admin Overview Inbox: Redesigned Admin Console Overview section into an elevated dashboard with a live Bug Reports Inbox and status controls.
+• Compact Changelog Layout: Redesigned changelog release cards to use compact inline bullet items with subtle thin divider lines and single-line Date/Time pills.`,
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:22 PM',
+    date: 'Aug 8, 2026 at 6:29 PM',
   },
   {
     id: 'init-4',
