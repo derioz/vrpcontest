@@ -2584,7 +2584,7 @@ export default function App() {
           setShowSignInModal(true);
         }}
         reason={discordReqReason}
-        customMessage={discordReqMessage}
+        message={discordReqMessage}
       />
 
       {/* Bug Report & Damon Discord Profile Modal */}

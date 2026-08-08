@@ -3,7 +3,7 @@
  * Fixed-height layout with reorganized domain-focused sections.
  */
 
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
