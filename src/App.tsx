@@ -1145,32 +1145,32 @@ export default function App() {
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
         className={cn(
-          "fixed z-50 transition-all duration-500 overflow-hidden backdrop-blur-xl",
+          "fixed z-50 transition-all duration-500 overflow-hidden backdrop-blur-2xl",
           isScrolled
-            ? "top-0 left-0 right-0 border-b border-white/[0.06] shadow-lg"
-            : "top-0 sm:top-4 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto sm:w-[calc(100%-3rem)] sm:max-w-6xl sm:rounded-2xl border-b sm:border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+            ? "top-0 left-0 right-0 border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.8)] bg-[#060608]/92"
+            : "top-0 sm:top-3 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto sm:w-[calc(100%-3rem)] sm:max-w-6xl sm:rounded-2xl border-b sm:border border-white/[0.1] shadow-[0_16px_50px_rgba(0,0,0,0.6)] bg-[#09090b]/75"
         )}
       >
-        {/* Subtle top shine */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
+        {/* Top ambient glass glow beam */}
+        <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-fivem-orange/40 to-transparent pointer-events-none" />
 
-        {/* Hard bottom border line */}
+        {/* Bottom subtle border line */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-white/[0.06]" />
 
         {/* Inner layout */}
-        <div className="relative z-10 h-full max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
+        <div className="relative z-10 h-full max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
 
           {/* ── LEFT: Brand Beacon ── */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="flex items-center gap-3 group/brand shrink-0"
           >
             {/* Squircle Brand Logo Badge with Easter Egg */}
             <div
               id="easter-egg-orb"
-              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none rounded-xl border border-white/10 bg-white/[0.02] transition-all duration-300 hover:border-fivem-orange/40 hover:bg-fivem-orange/[0.02]"
+              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none rounded-xl border border-white/15 bg-white/[0.03] transition-all duration-300 hover:border-fivem-orange/50 hover:bg-fivem-orange/10 hover:shadow-[0_0_20px_rgba(234,88,12,0.3)] active:scale-95"
               onClick={handleLogoEasterEgg}
             >
               {/* Conic glowing border when easter egg is active */}
@@ -1184,7 +1184,7 @@ export default function App() {
                   }}
                 />
               )}
-              {/* Inner glass overlay to cover the center of the conic gradient, leaving a glowing frame */}
+              {/* Inner glass overlay */}
               {easterEggActive && (
                 <div className="absolute inset-[2px] bg-fivem-dark rounded-[10px] z-5 pointer-events-none" />
               )}
@@ -1192,7 +1192,7 @@ export default function App() {
               <motion.img
                 src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
                 alt="Vital RP"
-                className="w-5.5 h-5.5 object-contain relative z-10 drop-shadow-[0_0_6px_rgba(234,88,12,0.8)]"
+                className="w-5.5 h-5.5 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]"
                 animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.2, 1] } : {}}
                 transition={easterEggActive ? { duration: 0.6, ease: 'easeInOut' } : {}}
               />
@@ -1200,21 +1200,22 @@ export default function App() {
 
             {/* Wordmark */}
             <div className="flex flex-col leading-none">
-              <span className="text-white font-display font-black text-sm tracking-[0.2em] leading-none uppercase">VITAL RP</span>
-              <div className="hidden sm:flex items-center gap-1.5 mt-1.5">
-                <span className="w-1 h-1 rounded-full bg-fivem-orange" style={{
-                  boxShadow: '0 0 6px rgba(234,88,12,0.9)',
-                  animation: 'pulse 1.8s ease-in-out infinite'
-                }} />
-                <span className="text-white/30 font-mono text-[9px] uppercase tracking-[0.25em] leading-none font-bold">
+              <div className="flex items-center gap-1.5">
+                <span className="text-white font-display font-black text-sm tracking-[0.2em] leading-none uppercase drop-shadow-sm">
+                  VITAL <span className="text-fivem-orange">RP</span>
+                </span>
+              </div>
+              <div className="hidden sm:flex items-center gap-1.5 mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+                <span className="text-white/40 font-mono text-[9px] uppercase tracking-[0.2em] leading-none font-bold">
                   {activeContest?.name || 'Photo Contest'}
                 </span>
               </div>
             </div>
           </motion.div>
 
-          {/* ── CENTER: Centered Navigation Tabs (Inspired by ElevenLabs + uitripled) ── */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-white/[0.02] border border-white/[0.06] relative">
+          {/* ── CENTER: Centered Navigation Tabs (ElevenLabs style layoutId slider) ── */}
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-md relative shadow-inner">
             {[
               { label: 'Gallery', action: () => window.scrollTo({ top: 400, behavior: 'smooth' }) },
               ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => setShowArchivedWinners(true) }] : []),
@@ -1227,18 +1228,18 @@ export default function App() {
                   onClick={item.action}
                   onMouseEnter={() => setHoveredNavIndex(index)}
                   onMouseLeave={() => setHoveredNavIndex(null)}
-                  className="relative px-4 py-1.5 rounded-lg text-[13px] font-bold font-display uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
+                  className="relative px-4 py-1.5 rounded-lg text-xs font-bold font-display uppercase tracking-wider text-white/70 hover:text-white transition-colors duration-200 cursor-pointer"
                 >
                   <span className="relative z-10">{item.label}</span>
                   <AnimatePresence>
                     {isHovered && (
                       <motion.div
-                        layoutId="nav-hover-pill"
+                        layoutId="header-nav-indicator"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 rounded-lg bg-white/5 border border-white/10"
-                        transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                        className="absolute inset-0 rounded-lg bg-gradient-to-r from-white/10 to-white/5 border border-white/15 shadow-sm"
+                        transition={{ type: 'spring', stiffness: 450, damping: 30 }}
                       />
                     )}
                   </AnimatePresence>
@@ -1247,10 +1248,10 @@ export default function App() {
             })}
           </div>
 
-          {/* ── RIGHT: Hamburger toggle button for Mobile ── */}
+          {/* ── RIGHT: Mobile Menu Toggle Button ── */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-white/10 bg-white/[0.02] text-white/70 hover:text-white cursor-pointer transition-all active:scale-95"
+            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-white/15 bg-white/[0.04] text-white/80 hover:text-white cursor-pointer transition-all active:scale-95 shadow-sm"
           >
             {isMobileMenuOpen ? (
               <X className="w-5 h-5" />
@@ -1263,34 +1264,34 @@ export default function App() {
           <motion.div
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
             className="hidden md:flex items-center gap-3 shrink-0"
           >
-            {/* User avatar or Sign In */}
+            {/* User Avatar / Account Pill */}
             {user && !user.isAnonymous ? (
               <div className="flex items-center gap-2">
-                <div className="group/user relative flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-xl
-                  border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20
+                <div className="group/user relative flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 rounded-xl
+                  border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/25
                   transition-all duration-300 shadow-sm cursor-default"
                 >
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}
                       alt=""
-                      className="w-6 h-6 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300"
+                      className="w-6 h-6 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300 border border-white/10"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-white/50 border border-white/10">
+                    <div className="w-6 h-6 rounded-lg bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center text-xs font-bold text-fivem-orange">
                       {user.displayName?.[0] || user.email?.[0] || 'U'}
                     </div>
                   )}
                   
                   <div className="flex flex-col items-start leading-none gap-0.5">
-                    <span className="text-[13px] font-bold text-white/80 group-hover/user:text-white transition-colors">
+                    <span className="text-xs font-bold text-white/90 group-hover/user:text-white transition-colors">
                       {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
                     </span>
                     <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span className="text-[8px] font-mono tracking-widest uppercase text-emerald-400 font-bold">Online</span>
                     </div>
                   </div>
@@ -1298,7 +1299,7 @@ export default function App() {
                 <button
                   onClick={handleSignOut}
                   title="Sign Out"
-                  className="p-2 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-red-500/10 hover:border-red-500/30 text-white/50 hover:text-red-400 transition-all cursor-pointer"
+                  className="p-2 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-red-500/15 hover:border-red-500/40 text-white/40 hover:text-red-400 transition-all cursor-pointer active:scale-95"
                 >
                   <LogOut size={14} />
                 </button>
@@ -1307,39 +1308,39 @@ export default function App() {
               <button
                 onClick={() => setShowSignInModal(true)}
                 className="group/login relative flex items-center gap-2 px-4 h-9 rounded-xl
-                  bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                  bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.5)] border border-orange-400/30"
               >
-                <User className="w-3.5 h-3.5 relative z-10 opacity-80 group-hover/login:opacity-100 transition-opacity duration-200" size={14} />
+                <User className="w-3.5 h-3.5 relative z-10 opacity-90 group-hover/login:opacity-100 transition-opacity duration-200" size={14} />
                 <span className="relative z-10 text-[11px] font-display font-bold tracking-wider uppercase">
                   Sign In
                 </span>
               </button>
             )}
 
-            {/* Divider */}
-            <div className="w-px h-4 bg-white/10" />
+            {/* Vertical Divider */}
+            <div className="w-px h-4 bg-white/15" />
 
-            {/* Admin / Settings gear */}
+            {/* Admin / Settings Gear */}
             <button
               onClick={() => isAdmin ? setShowAdminModal(true) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })()}
               className={cn(
-                'group/setting relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300 cursor-pointer',
+                'group/setting relative flex items-center justify-center w-8.5 h-8.5 rounded-xl transition-all duration-300 cursor-pointer border',
                 isAdmin
-                  ? 'bg-fivem-orange/10 border border-fivem-orange/20 hover:border-fivem-orange/40'
-                  : 'bg-white/[0.02] border border-white/10 hover:border-white/20'
+                  ? 'bg-fivem-orange/15 border-fivem-orange/40 hover:border-fivem-orange/70 shadow-[0_0_12px_rgba(234,88,12,0.2)]'
+                  : 'bg-white/[0.03] border-white/15 hover:border-white/30 hover:bg-white/[0.06]'
               )}
             >
               <Settings
-                size={14}
+                size={15}
                 className={cn(
                   'transition-all duration-500',
                   isAdmin
                     ? 'text-fivem-orange group-hover/setting:rotate-90'
-                    : 'text-white/50 group-hover/setting:text-white group-hover/setting:rotate-45'
+                    : 'text-white/60 group-hover/setting:text-white group-hover/setting:rotate-45'
                 )}
               />
               {isAdmin && (
-                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_6px_rgba(234,88,12,1)]" />
+                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />
               )}
             </button>
           </motion.div>
@@ -1766,52 +1767,79 @@ export default function App() {
       {/* Category Sentinel */}
       {categories.length > 0 && <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />}
 
-      {/* Sticky Minimized Category Selector for Desktop */}
+      {/* ── Sticky Minimized Category Selector (ElevenLabs / Magic UI inspired single-line track) ── */}
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
             style={{ top: navH }}
-            className="fixed left-0 right-0 z-40 hidden sm:block bg-fivem-dark/95 border-b border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md"
+            className="fixed left-0 right-0 z-40 bg-[#09090b]/92 border-b border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.7)] backdrop-blur-2xl py-2"
           >
-            <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 font-mono">Category</span>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-3">
+              
+              {/* Left label badge */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50 font-mono">Category</span>
               </div>
 
-              {/* Flex-wrap container ensuring all categories are visible */}
-              <div className="flex flex-wrap items-center justify-center gap-2 py-0.5 flex-1">
-                {categories.map((cat) => {
-                  const isActive = selectedCategory?.id === cat.id;
-                  const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={cn(
-                        "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border shrink-0",
-                        isActive
-                          ? "bg-fivem-orange text-white border-fivem-orange/60 shadow-[0_2px_10px_rgba(234,88,12,0.25)]"
-                          : "bg-white/5 border-transparent text-white/60 hover:text-white hover:bg-white/10"
-                      )}
-                    >
-                      <span className="text-sm leading-none">{cat.emoji}</span>
-                      <span>{cat.name}</span>
-                      <span className={cn("text-[9px] font-mono px-1.5 py-0.5 rounded-md", isActive ? "bg-white/20 text-white" : "bg-white/5 text-white/40")}>
-                        {entryCount}
-                      </span>
-                    </button>
-                  );
-                })}
+              {/* Single-Line Scroll Track Container with edge gradient masks */}
+              <div className="relative flex-1 overflow-hidden">
+                {/* Left gradient fade mask */}
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#09090b] to-transparent z-10" />
+                
+                {/* Right gradient fade mask */}
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#09090b] to-transparent z-10" />
+
+                {/* 1-Line pill track (no wrap, smooth horizontal scroll) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-2 py-0.5">
+                  {categories.map((cat) => {
+                    const isActive = selectedCategory?.id === cat.id;
+                    const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
+
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={cn(
+                          "relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold font-display transition-colors duration-200 cursor-pointer shrink-0 select-none",
+                          isActive
+                            ? "text-white drop-shadow-sm"
+                            : "text-white/60 hover:text-white hover:bg-white/[0.05]"
+                        )}
+                      >
+                        {/* Active spring slider background */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="sticky-cat-active-pill"
+                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 border border-orange-400/40 shadow-[0_2px_12px_rgba(234,88,12,0.4)]"
+                            transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                          />
+                        )}
+
+                        <span className="relative z-10 text-sm leading-none">{cat.emoji}</span>
+                        <span className="relative z-10 tracking-wide">{cat.name}</span>
+                        <span className={cn(
+                          "relative z-10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors",
+                          isActive ? "bg-white/20 text-white" : "bg-white/10 text-white/50"
+                        )}>
+                          {entryCount}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="text-[10px] font-mono text-white/30 shrink-0 hidden md:block">
-                Active Category: <span className="font-bold text-fivem-orange">{selectedCategory?.name}</span>
+              {/* Right info indicator */}
+              <div className="hidden lg:flex items-center gap-2 shrink-0 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 text-[10px] font-mono text-white/40">
+                <span>Active:</span>
+                <span className="font-bold text-fivem-orange">{selectedCategory?.name || 'All'}</span>
               </div>
+
             </div>
           </motion.div>
         )}
