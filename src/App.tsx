@@ -2469,9 +2469,9 @@ export default function App() {
       </main >
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-lg bg-fivem-card border-white/10 text-white">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg max-h-[88vh] overflow-y-auto bg-fivem-card border-white/10 text-white p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display">Upload Entry</DialogTitle>
+            <DialogTitle className="font-display text-lg font-black">Upload Entry</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-8 text-center text-white/50 animate-pulse font-mono text-xs">Loading form...</div>}>
             <UploadForm
@@ -2490,7 +2490,7 @@ export default function App() {
       <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
-          className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl h-[85vh] min-h-[600px] max-h-[850px] bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-hidden flex flex-col"
+          className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl h-[92vh] sm:h-[85vh] max-h-[92vh] sm:max-h-[850px] bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-hidden flex flex-col"
         >
 
           {/* Ambient glows — uitripled glassmorphism pattern */}

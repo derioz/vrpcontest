@@ -76,23 +76,23 @@ export default function AdminPanel(props: AdminPanelProps) {
   return (
     <div className="relative z-10 flex flex-col h-full overflow-hidden">
       {/* ── Header Bar ── */}
-      <div className="shrink-0 relative overflow-hidden flex items-center justify-between px-4 sm:px-8 py-4 border-b border-white/[0.08] bg-black/40">
+      <div className="shrink-0 relative overflow-hidden flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-3.5 border-b border-white/[0.08] bg-black/40">
         <BorderBeam size={300} duration={12} colorFrom="#ea580c" colorTo="#fb923c" />
-        <div className="flex items-center gap-4">
-          <div className="p-2.5 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
-            <Settings size={20} className="text-fivem-orange" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
+            <Settings size={18} className="text-fivem-orange" />
           </div>
           <div>
-            <h2 className="text-lg font-black font-display text-white leading-none">
+            <h2 className="text-base sm:text-lg font-black font-display text-white leading-none">
               <AnimatedShinyText shimmerWidth={150}>Admin Console</AnimatedShinyText>
             </h2>
-            <p className="text-[11px] text-white/30 font-mono mt-0.5">Contest Management & Operations</p>
+            <p className="text-[10px] sm:text-[11px] text-white/30 font-mono mt-0.5">Contest Management & Operations</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-            <span className="text-[11px] font-bold text-emerald-400 font-mono">Admin Authenticated</span>
+            <span className="text-[10px] sm:text-[11px] font-bold text-emerald-400 font-mono">Admin Authenticated</span>
           </div>
           <div className="hidden sm:block text-[11px] text-white/30 font-mono px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
             {user?.displayName || user?.email || 'Admin'}
@@ -106,7 +106,7 @@ export default function AdminPanel(props: AdminPanelProps) {
         {/* ── Sidebar Tabs ── */}
         <div className="lg:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-white/[0.01] overflow-y-auto">
           {/* Mobile: horizontal scrollable tabs */}
-          <div className="lg:hidden flex items-center gap-1 p-2 overflow-x-auto no-scrollbar">
+          <div className="lg:hidden flex items-center gap-1 p-2 overflow-x-auto no-scrollbar touch-pan-x">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
