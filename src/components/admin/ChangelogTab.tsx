@@ -24,13 +24,19 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1820',
+    id: 'release-20260808-1822',
     version: 'v1.5.0',
     title: 'Spotlight Hero, Admin Console Redesign & Discord Bug Reporting',
     category: 'Feature',
-    description: 'Consolidated platform update designed & built by Damon: Rebuilt Hero section with Aceternity Spotlight SVG beams & Lens photo magnifier. Re-engineered photo Lightbox into a dark cinematic stage. Upgraded typography to Space Grotesk & Outfit. Added ElevenLabs-inspired single-line category dock. Created Firestore Changelog system with Damon Creator credit banner (@mcspace / ID: 150580708144840704). Added Bug Report modal with Discord App + Web DM launcher, live pulse status indicator, and live Admin Overview Bug Reports Inbox.',
+    description: `• Hero Section: Rebuilt with Aceternity Spotlight SVG beams & Lens photo magnifier.
+• Lightbox Showcase: Re-engineered photo Lightbox into a dark cinematic stage with viewfinder corner accents.
+• Typography & Mobile Polish: Upgraded font system to Space Grotesk & Outfit; polished phone viewports across site & Admin Panel.
+• Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
+• Changelog DB & Credits: Built Firestore Changelog system with prominent "Website Created & Designed by Damon" credit banner.
+• Discord Bug Reporting: Added Bug Report modal with Discord App + Web DM launcher (@mcspace / ID: 150580708144840704) and live pulse indicator.
+• Admin Overview Inbox: Added live Bug Reports Inbox in Admin Console Overview tab with resolution controls.`,
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:20 PM',
+    date: 'Aug 8, 2026 at 6:22 PM',
   },
   {
     id: 'init-4',
@@ -295,9 +301,9 @@ export function ChangelogTab() {
                 </div>
               </div>
 
-              <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-sans">
+              <div className="text-xs sm:text-sm text-white/80 leading-relaxed font-sans whitespace-pre-line space-y-1.5 font-sans">
                 {entry.description}
-              </p>
+              </div>
 
               <div className="mt-3 pt-2 flex items-center gap-2 text-[10px] font-mono text-white/30">
                 <User size={11} className="text-fivem-orange/70" />
