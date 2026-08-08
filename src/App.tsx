@@ -2554,7 +2554,13 @@ export default function App() {
 
       {/* Lightbox Modal */}
       <Suspense fallback={null}>
-        <LightboxModal photo={lightboxPhoto} privateKey={privateKey} onClose={() => setLightboxPhoto(null)} />
+        <LightboxModal
+          photo={lightboxPhoto}
+          photos={photos}
+          privateKey={privateKey}
+          onClose={() => setLightboxPhoto(null)}
+          onNavigate={(p) => setLightboxPhoto(p)}
+        />
       </Suspense>
 
       {/* Discord Server & Role Requirement Modal */}
