@@ -25,10 +25,8 @@ import { AdminVoterSearch } from './AdminVoterSearch';
 import { ChangelogTab } from './ChangelogTab';
 import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
 
-const EditContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.EditContestManager })));
-const ArchiveContest = lazy(() => import('./ContestManagers').then(m => ({ default: m.ArchiveContest })));
-const CreateContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.CreateContestManager })));
-const AdminSubmissionsPreview = lazy(() => import('./AdminSubmissionsPreview'));
+import { EditContestManager, ArchiveContest, CreateContestManager } from './ContestManagers';
+import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 
 type AdminTab = 'dashboard' | 'submissions' | 'voters' | 'contest' | 'controls' | 'changelogs' | 'danger';
 

@@ -91,7 +91,7 @@ const UploadForm = lazy(() => import('./components/UploadForm'));
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
-const AdminPanel = lazy(() => import('./components/admin/AdminPanel'));
+import AdminPanel from './components/admin/AdminPanel';
 
 
 
