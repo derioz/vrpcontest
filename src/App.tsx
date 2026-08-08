@@ -41,7 +41,8 @@ import {
   Menu,
   Ban,
   CheckCircle,
-  Edit3
+  Edit3,
+  Bug
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -55,6 +56,7 @@ import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
 import { downloadPhoto } from './lib/download';
 import { verifyDiscordGuildAndRole } from './lib/discord';
 import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
+import { BugReportModal } from './components/BugReportModal';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
@@ -157,6 +159,7 @@ export default function App() {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showNotAdminModal, setShowNotAdminModal] = useState(false);
   const [showDiscordReqModal, setShowDiscordReqModal] = useState(false);
+  const [showBugModal, setShowBugModal] = useState(false);
   const [discordReqReason, setDiscordReqReason] = useState<'not_in_server' | 'missing_role' | 'api_error' | null>(null);
   const [discordReqMessage, setDiscordReqMessage] = useState<string | null>(null);
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
@@ -1342,6 +1345,15 @@ export default function App() {
               {isAdmin && (
                 <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />
               )}
+            </button>
+
+            {/* Bug Report / Contact Damon Button */}
+            <button
+              onClick={() => setShowBugModal(true)}
+              title="Report Bug / Contact Creator Damon (@mcspace)"
+              className="group/bug relative flex items-center justify-center w-8.5 h-8.5 rounded-xl border border-fivem-orange/30 bg-fivem-orange/10 hover:bg-fivem-orange/20 hover:border-fivem-orange/60 text-fivem-orange transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(234,88,12,0.15)] active:scale-95"
+            >
+              <Bug size={15} className="group-hover/bug:scale-110 transition-transform" />
             </button>
           </motion.div>
         </div>
@@ -2569,10 +2581,17 @@ export default function App() {
         onClose={() => setShowDiscordReqModal(false)}
         onRetry={() => {
           setShowDiscordReqModal(false);
-          handleDiscordLogin();
+          setShowSignInModal(true);
         }}
         reason={discordReqReason}
-        message={discordReqMessage}
+        customMessage={discordReqMessage}
+      />
+
+      {/* Bug Report & Damon Discord Profile Modal */}
+      <BugReportModal
+        isOpen={showBugModal}
+        onClose={() => setShowBugModal(false)}
+        user={user}
       />
 
       {/* Analytics Dashboard Fullscreen Render */}

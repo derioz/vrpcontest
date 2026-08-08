@@ -18,12 +18,14 @@ import { ShimmerButton } from '../ui/shimmer-button';
 import { AdminToggle } from '../ui/admin-toggle';
 import { AdminVoterSearch } from './AdminVoterSearch';
 
+import { ChangelogTab } from './ChangelogTab';
+
 const EditContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.EditContestManager })));
 const ArchiveContest = lazy(() => import('./ContestManagers').then(m => ({ default: m.ArchiveContest })));
 const CreateContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.CreateContestManager })));
 const AdminSubmissionsPreview = lazy(() => import('./AdminSubmissionsPreview'));
 
-type AdminTab = 'dashboard' | 'submissions' | 'voters' | 'contest' | 'controls' | 'danger';
+type AdminTab = 'dashboard' | 'submissions' | 'voters' | 'contest' | 'controls' | 'changelogs' | 'danger';
 
 interface AdminPanelProps {
   isAdmin: boolean;
@@ -58,6 +60,7 @@ const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string;
   { id: 'voters', label: 'Voter Audit', icon: UserCheck, color: 'text-blue-400', description: 'Search & fraud check' },
   { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', description: 'Edit rules & winners' },
   { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-emerald-400', description: 'Toggles & RSA keys' },
+  { id: 'changelogs', label: 'Changelogs', icon: Layers, color: 'text-fivem-orange', description: 'Releases & credits' },
   { id: 'danger', label: 'Danger Zone', icon: AlertCircle, color: 'text-red-400', description: 'Reset & archive' },
 ];
 
@@ -248,6 +251,10 @@ export default function AdminPanel(props: AdminPanelProps) {
                   onGenerateKeys={onGenerateKeys}
                   onToggleReveal={onToggleReveal}
                 />
+              )}
+
+              {activeTab === 'changelogs' && (
+                <ChangelogTab />
               )}
 
               {activeTab === 'danger' && (
