@@ -24,9 +24,9 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1847',
+    id: 'release-20260808-1852',
     version: 'v1.5.0',
-    title: 'Aceternity Admin Sidebar, WebGL Shader Background & Console Fix',
+    title: 'Aceternity Admin Sidebar, WebGL Shader Background & Contest Setup Polish',
     category: 'Feature',
     description: `• Hero Section: Rebuilt with Aceternity Spotlight SVG beams & Lens photo magnifier.
 • Lightbox Showcase: Re-engineered photo Lightbox into a dark cinematic stage with viewfinder corner accents.
@@ -34,6 +34,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
 • Aceternity Admin Sidebar: Re-architected Admin Console with collapsible dark glass sidebar dock, animated link indicators, and Damon Creator profile footer.
 • WebGL Shader Canvas: Implemented interactive FiveM Orange WebGL fluid gradient canvas background across the main page.
+• Multiline Category Descriptions: Upgraded category description inputs in Contest Setup and release publisher forms into auto-resizing multiline textareas.
+• Mobile Contest Setup Layout: Redesigned category edit cards into responsive stacked layouts, eliminating mobile text overflow and horizontal input squishing.
 • Admin Console Fix: Added missing ShieldCheck icon import in AdminPanel.tsx resolving runtime ReferenceError and restoring instant console rendering.
 • Instant Admin Console Loading: Converted AdminPanel to static synchronous imports, resolving lazy chunk loading network delays.
 • Admin Console Hardening: Added fallback default values to AdminPanel props, wrapped Firestore snapshot listeners in try/catch blocks, and added context fallbacks in useSidebar.
@@ -42,7 +44,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Admin Overview Inbox: Redesigned Admin Console Overview section into an elevated dashboard with a live Bug Reports Inbox and status controls.
 • Compact Changelog Layout: Redesigned changelog release cards to use compact inline bullet items with subtle thin divider lines and single-line Date/Time pills.`,
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:47 PM',
+    date: 'Aug 8, 2026 at 6:52 PM',
   },
   {
     id: 'init-4',
@@ -438,7 +440,7 @@ export function ChangelogTab() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe the features, fixes, or UI enhancements added in this update..."
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange resize-none"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-fivem-orange resize-y min-h-[120px] leading-relaxed font-sans"
                     required
                   />
                 </div>

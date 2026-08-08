@@ -208,78 +208,97 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
         <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Edit Categories</label>
 
         {categories.length > 0 && (
-          <div className="space-y-2 mb-4">
+          <div className="space-y-3 mb-4">
             {categories.map((c, i) => (
-              <div key={c.id} className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-xl min-w-0">
-                {/* Per-row emoji picker */}
-                <div className="relative shrink-0 static-emoji-wrapper">
+              <div key={c.id} className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-white/20">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative shrink-0 static-emoji-wrapper">
+                    <button
+                      onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
+                      className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-xl hover:bg-fivem-orange/25 transition-all shrink-0 cursor-pointer"
+                      title="Change Emoji"
+                    >
+                      {c.emoji || '✨'}
+                    </button>
+                    {editingEmojiIdx === i && (
+                      <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[300px]">
+                        <Picker
+                          data={data}
+                          theme="dark"
+                          onEmojiSelect={(e: any) => {
+                            setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, emoji: e.native } : cat));
+                            setEditingEmojiIdx(null);
+                          }}
+                          previewPosition="none"
+                          navPosition="bottom"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <input
+                    value={c.name}
+                    onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
+                    placeholder="Category Name (e.g. Wildlife)"
+                    className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold text-white outline-none focus:border-fivem-orange/50 transition-all font-display"
+                  />
+
                   <button
-                    onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
-                    className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl hover:bg-fivem-orange/20 transition-colors border border-white/10"
-                    title="Change emoji"
+                    onClick={() => removeCategory(c.id)}
+                    className="p-2 hover:bg-red-500/20 text-white/40 hover:text-red-400 rounded-xl border border-transparent hover:border-red-500/30 transition-all shrink-0 cursor-pointer"
+                    title="Remove Category"
                   >
-                    {c.emoji || '✨'}
+                    <X size={16} />
                   </button>
-                  {editingEmojiIdx === i && (
-                    <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                      <Picker
-                        data={data}
-                        theme="dark"
-                        onEmojiSelect={(e: any) => {
-                          setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, emoji: e.native } : cat));
-                          setEditingEmojiIdx(null);
-                        }}
-                        previewPosition="none"
-                        navPosition="bottom"
-                      />
-                    </div>
-                  )}
                 </div>
-                {/* Inline name and description inputs */}
-                <input
-                  value={c.name}
-                  onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
-                  placeholder="Category name..."
-                  className="min-w-0 flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-fivem-orange/50 transition-colors"
-                />
-                <input
-                  value={c.desc}
-                  onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
-                  placeholder="Description..."
-                  className="min-w-0 flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white/60 outline-none focus:border-fivem-orange/50 transition-colors"
-                />
-                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors shrink-0">
-                  <X size={16} />
-                </button>
+
+                <div>
+                  <textarea
+                    rows={2}
+                    value={c.desc}
+                    onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
+                    placeholder="Description... (multiline support)"
+                    className="w-full min-h-[64px] sm:min-h-[50px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/80 outline-none focus:border-fivem-orange/50 transition-all resize-y placeholder:text-white/30 leading-relaxed font-sans"
+                  />
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative shrink-0 static-emoji-wrapper">
-            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
-              {catEmoji}
-            </Button>
-            {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                <Picker
-                  data={data}
-                  theme="dark"
-                  onEmojiSelect={(e: any) => {
-                    setCatEmoji(e.native);
-                    setShowEmojiPicker(false);
-                  }}
-                  previewPosition="none"
-                  navPosition="bottom"
-                />
-              </div>
-            )}
+        <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 space-y-3">
+          <p className="text-[11px] font-mono text-white/40 uppercase tracking-widest font-bold">Add Category</p>
+          <div className="flex items-center gap-2.5">
+            <div className="relative shrink-0 static-emoji-wrapper">
+              <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0 rounded-xl" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
+                {catEmoji}
+              </Button>
+              {showEmojiPicker && (
+                <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[300px]">
+                  <Picker
+                    data={data}
+                    theme="dark"
+                    onEmojiSelect={(e: any) => {
+                      setCatEmoji(e.native);
+                      setShowEmojiPicker(false);
+                    }}
+                    previewPosition="none"
+                    navPosition="bottom"
+                  />
+                </div>
+              )}
+            </div>
+            <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10 text-xs sm:text-sm font-bold" />
           </div>
-          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3 h-10" />
-          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10" />
-          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white h-10">
-            <Plus size={16} />
+          <textarea
+            rows={2}
+            placeholder="Description... (multiline support)"
+            value={catDesc}
+            onChange={e => setCatDesc(e.target.value)}
+            className="w-full min-h-[64px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/80 outline-none focus:border-fivem-orange/50 transition-all resize-y placeholder:text-white/30 leading-relaxed font-sans"
+          />
+          <Button variant="secondary" onClick={addCategory} className="w-full bg-white/10 hover:bg-white/20 text-white h-10 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer">
+            <Plus size={16} /> Add Category
           </Button>
         </div>
       </div>
@@ -717,31 +736,40 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
           </div>
         )}
 
-        {/* Builder Row */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative shrink-0 static-emoji-wrapper">
-            <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
-              {catEmoji}
-            </Button>
-            {showEmojiPicker && (
-              <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
-                <Picker
-                  data={data}
-                  theme="dark"
-                  onEmojiSelect={(e: any) => {
-                    setCatEmoji(e.native);
-                    setShowEmojiPicker(false);
-                  }}
-                  previewPosition="none"
-                  navPosition="bottom"
-                />
-              </div>
-            )}
+        {/* Builder Box */}
+        <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 space-y-3">
+          <p className="text-[11px] font-mono text-white/40 uppercase tracking-widest font-bold">Add Category</p>
+          <div className="flex items-center gap-2.5">
+            <div className="relative shrink-0 static-emoji-wrapper">
+              <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0 rounded-xl" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
+                {catEmoji}
+              </Button>
+              {showEmojiPicker && (
+                <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[300px]">
+                  <Picker
+                    data={data}
+                    theme="dark"
+                    onEmojiSelect={(e: any) => {
+                      setCatEmoji(e.native);
+                      setShowEmojiPicker(false);
+                    }}
+                    previewPosition="none"
+                    navPosition="bottom"
+                  />
+                </div>
+              )}
+            </div>
+            <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10 text-xs sm:text-sm font-bold" />
           </div>
-          <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 sm:w-1/3 h-10" />
-          <Input placeholder="Description..." value={catDesc} onChange={e => setCatDesc(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10" />
-          <Button variant="secondary" onClick={addCategory} className="shrink-0 bg-white/10 hover:bg-white/20 text-white h-10">
-            <Plus size={16} />
+          <textarea
+            rows={2}
+            placeholder="Description... (multiline support)"
+            value={catDesc}
+            onChange={e => setCatDesc(e.target.value)}
+            className="w-full min-h-[64px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/80 outline-none focus:border-fivem-orange/50 transition-all resize-y placeholder:text-white/30 leading-relaxed font-sans"
+          />
+          <Button variant="secondary" onClick={addCategory} className="w-full bg-white/10 hover:bg-white/20 text-white h-10 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer">
+            <Plus size={16} /> Add Category
           </Button>
         </div>
       </div>
