@@ -30,6 +30,22 @@ export function BugReportModal({ isOpen, onClose, user }: BugReportModalProps) {
     setTimeout(() => setCopiedHandle(false), 2000);
   };
 
+  const handleOpenDM = () => {
+    // 1. Try launching Discord Desktop App via deep link protocol
+    try {
+      window.location.href = `discord://users/${DISCORD_ID}`;
+    } catch (e) {
+      // ignore
+    }
+
+    // 2. Open Discord Web Client user profile page in a new window
+    window.open(DISCORD_DM_URL, '_blank', 'noopener,noreferrer');
+
+    // 3. Copy handle to clipboard for convenience
+    navigator.clipboard.writeText(DISCORD_HANDLE);
+    toast.success(`Opening Damon's Discord Profile (@${DISCORD_HANDLE})`);
+  };
+
   const handleSubmitBug = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) {
@@ -115,58 +131,60 @@ export function BugReportModal({ isOpen, onClose, user }: BugReportModalProps) {
             </div>
 
             {/* ── DAMON'S DISCORD PROFILE SHOWCASE CARD ── */}
-            <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/30 bg-gradient-to-br from-[#121218] via-[#0e0e14] to-[#08080c] p-5 shadow-lg">
+            <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/30 bg-gradient-to-b from-[#161620] via-[#101018] to-[#0a0a0e] p-5 shadow-2xl">
               {/* Top ambient banner glow */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-fivem-orange via-amber-400 to-fivem-orange" />
-              
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                
-                {/* Profile info */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-fivem-orange via-amber-400 to-fivem-orange" />
+
+              <div className="flex flex-col gap-4">
+                {/* Header row: Avatar + Name + Creator Badge + Handle */}
                 <div className="flex items-center gap-4">
                   <div className="relative shrink-0">
                     <img
                       src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
                       alt="Damon"
-                      className="w-14 h-14 rounded-2xl object-cover border-2 border-fivem-orange/70 bg-black/80 p-0.5 shadow-lg"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-fivem-orange/70 bg-black/90 p-0.5 shadow-xl"
                     />
-                    <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0e0e14] shadow-[0_0_8px_rgba(16,185,129,0.8)]" title="Online" />
+                    <span className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full bg-emerald-500 border-2 border-[#101018] shadow-[0_0_10px_rgba(16,185,129,0.9)]" title="Online" />
                   </div>
 
-                  <div className="flex flex-col items-start leading-tight">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg font-black font-display text-white">Damon</span>
-                      <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-fivem-orange bg-fivem-orange/15 px-2 py-0.5 rounded-md border border-fivem-orange/30">
-                        <ShieldCheck size={10} /> Creator
+                  <div className="flex flex-col justify-center min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h4 className="text-xl font-black font-display text-white tracking-tight">Damon</h4>
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-fivem-orange bg-fivem-orange/15 px-2.5 py-1 rounded-lg border border-fivem-orange/40 shrink-0">
+                        <ShieldCheck size={12} /> Lead Creator
                       </span>
                     </div>
-                    <span className="text-xs font-mono font-bold text-white/80">@{DISCORD_HANDLE}</span>
-                    <span className="text-[10px] text-white/40 font-mono mt-1">ID: {DISCORD_ID}</span>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+                      <span className="text-fivem-orange font-bold">@{DISCORD_HANDLE}</span>
+                      <span className="text-white/30">•</span>
+                      <span className="text-white/40 text-[11px]">ID: {DISCORD_ID}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Direct Actions */}
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                {/* Bottom row: Action Buttons */}
+                <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={handleCopyHandle}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all cursor-pointer"
-                    title="Copy Discord Handle"
+                    className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="Copy Discord Tag"
                   >
-                    {copiedHandle ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-white/60" />}
+                    {copiedHandle ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} className="text-white/60" />}
                     <span>{copiedHandle ? 'Copied!' : 'Copy Tag'}</span>
                   </button>
 
-                  <a
-                    href={DISCORD_DM_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)] cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={handleOpenDM}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-bold transition-all shadow-[0_4px_20px_rgba(234,88,12,0.4)] cursor-pointer active:scale-95"
                     title="Open Direct DM on Discord"
                   >
-                    <MessageSquare size={14} />
+                    <MessageSquare size={15} />
                     <span>Open DM</span>
-                    <ExternalLink size={12} className="opacity-70" />
-                  </a>
+                    <ExternalLink size={13} className="opacity-70" />
+                  </button>
                 </div>
               </div>
             </div>
