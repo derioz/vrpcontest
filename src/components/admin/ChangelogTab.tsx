@@ -84,6 +84,56 @@ const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string
   Performance: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', icon: Zap },
 };
 
+function renderFormattedDescription(description: string) {
+  const lines = description.split('\n').filter((l) => l.trim().length > 0);
+  const isBulleted = lines.some((l) => l.trim().startsWith('•') || l.trim().startsWith('-'));
+
+  if (!isBulleted) {
+    return (
+      <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-sans whitespace-pre-line">
+        {description}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2.5 my-3">
+      {lines.map((line, idx) => {
+        const cleanLine = line.replace(/^[•\-]\s*/, '').trim();
+        const parts = cleanLine.split(':');
+        const hasTitle = parts.length > 1;
+        const title = hasTitle ? parts[0].trim() : '';
+        const body = hasTitle ? parts.slice(1).join(':').trim() : cleanLine;
+
+        return (
+          <div key={idx} className="relative group/item">
+            {/* Gradient Separator between grouped sub-sections when idx > 0 */}
+            {idx > 0 && (
+              <div className="my-2.5 flex items-center gap-2">
+                <div className="h-px bg-gradient-to-r from-fivem-orange/40 via-white/10 to-transparent flex-1" />
+                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange/50 shadow-[0_0_6px_rgba(234,88,12,0.8)]" />
+              </div>
+            )}
+
+            {/* Bullet item card tile */}
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-gradient-to-r from-white/[0.03] to-transparent border border-white/10 hover:border-fivem-orange/40 hover:bg-white/[0.06] transition-all shadow-sm">
+              <div className="mt-1 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-fivem-orange to-amber-400 shadow-[0_0_10px_rgba(234,88,12,0.9)] shrink-0" />
+              <div className="flex-1 min-w-0 text-xs sm:text-sm font-sans leading-relaxed">
+                {hasTitle && (
+                  <span className="font-bold text-fivem-orange font-display text-xs uppercase tracking-wider block sm:inline sm:mr-2 mb-0.5 sm:mb-0">
+                    {title}:
+                  </span>
+                )}
+                <span className="text-white/85">{body}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ChangelogTab() {
   const [entries, setEntries] = useState<ChangelogEntry[]>(INITIAL_CHANGELOGS);
   const [loading, setLoading] = useState(true);
@@ -285,8 +335,8 @@ export function ChangelogTab() {
                     <span>{entry.category}</span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[10px] font-mono text-white/30 px-2 py-1 rounded-lg bg-white/5 border border-white/5">
-                    <Calendar size={11} />
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/50 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 whitespace-nowrap shrink-0">
+                    <Calendar size={11} className="text-fivem-orange" />
                     <span>{entry.date}</span>
                   </div>
 
@@ -301,9 +351,7 @@ export function ChangelogTab() {
                 </div>
               </div>
 
-              <div className="text-xs sm:text-sm text-white/80 leading-relaxed font-sans whitespace-pre-line space-y-1.5 font-sans">
-                {entry.description}
-              </div>
+              {renderFormattedDescription(entry.description)}
 
               <div className="mt-3 pt-2 flex items-center gap-2 text-[10px] font-mono text-white/30">
                 <User size={11} className="text-fivem-orange/70" />
