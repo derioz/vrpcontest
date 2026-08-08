@@ -24,20 +24,22 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1829',
+    id: 'release-20260808-1838',
     version: 'v1.5.0',
-    title: 'Spotlight Hero, Admin Console Redesign & Discord Bug Reporting',
+    title: 'Aceternity Admin Sidebar, WebGL Shader Background & Discord Bug Inbox',
     category: 'Feature',
     description: `• Hero Section: Rebuilt with Aceternity Spotlight SVG beams & Lens photo magnifier.
 • Lightbox Showcase: Re-engineered photo Lightbox into a dark cinematic stage with viewfinder corner accents.
 • Typography & Mobile Polish: Upgraded font system to Space Grotesk & Outfit; polished phone viewports across site & Admin Panel.
 • Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
+• Aceternity Admin Sidebar: Re-architected Admin Console with collapsible dark glass sidebar dock, animated link indicators, and Damon Creator profile footer.
+• WebGL Shader Canvas: Implemented interactive FiveM Orange WebGL fluid gradient canvas background across the main page.
 • Changelog DB & Credits: Built Firestore Changelog system with prominent "Website Created & Designed by Damon" credit banner.
 • Discord Profile & DM Launcher: Added Damon's custom Discord avatar (qePVNvTsc65p.png), fixed profile card text alignment (@mcspace / ID: 150580708144840704), and integrated smart Discord App + Web DM launcher.
 • Admin Overview Inbox: Redesigned Admin Console Overview section into an elevated dashboard with a live Bug Reports Inbox and status controls.
 • Compact Changelog Layout: Redesigned changelog release cards to use compact inline bullet items with subtle thin divider lines and single-line Date/Time pills.`,
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:29 PM',
+    date: 'Aug 8, 2026 at 6:38 PM',
   },
   {
     id: 'init-4',

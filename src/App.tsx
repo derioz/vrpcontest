@@ -57,6 +57,7 @@ import { downloadPhoto } from './lib/download';
 import { verifyDiscordGuildAndRole } from './lib/discord';
 import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
 import { BugReportModal } from './components/BugReportModal';
+import { ShaderBackground } from './components/ui/shader-background';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
@@ -1144,7 +1145,8 @@ export default function App() {
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
 
   return (
-    <div className="min-h-screen flex flex-col">      <motion.header
+    <ShaderBackground className="min-h-screen flex flex-col">
+      <motion.header
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
         className={cn(
@@ -2479,7 +2481,7 @@ export default function App() {
           </section>
 
         </aside>
-      </main >
+      </main>
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
         <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg max-h-[88vh] overflow-y-auto bg-fivem-card border-white/10 text-white p-4 sm:p-6">
@@ -2797,6 +2799,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+
       {/* ─── NOT AN ADMIN: Humorous Gate Modal ─── */}
       <AnimatePresence>
         {showNotAdminModal && (() => {
@@ -3011,7 +3014,7 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-    </div>
+    </ShaderBackground>
   );
 }
 

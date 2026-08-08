@@ -23,6 +23,7 @@ import { AdminToggle } from '../ui/admin-toggle';
 import { AdminVoterSearch } from './AdminVoterSearch';
 
 import { ChangelogTab } from './ChangelogTab';
+import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
 
 const EditContestManager = lazy(() => import('./ContestManagers').then(m => ({ default: m.EditContestManager })));
 const ArchiveContest = lazy(() => import('./ContestManagers').then(m => ({ default: m.ArchiveContest })));
@@ -77,203 +78,204 @@ export default function AdminPanel(props: AdminPanelProps) {
   } = props;
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   if (!isAdmin) return null;
 
   return (
-    <div className="relative z-10 flex flex-col h-full overflow-hidden">
-      {/* ── Header Bar ── */}
-      <div className="shrink-0 relative overflow-hidden flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-3.5 border-b border-white/[0.08] bg-black/40">
-        <BorderBeam size={300} duration={12} colorFrom="#ea580c" colorTo="#fb923c" />
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl">
-            <Settings size={18} className="text-fivem-orange" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-black font-display text-white leading-none">
-              <AnimatedShinyText shimmerWidth={150}>Admin Console</AnimatedShinyText>
-            </h2>
-            <p className="text-[10px] sm:text-[11px] text-white/30 font-mono mt-0.5">Contest Management & Operations</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-            <span className="text-[10px] sm:text-[11px] font-bold text-emerald-400 font-mono">Admin Authenticated</span>
-          </div>
-          <div className="hidden sm:block text-[11px] text-white/30 font-mono px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            {user?.displayName || user?.email || 'Admin'}
-          </div>
-        </div>
-      </div>
+    <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
+      <div className="relative z-10 flex flex-col md:flex-row h-full w-full overflow-hidden bg-[#060609]">
+        
+        {/* ── ACETERNITY SIDEBAR DOCK ── */}
+        <SidebarBody>
+          <div className="flex flex-col flex-1 min-h-0 justify-between space-y-4">
+            
+            {/* Header & Navigation */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-3 px-2">
+                <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl text-fivem-orange shrink-0 shadow-[0_0_12px_rgba(234,88,12,0.2)]">
+                  <Settings size={18} />
+                </div>
+                {sidebarOpen && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col min-w-0"
+                  >
+                    <h2 className="text-sm font-black font-display text-white leading-none">
+                      <AnimatedShinyText shimmerWidth={120}>Admin Console</AnimatedShinyText>
+                    </h2>
+                    <span className="text-[10px] text-white/40 font-mono mt-0.5">Vital RP Operations</span>
+                  </motion.div>
+                )}
+              </div>
 
-      {/* ── Tab Navigation + Content Area ── */}
-      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
-
-        {/* ── Sidebar Tabs ── */}
-        <div className="lg:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-white/[0.01] overflow-y-auto">
-          {/* Mobile: horizontal scrollable tabs */}
-          <div className="lg:hidden flex items-center gap-1 p-2 overflow-x-auto no-scrollbar touch-pan-x">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer shrink-0",
-                    isActive
-                      ? "bg-white/10 text-white border border-white/15"
-                      : "text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent"
-                  )}
-                >
-                  <Icon size={14} className={isActive ? tab.color : ''} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Desktop: vertical sidebar */}
-          <div className="hidden lg:flex flex-col gap-1 p-3">
-            <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-white/20 px-3 py-2">Navigation</p>
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "relative flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 cursor-pointer text-left w-full",
-                    isActive
-                      ? "bg-white/[0.08] text-white shadow-sm border border-white/10"
-                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.03] border border-transparent"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="admin-tab-indicator"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-fivem-orange rounded-full"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              {/* Navigation Links */}
+              <div className="space-y-1">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <SidebarLink
+                      key={tab.id}
+                      label={tab.label}
+                      icon={<Icon size={18} />}
+                      active={isActive}
+                      color={tab.color}
+                      onClick={() => setActiveTab(tab.id)}
                     />
-                  )}
-                  <div className={cn("p-1.5 rounded-lg bg-white/5 border border-white/5", isActive && "bg-white/10 border-white/10")}>
-                    <Icon size={16} className={isActive ? tab.color : 'text-white/40'} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn("text-xs font-bold leading-tight truncate", isActive ? "text-white" : "text-white/70")}>{tab.label}</p>
-                    <p className="text-[10px] text-white/30 truncate mt-0.5 font-mono">{tab.description}</p>
-                  </div>
-                  {isActive && <ChevronRight size={14} className="ml-auto text-white/30 shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  );
+                })}
+              </div>
+            </div>
 
-        {/* ── Active Tab Scrollable Content Container ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 h-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-              className="max-w-5xl mx-auto"
-            >
-              {activeTab === 'dashboard' && (
-                <OverviewTab
-                  activeContest={activeContest}
-                  categories={categories}
-                  allPhotos={allPhotos}
-                  votingOpen={votingOpen}
-                  submissionsOpen={submissionsOpen}
-                  setActiveTab={setActiveTab}
-                  onOpenAnalytics={onOpenAnalytics}
+            {/* Admin Creator Footer Card inside Sidebar */}
+            <div className="border-t border-white/10 pt-3 pb-2 px-1">
+              <div className="flex items-center gap-3">
+                <img
+                  src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
+                  alt="Damon"
+                  className="w-9 h-9 rounded-xl object-cover border border-fivem-orange/60 p-0.5 bg-black/60 shrink-0"
                 />
-              )}
+                {sidebarOpen && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col min-w-0 flex-1 leading-tight"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-white font-display truncate">Damon</span>
+                      <ShieldCheck size={11} className="text-fivem-orange shrink-0" />
+                    </div>
+                    <span className="text-[10px] text-white/40 font-mono truncate">@mcspace</span>
+                  </motion.div>
+                )}
+              </div>
+            </div>
 
-              {activeTab === 'submissions' && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-                      <ImageIcon size={20} className="text-cyan-400" /> Submissions Management
-                    </h3>
-                    <p className="text-sm text-white/40">Review decrypted photo submissions, disqualify entries, or delete photos.</p>
+          </div>
+        </SidebarBody>
+
+        {/* ── MAIN CONTENT STAGE ── */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#09090d]/95">
+          {/* Top Bar Header */}
+          <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/10 bg-black/40">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-white/40 uppercase tracking-widest">Console Domain</span>
+              <span className="text-white/20">•</span>
+              <span className="text-sm font-black font-display text-fivem-orange capitalize">{activeTab}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-[10px] font-bold text-emerald-400 font-mono">Authenticated</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Content Stage */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 h-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="max-w-5xl mx-auto"
+              >
+                {activeTab === 'dashboard' && (
+                  <OverviewTab
+                    activeContest={activeContest}
+                    categories={categories}
+                    allPhotos={allPhotos}
+                    votingOpen={votingOpen}
+                    submissionsOpen={submissionsOpen}
+                    setActiveTab={setActiveTab}
+                    onOpenAnalytics={onOpenAnalytics}
+                  />
+                )}
+
+                {activeTab === 'submissions' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
+                        <ImageIcon size={20} className="text-cyan-400" /> Submissions Management
+                      </h3>
+                      <p className="text-sm text-white/40">Review decrypted photo submissions, disqualify entries, or delete photos.</p>
+                    </div>
+                    <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-cyan-400" /></div>}>
+                      <AdminSubmissionsPreview
+                        allPhotos={allPhotos}
+                        categories={categories}
+                        onDeletePhoto={onDeletePhoto}
+                        onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
+                      />
+                    </Suspense>
                   </div>
-                  <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-cyan-400" /></div>}>
-                    <AdminSubmissionsPreview
+                )}
+
+                {activeTab === 'voters' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
+                        <UserCheck size={20} className="text-blue-400" /> Voter Audit & Fraud Check
+                      </h3>
+                      <p className="text-sm text-white/40">Search voters by Discord username or UID, inspect vote distribution, and clear flagged votes.</p>
+                    </div>
+                    <AdminVoterSearch
                       allPhotos={allPhotos}
                       categories={categories}
-                      onDeletePhoto={onDeletePhoto}
-                      onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
                     />
-                  </Suspense>
-                </div>
-              )}
-
-              {activeTab === 'voters' && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-                      <UserCheck size={20} className="text-blue-400" /> Voter Audit & Fraud Check
-                    </h3>
-                    <p className="text-sm text-white/40">Search voters by Discord username or UID, inspect vote distribution, and clear flagged votes.</p>
                   </div>
-                  <AdminVoterSearch
-                    allPhotos={allPhotos}
+                )}
+
+                {activeTab === 'contest' && (
+                  <ContestSetupTab
+                    activeContest={activeContest}
                     categories={categories}
+                    rulesMarkdown={rulesMarkdown}
+                    winners={winners}
+                    onDownloadWinners={onDownloadWinners}
                   />
-                </div>
-              )}
+                )}
 
-              {activeTab === 'contest' && (
-                <ContestSetupTab
-                  activeContest={activeContest}
-                  categories={categories}
-                  rulesMarkdown={rulesMarkdown}
-                  winners={winners}
-                  onDownloadWinners={onDownloadWinners}
-                />
-              )}
+                {activeTab === 'controls' && (
+                  <ControlsAndSecurityTab
+                    votingOpen={votingOpen}
+                    submissionsOpen={submissionsOpen}
+                    onePhotoPerUser={onePhotoPerUser}
+                    showWinnersToggle={showWinnersToggle}
+                    publicKey={publicKey}
+                    privateKey={privateKey}
+                    onToggleVoting={onToggleVoting}
+                    onToggleSubmissions={onToggleSubmissions}
+                    onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
+                    onToggleShowWinners={onToggleShowWinners}
+                    onGenerateKeys={onGenerateKeys}
+                    onToggleReveal={onToggleReveal}
+                  />
+                )}
 
-              {activeTab === 'controls' && (
-                <ControlsAndSecurityTab
-                  votingOpen={votingOpen}
-                  submissionsOpen={submissionsOpen}
-                  onePhotoPerUser={onePhotoPerUser}
-                  showWinnersToggle={showWinnersToggle}
-                  publicKey={publicKey}
-                  privateKey={privateKey}
-                  onToggleVoting={onToggleVoting}
-                  onToggleSubmissions={onToggleSubmissions}
-                  onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
-                  onToggleShowWinners={onToggleShowWinners}
-                  onGenerateKeys={onGenerateKeys}
-                  onToggleReveal={onToggleReveal}
-                />
-              )}
+                {activeTab === 'changelogs' && (
+                  <ChangelogTab />
+                )}
 
-              {activeTab === 'changelogs' && (
-                <ChangelogTab />
-              )}
-
-              {activeTab === 'danger' && (
-                <DangerTab
-                  activeContest={activeContest}
-                  categories={categories}
-                  allPhotos={allPhotos}
-                  onResetVotes={onResetVotes}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+                {activeTab === 'danger' && (
+                  <DangerTab
+                    activeContest={activeContest}
+                    categories={categories}
+                    allPhotos={allPhotos}
+                    onResetVotes={onResetVotes}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
-    </div>
+    </Sidebar>
   );
 }
 
