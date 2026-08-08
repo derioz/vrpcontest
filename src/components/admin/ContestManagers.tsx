@@ -257,8 +257,13 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
                     rows={2}
                     value={c.desc}
                     onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
-                    placeholder="Description... (multiline support)"
-                    className="w-full min-h-[64px] sm:min-h-[50px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/80 outline-none focus:border-fivem-orange/50 transition-all resize-y placeholder:text-white/30 leading-relaxed font-sans"
+                    onInput={(e: any) => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
+                    }}
+                    placeholder="Description..."
+                    style={{ fieldSizing: 'content' } as any}
+                    className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/90 outline-none focus:border-fivem-orange/50 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
                   />
                 </div>
               </div>
@@ -292,10 +297,15 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
           </div>
           <textarea
             rows={2}
-            placeholder="Description... (multiline support)"
+            placeholder="Description..."
             value={catDesc}
             onChange={e => setCatDesc(e.target.value)}
-            className="w-full min-h-[64px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/80 outline-none focus:border-fivem-orange/50 transition-all resize-y placeholder:text-white/30 leading-relaxed font-sans"
+            onInput={(e: any) => {
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
+            }}
+            style={{ fieldSizing: 'content' } as any}
+            className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/90 outline-none focus:border-fivem-orange/50 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
           />
           <Button variant="secondary" onClick={addCategory} className="w-full bg-white/10 hover:bg-white/20 text-white h-10 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer">
             <Plus size={16} /> Add Category
@@ -763,10 +773,15 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
           </div>
           <textarea
             rows={2}
-            placeholder="Description... (multiline support)"
+            placeholder="Description..."
             value={catDesc}
             onChange={e => setCatDesc(e.target.value)}
-            className="w-full min-h-[64px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/80 outline-none focus:border-fivem-orange/50 transition-all resize-y placeholder:text-white/30 leading-relaxed font-sans"
+            onInput={(e: any) => {
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
+            }}
+            style={{ fieldSizing: 'content' } as any}
+            className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/90 outline-none focus:border-fivem-orange/50 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
           />
           <Button variant="secondary" onClick={addCategory} className="w-full bg-white/10 hover:bg-white/20 text-white h-10 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer">
             <Plus size={16} /> Add Category

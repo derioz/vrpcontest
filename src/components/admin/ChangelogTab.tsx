@@ -24,7 +24,7 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1852',
+    id: 'release-20260808-1855',
     version: 'v1.5.0',
     title: 'Aceternity Admin Sidebar, WebGL Shader Background & Contest Setup Polish',
     category: 'Feature',
@@ -34,6 +34,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
 • Aceternity Admin Sidebar: Re-architected Admin Console with collapsible dark glass sidebar dock, animated link indicators, and Damon Creator profile footer.
 • WebGL Shader Canvas: Implemented interactive FiveM Orange WebGL fluid gradient canvas background across the main page.
+• Zero-Lag Auto-Resizing Textareas: Implemented native CSS field-sizing content and automatic scrollHeight auto-grow on category textareas for instant, buttery-smooth multiline typing.
 • Multiline Category Descriptions: Upgraded category description inputs in Contest Setup and release publisher forms into auto-resizing multiline textareas.
 • Mobile Contest Setup Layout: Redesigned category edit cards into responsive stacked layouts, eliminating mobile text overflow and horizontal input squishing.
 • Admin Console Fix: Added missing ShieldCheck icon import in AdminPanel.tsx resolving runtime ReferenceError and restoring instant console rendering.
@@ -44,7 +45,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Admin Overview Inbox: Redesigned Admin Console Overview section into an elevated dashboard with a live Bug Reports Inbox and status controls.
 • Compact Changelog Layout: Redesigned changelog release cards to use compact inline bullet items with subtle thin divider lines and single-line Date/Time pills.`,
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:52 PM',
+    date: 'Aug 8, 2026 at 6:55 PM',
   },
   {
     id: 'init-4',
