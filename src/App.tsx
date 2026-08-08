@@ -1354,6 +1354,7 @@ export default function App() {
               className="group/bug relative flex items-center justify-center w-8.5 h-8.5 rounded-xl border border-fivem-orange/30 bg-fivem-orange/10 hover:bg-fivem-orange/20 hover:border-fivem-orange/60 text-fivem-orange transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(234,88,12,0.15)] active:scale-95"
             >
               <Bug size={15} className="group-hover/bug:scale-110 transition-transform" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)] animate-pulse" />
             </button>
           </motion.div>
         </div>

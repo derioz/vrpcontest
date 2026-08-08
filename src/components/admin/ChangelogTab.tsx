@@ -24,13 +24,13 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260808-1818',
+    id: 'release-20260808-1820',
     version: 'v1.5.0',
     title: 'Spotlight Hero, Admin Console Redesign & Discord Bug Reporting',
     category: 'Feature',
-    description: 'Consolidated platform update designed & built by Damon: Rebuilt Hero section with Aceternity Spotlight SVG beams & Lens photo magnifier. Re-engineered photo Lightbox into a dark cinematic stage. Upgraded typography to Space Grotesk & Outfit. Added ElevenLabs-inspired single-line category dock. Created Firestore Changelog system with Damon Creator credit banner (@mcspace / ID: 150580708144840704). Added Bug Report modal with Discord App + Web DM launcher and live Admin Overview Bug Reports Inbox.',
+    description: 'Consolidated platform update designed & built by Damon: Rebuilt Hero section with Aceternity Spotlight SVG beams & Lens photo magnifier. Re-engineered photo Lightbox into a dark cinematic stage. Upgraded typography to Space Grotesk & Outfit. Added ElevenLabs-inspired single-line category dock. Created Firestore Changelog system with Damon Creator credit banner (@mcspace / ID: 150580708144840704). Added Bug Report modal with Discord App + Web DM launcher, live pulse status indicator, and live Admin Overview Bug Reports Inbox.',
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:18 PM',
+    date: 'Aug 8, 2026 at 6:20 PM',
   },
   {
     id: 'init-4',
