@@ -156,6 +156,29 @@ export default function AdminPanel(props: AdminPanelProps) {
           </div>
         </SidebarBody>
 
+        {/* Mobile Horizontal Tabs Header (< md screens) */}
+        <div className="md:hidden flex items-center gap-1.5 p-2 overflow-x-auto no-scrollbar bg-[#08080b] border-b border-white/10 shrink-0">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer",
+                  isActive
+                    ? "bg-fivem-orange/20 text-white border border-fivem-orange/40 shadow-sm"
+                    : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
+                )}
+              >
+                <Icon size={14} className={isActive ? tab.color : ''} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* ── MAIN CONTENT STAGE ── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#09090d]/95">
           {/* Top Bar Header */}
