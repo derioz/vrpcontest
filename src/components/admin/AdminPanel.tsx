@@ -4,7 +4,7 @@ import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
   Eye, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
-  Bug, CheckCircle2, Trash2, Clock, Minimize2, Maximize2, X
+  Bug, CheckCircle2, Trash2, Clock, Minimize2, Maximize2, X, Wrench
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -797,12 +797,23 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
 
       {/* Edit Current Contest */}
       {activeContest ? (
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <div className="px-6 pt-5 pb-4 border-b border-white/[0.07] flex items-center gap-2">
-            <div className="w-1 h-4 bg-white/30 rounded-full" />
-            <h4 className="text-[11px] font-mono text-white/50 uppercase tracking-[0.2em]">Edit Active Contest Details</h4>
-            <span className="ml-auto text-[10px] font-mono text-fivem-orange/60 bg-fivem-orange/10 px-2 py-0.5 rounded-full">{activeContest.name}</span>
+        <div className="relative overflow-hidden rounded-3xl border border-fivem-orange/30 bg-[#09090d]/90 shadow-2xl">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-fivem-orange via-amber-500 to-fivem-orange" />
+          <div className="px-6 py-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-fivem-orange/10 via-transparent to-transparent">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-fivem-orange/20 border border-fivem-orange/40 flex items-center justify-center text-fivem-orange shrink-0 shadow-inner">
+                <Wrench size={20} />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono text-fivem-orange uppercase tracking-widest font-bold block">Intuitive Setup Workspace</span>
+                <h3 className="text-base sm:text-lg font-bold text-white font-display">Active Contest Configuration</h3>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full shadow-sm">
+                {activeContest.name}
+              </span>
+            </div>
           </div>
           <div className="p-6">
             <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-white/30" /></div>}>

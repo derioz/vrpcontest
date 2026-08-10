@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'; import { toast } from 'sonner';
 import { Category, Photo } from '../../types';
+import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { db } from '../../lib/firebase';
@@ -75,6 +76,9 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
 
 export function EditContestManager({ activeContest, currentRules, currentCategories, onUpdated }: { activeContest: any, currentRules: string, currentCategories: Category[], onUpdated: () => void }) {
   const formatDateForInput = (isoString?: string) => isoString ? new Date(isoString).toISOString().slice(0, 16) : '';
+  const [setupTab, setSetupTab] = useState<'general' | 'categories' | 'rules' | 'schedule'>('general');
+  const [rulesView, setRulesView] = useState<'edit' | 'preview' | 'split'>('split');
+  
   const [title, setTitle] = useState(activeContest?.name || '');
   const [rules, setRules] = useState(currentRules || '');
   const [submissionsCloseDate, setSubmissionsCloseDate] = useState(formatDateForInput(activeContest?.submissions_close_date));
@@ -90,7 +94,6 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
   const [editingEmojiIdx, setEditingEmojiIdx] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -103,17 +106,106 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
 
   const addCategory = () => {
     if (!catName || !catDesc) {
-      toast.error('Please enter name and description');
+      toast.error('Please enter category name and description');
       return;
     }
     setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
     setCatEmoji('✨');
+    toast.success(`Added "${catName}" category`);
   };
 
   const removeCategory = (id: string | number) => {
     setCategories(prev => prev.filter(c => c.id !== id));
+    toast.info('Category removed');
+  };
+
+  const loadCategoryPreset = (presetType: 'standard' | 'automotive' | 'community') => {
+    if (presetType === 'standard') {
+      setCategories([
+        { id: Date.now() + 1, name: 'Automotive & Rides', desc: 'Show off your finest rides, stance, and custom builds around San Andreas.', emoji: '🚗' },
+        { id: Date.now() + 2, name: 'Landscapes & Scenery', desc: 'Breathtaking views, sunrises, and architecture across Los Santos and Blaine County.', emoji: '🌆' },
+        { id: Date.now() + 3, name: 'Character & Roleplay', desc: 'In-character portraits, storytelling moments, and community roleplay scenes.', emoji: '🎭' },
+        { id: Date.now() + 4, name: 'Action & Pursuits', desc: 'High-octane pursuits, stunts, drift maneuvers, and intense law enforcement action.', emoji: '🎬' },
+        { id: Date.now() + 5, name: 'Night & Cyberpunk', desc: 'Neon lights, rain reflections, and nocturnal vibes after dark.', emoji: '🌌' },
+      ]);
+      toast.success('Loaded 5 Standard FiveM Category Presets!');
+    } else if (presetType === 'automotive') {
+      setCategories([
+        { id: Date.now() + 1, name: 'Supercars & Exotics', desc: 'Exotic hypercars and luxury supercars in pristine lighting.', emoji: '🏎️' },
+        { id: Date.now() + 2, name: 'Bikes & Choppers', desc: 'Custom motorcycles, choppers, and stunt bikes on the open road.', emoji: '🏍️' },
+        { id: Date.now() + 3, name: 'Offroad & Utility', desc: 'Mud, mountain trails, and heavy-duty offroad builds in Blaine County.', emoji: '🚚' },
+        { id: Date.now() + 4, name: 'Custom Builds & Tuners', desc: 'Slammed tuners, custom stance, and garage mechanics.', emoji: '🔧' },
+      ]);
+      toast.success('Loaded 4 Automotive Category Presets!');
+    } else if (presetType === 'community') {
+      setCategories([
+        { id: Date.now() + 1, name: 'Server Events & Parties', desc: 'Unforgettable moments from server events, concerts, and gatherings.', emoji: '🎉' },
+        { id: Date.now() + 2, name: 'Emergency Services (PD/EMS)', desc: 'Law enforcement, fire rescue, and medical emergency roleplay.', emoji: '🚓' },
+        { id: Date.now() + 3, name: 'Business & Crime', desc: 'Underworld operations, corporate meetings, and faction life.', emoji: '💼' },
+        { id: Date.now() + 4, name: 'Casual Memories', desc: 'Everyday adventures with friends around San Andreas.', emoji: '📸' },
+      ]);
+      toast.success('Loaded 4 Community Category Presets!');
+    }
+  };
+
+  const loadRulePreset = (presetType: 'standard' | 'automotive' | 'simple') => {
+    if (presetType === 'standard') {
+      setRules(`# 📸 Vital RP Photo Contest Rules & Guidelines
+
+### 1. In-Game Screenshots Only
+- All photos must be captured inside the **Vital RP** server.
+- No external graphic modifications, heavily photoshopped backgrounds, or AI generation.
+
+### 2. HUD & Overlay Removal
+- Screenshots must be taken with the game HUD, mini-map, chat log, and UI overlays toggled **OFF**.
+
+### 3. Submission Limits
+- You may submit **1 entry per category**.
+- Duplicate submissions across categories will be subject to disqualification.
+
+### 4. Community Voting
+- Voting is open to all verified community members.
+- Vote manipulation or self-voting scripts will lead to instant disqualification.`);
+      toast.success('Inserted Standard Vital RP Rules Preset');
+    } else if (presetType === 'automotive') {
+      setRules(`# 🏎️ Automotive Photography Contest Rules
+
+### 1. Featured Vehicles
+- Photos must feature a player-owned vehicle inside Vital RP.
+- Capture clear lighting, reflections, and unique San Andreas locations.
+
+### 2. Camera & Angle
+- Game HUD and player UI overlays must be disabled before taking the screenshot.
+- Angles, camera height, and lighting are completely up to your creative vision!
+
+### 3. Submissions
+- Maximum 1 vehicle entry per participant.`);
+      toast.success('Inserted Automotive Rules Preset');
+    } else if (presetType === 'simple') {
+      setRules(`# 🌟 General Contest Rules
+
+1. All screenshots must be taken in Vital RP with HUD hidden.
+2. 1 photo submission per category.
+3. Be respectful and have fun!`);
+      toast.success('Inserted Simple Rules Preset');
+    }
+  };
+
+  const calculateRemainingTime = (dateIso?: string) => {
+    if (!dateIso) return null;
+    const target = new Date(dateIso).getTime();
+    const now = Date.now();
+    const diff = target - now;
+    if (diff <= 0) return 'Expired / Closed';
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) return `${days} Days, ${hours} Hours remaining`;
+    return `${hours} Hours, ${mins} Mins remaining`;
   };
 
   const handleUpdate = async () => {
@@ -177,7 +269,7 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
 
       await batch.commit();
 
-      toast.success(`Successfully updated ${title}!`);
+      toast.success(`Successfully saved all changes for ${title}!`);
       setCatName('');
       setCatDesc('');
       setCatEmoji('✨');
@@ -193,164 +285,367 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
   if (!activeContest) return null;
 
   return (
-    <div className="space-y-6 p-6 bg-fivem-card/50 rounded-2xl border border-white/10 relative">
-      <div className="space-y-2">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
-        <Input
-          placeholder="e.g. Cyberpunk Nights V2"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="bg-white/5 border-white/10 h-10 text-sm font-display"
-        />
+    <div className="space-y-6 relative">
+      
+      {/* ── SEGMENTED WORKSPACE TABS ── */}
+      <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar p-1.5 rounded-2xl bg-black/40 border border-white/10 shadow-inner">
+        {[
+          { id: 'general', label: '1. Title & Status', emoji: '📜' },
+          { id: 'categories', label: `2. Categories (${categories.length})`, emoji: '🏷️' },
+          { id: 'rules', label: '3. Rules & Preview', emoji: '📝' },
+          { id: 'schedule', label: '4. Schedule & Timers', emoji: '📅' },
+        ].map((tab) => {
+          const isActive = setupTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSetupTab(tab.id as any)}
+              className={cn(
+                "px-4 py-2.5 rounded-xl text-xs font-bold font-display transition-all cursor-pointer flex items-center gap-2 shrink-0 select-none",
+                isActive
+                  ? "bg-gradient-to-r from-fivem-orange to-amber-600 text-white shadow-lg border border-amber-400/30"
+                  : "text-white/50 hover:text-white hover:bg-white/5"
+              )}
+            >
+              <span>{tab.emoji}</span>
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="space-y-4">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Edit Categories</label>
+      {/* ── TAB 1: TITLE & STATUS ── */}
+      {setupTab === 'general' && (
+        <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 01 · General Info</span>
+              <h3 className="text-lg font-bold text-white font-display">Contest Title & Status</h3>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>ACTIVE CONTEST</span>
+            </div>
+          </div>
 
-        {categories.length > 0 && (
-          <div className="space-y-3 mb-4">
-            {categories.map((c, i) => (
-              <div key={c.id} className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-white/20">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative shrink-0 static-emoji-wrapper">
+          <div className="space-y-3">
+            <label className="text-xs font-mono text-white/70 uppercase tracking-wider font-bold">Contest Title</label>
+            <Input
+              placeholder="e.g. Cyberpunk Nights V2"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="bg-white/5 border-white/15 h-12 text-base font-bold text-white font-display rounded-2xl focus:border-fivem-orange focus:ring-1 focus:ring-fivem-orange/50"
+            />
+          </div>
+
+          {/* Title Presets */}
+          <div className="space-y-2 pt-2 border-t border-white/5">
+            <span className="text-[10px] font-mono uppercase text-white/40 font-bold tracking-wider">Quick Title Preset Suggestions:</span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                'Vital RP Photo Contest - Season 2',
+                'Cyberpunk Nights V2',
+                'Vehicle Showcase 2026',
+                'Los Santos Sunset Photography',
+                'Emergency Services RP Showcase'
+              ].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setTitle(preset)}
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-fivem-orange/20 border border-white/10 hover:border-fivem-orange/40 text-xs font-mono text-white/70 hover:text-amber-300 transition-all cursor-pointer"
+                >
+                  + {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 2: CATEGORIES ── */}
+      {setupTab === 'categories' && (
+        <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 02 · Categories</span>
+              <h3 className="text-lg font-bold text-white font-display">Manage Contest Categories ({categories.length})</h3>
+            </div>
+
+            {/* Presets Button Toolbar */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => loadCategoryPreset('standard')}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-fivem-orange/20 border border-white/10 hover:border-fivem-orange/40 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer shrink-0"
+              >
+                ⚡ Standard 5 Categories
+              </button>
+              <button
+                type="button"
+                onClick={() => loadCategoryPreset('automotive')}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-fivem-orange/20 border border-white/10 hover:border-fivem-orange/40 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer shrink-0"
+              >
+                🏎️ Automotive Set
+              </button>
+              <button
+                type="button"
+                onClick={() => loadCategoryPreset('community')}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-fivem-orange/20 border border-white/10 hover:border-fivem-orange/40 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer shrink-0"
+              >
+                🎉 Community RP Set
+              </button>
+            </div>
+          </div>
+
+          {/* Categories Cards List */}
+          {categories.length > 0 && (
+            <div className="space-y-3">
+              {categories.map((c, i) => (
+                <div key={c.id} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-fivem-orange/30 group/cat shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0 static-emoji-wrapper">
+                      <button
+                        onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
+                        className="w-11 h-11 rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-xl hover:bg-fivem-orange/25 transition-all shrink-0 cursor-pointer shadow-inner"
+                        title="Change Emoji"
+                      >
+                        {c.emoji || '✨'}
+                      </button>
+                      {editingEmojiIdx === i && (
+                        <div className="absolute top-13 left-0 z-[999999] shadow-2xl bg-[#0d0d12] border border-white/20 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                          <Picker
+                            data={data}
+                            theme="dark"
+                            onEmojiSelect={(e: any) => {
+                              setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, emoji: e.native } : cat));
+                              setEditingEmojiIdx(null);
+                            }}
+                            previewPosition="none"
+                            navPosition="bottom"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      value={c.name}
+                      onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
+                      placeholder="Category Name (e.g. Wildlife)"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white outline-none focus:border-fivem-orange transition-all font-display"
+                    />
+
                     <button
-                      onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
-                      className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-xl hover:bg-fivem-orange/25 transition-all shrink-0 cursor-pointer"
-                      title="Change Emoji"
+                      type="button"
+                      onClick={() => removeCategory(c.id)}
+                      className="p-2.5 hover:bg-red-500/20 text-white/40 hover:text-red-400 rounded-xl border border-transparent hover:border-red-500/30 transition-all shrink-0 cursor-pointer"
+                      title="Remove Category"
                     >
-                      {c.emoji || '✨'}
+                      <Trash2 size={16} />
                     </button>
-                    {editingEmojiIdx === i && (
-                      <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[300px]">
-                        <Picker
-                          data={data}
-                          theme="dark"
-                          onEmojiSelect={(e: any) => {
-                            setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, emoji: e.native } : cat));
-                            setEditingEmojiIdx(null);
-                          }}
-                          previewPosition="none"
-                          navPosition="bottom"
-                        />
-                      </div>
-                    )}
                   </div>
 
-                  <input
-                    value={c.name}
-                    onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
-                    placeholder="Category Name (e.g. Wildlife)"
-                    className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold text-white outline-none focus:border-fivem-orange/50 transition-all font-display"
-                  />
-
-                  <button
-                    onClick={() => removeCategory(c.id)}
-                    className="p-2 hover:bg-red-500/20 text-white/40 hover:text-red-400 rounded-xl border border-transparent hover:border-red-500/30 transition-all shrink-0 cursor-pointer"
-                    title="Remove Category"
-                  >
-                    <X size={16} />
-                  </button>
+                  <div>
+                    <textarea
+                      rows={2}
+                      value={c.desc}
+                      onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
+                      onInput={(e: any) => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
+                      }}
+                      placeholder="Category description..."
+                      style={{ fieldSizing: 'content' } as any}
+                      className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white/90 outline-none focus:border-fivem-orange transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <textarea
-                    rows={2}
-                    value={c.desc}
-                    onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
-                    onInput={(e: any) => {
-                      e.target.style.height = 'auto';
-                      e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
-                    }}
-                    placeholder="Description..."
-                    style={{ fieldSizing: 'content' } as any}
-                    className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/90 outline-none focus:border-fivem-orange/50 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 space-y-3">
-          <p className="text-[11px] font-mono text-white/40 uppercase tracking-widest font-bold">Add Category</p>
-          <div className="flex items-center gap-2.5">
-            <div className="relative shrink-0 static-emoji-wrapper">
-              <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0 rounded-xl" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
-                {catEmoji}
-              </Button>
-              {showEmojiPicker && (
-                <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[300px]">
-                  <Picker
-                    data={data}
-                    theme="dark"
-                    onEmojiSelect={(e: any) => {
-                      setCatEmoji(e.native);
-                      setShowEmojiPicker(false);
-                    }}
-                    previewPosition="none"
-                    navPosition="bottom"
-                  />
-                </div>
-              )}
+              ))}
             </div>
-            <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10 text-xs sm:text-sm font-bold" />
-          </div>
-          <textarea
-            rows={2}
-            placeholder="Description..."
-            value={catDesc}
-            onChange={e => setCatDesc(e.target.value)}
-            onInput={(e: any) => {
-              e.target.style.height = 'auto';
-              e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
-            }}
-            style={{ fieldSizing: 'content' } as any}
-            className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/90 outline-none focus:border-fivem-orange/50 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
-          />
-          <Button variant="secondary" onClick={addCategory} className="w-full bg-white/10 hover:bg-white/20 text-white h-10 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer">
-            <Plus size={16} /> Add Category
-          </Button>
-        </div>
-      </div>
+          )}
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
-        </div>
-        <div className="flex flex-col">
-          <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
-          <textarea
-            ref={textareaRef}
-            placeholder="Define the rules for this contest..."
-            value={rules}
-            onChange={(e) => setRules(e.target.value)}
-            className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
-            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
-            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
+          {/* Add Category Card Form */}
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/20 space-y-3">
+            <p className="text-[10px] font-mono text-fivem-orange uppercase tracking-widest font-bold flex items-center gap-1.5">
+              <Plus size={12} /> Add New Category
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0 static-emoji-wrapper">
+                <Button variant="outline" className="h-11 w-12 bg-white/5 border-white/15 text-xl flex items-center justify-center p-0 rounded-2xl cursor-pointer" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
+                  {catEmoji}
+                </Button>
+                {showEmojiPicker && (
+                  <div className="absolute top-13 left-0 z-[999999] shadow-2xl bg-[#0d0d12] border border-white/20 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                    <Picker
+                      data={data}
+                      theme="dark"
+                      onEmojiSelect={(e: any) => {
+                        setCatEmoji(e.native);
+                        setShowEmojiPicker(false);
+                      }}
+                      previewPosition="none"
+                      navPosition="bottom"
+                    />
+                  </div>
+                )}
+              </div>
+              <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-xl" />
+            </div>
+            <textarea
+              rows={2}
+              placeholder="Category Description..."
+              value={catDesc}
+              onChange={e => setCatDesc(e.target.value)}
+              onInput={(e: any) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
+              }}
+              style={{ fieldSizing: 'content' } as any}
+              className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-xl p-3 text-xs text-white outline-none focus:border-fivem-orange transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
+            />
+            <Button variant="secondary" onClick={addCategory} className="w-full bg-fivem-orange/20 hover:bg-fivem-orange hover:text-black border border-fivem-orange/40 text-fivem-orange h-11 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all">
+              <Plus size={16} /> Add Category
+            </Button>
           </div>
         </div>
-      </div>
+      )}
 
-      <Button
-        onClick={handleUpdate}
-        disabled={loading}
-        className="w-full h-12 bg-white/10 hover:bg-fivem-orange hover:text-white text-white font-display text-sm tracking-wide rounded-xl mt-4 transition-all relative z-0"
-      >
-        {loading ? 'Saving Changes...' : 'Save Contest Changes'}
-      </Button>
-    </div >
+      {/* ── TAB 3: RULES & PREVIEW ── */}
+      {setupTab === 'rules' && (
+        <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 03 · Contest Rules</span>
+              <h3 className="text-lg font-bold text-white font-display">Rules Editor & Split Live Preview</h3>
+            </div>
+
+            {/* Presets & View Controls */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => loadRulePreset('standard')}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-fivem-orange/20 border border-white/10 hover:border-fivem-orange/40 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer shrink-0"
+              >
+                📜 Standard Rules
+              </button>
+              <button
+                type="button"
+                onClick={() => loadRulePreset('automotive')}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-fivem-orange/20 border border-white/10 hover:border-fivem-orange/40 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer shrink-0"
+              >
+                🏎️ Automotive Rules
+              </button>
+              <button
+                type="button"
+                onClick={() => loadRulePreset('simple')}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-fivem-orange/20 border border-white/10 hover:border-fivem-orange/40 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer shrink-0"
+              >
+                🌟 Simple Rules
+              </button>
+            </div>
+          </div>
+
+          {/* Rules Editor & Split Preview Panel */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            {/* Editor Side */}
+            <div className="flex flex-col h-full space-y-2">
+              <label className="text-[10px] font-mono text-fivem-orange uppercase tracking-wider font-bold">Markdown Source Code</label>
+              <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
+              <textarea
+                ref={textareaRef}
+                placeholder="Define the rules for this contest in Markdown format..."
+                value={rules}
+                onChange={(e) => setRules(e.target.value)}
+                className="w-full min-h-[260px] flex-1 bg-black/60 border border-white/10 rounded-b-2xl p-4 text-xs font-mono leading-relaxed outline-none focus:border-fivem-orange transition-colors resize-y placeholder:text-white/20 text-white"
+              />
+            </div>
+
+            {/* Live Formatting Preview Side */}
+            <div className="flex flex-col h-full space-y-2">
+              <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Formatting Preview
+              </label>
+              <div className="w-full min-h-[300px] flex-1 bg-[#050508] border border-white/10 rounded-2xl p-5 text-xs text-white/80 leading-relaxed font-sans overflow-y-auto max-h-[400px]">
+                {rules ? (
+                  <div className="prose prose-invert prose-xs max-w-none space-y-3">
+                    {rules.split('\n').map((line, i) => {
+                      if (line.startsWith('# ')) return <h1 key={i} className="text-base font-bold text-white font-display border-b border-white/10 pb-1">{line.slice(2)}</h1>;
+                      if (line.startsWith('## ')) return <h2 key={i} className="text-sm font-bold text-fivem-orange font-display mt-2">{line.slice(3)}</h2>;
+                      if (line.startsWith('### ')) return <h3 key={i} className="text-xs font-bold text-amber-300 font-display mt-2">{line.slice(4)}</h3>;
+                      if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc text-white/70">{line.slice(2)}</li>;
+                      if (line.match(/^\d+\.\s/)) return <li key={i} className="ml-4 list-decimal text-white/70">{line.replace(/^\d+\.\s/, '')}</li>;
+                      if (!line.trim()) return <br key={i} />;
+                      return <p key={i} className="text-white/80">{line}</p>;
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-white/30 italic text-center pt-12">
+                    Start typing rules on the left to see live formatting preview...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 4: SCHEDULE & TIMERS ── */}
+      {setupTab === 'schedule' && (
+        <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl">
+          <div className="border-b border-white/10 pb-4">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 04 · Schedule & Timers</span>
+            <h3 className="text-lg font-bold text-white font-display">Contest Automation Timers</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3 p-5 rounded-2xl bg-white/[0.03] border border-white/10">
+              <label className="text-xs font-mono text-fivem-orange uppercase font-bold tracking-wider block">1. Submissions Closing Datetime</label>
+              <Input
+                type="datetime-local"
+                value={submissionsCloseDate}
+                onChange={(e) => setSubmissionsCloseDate(e.target.value)}
+                className="bg-black/50 border-white/15 text-white [color-scheme:dark] h-11 text-xs font-mono rounded-xl"
+              />
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-white/60">
+                <span>Submissions Countdown: </span>
+                <strong className="text-amber-300 font-bold">{calculateRemainingTime(submissionsCloseDate) || 'No date set'}</strong>
+              </div>
+            </div>
+
+            <div className="space-y-3 p-5 rounded-2xl bg-white/[0.03] border border-white/10">
+              <label className="text-xs font-mono text-fivem-orange uppercase font-bold tracking-wider block">2. Voting Ending Datetime</label>
+              <Input
+                type="datetime-local"
+                value={votingEndDate}
+                onChange={(e) => setVotingEndDate(e.target.value)}
+                className="bg-black/50 border-white/15 text-white [color-scheme:dark] h-11 text-xs font-mono rounded-xl"
+              />
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-white/60">
+                <span>Voting Countdown: </span>
+                <strong className="text-amber-300 font-bold">{calculateRemainingTime(votingEndDate) || 'No date set'}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SAVE ALL CHANGES PRIMARY ACTION FOOTER ── */}
+      <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-4">
+        <div className="text-xs font-mono text-white/40">
+          <span>Active Contest: </span>
+          <strong className="text-white">{title}</strong>
+        </div>
+
+        <Button
+          onClick={handleUpdate}
+          disabled={loading}
+          className="px-8 h-12 bg-gradient-to-r from-fivem-orange to-amber-600 hover:from-amber-600 hover:to-fivem-orange text-white font-display font-bold text-sm tracking-wide rounded-2xl transition-all shadow-[0_4px_25px_rgba(234,88,12,0.4)] cursor-pointer active:scale-95"
+        >
+          {loading ? 'Saving All Changes...' : 'Save Contest Setup Changes'}
+        </Button>
+      </div>
+    </div>
   );
 }
 
