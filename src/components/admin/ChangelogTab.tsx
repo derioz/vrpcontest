@@ -26,19 +26,18 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260809-1947',
     version: 'v1.6.0',
-    title: 'Equal Server Loading Screen Winners Redesign & Minimizable Admin Panel System',
+    title: 'Equal Server Loading Screen Winners Redesign & Summary-Style Changelog UI',
     category: 'Feature',
-    description: `• Equal Loading Screen Winners: Redesigned contest winners section to showcase all 5 winning photos equally as co-champions featured on the official Vital RP FiveM server loading screen (removed ordinal 1st/2nd/3rd ranks and podium steps).
-• Fixed Minimized Admin Dock Scrollbar Flicker: Resolved document layout shift and scrollbar toggling when Admin Console is minimized by rendering dock widget directly at viewport bottom without full-screen wrapper div.
+    description: `• Reduced Animation Overlays: Removed spinning conic gradient borders across WinnerAnnouncement.tsx and ArchivedWinnersView.tsx, and removed gear spin animations in AdminPanel.tsx for a clean, motionless interface.
+• Sleek High-Contrast Download Button: Replaced ShimmerButton on winner cards with a clean, high-contrast action button.
+• Screenshot Summary-Style Changelog UI: Redesigned ChangelogTab.tsx layout to render releases as dark summary cards with styled inline code pills for filenames like WinnerAnnouncement.tsx and components like MagicCard.
+• Fixed Minimized Admin Dock Scrollbar Flicker: Resolved viewport scrollbar jitter when Admin Console is minimized by rendering dock widget directly at viewport bottom without full-screen wrapper div.
+• Equal Server Loading Screen Winners: Redesigned contest winners section to showcase all 5 winning photos equally as co-champions featured on the official Vital RP FiveM server loading screen.
 • Minimizable Persistent Admin Panel: Added single-click minimize control to Admin Console header, transforming the overlay into a bottom-pinned floating dock widget.
 • State Preservation: Active admin workspace state (selected tab, text inputs, search queries, contest manager drafts) remains 100% mounted and untouched when minimizing or expanding.
-• Full Page Interactivity: Minimizing removes backdrop blur and focus locks, allowing admins to browse, scroll, vote, or switch categories on the website while keeping the admin session pinned.
-• Liquid Conic Fire Borders: Integrated UI Tripled multi-layer animated liquid conic-gradient flame spinners on winner cards and rank ribbons.
-• MagicUI Spotlight Cards: Wrapped winner cards in interactive MagicCard spotlight cursor tracking and glowing BorderBeams.
-• ElevenLabs Filter Dock: Added interactive category filter pill track with smooth spring tab slider and monospace live status badges.
-• Animated Stats & Sparkles: Integrated MagicUI SparklesText for Hall of Fame title headers, NumberTicker vote count animations, and floating ambient Particles.`,
+• Full Page Interactivity: Minimizing removes backdrop blur and focus locks, allowing admins to browse, scroll, vote, or switch categories on the website while keeping the admin session pinned.`,
     author: 'Damon',
-    date: 'Aug 9, 2026 at 7:56 PM',
+    date: 'Aug 9, 2026 at 8:00 PM',
   },
   {
     id: 'release-20260808-1855',
@@ -110,47 +109,69 @@ const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string
   Performance: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', icon: Zap },
 };
 
+function renderTextWithCodePills(text: string) {
+  const regex = /(`[^`]+`|\b[\w-]+\.(?:tsx|ts|js|css|json|md)\b|\([A-Za-z0-9_.-]+\.tsx\)|MagicCard|BorderBeam|NumberTicker|SparklesText|Particles|ShimmerButton|1ff166f|AGENTS\.md)/g;
+  const parts = text.split(regex);
+
+  return parts.map((part, i) => {
+    if (!part) return null;
+    const isCode = part.startsWith('`') && part.endsWith('`');
+    const cleanCode = isCode ? part.slice(1, -1) : part;
+    const isHighlightToken = isCode ||
+      /\b[\w-]+\.(?:tsx|ts|js|css|json|md)\b/.test(part) ||
+      /\([A-Za-z0-9_.-]+\.tsx\)/.test(part) ||
+      ['MagicCard', 'BorderBeam', 'NumberTicker', 'SparklesText', 'Particles', 'ShimmerButton', '1ff166f', 'AGENTS.md'].includes(part);
+
+    if (isHighlightToken) {
+      return (
+        <code
+          key={i}
+          className="mx-1 px-2 py-0.5 rounded-md bg-[#14141e] border border-fivem-orange/30 text-amber-300 font-mono text-[11px] font-semibold inline-flex items-center shadow-sm"
+        >
+          {cleanCode}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
 function renderFormattedDescription(description: string) {
   const lines = description.split('\n').filter((l) => l.trim().length > 0);
-  const isBulleted = lines.some((l) => l.trim().startsWith('•') || l.trim().startsWith('-'));
+  const isBulleted = lines.some((l) => l.trim().startsWith('•') || l.trim().startsWith('-') || /^\d+\.\s/.test(l.trim()));
 
   if (!isBulleted) {
     return (
-      <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-sans whitespace-pre-line">
-        {description}
-      </p>
+      <div className="text-xs sm:text-sm text-white/80 leading-relaxed font-sans whitespace-pre-line mt-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+        {renderTextWithCodePills(description)}
+      </div>
     );
   }
 
   return (
-    <div className="space-y-2 mt-3 text-xs sm:text-sm font-sans leading-relaxed">
+    <div className="space-y-2.5 mt-4 text-xs sm:text-sm font-sans leading-relaxed">
       {lines.map((line, idx) => {
-        const cleanLine = line.replace(/^[•\-]\s*/, '').trim();
+        const cleanLine = line.replace(/^([•\-]|^\d+\.)\s*/, '').trim();
         const parts = cleanLine.split(':');
         const hasTitle = parts.length > 1;
         const title = hasTitle ? parts[0].trim() : '';
         const body = hasTitle ? parts.slice(1).join(':').trim() : cleanLine;
 
         return (
-          <React.Fragment key={idx}>
-            {/* Subtle line separator between grouped sub-sections */}
-            {idx > 0 && (
-              <div className="my-2 border-t border-white/10" />
-            )}
-
-            {/* Compact inline bullet item */}
-            <div className="flex items-start gap-2.5">
-              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_6px_rgba(234,88,12,0.8)]" />
-              <div className="flex-1 min-w-0">
-                {hasTitle && (
-                  <strong className="font-bold text-fivem-orange font-display text-xs uppercase tracking-wide mr-1.5">
-                    {title}:
-                  </strong>
-                )}
-                <span className="text-white/80">{body}</span>
-              </div>
+          <div
+            key={idx}
+            className="flex items-start gap-3 p-3 rounded-xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
+          >
+            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_8px_rgba(234,88,12,0.8)] group-hover/bullet:scale-125 transition-transform" />
+            <div className="flex-1 min-w-0">
+              {hasTitle && (
+                <strong className="font-bold text-white font-display text-xs sm:text-sm tracking-wide mr-1.5 inline-block">
+                  {renderTextWithCodePills(title)}:
+                </strong>
+              )}
+              <span className="text-white/75">{renderTextWithCodePills(body)}</span>
             </div>
-          </React.Fragment>
+          </div>
         );
       })}
     </div>
@@ -348,7 +369,7 @@ export function ChangelogTab() {
                     {entry.version}
                   </span>
                   <h3 className="text-base sm:text-lg font-bold font-display text-white">
-                    {entry.title}
+                    {renderTextWithCodePills(entry.title)}
                   </h3>
                 </div>
 

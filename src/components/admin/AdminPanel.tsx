@@ -98,7 +98,7 @@ export default function AdminPanel(props: AdminPanelProps) {
           {/* Icon & Pulse Indicator */}
           <div className="relative shrink-0">
             <div className="p-2.5 rounded-xl bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-              <Settings size={18} className="animate-spin-slow" />
+              <Settings size={18} />
             </div>
             <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#09090d] animate-pulse" />
           </div>
