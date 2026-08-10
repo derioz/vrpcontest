@@ -26,18 +26,19 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260809-1947',
     version: 'v1.6.0',
-    title: 'Equal Server Loading Screen Winners Redesign & Summary-Style Changelog UI',
+    title: 'Vital RP Loading Screen Winners Redesign & Summary-Style Changelog UI',
     category: 'Feature',
-    description: `• Reduced Animation Overlays: Removed spinning conic gradient borders across WinnerAnnouncement.tsx and ArchivedWinnersView.tsx, and removed gear spin animations in AdminPanel.tsx for a clean, motionless interface.
+    description: `• Vital RP Loading Screen Winners: Congratulated all 5 contest winners and stated that all 5 winning photos will be featured on the official Vital RP server loading screen.
+• Stats Pills Polish: Replaced "Featured Live In Game" and "Equal Loading Screen Winners" pills in WinnerAnnouncement.tsx with clean "Contest Winners" and "Verified Standings" pills.
+• Reduced Animation Overlays: Removed spinning conic gradient borders across WinnerAnnouncement.tsx and ArchivedWinnersView.tsx, and removed gear spin animations in AdminPanel.tsx for a clean interface.
 • Sleek High-Contrast Download Button: Replaced ShimmerButton on winner cards with a clean, high-contrast action button.
 • Screenshot Summary-Style Changelog UI: Redesigned ChangelogTab.tsx layout to render releases as dark summary cards with styled inline code pills for filenames like WinnerAnnouncement.tsx and components like MagicCard.
 • Fixed Minimized Admin Dock Scrollbar Flicker: Resolved viewport scrollbar jitter when Admin Console is minimized by rendering dock widget directly at viewport bottom without full-screen wrapper div.
-• Equal Server Loading Screen Winners: Redesigned contest winners section to showcase all 5 winning photos equally as co-champions featured on the official Vital RP FiveM server loading screen.
 • Minimizable Persistent Admin Panel: Added single-click minimize control to Admin Console header, transforming the overlay into a bottom-pinned floating dock widget.
 • State Preservation: Active admin workspace state (selected tab, text inputs, search queries, contest manager drafts) remains 100% mounted and untouched when minimizing or expanding.
 • Full Page Interactivity: Minimizing removes backdrop blur and focus locks, allowing admins to browse, scroll, vote, or switch categories on the website while keeping the admin session pinned.`,
     author: 'Damon',
-    date: 'Aug 9, 2026 at 8:00 PM',
+    date: 'Aug 9, 2026 at 8:04 PM',
   },
   {
     id: 'release-20260808-1855',

@@ -136,14 +136,14 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
 
                     {/* Description & Loading Screen Banner */}
                     <p className="text-white/70 text-base sm:text-lg leading-relaxed font-sans max-w-2xl mx-auto">
-                        Congratulations to all 5 co-champions! These community-voted winning photos are featured live in rotation on the official <strong className="text-white">Vital RP Server Loading Screen</strong>.
+                        Congratulations to all 5 winners! These community-voted winning photos will be featured on the official <strong className="text-white">Vital RP Server Loading Screen</strong>.
                     </p>
 
                     {/* Stats pills strip (ElevenLabs UI style) */}
                     <div className="flex flex-wrap items-center justify-center gap-3 mt-6 text-xs font-mono text-white/50">
                         <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
-                            <span className="text-fivem-orange font-bold">🎮 {winners.length}</span>
-                            <span>Equal Loading Screen Winners</span>
+                            <span className="text-fivem-orange font-bold">🏆 {winners.length}</span>
+                            <span>Contest Winners</span>
                         </div>
                         <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
                             <span className="text-red-400 font-bold">❤️ {totalVotes}</span>
@@ -151,7 +151,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                         </div>
                         <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                            <span>Featured Live In Game</span>
+                            <span>Verified Standings</span>
                         </div>
                     </div>
                 </div>
@@ -176,7 +176,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                         )}
                                     >
                                         <span className="relative z-10 tracking-wider">
-                                            {cat === "ALL" ? "All 5 Winners" : cat}
+                                            {cat === "ALL" ? "All Winners" : cat}
                                         </span>
                                         <span
                                             className={cn(
