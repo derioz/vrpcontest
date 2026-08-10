@@ -27,12 +27,12 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260809-1947',
     version: 'v1.6.0',
-    title: 'Contest Setup Workspace Redesign & DUSTFILE Changelog Timeline',
+    title: 'Contest Setup Workspace Polish & Red Danger Zone Highlighting',
     category: 'Feature',
-    description: `• Intuitive Contest Setup Workspace: Redesigned ContestManagers.tsx into 4 visual segmented tabs (General Title, Category Manager, Rules Editor, and Schedule Timers).
-• Category & Rule Presets: Added one-click preset bundles for FiveM photography categories (Automotive, Scenery, RP, Events) and pre-formatted Markdown contest rules in AdminPanel.tsx.
-• Live Split Rules Preview: Built a real-time side-by-side Markdown formatting renderer allowing admins to preview contest rules live as they type.
-• Schedule Countdown Calculator: Integrated live countdown calculators displaying remaining days, hours, and minutes until submission close and voting end datetimes.
+    description: `• Title Emoji Picker: Integrated an emoji selector button directly beside the Contest Title input in ContestManagers.tsx.
+• High-Contrast Emoji Buttons: Upgraded background opacity of all emoji picker buttons across categories and title forms to a bright, readable glass background.
+• Red Danger Zone Styling: Highlighted the Danger Zone tab and sidebar button in bright glowing red across desktop and mobile Admin Console navigation.
+• Cleaned Preset Suggestions & Timers: Streamlined Contest Setup to focus purely on Title & Status, Category Management, and Live Rules Markdown Preview.
 • DUSTFILE Changelog Timeline: Redesigned ChangelogTab.tsx layout following the clean DUSTFILE two-column timeline design with vertical connecting line, metadata column, and geometric icon headers.
 • Vital RP Loading Screen Winners: Congratulated all 5 contest winners and stated that all 5 winning photos will be featured on the official Vital RP server loading screen.
 • Stats Pills Polish: Replaced "Featured Live In Game" and "Equal Loading Screen Winners" pills in WinnerAnnouncement.tsx with clean "Contest Winners" and "Verified Standings" pills.
@@ -41,7 +41,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Fixed Minimized Admin Dock Scrollbar Flicker: Resolved viewport scrollbar jitter when Admin Console is minimized by rendering dock widget directly at viewport bottom without full-screen wrapper div.
 • Minimizable Persistent Admin Panel: Added single-click minimize control to Admin Console header, transforming the overlay into a bottom-pinned floating dock widget.`,
     author: 'Damon',
-    date: 'Aug 9, 2026 at 8:10 PM',
+    date: 'Aug 9, 2026 at 8:15 PM',
   },
   {
     id: 'release-20260808-1855',

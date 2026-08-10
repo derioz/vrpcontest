@@ -175,6 +175,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                 {TABS.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
+                  const isDanger = tab.id === 'danger';
                   return (
                     <SidebarLink
                       key={tab.id}
@@ -182,6 +183,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                       icon={<Icon size={18} />}
                       active={isActive}
                       color={tab.color}
+                      isDanger={isDanger}
                       onClick={() => setActiveTab(tab.id)}
                     />
                   );
@@ -221,18 +223,23 @@ export default function AdminPanel(props: AdminPanelProps) {
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const isDanger = tab.id === 'danger';
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer",
-                  isActive
-                    ? "bg-fivem-orange/20 text-white border border-fivem-orange/40 shadow-sm"
-                    : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
+                  isDanger
+                    ? isActive
+                      ? "bg-red-500/30 text-white border border-red-500/60 shadow-sm"
+                      : "text-red-400 bg-red-500/10 border border-red-500/30"
+                    : isActive
+                      ? "bg-fivem-orange/20 text-white border border-fivem-orange/40 shadow-sm"
+                      : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
                 )}
               >
-                <Icon size={14} className={isActive ? tab.color : ''} />
+                <Icon size={14} className={isDanger ? 'text-red-400' : (isActive ? tab.color : '')} />
                 <span>{tab.label}</span>
               </button>
             );

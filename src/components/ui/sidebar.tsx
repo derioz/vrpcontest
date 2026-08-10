@@ -130,6 +130,7 @@ export interface SidebarLinkProps {
   active?: boolean;
   badge?: string | number;
   color?: string;
+  isDanger?: boolean;
   onClick?: () => void;
   className?: string;
 }
@@ -140,6 +141,7 @@ export const SidebarLink = ({
   active = false,
   badge,
   color = "text-fivem-orange",
+  isDanger = false,
   onClick,
   className,
 }: SidebarLinkProps) => {
@@ -151,9 +153,13 @@ export const SidebarLink = ({
       onClick={onClick}
       className={cn(
         "group relative flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer w-full text-left my-0.5",
-        active
-          ? "bg-gradient-to-r from-fivem-orange/20 via-fivem-orange/10 to-transparent text-white border border-fivem-orange/30 shadow-[0_0_16px_rgba(234,88,12,0.15)]"
-          : "text-white/60 hover:text-white hover:bg-white/[0.04] border border-transparent",
+        isDanger
+          ? active
+            ? "bg-gradient-to-r from-red-600/35 via-red-500/20 to-transparent text-white border border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+            : "text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30"
+          : active
+            ? "bg-gradient-to-r from-fivem-orange/20 via-fivem-orange/10 to-transparent text-white border border-fivem-orange/30 shadow-[0_0_16px_rgba(234,88,12,0.15)]"
+            : "text-white/60 hover:text-white hover:bg-white/[0.04] border border-transparent",
         className
       )}
       title={!open ? label : undefined}
@@ -162,7 +168,10 @@ export const SidebarLink = ({
       {active && (
         <motion.div
           layoutId="sidebar-active-indicator"
-          className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]"
+          className={cn(
+            "absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full shadow-[0_0_8px]",
+            isDanger ? "bg-red-500 shadow-red-500/50" : "bg-fivem-orange shadow-fivem-orange/50"
+          )}
           transition={{ type: "spring", stiffness: 350, damping: 30 }}
         />
       )}
