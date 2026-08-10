@@ -7,6 +7,7 @@ import React from "react";
 import { cn } from "../../lib/utils";
 
 interface AnimatedShinyTextProps extends React.HTMLAttributes<HTMLSpanElement> {
+  className?: string;
   shimmerWidth?: number;
   children: React.ReactNode;
 }

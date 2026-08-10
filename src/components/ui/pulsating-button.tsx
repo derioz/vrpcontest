@@ -7,6 +7,7 @@ import React from "react";
 import { cn } from "../../lib/utils";
 
 interface PulsatingButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  className?: string;
   pulseColor?: string;
   duration?: string;
   children: React.ReactNode;

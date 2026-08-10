@@ -9,6 +9,7 @@ import { cn } from "../../lib/utils";
 import { BorderBeam } from "./border-beam";
 
 interface MagicCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
   gradientSize?: number;
   gradientColor?: string;
   active?: boolean;
@@ -20,6 +21,7 @@ interface MagicCardProps extends React.HTMLAttributes<HTMLDivElement> {
     colorTo?: string;
     delay?: number;
   };
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   children?: React.ReactNode;
 }
 

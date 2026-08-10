@@ -13,6 +13,7 @@ interface ShimmerButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   borderRadius?: string;
   shimmerDuration?: string;
   background?: string;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
   children: React.ReactNode;
 }
 

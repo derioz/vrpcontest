@@ -3,11 +3,12 @@
  * Adapted from https://magicui.design/docs/components/blur-fade
  */
 
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { AnimatePresence, motion, useInView, Variants } from "motion/react";
 import { cn } from "../../lib/utils";
 
 interface BlurFadeProps {
+  key?: any;
   children: React.ReactNode;
   className?: string;
   variant?: Variants;

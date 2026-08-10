@@ -3,7 +3,7 @@
  * Adapted from https://magicui.design/docs/components/particles
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 
 interface ParticlesProps {

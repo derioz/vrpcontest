@@ -1,15 +1,10 @@
-/**
- * AdminPanel — Tabbed admin settings panel
- * Fixed-height layout with reorganized domain-focused sections.
- */
-
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
   Eye, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
-  Bug, CheckCircle2, Trash2, Clock
+  Bug, CheckCircle2, Trash2, Clock, Minimize2, Maximize2, X
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -55,6 +50,9 @@ interface AdminPanelProps {
   onToggleDisqualifyPhoto?: (photoId: string, disqualify: boolean, reason?: string) => void;
   onResetVotes?: () => void;
   onOpenAnalytics: () => void;
+  isMinimized?: boolean;
+  onToggleMinimize?: () => void;
+  onClose?: () => void;
 }
 
 const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string; description: string }[] = [
@@ -73,12 +71,76 @@ export default function AdminPanel(props: AdminPanelProps) {
     onePhotoPerUser, showWinnersToggle, publicKey, privateKey, rulesMarkdown, winners = [],
     onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners,
     onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
+    isMinimized = false, onToggleMinimize, onClose
   } = props;
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   if (!isAdmin) return null;
+
+  if (isMinimized) {
+    return (
+      <motion.div
+        layoutId="admin-console-dock"
+        initial={{ opacity: 0, y: 40, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 40, scale: 0.9 }}
+        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+        className="fixed bottom-4 right-4 sm:right-6 z-[170] flex items-center gap-3 p-3 px-4 rounded-2xl bg-[#09090d]/95 backdrop-blur-2xl border border-fivem-orange/40 shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_25px_rgba(234,88,12,0.25)] text-white group pointer-events-auto select-none"
+      >
+        <BorderBeam size={140} duration={8} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
+        
+        <div
+          onClick={onToggleMinimize}
+          className="flex items-center gap-3 cursor-pointer flex-1"
+        >
+          {/* Icon & Pulse Indicator */}
+          <div className="relative shrink-0">
+            <div className="p-2.5 rounded-xl bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+              <Settings size={18} className="animate-spin-slow" />
+            </div>
+            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#09090d] animate-pulse" />
+          </div>
+
+          {/* Info details */}
+          <div className="flex flex-col min-w-[140px] max-w-[200px]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black font-display text-white truncate">Admin Console</span>
+              <span className="text-[9px] font-mono font-bold text-fivem-orange bg-fivem-orange/15 px-1.5 py-0.2 rounded border border-fivem-orange/30 uppercase">
+                Active
+              </span>
+            </div>
+            <span className="text-[10px] text-white/50 font-mono truncate mt-0.5 capitalize">
+              Domain: <strong className="text-white/90">{activeTab}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Actions: Expand & Close */}
+        <div className="flex items-center gap-1.5 pl-2 border-l border-white/10 shrink-0">
+          <button
+            type="button"
+            onClick={onToggleMinimize}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-all border border-white/10 cursor-pointer"
+            title="Expand Admin Console"
+          >
+            <Maximize2 size={14} />
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-all border border-white/10 cursor-pointer"
+              title="Close Admin Panel"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
@@ -192,6 +254,28 @@ export default function AdminPanel(props: AdminPanelProps) {
                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
                 <span className="text-[10px] font-bold text-emerald-400 font-mono">Authenticated</span>
               </div>
+
+              {onToggleMinimize && (
+                <button
+                  type="button"
+                  onClick={onToggleMinimize}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-colors cursor-pointer"
+                  title="Minimize Admin Console to Bottom Dock"
+                >
+                  <Minimize2 size={15} />
+                </button>
+              )}
+
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
+                  title="Close Admin Panel"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
           </div>
 

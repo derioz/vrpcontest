@@ -124,6 +124,7 @@ export const MobileSidebar = ({
 };
 
 export interface SidebarLinkProps {
+  key?: any;
   label: string;
   icon: React.ReactNode;
   active?: boolean;

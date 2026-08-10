@@ -7,6 +7,7 @@ import React from "react";
 import { cn } from "../../lib/utils";
 
 interface BorderBeamProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
   size?: number;
   duration?: number;
   borderWidth?: number;

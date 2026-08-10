@@ -156,6 +156,7 @@ export default function App() {
   const [user, setUser] = useState<any | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [isAdminMinimized, setIsAdminMinimized] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showNotAdminModal, setShowNotAdminModal] = useState(false);
@@ -1327,7 +1328,7 @@ export default function App() {
 
             {/* Admin / Settings Gear */}
             <button
-              onClick={() => isAdmin ? setShowAdminModal(true) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })()}
+              onClick={() => isAdmin ? (setShowAdminModal(true), setIsAdminMinimized(false)) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })()}
               className={cn(
                 'group/setting relative flex items-center justify-center w-8.5 h-8.5 rounded-xl transition-all duration-300 cursor-pointer border',
                 isAdmin
@@ -1440,7 +1441,7 @@ export default function App() {
                   <button
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      isAdmin ? setShowAdminModal(true) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })();
+                      isAdmin ? (setShowAdminModal(true), setIsAdminMinimized(false)) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })();
                     }}
                     className={cn(
                       'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer',
@@ -2502,70 +2503,145 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showAdminModal} onOpenChange={setShowAdminModal}>
-        <DialogContent
-          onInteractOutside={(e) => e.preventDefault()}
-          className="w-[calc(100%-1rem)] sm:w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl h-[92vh] sm:h-[85vh] max-h-[92vh] sm:max-h-[850px] bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.7)] text-white p-0 overflow-hidden flex flex-col"
-        >
-
-          {/* Ambient glows — uitripled glassmorphism pattern */}
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fivem-orange/8 blur-[200px] rounded-full pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fivem-orange/4 blur-[160px] rounded-full pointer-events-none" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
-
-          <Suspense fallback={<div className="p-10 text-center text-fivem-orange/50 animate-pulse font-mono flex items-center justify-center min-h-[500px]">Loading Admin Modules...</div>}>
-            {!isAdmin ? (
-              <div className="flex-1 flex items-center justify-center p-10">
-                {user ? (
-                  <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
-                    <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
-                      <Lock className="text-red-400" size={24} />
-                    </div>
-                    <p className="font-bold text-red-400">Access Denied</p>
-                    <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
-                    <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
-                      Logout to switch accounts
-                    </button>
-                  </div>
-                ) : (
-                  <LoginForm onDiscordLogin={handleDiscordLogin} />
-                )}
-              </div>
-            ) : (
-              <AdminPanel
-                isAdmin={isAdmin}
-                user={user}
-                activeContest={activeContest}
-                categories={categories}
-                allPhotos={allPhotos}
-                votingOpen={votingOpen}
-                submissionsOpen={submissionsOpen}
-                onePhotoPerUser={onePhotoPerUser}
-                showWinnersToggle={showWinnersToggle}
-                publicKey={publicKey}
-                privateKey={privateKey}
-                rulesMarkdown={rulesMarkdown}
-                winners={winners}
-                onToggleVoting={toggleVoting}
-                onToggleSubmissions={toggleSubmissions}
-                onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
-                onToggleShowWinners={toggleShowWinners}
-                onGenerateKeys={handleGenerateKeys}
-                onToggleReveal={handleToggleReveal}
-                onDownloadWinners={handleDownloadWinningPhotos}
-                onDeletePhoto={handleDeletePhoto}
-                onToggleDisqualifyPhoto={handleToggleDisqualifyPhoto}
-                onResetVotes={handleResetVotes}
-                onOpenAnalytics={() => {
-                  setShowAdminModal(false);
-                  setShowAnalyticsDashboard(true);
-                }}
+      {/* ── PERSISTENT MINIMIZABLE ADMIN PANEL OVERLAY ── */}
+      <AnimatePresence>
+        {showAdminModal && (
+          <>
+            {/* Backdrop overlay (rendered ONLY when NOT minimized so site is 100% interactive when minimized!) */}
+            {!isAdminMinimized && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsAdminMinimized(true)}
+                className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md"
               />
             )}
-          </Suspense>
 
-        </DialogContent>
-      </Dialog>
+            {/* Admin Panel Container */}
+            <motion.div
+              layout
+              transition={{ type: "spring", stiffness: 350, damping: 28 }}
+              className={cn(
+                "fixed z-[160] transition-all duration-300",
+                isAdminMinimized
+                  ? "pointer-events-none inset-0"
+                  : "fixed inset-0 flex items-center justify-center p-2 sm:p-4 pointer-events-auto"
+              )}
+            >
+              {!isAdminMinimized ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl h-[92vh] sm:h-[85vh] max-h-[92vh] sm:max-h-[850px] bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white p-0 overflow-hidden flex flex-col rounded-3xl relative pointer-events-auto"
+                >
+                  {/* Ambient glows */}
+                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fivem-orange/8 blur-[200px] rounded-full pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fivem-orange/4 blur-[160px] rounded-full pointer-events-none" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
+
+                  <Suspense fallback={<div className="p-10 text-center text-fivem-orange/50 animate-pulse font-mono flex items-center justify-center min-h-[500px]">Loading Admin Modules...</div>}>
+                    {!isAdmin ? (
+                      <div className="flex-1 flex items-center justify-center p-10">
+                        {user ? (
+                          <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
+                            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                              <Lock className="text-red-400" size={24} />
+                            </div>
+                            <p className="font-bold text-red-400">Access Denied</p>
+                            <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
+                            <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
+                              Logout to switch accounts
+                            </button>
+                          </div>
+                        ) : (
+                          <LoginForm onDiscordLogin={handleDiscordLogin} />
+                        )}
+                      </div>
+                    ) : (
+                      <AdminPanel
+                        isAdmin={isAdmin}
+                        user={user}
+                        activeContest={activeContest}
+                        categories={categories}
+                        allPhotos={allPhotos}
+                        votingOpen={votingOpen}
+                        submissionsOpen={submissionsOpen}
+                        onePhotoPerUser={onePhotoPerUser}
+                        showWinnersToggle={showWinnersToggle}
+                        publicKey={publicKey}
+                        privateKey={privateKey}
+                        rulesMarkdown={rulesMarkdown}
+                        winners={winners}
+                        onToggleVoting={toggleVoting}
+                        onToggleSubmissions={toggleSubmissions}
+                        onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
+                        onToggleShowWinners={toggleShowWinners}
+                        onGenerateKeys={handleGenerateKeys}
+                        onToggleReveal={handleToggleReveal}
+                        onDownloadWinners={handleDownloadWinningPhotos}
+                        onDeletePhoto={handleDeletePhoto}
+                        onToggleDisqualifyPhoto={handleToggleDisqualifyPhoto}
+                        onResetVotes={handleResetVotes}
+                        onOpenAnalytics={() => {
+                          setIsAdminMinimized(true);
+                          setShowAnalyticsDashboard(true);
+                        }}
+                        isMinimized={false}
+                        onToggleMinimize={() => setIsAdminMinimized(true)}
+                        onClose={() => {
+                          setShowAdminModal(false);
+                          setIsAdminMinimized(false);
+                        }}
+                      />
+                    )}
+                  </Suspense>
+                </motion.div>
+              ) : (
+                /* Minimized state handles rendering internally in AdminPanel via isMinimized={true} */
+                <AdminPanel
+                  isAdmin={isAdmin}
+                  user={user}
+                  activeContest={activeContest}
+                  categories={categories}
+                  allPhotos={allPhotos}
+                  votingOpen={votingOpen}
+                  submissionsOpen={submissionsOpen}
+                  onePhotoPerUser={onePhotoPerUser}
+                  showWinnersToggle={showWinnersToggle}
+                  publicKey={publicKey}
+                  privateKey={privateKey}
+                  rulesMarkdown={rulesMarkdown}
+                  winners={winners}
+                  onToggleVoting={toggleVoting}
+                  onToggleSubmissions={toggleSubmissions}
+                  onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
+                  onToggleShowWinners={toggleShowWinners}
+                  onGenerateKeys={handleGenerateKeys}
+                  onToggleReveal={handleToggleReveal}
+                  onDownloadWinners={handleDownloadWinningPhotos}
+                  onDeletePhoto={handleDeletePhoto}
+                  onToggleDisqualifyPhoto={handleToggleDisqualifyPhoto}
+                  onResetVotes={handleResetVotes}
+                  onOpenAnalytics={() => {
+                    setIsAdminMinimized(true);
+                    setShowAnalyticsDashboard(true);
+                  }}
+                  isMinimized={true}
+                  onToggleMinimize={() => setIsAdminMinimized(false)}
+                  onClose={() => {
+                    setShowAdminModal(false);
+                    setIsAdminMinimized(false);
+                  }}
+                />
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Lightbox Modal */}
       <Suspense fallback={null}>

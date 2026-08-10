@@ -3,7 +3,7 @@
  * Adapted from https://magicui.design/docs/components/dot-pattern
  */
 
-import { useId } from "react";
+import React, { useId } from "react";
 import { cn } from "../../lib/utils";
 
 interface DotPatternProps {
