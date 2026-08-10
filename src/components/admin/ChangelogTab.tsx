@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, History, Plus, Tag, Calendar, User, Code, CheckCircle,
-  FileCode, ShieldCheck, Zap, Wrench, Bug, ExternalLink, Trash2, Search
+  FileCode, ShieldCheck, Zap, Wrench, Bug, ExternalLink, Trash2, Search,
+  Terminal, Share2
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -143,14 +144,14 @@ function renderFormattedDescription(description: string) {
 
   if (!isBulleted) {
     return (
-      <div className="text-xs sm:text-sm text-white/80 leading-relaxed font-sans whitespace-pre-line mt-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+      <div className="text-xs sm:text-sm text-white/80 leading-relaxed font-sans whitespace-pre-line mt-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
         {renderTextWithCodePills(description)}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2.5 mt-4 text-xs sm:text-sm font-sans leading-relaxed">
+    <div className="space-y-2.5 mt-3 text-xs sm:text-sm font-sans leading-relaxed">
       {lines.map((line, idx) => {
         const cleanLine = line.replace(/^([•\-]|^\d+\.)\s*/, '').trim();
         const parts = cleanLine.split(':');
@@ -161,7 +162,7 @@ function renderFormattedDescription(description: string) {
         return (
           <div
             key={idx}
-            className="flex items-start gap-3 p-3 rounded-xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
+            className="flex items-start gap-3 p-3 rounded-2xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
           >
             <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_8px_rgba(234,88,12,0.8)] group-hover/bullet:scale-125 transition-transform" />
             <div className="flex-1 min-w-0">
@@ -187,7 +188,7 @@ export function ChangelogTab() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Form State
-  const [version, setVersion] = useState('v1.5.0');
+  const [version, setVersion] = useState('v1.6.0');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<'Feature' | 'UI/UX' | 'Fix' | 'Security' | 'Performance'>('Feature');
   const [description, setDescription] = useState('');
@@ -226,7 +227,7 @@ export function ChangelogTab() {
 
     setIsSubmitting(true);
     const newEntry: ChangelogEntry = {
-      version: version || 'v1.0.0',
+      version: version || 'v1.6.0',
       title,
       category,
       description,
@@ -275,7 +276,7 @@ export function ChangelogTab() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 relative">
       
       {/* ── CREATOR CREDIT BANNER: "Website Created & Designed by Damon" ── */}
       <div className="relative overflow-hidden rounded-3xl border border-fivem-orange/30 bg-gradient-to-r from-fivem-orange/15 via-[#0c0c10] to-[#08080a] p-6 sm:p-8 shadow-[0_10px_40px_rgba(234,88,12,0.15)]">
@@ -350,8 +351,11 @@ export function ChangelogTab() {
         </div>
       </div>
 
-      {/* ── CHANGELOG TIMELINE LIST ── */}
-      <div className="space-y-4">
+      {/* ── CHANGELOG TIMELINE LIST (DUSTFILE LAYOUT) ── */}
+      <div className="relative space-y-8">
+        {/* Continuous Left Vertical Timeline Axis Line */}
+        <div className="absolute left-[3.25rem] sm:left-[4.5rem] md:left-[9.5rem] top-6 bottom-6 w-px bg-gradient-to-b from-fivem-orange/40 via-white/15 to-transparent pointer-events-none hidden md:block" />
+
         {filteredEntries.map((entry, idx) => {
           const CategoryInfo = CATEGORY_STYLES[entry.category] || CATEGORY_STYLES['Feature'];
           const CategoryIcon = CategoryInfo.icon;
@@ -359,48 +363,77 @@ export function ChangelogTab() {
           return (
             <motion.div
               key={entry.id || idx}
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: idx * 0.04 }}
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#09090c]/90 p-5 sm:p-6 transition-all hover:border-white/20 shadow-md"
+              transition={{ duration: 0.25, delay: idx * 0.05 }}
+              className="relative flex flex-col md:flex-row items-start gap-4 md:gap-8 group"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 border-b border-white/5 pb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-black font-mono text-fivem-orange px-2.5 py-1 rounded-lg bg-fivem-orange/10 border border-fivem-orange/20">
+              {/* Left Column: Version, Date, Category Badge Tag & Timeline Node Indicator */}
+              <div className="w-full md:w-36 shrink-0 flex md:flex-col items-center md:items-end justify-between md:justify-start gap-2 pt-2 md:text-right relative">
+                {/* Timeline Square Node Indicator */}
+                <div className="hidden md:block absolute top-3.5 -right-[17px] w-3 h-3 rounded-xs bg-fivem-orange border-2 border-[#060609] shadow-[0_0_10px_rgba(234,88,12,0.8)] z-20 group-hover:scale-125 transition-transform" />
+
+                {/* Version & Date */}
+                <div className="flex flex-row md:flex-col items-center md:items-end gap-2 md:gap-0.5">
+                  <span className="text-sm font-black font-mono text-white bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-lg group-hover:border-fivem-orange/50 group-hover:text-fivem-orange transition-colors">
                     {entry.version}
                   </span>
-                  <h3 className="text-base sm:text-lg font-bold font-display text-white">
-                    {renderTextWithCodePills(entry.title)}
-                  </h3>
+                  <span className="text-[11px] font-mono text-white/50 whitespace-nowrap">
+                    {entry.date}
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border", CategoryInfo.bg, CategoryInfo.text, CategoryInfo.border)}>
-                    <CategoryIcon size={12} />
-                    <span>{entry.category}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/50 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 whitespace-nowrap shrink-0">
-                    <Calendar size={11} className="text-fivem-orange" />
-                    <span>{entry.date}</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => entry.id && handleDeleteEntry(entry.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20 text-white/30 hover:text-red-400 rounded-lg transition-all cursor-pointer"
-                    title="Delete Entry"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                {/* Category Outlined Tag */}
+                <div className={cn("px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border flex items-center gap-1 mt-1", CategoryInfo.bg, CategoryInfo.text, CategoryInfo.border)}>
+                  <CategoryIcon size={11} />
+                  <span>{entry.category}</span>
                 </div>
               </div>
 
-              {renderFormattedDescription(entry.description)}
+              {/* Right Column: Elevated Glass Content Card */}
+              <div className="flex-1 w-full min-w-0">
+                <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#09090d]/95 p-6 sm:p-8 transition-all hover:border-fivem-orange/40 shadow-xl group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                  {/* Card Header Row */}
+                  <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-white/10">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      {/* Geometric Icon Box Container */}
+                      <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange flex items-center justify-center shrink-0 shadow-inner mt-0.5">
+                        <FileCode size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-lg sm:text-xl font-bold font-display text-white tracking-tight leading-snug">
+                          {renderTextWithCodePills(entry.title)}
+                        </h3>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-white/40 mt-1">
+                          <User size={11} className="text-fivem-orange" />
+                          <span>Author: <strong className="text-white/70">{entry.author || 'Damon'}</strong></span>
+                        </div>
+                      </div>
+                    </div>
 
-              <div className="mt-3 pt-2 flex items-center gap-2 text-[10px] font-mono text-white/30">
-                <User size={11} className="text-fivem-orange/70" />
-                <span>Author: <strong className="text-white/60">{entry.author || 'Damon'}</strong></span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {entry.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEntry(entry.id!)}
+                          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 text-white/30 hover:text-red-400 rounded-xl transition-all cursor-pointer border border-white/5"
+                          title="Delete Entry"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Section Title Header Block (WHAT'S NEW) */}
+                  <div className="text-[11px] font-mono font-bold text-fivem-orange uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Terminal size={13} className="text-fivem-orange" />
+                    <span>WHAT'S NEW & IMPROVEMENTS</span>
+                  </div>
+
+                  {/* Formatted Description Items */}
+                  {renderFormattedDescription(entry.description)}
+                </div>
               </div>
             </motion.div>
           );
@@ -439,7 +472,7 @@ export function ChangelogTab() {
                       type="text"
                       value={version}
                       onChange={(e) => setVersion(e.target.value)}
-                      placeholder="e.g. v1.5.0"
+                      placeholder="e.g. v1.6.0"
                       className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange"
                       required
                     />
@@ -467,36 +500,36 @@ export function ChangelogTab() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Short release summary title"
+                    placeholder="e.g. Loading Screen Showcase Redesign"
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">Description / Details</label>
+                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">Bullet Changes (One per line)</label>
                   <textarea
-                    rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe the features, fixes, or UI enhancements added in this update..."
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-fivem-orange resize-y min-h-[120px] leading-relaxed font-sans"
+                    placeholder="• Feature: Description..."
+                    rows={6}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange font-mono"
                     required
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <div className="flex items-center justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white/50 hover:text-white cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2.5 rounded-xl bg-fivem-orange hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider cursor-pointer transition-all shadow-[0_4px_16px_rgba(234,88,12,0.3)]"
+                    className="px-5 py-2.5 rounded-xl bg-fivem-orange hover:bg-amber-500 text-black font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting ? 'Publishing...' : 'Publish Entry'}
                   </button>
@@ -506,7 +539,6 @@ export function ChangelogTab() {
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
