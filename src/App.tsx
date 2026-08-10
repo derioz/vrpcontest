@@ -234,6 +234,18 @@ export default function App() {
   const isVotingOpen = votingOpen && (!activeContest?.voting_end_date || new Date() < new Date(activeContest.voting_end_date));
   const isSubmissionsOpen = submissionsOpen && (!activeContest?.submissions_close_date || new Date() < new Date(activeContest.submissions_close_date));
 
+  // Disable background page scrolling when Admin Console overlay is open and not minimized
+  useEffect(() => {
+    if (showAdminModal && !isAdminMinimized) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showAdminModal, isAdminMinimized]);
+
   // photos for the currently-selected category (derived from allPhotos)
   const photos = useMemo(() => {
     if (!selectedCategory) return [];

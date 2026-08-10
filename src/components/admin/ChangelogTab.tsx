@@ -27,79 +27,67 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260809-1947',
     version: 'v1.6.0',
-    title: 'Contest Setup Workspace Polish & Red Danger Zone Highlighting',
+    title: 'Contest Setup Polish, DUSTFILE Scroll Animations & Minimal Notes',
     category: 'Feature',
-    description: `• Title Emoji Picker: Integrated an emoji selector button directly beside the Contest Title input in ContestManagers.tsx.
-• High-Contrast Emoji Buttons: Upgraded background opacity of all emoji picker buttons across categories and title forms to a bright, readable glass background.
-• Red Danger Zone Styling: Highlighted the Danger Zone tab and sidebar button in bright glowing red across desktop and mobile Admin Console navigation.
-• Cleaned Preset Suggestions & Timers: Streamlined Contest Setup to focus purely on Title & Status, Category Management, and Live Rules Markdown Preview.
-• DUSTFILE Changelog Timeline: Redesigned ChangelogTab.tsx layout following the clean DUSTFILE two-column timeline design with vertical connecting line, metadata column, and geometric icon headers.
-• Vital RP Loading Screen Winners: Congratulated all 5 contest winners and stated that all 5 winning photos will be featured on the official Vital RP server loading screen.
-• Stats Pills Polish: Replaced "Featured Live In Game" and "Equal Loading Screen Winners" pills in WinnerAnnouncement.tsx with clean "Contest Winners" and "Verified Standings" pills.
-• Reduced Animation Overlays: Removed spinning conic gradient borders across WinnerAnnouncement.tsx and ArchivedWinnersView.tsx, and removed gear spin animations in AdminPanel.tsx for a clean interface.
-• Sleek High-Contrast Download Button: Replaced ShimmerButton on winner cards with a clean, high-contrast action button.
-• Fixed Minimized Admin Dock Scrollbar Flicker: Resolved viewport scrollbar jitter when Admin Console is minimized by rendering dock widget directly at viewport bottom without full-screen wrapper div.
-• Minimizable Persistent Admin Panel: Added single-click minimize control to Admin Console header, transforming the overlay into a bottom-pinned floating dock widget.`,
+    description: `• Minimal Changelogs: Simplified release notes into clean, concise 1-line bullet points.
+• DUSTFILE Framer Animations: Added scroll reveals, hover tilt elevation, and sticky left timeline column.
+• Background Scroll Lock: Main page scrolling is now locked while the Admin Console is open.
+• Title Emoji Selector: Added an emoji picker next to the Contest Title input.
+• High-Contrast Emoji Buttons: Upgraded emoji buttons across all forms to be bright and easy to see.
+• Red Danger Zone: Made the Danger Zone tab button bright glowing red.
+• Vital RP Loading Screen Showcase: Featured all 5 winner photos on the server loading screen.
+• Sleek Action Buttons: Replaced animated shimmer buttons with high-contrast download buttons.
+• Minimizable Admin Dock: Added minimize control to pin Admin Console to bottom dock without resetting state.`,
     author: 'Damon',
-    date: 'Aug 9, 2026 at 8:15 PM',
+    date: 'Aug 9, 2026 at 8:20 PM',
   },
   {
     id: 'release-20260808-1855',
     version: 'v1.5.0',
     title: 'Aceternity Admin Sidebar, WebGL Shader Background & Contest Setup Polish',
     category: 'Feature',
-    description: `• Hero Section: Rebuilt with Aceternity Spotlight SVG beams & Lens photo magnifier.
-• Lightbox Showcase: Re-engineered photo Lightbox into a dark cinematic stage with viewfinder corner accents.
-• Typography & Mobile Polish: Upgraded font system to Space Grotesk & Outfit; polished phone viewports across site & Admin Panel.
-• Category Dock: Added ElevenLabs-inspired single-line sticky category switcher with spring tab slider.
-• Aceternity Admin Sidebar: Re-architected Admin Console with collapsible dark glass sidebar dock, animated link indicators, and Damon Creator profile footer.
-• WebGL Shader Canvas: Implemented interactive FiveM Orange WebGL fluid gradient canvas background across the main page.
-• Zero-Lag Auto-Resizing Textareas: Implemented native CSS field-sizing content and automatic scrollHeight auto-grow on category textareas for instant, buttery-smooth multiline typing.
-• Multiline Category Descriptions: Upgraded category description inputs in Contest Setup and release publisher forms into auto-resizing multiline textareas.
-• Mobile Contest Setup Layout: Redesigned category edit cards into responsive stacked layouts, eliminating mobile text overflow and horizontal input squishing.
-• Admin Console Fix: Added missing ShieldCheck icon import in AdminPanel.tsx resolving runtime ReferenceError and restoring instant console rendering.
-• Instant Admin Console Loading: Converted AdminPanel to static synchronous imports, resolving lazy chunk loading network delays.
-• Admin Console Hardening: Added fallback default values to AdminPanel props, wrapped Firestore snapshot listeners in try/catch blocks, and added context fallbacks in useSidebar.
-• Changelog DB & Credits: Built Firestore Changelog system with prominent "Website Created & Designed by Damon" credit banner.
-• Discord Profile & DM Launcher: Added Damon's custom Discord avatar (qePVNvTsc65p.png), fixed profile card text alignment (@mcspace / ID: 150580708144840704), and integrated smart Discord App + Web DM launcher.
-• Admin Overview Inbox: Redesigned Admin Console Overview section into an elevated dashboard with a live Bug Reports Inbox and status controls.
-• Compact Changelog Layout: Redesigned changelog release cards to use compact inline bullet items with subtle thin divider lines and single-line Date/Time pills.`,
+    description: `• Aceternity Admin Sidebar: Added collapsible dark glass navigation sidebar.
+• WebGL Background: Added FiveM Orange fluid canvas background.
+• Photo Lightbox Showcase: Added dark cinematic lightbox stage for viewing photos.
+• Category Dock: Added smooth sliding category switcher.
+• Multiline Category Descriptions: Auto-resizing textareas for category descriptions.
+• Creator Profile Banner: Added "Website Created & Designed by Damon" credit header.`,
     author: 'Damon',
     date: 'Aug 8, 2026 at 6:55 PM',
   },
   {
     id: 'init-4',
     version: 'v1.3.0',
-    title: 'Single-Line Sticky Category Track & Header Dock',
+    title: 'Sticky Category Bar & Header Dock',
     category: 'UI/UX',
-    description: 'Added ElevenLabs inspired sticky category switcher with Framer Motion layoutId spring active tab slider and edge gradient fade masks. Morphed top header into floating glass dock on scroll.',
+    description: '• Sticky Category Bar: Added smooth sliding category switcher pill track.\n• Header Dock: Morphed top bar into floating glass dock on scroll.',
     author: 'Damon',
     date: 'Aug 8, 2026',
   },
   {
     id: 'init-3',
     version: 'v1.2.0',
-    title: 'RSA Key Encryption & Discord Role Verification',
+    title: 'RSA Key Encryption & Discord Role Security',
     category: 'Security',
-    description: 'Integrated client-side RSA keypair encryption for submission privacy and Discord OAuth2 guild membership + whitelist role verification.',
+    description: '• RSA Encryption: Client-side RSA keypair encryption for submission privacy.\n• Discord Verification: Discord guild membership and role verification.',
     author: 'Damon',
     date: 'Aug 5, 2026',
   },
   {
     id: 'init-2',
     version: 'v1.1.0',
-    title: 'Voter Audit Inspector & Disqualification Controls',
+    title: 'Voter Audit Inspector & Fraud Protection',
     category: 'Feature',
-    description: 'Added Admin Voter Audit inspector, disqualification reason workflows, and live analytics charts for voting velocity.',
+    description: '• Voter Audit Inspector: Admin tools to inspect vote activity and disqualify invalid votes.\n• Analytics Dashboard: Live voting velocity charts.',
     author: 'Damon',
     date: 'Aug 2, 2026',
   },
   {
     id: 'init-1',
     version: 'v1.0.0',
-    title: 'Initial Platform Release & Design Launch',
+    title: 'Official Platform Launch',
     category: 'Feature',
-    description: 'Official creation and launch of the Vital RP Photo Contest platform designed and built by Damon.',
+    description: '• Official Release: Creation and launch of the Vital RP Photo Contest platform designed and built by Damon.',
     author: 'Damon',
     date: 'Jul 28, 2026',
   },
@@ -153,7 +141,7 @@ function renderFormattedDescription(description: string) {
   }
 
   return (
-    <div className="space-y-2.5 mt-3 text-xs sm:text-sm font-sans leading-relaxed">
+    <div className="space-y-2 mt-3 text-xs sm:text-sm font-sans leading-relaxed">
       {lines.map((line, idx) => {
         const cleanLine = line.replace(/^([•\-]|^\d+\.)\s*/, '').trim();
         const parts = cleanLine.split(':');
@@ -164,7 +152,7 @@ function renderFormattedDescription(description: string) {
         return (
           <div
             key={idx}
-            className="flex items-start gap-3 p-3 rounded-2xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
+            className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
           >
             <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_8px_rgba(234,88,12,0.8)] group-hover/bullet:scale-125 transition-transform" />
             <div className="flex-1 min-w-0">
@@ -365,15 +353,16 @@ export function ChangelogTab() {
           return (
             <motion.div
               key={entry.id || idx}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: idx * 0.05 }}
-              className="relative flex flex-col md:flex-row items-start gap-4 md:gap-8 group"
+              initial={{ opacity: 0, y: 30, scale: 0.98 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98], delay: idx * 0.05 }}
+              className="relative flex flex-col md:flex-row items-start gap-4 md:gap-8 group cursor-default"
             >
-              {/* Left Column: Version, Date, Category Badge Tag & Timeline Node Indicator */}
-              <div className="w-full md:w-36 shrink-0 flex md:flex-col items-center md:items-end justify-between md:justify-start gap-2 pt-2 md:text-right relative">
+              {/* Left Column: Version, Date, Category Badge Tag & Sticky Timeline Node Indicator */}
+              <div className="w-full md:w-36 shrink-0 flex md:flex-col items-center md:items-end justify-between md:justify-start gap-2 pt-2 md:text-right relative md:sticky md:top-24 self-start">
                 {/* Timeline Square Node Indicator */}
-                <div className="hidden md:block absolute top-3.5 -right-[17px] w-3 h-3 rounded-xs bg-fivem-orange border-2 border-[#060609] shadow-[0_0_10px_rgba(234,88,12,0.8)] z-20 group-hover:scale-125 transition-transform" />
+                <div className="hidden md:block absolute top-3.5 -right-[17px] w-3 h-3 rounded-xs bg-fivem-orange border-2 border-[#060609] shadow-[0_0_10px_rgba(234,88,12,0.8)] z-20 group-hover:scale-125 group-hover:shadow-[0_0_16px_rgba(234,88,12,1)] transition-all" />
 
                 {/* Version & Date */}
                 <div className="flex flex-row md:flex-col items-center md:items-end gap-2 md:gap-0.5">
@@ -392,9 +381,12 @@ export function ChangelogTab() {
                 </div>
               </div>
 
-              {/* Right Column: Elevated Glass Content Card */}
+              {/* Right Column: Elevated Glass Content Card with Motion Hover Tilt */}
               <div className="flex-1 w-full min-w-0">
-                <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#09090d]/95 p-6 sm:p-8 transition-all hover:border-fivem-orange/40 shadow-xl group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                <motion.div
+                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                  className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#09090d]/95 p-6 sm:p-8 transition-all hover:border-fivem-orange/40 shadow-xl group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
+                >
                   {/* Card Header Row */}
                   <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-white/10">
                     <div className="flex items-start gap-3.5 min-w-0">
@@ -435,7 +427,7 @@ export function ChangelogTab() {
 
                   {/* Formatted Description Items */}
                   {renderFormattedDescription(entry.description)}
-                </div>
+                </motion.div>
               </div>
             </motion.div>
           );
