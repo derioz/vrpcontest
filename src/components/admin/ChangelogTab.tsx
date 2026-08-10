@@ -26,20 +26,19 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260809-1947',
     version: 'v1.6.0',
-    title: 'Contest Winners Redesign & Minimizable Admin Panel System',
+    title: 'Equal Server Loading Screen Winners Redesign & Minimizable Admin Panel System',
     category: 'Feature',
-    description: `• Minimizable Persistent Admin Panel: Added single-click minimize control to Admin Console header, transforming the overlay into a bottom-pinned floating dock widget.
+    description: `• Equal Loading Screen Winners: Redesigned contest winners section to showcase all 5 winning photos equally as co-champions featured on the official Vital RP FiveM server loading screen (removed ordinal 1st/2nd/3rd ranks and podium steps).
+• Fixed Minimized Admin Dock Scrollbar Flicker: Resolved document layout shift and scrollbar toggling when Admin Console is minimized by rendering dock widget directly at viewport bottom without full-screen wrapper div.
+• Minimizable Persistent Admin Panel: Added single-click minimize control to Admin Console header, transforming the overlay into a bottom-pinned floating dock widget.
 • State Preservation: Active admin workspace state (selected tab, text inputs, search queries, contest manager drafts) remains 100% mounted and untouched when minimizing or expanding.
 • Full Page Interactivity: Minimizing removes backdrop blur and focus locks, allowing admins to browse, scroll, vote, or switch categories on the website while keeping the admin session pinned.
-• Framer Motion Spring Animations: Built smooth spring transitions (layoutId) between Fullscreen Modal and Minimized Dock Box with live status pulse indicators.
-• Grand Podium Showcase: Architected 3-tier podium stage for top Gold #1, Silver #2, and Bronze #3 contest champions with gold crowns and custom pedestals.
 • Liquid Conic Fire Borders: Integrated UI Tripled multi-layer animated liquid conic-gradient flame spinners on winner cards and rank ribbons.
 • MagicUI Spotlight Cards: Wrapped winner cards in interactive MagicCard spotlight cursor tracking and glowing BorderBeams.
 • ElevenLabs Filter Dock: Added interactive category filter pill track with smooth spring tab slider and monospace live status badges.
-• Animated Stats & Sparkles: Integrated MagicUI SparklesText for Hall of Fame title headers, NumberTicker vote count animations, and floating ambient Particles.
-• Archived Winners Redesign: Upgraded previous winners modal (ArchivedWinnersView) with dark glassmorphic cards, MagicCard spotlights, and instant download/share toolbars.`,
+• Animated Stats & Sparkles: Integrated MagicUI SparklesText for Hall of Fame title headers, NumberTicker vote count animations, and floating ambient Particles.`,
     author: 'Damon',
-    date: 'Aug 9, 2026 at 7:52 PM',
+    date: 'Aug 9, 2026 at 7:56 PM',
   },
   {
     id: 'release-20260808-1855',

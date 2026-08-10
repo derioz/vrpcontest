@@ -223,10 +223,10 @@ export function ArchivedWinnersView({ onClose }: ArchivedWinnersViewProps) {
                                                         </div>
 
                                                         <MagicCard
-                                                            active={isTopWinner}
-                                                            borderBeamProps={{ size: 240, duration: 8, colorFrom: "#f59e0b", colorTo: "#fbbf24", borderWidth: 1.5 }}
-                                                            gradientColor="rgba(245, 158, 11, 0.16)"
-                                                            className="group relative flex flex-col bg-[#0a0a0d]/90 border border-white/10 rounded-3xl overflow-hidden group-hover:border-amber-500/40 transition-all duration-300 shadow-xl h-full justify-between p-4"
+                                                            active={true}
+                                                            borderBeamProps={{ size: 240, duration: 8, colorFrom: "#ea580c", colorTo: "#fb923c", borderWidth: 1.5 }}
+                                                            gradientColor="rgba(234, 88, 12, 0.16)"
+                                                            className="group relative flex flex-col bg-[#0a0a0d]/90 border border-fivem-orange/30 rounded-3xl overflow-hidden group-hover:border-fivem-orange/70 transition-all duration-300 shadow-xl h-full justify-between p-4"
                                                         >
                                                             {/* Image Container */}
                                                             <div className="relative aspect-[4/3] bg-black/60 rounded-2xl overflow-hidden mb-4 border border-white/5">
