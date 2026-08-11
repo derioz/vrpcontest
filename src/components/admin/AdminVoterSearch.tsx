@@ -9,6 +9,7 @@ import { db } from '../../lib/firebase';
 import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
 import { toast } from 'sonner';
+import { getDiceBearAvatarUrl } from '../../lib/dicebear';
 
 interface AdminVoterSearchProps {
   allPhotos: Photo[];
@@ -342,15 +343,11 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                         : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/80 hover:text-white'
                     }`}
                   >
-                    <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border ${
-                        isAlt
-                          ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                          : 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400'
-                      }`}
-                    >
-                      {voter.displayName.charAt(0).toUpperCase()}
-                    </div>
+                    <img
+                      src={getDiceBearAvatarUrl(voter.voterUid || voter.displayName)}
+                      alt=""
+                      className="w-4 h-4 rounded-full border border-white/20 object-cover shrink-0"
+                    />
                     <span>{voter.displayName}</span>
                     {isAlt && (
                       <span className="px-1 py-0.2 rounded bg-red-500/20 text-[9px] font-mono font-bold text-red-400 border border-red-500/30">
@@ -385,15 +382,15 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             }`}
           >
             <div className="flex items-center gap-3">
-              <div
-                className={`w-12 h-12 rounded-2xl border flex items-center justify-center font-bold text-lg shadow-lg ${
+              <img
+                src={getDiceBearAvatarUrl(activeVoter.voterUid || activeVoter.displayName)}
+                alt=""
+                className={`w-12 h-12 rounded-2xl border object-cover shadow-lg ${
                   flaggedVoters.has(activeVoter.voterUid)
-                    ? 'bg-red-500/20 border-red-500/40 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
-                    : 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
+                    ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                    : 'border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
                 }`}
-              >
-                {activeVoter.displayName.charAt(0).toUpperCase()}
-              </div>
+              />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h4 className="text-lg font-bold text-white tracking-wide">{activeVoter.displayName}</h4>

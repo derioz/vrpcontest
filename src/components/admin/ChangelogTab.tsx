@@ -25,6 +25,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260810-2151',
+    version: 'v1.7.0',
+    title: 'DiceBear Dynamic Default Avatars & Discord Fallback Integration',
+    category: 'Feature',
+    description: `• Discord Photo Priority: Attempts to load user Discord OAuth profile photo first.
+• DiceBear SVG Fallback: Automatically falls back to unique, deterministic DiceBear SVG avatars if Discord photo is missing or fails to load.
+• Automatic Image onError Fallback: Added automatic image error handlers so broken Discord URLs seamlessly switch to DiceBear.
+• Avatar Style Selector: Added interactive style chooser supporting Robots, Adventurers, Avataaars, Lorelei, Thumbs, Fun Emoji, and Identicons.
+• Avatar Randomizer: Added one-click "Randomize" avatar seed button to instantly generate fresh profile pictures.
+• Voter Search Avatars: Enhanced Admin Voter Search with real-time DiceBear avatar SVGs for all voters.`,
+    author: 'Damon',
+    date: 'Aug 10, 2026 at 9:51 PM',
+  },
+  {
     id: 'release-20260809-1947',
     version: 'v1.6.0',
     title: 'Contest Setup Polish, DUSTFILE Scroll Animations & Minimal Notes',

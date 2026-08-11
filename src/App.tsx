@@ -42,7 +42,9 @@ import {
   Ban,
   CheckCircle,
   Edit3,
-  Bug
+  Bug,
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -55,6 +57,7 @@ import { cn, pixelateImage } from './lib/utils';
 import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
 import { downloadPhoto } from './lib/download';
 import { verifyDiscordGuildAndRole } from './lib/discord';
+import { getProfileAvatar, getDiceBearAvatarUrl, AVAILABLE_DICEBEAR_STYLES, DiceBearStyleName } from './lib/dicebear';
 import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
 import { BugReportModal } from './components/BugReportModal';
 import { ShaderBackground } from './components/ui/shader-background';
@@ -337,7 +340,8 @@ export default function App() {
       // Map Supabase user metadata for compatibility with existing UI
       const meta = currentUser.user_metadata || {};
       let displayName = meta.full_name || meta.name || meta.custom_claims?.global_name || currentUser.email || 'Discord User';
-      const photoURL = meta.avatar_url || meta.picture || '';
+      let avatarStyle: DiceBearStyleName = 'botttsNeutral';
+      let avatarSeed: string = currentUser.id;
 
       const discordId = 
         meta.provider_id || 
@@ -346,17 +350,22 @@ export default function App() {
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.id;
 
-      // Check Firestore persistent profile for custom display name
+      // Check Firestore persistent profile for custom display name & DiceBear avatar preferences
       try {
         const userDocRef = doc(db, 'users', currentUser.id);
         const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists() && userDoc.data().custom_display_name) {
-          displayName = userDoc.data().custom_display_name;
+        if (userDoc.exists()) {
+          const uData = userDoc.data();
+          if (uData.custom_display_name) displayName = uData.custom_display_name;
+          if (uData.avatar_style) avatarStyle = uData.avatar_style as DiceBearStyleName;
+          if (uData.avatar_seed) avatarSeed = uData.avatar_seed;
         } else {
           await setDoc(userDocRef, {
             uid: currentUser.id,
             discord_id: discordId ? String(discordId) : null,
             custom_display_name: displayName,
+            avatar_style: avatarStyle,
+            avatar_seed: avatarSeed,
             default_discord_name: meta.full_name || meta.name || 'Discord User',
             updated_at: new Date().toISOString(),
           }, { merge: true });
@@ -365,6 +374,11 @@ export default function App() {
         console.warn("User profile doc fetch error:", userErr);
       }
 
+      // Try Discord profile picture first; fall back to DiceBear SVG avatar if missing
+      const discordAvatar = meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
+      const photoURL = discordAvatar || getDiceBearAvatarUrl(avatarSeed, avatarStyle);
+      const hasCustomOAuthAvatar = !!discordAvatar;
+
       const normalizedUser = {
         uid: currentUser.id,
         id: currentUser.id,
@@ -372,6 +386,9 @@ export default function App() {
         displayName,
         email: currentUser.email || '',
         photoURL,
+        avatarStyle,
+        avatarSeed,
+        hasCustomOAuthAvatar,
         providerData: currentUser.identities ? currentUser.identities.map((id: any) => ({
           providerId: id.provider === 'discord' ? 'oidc.discord' : id.provider,
           uid: discordId ? String(discordId) : (id.id || id.identity_data?.sub || currentUser.id),
@@ -1076,6 +1093,53 @@ export default function App() {
     }
   };
 
+  const handleChangeAvatarStyle = async (newStyle: DiceBearStyleName) => {
+    if (!user || user.isAnonymous) return;
+    const seed = user.avatarSeed || user.uid;
+    const newAvatarUrl = getDiceBearAvatarUrl(seed, newStyle);
+    
+    // Update local user state
+    setUser((prev: any) => prev ? { 
+      ...prev, 
+      avatarStyle: newStyle, 
+      photoURL: prev.hasCustomOAuthAvatar ? prev.photoURL : newAvatarUrl 
+    } : null);
+
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, { avatar_style: newStyle, updated_at: new Date().toISOString() }, { merge: true });
+      const matchedStyle = AVAILABLE_DICEBEAR_STYLES.find(s => s.id === newStyle);
+      toast.success(`Avatar style updated to ${matchedStyle?.label || newStyle}!`);
+    } catch (err) {
+      console.error('Failed to update avatar style:', err);
+      toast.error('Failed to update avatar style');
+    }
+  };
+
+  const handleShuffleAvatarSeed = async () => {
+    if (!user || user.isAnonymous) return;
+    const newSeed = Math.random().toString(36).substring(2, 10);
+    const style = user.avatarStyle || 'botttsNeutral';
+    const newAvatarUrl = getDiceBearAvatarUrl(newSeed, style);
+
+    // Update local user state
+    setUser((prev: any) => prev ? { 
+      ...prev, 
+      avatarSeed: newSeed, 
+      photoURL: newAvatarUrl,
+      hasCustomOAuthAvatar: false 
+    } : null);
+
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, { avatar_seed: newSeed, updated_at: new Date().toISOString() }, { merge: true });
+      toast.success('Generated a new random DiceBear avatar!');
+    } catch (err) {
+      console.error('Failed to shuffle avatar:', err);
+      toast.error('Failed to randomize avatar');
+    }
+  };
+
   const handleSaveDisplayName = async () => {
     if (!editedDisplayName.trim() || !user) {
       toast.error('Display name cannot be empty');
@@ -1292,17 +1356,16 @@ export default function App() {
                   border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/25
                   transition-all duration-300 shadow-sm cursor-default"
                 >
-                  {user.photoURL ? (
-                    <img
-                      src={user.photoURL}
-                      alt=""
-                      className="w-6 h-6 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300 border border-white/10"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-lg bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center text-xs font-bold text-fivem-orange">
-                      {user.displayName?.[0] || user.email?.[0] || 'U'}
-                    </div>
-                  )}
+                  <img
+                    src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                    alt=""
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                      if (target.src !== fallback) target.src = fallback;
+                    }}
+                    className="w-6 h-6 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300 border border-white/10 shrink-0"
+                  />
                   
                   <div className="flex flex-col items-start leading-none gap-0.5">
                     <span className="text-xs font-bold text-white/90 group-hover/user:text-white transition-colors">
@@ -1420,13 +1483,16 @@ export default function App() {
                   {user && !user.isAnonymous ? (
                     <div className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
                       <div className="flex items-center gap-3">
-                        {user.photoURL ? (
-                          <img src={user.photoURL} alt="" className="w-8 h-8 rounded-lg object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-sm font-bold text-white/50 border border-white/10">
-                            {user.displayName?.[0] || user.email?.[0] || 'U'}
-                          </div>
-                        )}
+                        <img
+                          src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                          alt=""
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                            if (target.src !== fallback) target.src = fallback;
+                          }}
+                          className="w-8 h-8 rounded-lg object-cover border border-white/10 shrink-0"
+                        />
                         <div className="flex flex-col leading-none gap-1">
                           <span className="text-sm font-bold text-white">{user.displayName || user.email?.split('@')[0]}</span>
                           <div className="flex items-center gap-1">
@@ -2281,15 +2347,21 @@ export default function App() {
 
                 <div className="relative z-10 flex flex-col gap-5">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="relative shrink-0">
-                      <div className="w-14 h-14 rounded-full border-2 border-fivem-orange/30 p-1">
-                        {user.photoURL ? (
-                          <img src={user.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full rounded-full bg-fivem-orange/10 flex items-center justify-center text-fivem-orange">
-                            <User size={22} />
-                          </div>
-                        )}
+                    <div className="relative shrink-0 group/avatar cursor-pointer" onClick={handleShuffleAvatarSeed} title="Click to generate a new random avatar!">
+                      <div className="w-14 h-14 rounded-full border-2 border-fivem-orange/30 p-1 relative overflow-hidden bg-black/40">
+                        <img
+                          src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                          alt=""
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                            if (target.src !== fallback) target.src = fallback;
+                          }}
+                          className="w-full h-full rounded-full object-cover group-hover/avatar:scale-110 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                          <RefreshCw size={16} className="text-fivem-orange animate-spin-slow" />
+                        </div>
                       </div>
                       <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#ea580c]/20 bg-emerald-500" />
                     </div>
@@ -2353,6 +2425,35 @@ export default function App() {
                         {isAdmin ? 'System Admin' : 'Verified Member'}
                       </p>
                     </div>
+                  </div>
+
+                  {/* DiceBear Avatar Style Selector & Randomizer */}
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-white/60 uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles size={11} className="text-fivem-orange" />
+                        Default Avatar Style
+                      </span>
+                      <button
+                        onClick={handleShuffleAvatarSeed}
+                        className="text-[10px] font-mono text-fivem-orange hover:text-orange-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors"
+                        title="Randomize avatar seed"
+                      >
+                        <RefreshCw size={10} />
+                        Randomize
+                      </button>
+                    </div>
+                    <select
+                      value={user.avatarStyle || 'botttsNeutral'}
+                      onChange={(e) => handleChangeAvatarStyle(e.target.value as DiceBearStyleName)}
+                      className="w-full px-2.5 py-1.5 text-xs font-semibold bg-black/60 border border-white/15 text-white/90 rounded-lg focus:outline-none focus:border-fivem-orange cursor-pointer"
+                    >
+                      {AVAILABLE_DICEBEAR_STYLES.map((st) => (
+                        <option key={st.id} value={st.id} className="bg-neutral-900 text-white">
+                          {st.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pb-1">
