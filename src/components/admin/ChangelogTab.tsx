@@ -47,7 +47,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Unconditional Navbar Hall of Fame Link: Prominently added "Hall of Fame" directly to the navbar center capsule and mobile menu so it is easily accessible at all times.
 • High-Fidelity Hall of Fame Vault Redesign: Enhanced the Hall of Fame with a glassmorphic hero stats bar, MagicCard spotlight effects, search filters, and interactive winning photo inspection lightbox.
 • Universal Profile Picture Display: Integrated user profile avatars across gallery photo cards, lightbox viewer, sidebar profile section, and Hall of Fame winner cards.
-• "My Victories" Personal Vault Filter: Added an intuitive filter tab and profile dropdown shortcut allowing users to immediately view all past winning photo entries submitted by their account.`,
+• "My Victories" Personal Vault Filter: Added an intuitive filter tab and profile dropdown shortcut allowing users to immediately view all past winning photo entries submitted by their account.
+• Multi-Identifier User Victory Resolution: Enhanced user victory matching logic to resolve wins across uid, displayName, discord_name, player_name, email, and local storage handles so past archived victories are reliably detected and counted.
+• Consistent Winner Card Layout Baseline: Added a fixed 2-line caption container height (min-h-[2.5rem] flex items-center) so the divider line and user profile footer line up at the exact same vertical baseline across every card regardless of caption length.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },

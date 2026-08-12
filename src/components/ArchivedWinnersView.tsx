@@ -92,6 +92,10 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
         const key = w.discord_name.toLowerCase().trim();
         map.set(key, (map.get(key) || 0) + 1);
       }
+      if (w.player_name) {
+        const key = w.player_name.toLowerCase().trim();
+        map.set(key, (map.get(key) || 0) + 1);
+      }
       if (w.user_id) {
         const key = w.user_id;
         map.set(key, (map.get(key) || 0) + 1);
@@ -100,16 +104,34 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return map;
   }, [winners]);
 
-  // User's own winning entries
+  // User's own winning entries with multi-identifier matching
   const userWinningEntries = useMemo(() => {
-    if (!currentUser || currentUser.isAnonymous) return [];
-    const currentUid = currentUser.uid;
-    const currentName = currentUser.displayName?.toLowerCase().trim();
+    if (!currentUser) return [];
     
-    return winners.filter(w =>
-      (currentUid && w.user_id === currentUid) ||
-      (currentName && w.discord_name?.toLowerCase().trim() === currentName)
-    );
+    const userIdentifiers = new Set<string>();
+    
+    if (currentUser.uid) userIdentifiers.add(currentUser.uid);
+    if (currentUser.displayName) userIdentifiers.add(currentUser.displayName.toLowerCase().trim());
+    if (currentUser.email) userIdentifiers.add(currentUser.email.split('@')[0].toLowerCase().trim());
+    
+    if (currentUser.providerData && Array.isArray(currentUser.providerData)) {
+      currentUser.providerData.forEach((p: any) => {
+        if (p.displayName) userIdentifiers.add(p.displayName.toLowerCase().trim());
+        if (p.email) userIdentifiers.add(p.email.split('@')[0].toLowerCase().trim());
+      });
+    }
+
+    const storedDiscord = localStorage.getItem('fivem_discord_name');
+    if (storedDiscord) userIdentifiers.add(storedDiscord.toLowerCase().trim());
+    const storedPlayer = localStorage.getItem('fivem_player_name');
+    if (storedPlayer) userIdentifiers.add(storedPlayer.toLowerCase().trim());
+
+    return winners.filter(w => {
+      if (w.user_id && userIdentifiers.has(w.user_id)) return true;
+      if (w.discord_name && userIdentifiers.has(w.discord_name.toLowerCase().trim())) return true;
+      if (w.player_name && userIdentifiers.has(w.player_name.toLowerCase().trim())) return true;
+      return false;
+    });
   }, [currentUser, winners]);
 
   // Filter displayed winners by selected contest, filter mode, and search query
@@ -325,7 +347,12 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {displayedWinners.map((winner, idx) => {
-                      const userWinCount = winnerWinsMap.get(winner.discord_name?.toLowerCase()?.trim() || '') || winnerWinsMap.get(winner.user_id || '') || 1;
+                      const userWinCount = Math.max(
+                        winnerWinsMap.get(winner.discord_name?.toLowerCase()?.trim() || '') || 0,
+                        winnerWinsMap.get(winner.player_name?.toLowerCase()?.trim() || '') || 0,
+                        winnerWinsMap.get(winner.user_id || '') || 0,
+                        1
+                      );
                       const avatarUrl = getProfileAvatar(winner.user_photo_url, winner.avatar_seed || winner.user_id || winner.discord_name, winner.avatar_style);
 
                       return (
@@ -372,12 +399,14 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
 
                             {/* Info Section */}
                             <div className="flex flex-col flex-1 justify-between gap-3">
-                              <p className="text-xs text-white/80 line-clamp-2 italic leading-relaxed">
-                                "{winner.caption || 'No caption provided'}"
-                              </p>
+                              <div className="min-h-[2.5rem] flex items-center">
+                                <p className="text-xs text-white/80 line-clamp-2 italic leading-relaxed">
+                                  "{winner.caption || 'No caption provided'}"
+                                </p>
+                              </div>
 
                               {/* Footer: User Profile Avatar & Champion Badge */}
-                              <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto">
+                              <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto w-full">
                                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
                                   <img
                                     src={avatarUrl}

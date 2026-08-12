@@ -285,6 +285,10 @@ export default function App() {
         const key = w.discord_name.toLowerCase().trim();
         map.set(key, (map.get(key) || 0) + 1);
       }
+      if (w.player_name) {
+        const key = w.player_name.toLowerCase().trim();
+        map.set(key, (map.get(key) || 0) + 1);
+      }
       if ((w as any).user_id) {
         const key = (w as any).user_id;
         map.set(key, (map.get(key) || 0) + 1);
@@ -293,13 +297,24 @@ export default function App() {
     return map;
   }, [archivedWinners]);
 
-  const getUserWinCount = useCallback((discordName?: string, userId?: string): number => {
+  const getUserWinCount = useCallback((discordName?: string, userId?: string, playerName?: string): number => {
     let count = 0;
     if (discordName) {
       count = Math.max(count, winnerCountsMap.get(discordName.toLowerCase().trim()) || 0);
     }
     if (userId) {
       count = Math.max(count, winnerCountsMap.get(userId) || 0);
+    }
+    if (playerName) {
+      count = Math.max(count, winnerCountsMap.get(playerName.toLowerCase().trim()) || 0);
+    }
+    const storedPlayer = localStorage.getItem('fivem_player_name');
+    if (storedPlayer) {
+      count = Math.max(count, winnerCountsMap.get(storedPlayer.toLowerCase().trim()) || 0);
+    }
+    const storedDiscord = localStorage.getItem('fivem_discord_name');
+    if (storedDiscord) {
+      count = Math.max(count, winnerCountsMap.get(storedDiscord.toLowerCase().trim()) || 0);
     }
     return count;
   }, [winnerCountsMap]);
