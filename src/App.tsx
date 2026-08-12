@@ -1288,6 +1288,7 @@ export default function App() {
   const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
   const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
+  const miniCatTop = useTransform(navH, (h) => `${h + 14}px`);
 
   return (
     <ShaderBackground className="min-h-screen flex flex-col">
@@ -1416,16 +1417,18 @@ export default function App() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
             className="hidden md:flex items-center gap-3 shrink-0"
           >
-            {/* User Avatar / Account Pill with Fixed Unclipped Dropdown Menu */}
+            {/* User Avatar / Account Pill with MagicUI BorderBeam & Generous Padding */}
             {user && !user.isAnonymous ? (
               <div className="relative">
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="group/user flex items-center gap-3 px-3 py-2 rounded-2xl
-                    border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] hover:border-fivem-orange/60
-                    transition-all duration-300 shadow-md cursor-pointer active:scale-95"
+                  className="group/user relative flex items-center gap-3 px-4 py-2.5 rounded-2xl
+                    border border-white/20 bg-black/40 hover:bg-black/60 hover:border-fivem-orange/60
+                    transition-all duration-300 shadow-xl cursor-pointer active:scale-95 hover:scale-[1.02] overflow-hidden"
                   title="Open account menu & profile settings"
                 >
+                  <BorderBeam size={90} duration={8} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
+
                   <img
                     src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
                     alt=""
@@ -1434,15 +1437,15 @@ export default function App() {
                       const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
                       if (target.src !== fallback) target.src = fallback;
                     }}
-                    className="w-8 h-8 rounded-xl object-cover group-hover/user:scale-105 transition-transform duration-300 border-2 border-fivem-orange/40 shadow-[0_0_10px_rgba(234,88,12,0.25)] shrink-0"
+                    className="w-9 h-9 rounded-xl object-cover group-hover/user:scale-105 transition-transform duration-300 border-2 border-fivem-orange/50 shadow-[0_0_12px_rgba(234,88,12,0.35)] shrink-0 relative z-10"
                   />
                   
-                  <div className="flex flex-col items-start leading-tight gap-1">
+                  <div className="flex flex-col items-start leading-tight gap-1 relative z-10">
                     <span className="text-xs font-black font-display text-white group-hover/user:text-fivem-orange transition-colors flex items-center gap-1.5">
                       {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
-                      <ChevronDown size={13} className={cn("text-fivem-orange transition-transform duration-300", isProfileDropdownOpen && "rotate-180")} />
+                      <ChevronDown size={14} className={cn("text-fivem-orange transition-transform duration-300", isProfileDropdownOpen && "rotate-180")} />
                     </span>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.15)]">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
                       <span>Online</span>
                     </div>
@@ -2040,18 +2043,18 @@ export default function App() {
       {/* Category Sentinel */}
       {categories.length > 0 && <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />}
 
-      {/* ── Sticky Minimized Category Selector (ElevenLabs / Magic UI inspired single-line track) ── */}
+      {/* ── Sticky Minimized Category Selector (Hugging Navbar + Spring Slide-Out from Underneath) ── */}
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            style={{ top: navH }}
-            className="fixed left-0 right-0 z-40 bg-[#09090b]/92 border-b border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.7)] backdrop-blur-2xl py-2"
+            initial={{ opacity: 0, y: -45, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -45, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            style={{ top: miniCatTop }}
+            className="fixed left-0 right-0 z-40 px-3 sm:px-6 pointer-events-none flex justify-center"
           >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-3">
+            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-2xl bg-[#08080c]/96 border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl px-4 py-2 flex items-center justify-between gap-3 overflow-hidden relative">
               
               {/* Left label badge */}
               <div className="hidden sm:flex items-center gap-2 shrink-0 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10">
