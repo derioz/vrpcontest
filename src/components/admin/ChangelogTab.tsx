@@ -33,8 +33,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Animated Shimmer Border: Added a continuously travelling orange-to-gold gradient highlight along the navbar top edge using a custom CSS shimmer keyframe animation, with subtle vertical gradient accents on side edges.
 • Profile Capsule Button: Redesigned profile button as a compact rounded-full capsule with circular avatar, green online dot, truncated name, and chevron — fits cleanly within the navbar without any overflow.
 • Category Bar Glass Matching: Rebuilt the sticky category menu with the same dual-layer glass architecture as the navbar — noise texture overlay, gradient side accents, frosted interior, and rounded-full pill buttons for visual consistency.
-• Navigation Capsule: Center nav tabs now sit inside an inset-shadow container with refined hover indicators for depth.
-• Rounded Action Buttons: Settings, bug report, and profile actions all use consistent rounded-full styling with dot separator instead of vertical divider.`,
+• Navigation Capsule Refinement: Removed obsolete Gallery button and added high-utility nav tabs ("Categories", "Submit Entry" CTA with glowing orange badge, "Rules", and "Hall of Fame") with Lucide icons for quick access.
+• Mini Category Bar Spacing: Added 6px top offset under navbar and increased internal track padding (pt-4 pb-3.5) so category buttons are comfortably spaced and easy to read/tap.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },

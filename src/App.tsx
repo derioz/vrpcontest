@@ -1285,7 +1285,7 @@ export default function App() {
   const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
   const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
-  const miniCatTop = useTransform(navH, (h) => `${h}px`);
+  const miniCatTop = useTransform(navH, (h) => `${h + 6}px`);
 
   return (
     <ShaderBackground className="min-h-screen flex flex-col">
@@ -1391,32 +1391,71 @@ export default function App() {
           </motion.div>
 
           {/* ── CENTER: Navigation Capsule ── */}
-          <div className="hidden md:flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.08] relative">
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/[0.08] relative">
             {/* Inner inset shadow for depth */}
-            <div className="absolute inset-0 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] pointer-events-none" />
+            <div className="absolute inset-0 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] pointer-events-none" />
             {[
-              { label: 'Gallery', action: () => window.scrollTo({ top: 400, behavior: 'smooth' }) },
-              ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => setShowArchivedWinners(true) }] : []),
-              { label: 'Rules', action: () => document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }) }
+              {
+                id: 'categories',
+                label: 'Categories',
+                icon: Layers,
+                action: () => {
+                  const el = document.getElementById('categories-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  else window.scrollTo({ top: 380, behavior: 'smooth' });
+                }
+              },
+              {
+                id: 'submit',
+                label: 'Submit Entry',
+                icon: Plus,
+                accent: true,
+                action: () => {
+                  if (!user) {
+                    setShowSignInModal(true);
+                  } else {
+                    setShowUploadModal(true);
+                  }
+                }
+              },
+              {
+                id: 'rules',
+                label: 'Rules',
+                icon: FileText,
+                action: () => document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' })
+              },
+              ...(showWinnersToggle ? [{
+                id: 'winners',
+                label: 'Hall of Fame',
+                icon: Trophy,
+                action: () => setShowArchivedWinners(true)
+              }] : [])
             ].map((item, index) => {
               const isHovered = hoveredNavIndex === index;
+              const Icon = item.icon;
               return (
                 <button
-                  key={item.label}
+                  key={item.id}
                   onClick={item.action}
                   onMouseEnter={() => setHoveredNavIndex(index)}
                   onMouseLeave={() => setHoveredNavIndex(null)}
-                  className="relative px-5 py-1.5 rounded-lg text-xs font-bold font-display uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
+                  className={cn(
+                    "relative px-4 py-1.5 rounded-full text-xs font-bold font-display uppercase tracking-wider transition-all duration-200 cursor-pointer flex items-center gap-1.5 select-none",
+                    item.accent
+                      ? "text-fivem-orange hover:text-white bg-fivem-orange/10 hover:bg-fivem-orange/20 border border-fivem-orange/30"
+                      : "text-white/70 hover:text-white"
+                  )}
                 >
+                  <Icon size={13} className={cn(item.accent ? "text-fivem-orange" : "text-white/50")} />
                   <span className="relative z-10">{item.label}</span>
                   <AnimatePresence>
-                    {isHovered && (
+                    {isHovered && !item.accent && (
                       <motion.div
                         layoutId="header-nav-indicator"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 rounded-lg bg-white/[0.08] border border-white/[0.12]"
+                        className="absolute inset-0 rounded-full bg-white/[0.08] border border-white/[0.12]"
                         transition={{ type: 'spring', stiffness: 450, damping: 30 }}
                       />
                     )}
@@ -1671,7 +1710,8 @@ export default function App() {
                 <div className="flex flex-col gap-2">
                   <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Navigation</span>
                   {[
-                    { label: 'Gallery', action: () => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
+                    { label: 'Categories', action: () => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
+                    { label: 'Submit Entry', action: () => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); } },
                     ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); } }] : []),
                     { label: 'Rules', action: () => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } }
                   ].map((item) => (
@@ -1782,6 +1822,9 @@ export default function App() {
 
             {/* ── DotPattern — kept as subtle texture ── */}
             <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.06] z-[1]" />
+            
+            {/* Main Interactive Category Section */}
+            <div id="categories-section" className="relative z-30 max-w-7xl mx-auto px-4 sm:px-6" />
 
             {/* ── Main 2-col layout ── */}
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center" style={{ paddingTop: '2.5rem', paddingBottom: '3.5rem' }}>
@@ -2093,12 +2136,12 @@ export default function App() {
               </div>
 
               {/* Content layer */}
-              <div className="relative z-10 px-5 py-3 flex items-center justify-between gap-4">
+              <div className="relative z-10 px-5 pt-4 pb-3.5 flex items-center justify-between gap-4">
 
                 {/* Left: Filter icon pill */}
-                <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-full bg-fivem-orange/10 border border-fivem-orange/25">
-                  <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-fivem-orange/90 font-mono">Filter</span>
+                <div className="hidden sm:flex items-center gap-2 shrink-0 px-3.5 py-1.5 rounded-full bg-fivem-orange/15 border border-fivem-orange/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.8)] animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-fivem-orange font-mono">Filter</span>
                 </div>
 
                 {/* Center: Category pill track */}
@@ -2106,7 +2149,7 @@ export default function App() {
                   <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0e0e14] to-transparent z-10" />
                   <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0e0e14] to-transparent z-10" />
 
-                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-3 py-0.5">
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-3 py-1.5">
                     {categories.map((cat) => {
                       const isActive = selectedCategory?.id === cat.id;
                       return (
@@ -2149,7 +2192,7 @@ export default function App() {
 
       {
         categories.length > 0 && (
-          <div className="relative z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10 shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
+          <div id="categories-section" className="relative z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10 shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
             <div className="max-w-7xl mx-auto px-6 py-5">
               
               {/* ========================================= */}
