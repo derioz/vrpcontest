@@ -278,6 +278,28 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // Deep-Link URL Search Parameters Inspector (e.g. ?photo=XYZ or ?archive=XYZ)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const photoId = params.get('photo');
+    const archiveId = params.get('archive') || params.get('winner');
+
+    if (archiveId || photoId) {
+      if (archiveId) {
+        setShowArchivedWinners(true);
+      } else if (photoId) {
+        if (allPhotos.length > 0) {
+          const match = allPhotos.find(p => p.id === photoId);
+          if (match) {
+            setLightboxPhoto(match);
+          } else {
+            setShowArchivedWinners(true);
+          }
+        }
+      }
+    }
+  }, [allPhotos]);
+
   const winnerCountsMap = useMemo(() => {
     const map = new Map<string, number>();
     archivedWinners.forEach((w) => {

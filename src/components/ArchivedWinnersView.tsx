@@ -37,6 +37,12 @@ interface ArchivedWinnersViewProps {
   onClose: () => void;
 }
 
+interface UserFilterState {
+  displayName: string;
+  discordName: string;
+  userId?: string;
+}
+
 function sanitizeFilePart(value: string) {
   return value
     .toLowerCase()
@@ -49,6 +55,7 @@ const WinnerCard = React.memo(({
   winner,
   userWinCount,
   avatarUrl,
+  displayName,
   onInspect,
   onUserClick,
   onShare,
@@ -57,11 +64,14 @@ const WinnerCard = React.memo(({
   winner: ArchivedWinner;
   userWinCount: number;
   avatarUrl: string;
+  displayName?: string;
   onInspect: (w: ArchivedWinner) => void;
   onUserClick: (w: ArchivedWinner) => void;
   onShare: (w: ArchivedWinner) => void;
   onDownload: (w: ArchivedWinner) => void;
 }) => {
+  const effectiveName = displayName || winner.player_name;
+
   return (
     <div className="group relative transform-gpu">
       <MagicCard
@@ -122,7 +132,7 @@ const WinnerCard = React.memo(({
                 e.stopPropagation();
                 onUserClick(winner);
               }}
-              title={`Click to view all winning entries from ${winner.player_name}`}
+              title={`Click to view all winning entries from ${effectiveName}`}
             >
               <img
                 src={avatarUrl}
@@ -139,7 +149,7 @@ const WinnerCard = React.memo(({
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-xs font-bold text-white truncate group-hover/user:text-amber-400 transition-colors">
-                    {winner.player_name}
+                    {effectiveName}
                   </span>
                   <ChampionBadge winCount={userWinCount} size="sm" showLabel={false} />
                 </div>
@@ -184,7 +194,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
   const [selectedContest, setSelectedContest] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'my-wins'>('all');
-  const [selectedUserFilter, setSelectedUserFilter] = useState<string | null>(null);
+  const [selectedUserFilter, setSelectedUserFilter] = useState<UserFilterState | null>(null);
   const [selectedWinnerPhoto, setSelectedWinnerPhoto] = useState<ArchivedWinner | null>(null);
   const [shareWinner, setShareWinner] = useState<ArchivedWinner | null>(null);
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
@@ -203,8 +213,22 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
         })) as ArchivedWinner[];
         setWinners(fetchedWinners);
 
-        if (fetchedWinners.length > 0 && !selectedContest) {
-          setSelectedContest(fetchedWinners[0].contest_name);
+        if (fetchedWinners.length > 0) {
+          // Check URL search parameters for shared photo deep link
+          const params = new URLSearchParams(window.location.search);
+          const shareId = params.get('photo') || params.get('archive') || params.get('winner');
+          
+          if (shareId) {
+            const matchedWinner = fetchedWinners.find(w => w.id === shareId);
+            if (matchedWinner) {
+              setSelectedWinnerPhoto(matchedWinner);
+              setSelectedContest(matchedWinner.contest_name);
+            } else if (!selectedContest) {
+              setSelectedContest(fetchedWinners[0].contest_name);
+            }
+          } else if (!selectedContest) {
+            setSelectedContest(fetchedWinners[0].contest_name);
+          }
         }
       } catch (error) {
         console.error("Error fetching archived winners:", error);
@@ -272,6 +296,29 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     });
   }, [currentUser, winners]);
 
+  // Display name resolution: priority to logged in user's custom display name if matching
+  const resolveDisplayName = useCallback((winner: ArchivedWinner) => {
+    if (currentUser && !currentUser.isAnonymous) {
+      const currentUid = currentUser.uid;
+      const currentName = currentUser.displayName?.toLowerCase().trim();
+      const currentDiscord = localStorage.getItem('fivem_discord_name')?.toLowerCase().trim();
+      const currentPlayer = localStorage.getItem('fivem_player_name')?.toLowerCase().trim();
+      const wName = winner.discord_name?.toLowerCase().trim();
+      const wPlayer = winner.player_name?.toLowerCase().trim();
+
+      const isMatch =
+        (currentUid && winner.user_id === currentUid) ||
+        (currentName && (wName === currentName || wPlayer === currentName)) ||
+        (currentDiscord && (wName === currentDiscord || wPlayer === currentDiscord)) ||
+        (currentPlayer && (wName === currentPlayer || wPlayer === currentPlayer));
+
+      if (isMatch && currentUser.displayName && currentUser.displayName.trim()) {
+        return currentUser.displayName;
+      }
+    }
+    return winner.player_name || winner.discord_name;
+  }, [currentUser]);
+
   // Resolution helper: Priority to Discord OAuth photoURL if available for user or winner
   const resolveAvatarUrl = useCallback((winner: ArchivedWinner) => {
     // 1. Direct photo URL on winner record
@@ -308,11 +355,16 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     let result = winners;
 
     if (selectedUserFilter) {
-      const uq = selectedUserFilter.toLowerCase().trim();
+      const dName = selectedUserFilter.displayName.toLowerCase().trim();
+      const discName = selectedUserFilter.discordName.toLowerCase().trim();
+      const uId = selectedUserFilter.userId;
+
       result = winners.filter(w =>
-        (w.discord_name && w.discord_name.toLowerCase().trim() === uq) ||
-        (w.player_name && w.player_name.toLowerCase().trim() === uq) ||
-        (w.user_id && w.user_id === selectedUserFilter)
+        (uId && w.user_id === uId) ||
+        (w.discord_name && w.discord_name.toLowerCase().trim() === discName) ||
+        (w.player_name && w.player_name.toLowerCase().trim() === dName) ||
+        (w.discord_name && w.discord_name.toLowerCase().trim() === dName) ||
+        (w.player_name && w.player_name.toLowerCase().trim() === discName)
       );
     } else if (filterMode === 'my-wins') {
       result = userWinningEntries;
@@ -356,10 +408,14 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
   }, []);
 
   const handleUserClick = useCallback((winner: ArchivedWinner) => {
-    const filterHandle = winner.discord_name || winner.player_name;
-    setSelectedUserFilter(filterHandle);
-    toast.info(`Filtering Hall of Fame entries by photographer: ${winner.player_name}`);
-  }, []);
+    const customName = resolveDisplayName(winner);
+    setSelectedUserFilter({
+      displayName: customName,
+      discordName: winner.discord_name,
+      userId: winner.user_id
+    });
+    toast.info(`Filtering Hall of Fame entries by photographer: ${customName}`);
+  }, [resolveDisplayName]);
 
   const handleInspect = useCallback((winner: ArchivedWinner) => {
     setSelectedWinnerPhoto(winner);
@@ -513,7 +569,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                     <div className="flex items-center gap-2 min-w-0">
                       <User size={15} className="text-amber-400 shrink-0" />
                       <span className="truncate">
-                        Viewing winning entries from <strong className="text-white font-display uppercase tracking-wide">@{selectedUserFilter}</strong>
+                        Viewing winning entries from <strong className="text-white font-display uppercase tracking-wide">{selectedUserFilter.displayName}</strong> (@{selectedUserFilter.discordName})
                       </span>
                     </div>
                     <button
@@ -533,7 +589,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                       {selectedUserFilter ? 'Photographer Portfolio' : filterMode === 'my-wins' ? 'Your Personal Vault' : 'Archived Vault Record'}
                     </span>
                     <h2 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white flex items-center gap-3">
-                      {selectedUserFilter ? `@${selectedUserFilter}'s Wins` : filterMode === 'my-wins' ? 'Your Winning Entries' : selectedContest}
+                      {selectedUserFilter ? selectedUserFilter.displayName : filterMode === 'my-wins' ? 'Your Winning Entries' : selectedContest}
                     </h2>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs font-mono text-white/60">
@@ -547,7 +603,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   <div className="py-20 text-center space-y-3 bg-white/[0.02] border border-white/[0.06] rounded-3xl">
                     <Trophy size={36} className="mx-auto text-white/20" />
                     <p className="text-sm font-bold text-white/60">
-                      {selectedUserFilter ? `No winning entries found for @${selectedUserFilter}.` : filterMode === 'my-wins' ? "You haven't won any contest categories yet." : "No winning entries match your search."}
+                      {selectedUserFilter ? `No winning entries found for ${selectedUserFilter.displayName}.` : filterMode === 'my-wins' ? "You haven't won any contest categories yet." : "No winning entries match your search."}
                     </p>
                     <p className="text-xs text-white/30">Submit your best shots to earn a spot in the Hall of Fame!</p>
                   </div>
@@ -561,6 +617,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                         1
                       );
                       const avatarUrl = resolveAvatarUrl(winner);
+                      const customName = resolveDisplayName(winner);
 
                       return (
                         <WinnerCard
@@ -568,6 +625,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                           winner={winner}
                           userWinCount={userWinCount}
                           avatarUrl={avatarUrl}
+                          displayName={customName}
                           onInspect={handleInspect}
                           onUserClick={handleUserClick}
                           onShare={handleShare}
@@ -622,7 +680,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                     handleUserClick(selectedWinnerPhoto);
                     setSelectedWinnerPhoto(null);
                   }}
-                  title={`View all winning entries from ${selectedWinnerPhoto.player_name}`}
+                  title={`View all winning entries from ${resolveDisplayName(selectedWinnerPhoto)}`}
                 >
                   <img
                     src={resolveAvatarUrl(selectedWinnerPhoto)}
@@ -636,7 +694,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white font-display group-hover/user:text-amber-400 transition-colors">{selectedWinnerPhoto.player_name}</span>
+                      <span className="text-sm font-bold text-white font-display group-hover/user:text-amber-400 transition-colors">{resolveDisplayName(selectedWinnerPhoto)}</span>
                       <ChampionBadge winCount={winnerWinsMap.get(selectedWinnerPhoto.discord_name?.toLowerCase()?.trim() || '') || 1} size="sm" />
                     </div>
                     <p className="text-xs text-white/60 italic">"{selectedWinnerPhoto.caption || 'No caption'}"</p>
@@ -691,7 +749,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
               <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/10">
                 <img src={shareWinner.image_url} alt="" className="w-14 h-14 rounded-xl object-cover border border-white/10 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white truncate">{shareWinner.player_name}</p>
+                  <p className="text-xs font-bold text-white truncate">{resolveDisplayName(shareWinner)}</p>
                   <p className="text-[10px] text-amber-400 font-mono uppercase">{shareWinner.contest_name} • {shareWinner.category_name}</p>
                   <p className="text-[11px] text-white/50 italic truncate mt-0.5">"{shareWinner.caption || 'No caption'}"</p>
                 </div>
@@ -750,7 +808,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
 
               {/* Option 3: Twitter / X Share Shortcut */}
               <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this winning entry by ${shareWinner.player_name} on Vital RP Photo Contest!`)}&url=${encodeURIComponent(`${window.location.origin}/?photo=${shareWinner.id}`)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this winning entry by ${resolveDisplayName(shareWinner)} on Vital RP Photo Contest!`)}&url=${encodeURIComponent(`${window.location.origin}/?photo=${shareWinner.id}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white/80 hover:text-white flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer"

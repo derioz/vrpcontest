@@ -53,7 +53,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Official Discord Profile Avatar Resolution: Updated resolveAvatarUrl on the Hall of Fame view to prioritize official Discord profile pictures (user.photoURL) for all winning entries, backed by automatic fallback error handling.
 • High-Performance Memoized Winner Cards: Isolated winner cards into a memoized WinnerCard component with GPU hardware acceleration (transform-gpu, lazy decoding, optimized particle background count) for ultra-smooth 60fps scrolling and filtering.
 • Interactive Photographer Portfolio Filter: Clicking any winner's username or avatar in the Hall of Fame now immediately filters the gallery view to show all past winning entries from that specific photographer, complete with an active filter pill and 1-click clear option.
-• Enhanced Share Entry Modal: Rebuilt the Share action to present a dedicated dialog with 1-click "Copy Link to Clipboard", a visible selectable text box for manual copying, and Twitter/X social share shortcuts.`,
+• Enhanced Share Entry Modal: Rebuilt the Share action to present a dedicated dialog with 1-click "Copy Link to Clipboard", a visible selectable text box for manual copying, and Twitter/X social share shortcuts.
+• Custom Display Name Filter Resolution: Updated resolveDisplayName in ArchivedWinnersView.tsx so user filters and winner card headers respect customized display names when a user renames their account.
+• Direct Shared Link Deep-Linking: Added URL search parameter listener on page mount (?photo=..., ?archive=..., ?winner=...) in App.tsx and ArchivedWinnersView.tsx so visiting or clicking any shared entry URL automatically launches the winning photo in full detail.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },
