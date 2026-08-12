@@ -1291,20 +1291,52 @@ export default function App() {
     <ShaderBackground className="min-h-screen flex flex-col">
       <motion.header
         ref={navbarRef}
-        style={{ height: navH, backgroundColor: navBg }}
+        style={{ height: navH }}
         className={cn(
-          "fixed z-50 transition-all duration-500 ease-out backdrop-blur-2xl border-b sm:border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.6)]",
+          "fixed z-50 transition-all duration-700 ease-out",
           "top-0 sm:top-3 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl sm:rounded-2xl",
-          isScrolled ? "bg-[#060608]/92 border-white/15 shadow-[0_20px_40px_rgba(0,0,0,0.85)]" : "bg-[#09090b]/75 border-white/10"
         )}
       >
-        {/* Top ambient glass glow beam */}
-        <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-fivem-orange/40 to-transparent pointer-events-none" />
+        {/* ═══ OUTER CHROME SHELL ═══ */}
+        {/* Animated gradient border — travels along the edge */}
+        <div className="absolute inset-0 sm:rounded-2xl overflow-hidden pointer-events-none">
+          {/* Travelling gradient highlight along top edge */}
+          <div
+            className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, transparent 20%, rgba(234,88,12,0.6) 40%, rgba(251,191,36,0.4) 50%, rgba(234,88,12,0.6) 60%, transparent 80%, transparent 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 4s ease-in-out infinite',
+            }}
+          />
+          {/* Left vertical accent */}
+          <div className="hidden sm:block absolute top-[20%] bottom-[20%] left-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/25 to-transparent" />
+          {/* Right vertical accent */}
+          <div className="hidden sm:block absolute top-[20%] bottom-[20%] right-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/25 to-transparent" />
+          {/* Bottom edge */}
+          <div className="absolute bottom-0 left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        </div>
 
-        {/* Bottom subtle border line */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-white/[0.06]" />
+        {/* ═══ FROSTED GLASS INTERIOR ═══ */}
+        <motion.div
+          style={{ backgroundColor: navBg }}
+          className={cn(
+            "absolute inset-0 sm:inset-[1px] sm:rounded-[15px] backdrop-blur-2xl transition-all duration-500",
+            isScrolled
+              ? "bg-[#07070a]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.9)]"
+              : "bg-[#0a0a0e]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_40px_rgba(0,0,0,0.5)]"
+          )}
+        >
+          {/* Noise texture overlay for premium glass feel */}
+          <div
+            className="absolute inset-0 sm:rounded-[15px] opacity-[0.03] mix-blend-overlay pointer-events-none"
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}
+          />
+          {/* Inner ambient glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-12 bg-fivem-orange/[0.04] blur-2xl rounded-full pointer-events-none" />
+        </motion.div>
 
-        {/* Inner layout */}
+        {/* ═══ CONTENT LAYER ═══ */}
         <div className="relative z-10 h-full max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
 
           {/* ── LEFT: Brand Beacon ── */}
@@ -1314,13 +1346,12 @@ export default function App() {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="flex items-center gap-3 group/brand shrink-0"
           >
-            {/* Squircle Brand Logo Badge with Easter Egg */}
+            {/* Brand Logo */}
             <div
               id="easter-egg-orb"
-              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none rounded-xl border border-white/15 bg-white/[0.03] transition-all duration-300 hover:border-fivem-orange/50 hover:bg-fivem-orange/10 hover:shadow-[0_0_20px_rgba(234,88,12,0.3)] active:scale-95"
+              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none rounded-xl bg-gradient-to-br from-fivem-orange/20 to-fivem-orange/5 border border-fivem-orange/30 transition-all duration-300 hover:border-fivem-orange/60 hover:shadow-[0_0_24px_rgba(234,88,12,0.3)] active:scale-95"
               onClick={handleLogoEasterEgg}
             >
-              {/* Conic glowing border when easter egg is active */}
               {easterEggActive && (
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -1331,11 +1362,9 @@ export default function App() {
                   }}
                 />
               )}
-              {/* Inner glass overlay */}
               {easterEggActive && (
                 <div className="absolute inset-[2px] bg-fivem-dark rounded-[10px] z-5 pointer-events-none" />
               )}
-              
               <motion.img
                 src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
                 alt="Vital RP"
@@ -1361,8 +1390,10 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* ── CENTER: Centered Navigation Tabs (ElevenLabs style layoutId slider) ── */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-md relative shadow-inner">
+          {/* ── CENTER: Navigation Capsule ── */}
+          <div className="hidden md:flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.08] relative">
+            {/* Inner inset shadow for depth */}
+            <div className="absolute inset-0 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] pointer-events-none" />
             {[
               { label: 'Gallery', action: () => window.scrollTo({ top: 400, behavior: 'smooth' }) },
               ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => setShowArchivedWinners(true) }] : []),
@@ -1375,7 +1406,7 @@ export default function App() {
                   onClick={item.action}
                   onMouseEnter={() => setHoveredNavIndex(index)}
                   onMouseLeave={() => setHoveredNavIndex(null)}
-                  className="relative px-4 py-1.5 rounded-lg text-xs font-bold font-display uppercase tracking-wider text-white/70 hover:text-white transition-colors duration-200 cursor-pointer"
+                  className="relative px-5 py-1.5 rounded-lg text-xs font-bold font-display uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
                 >
                   <span className="relative z-10">{item.label}</span>
                   <AnimatePresence>
@@ -1385,7 +1416,7 @@ export default function App() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 rounded-lg bg-gradient-to-r from-white/10 to-white/5 border border-white/15 shadow-sm"
+                        className="absolute inset-0 rounded-lg bg-white/[0.08] border border-white/[0.12]"
                         transition={{ type: 'spring', stiffness: 450, damping: 30 }}
                       />
                     )}
@@ -1395,7 +1426,7 @@ export default function App() {
             })}
           </div>
 
-          {/* ── RIGHT: Mobile Menu Toggle Button ── */}
+          {/* ── RIGHT: Mobile Menu Toggle ── */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-white/15 bg-white/[0.04] text-white/80 hover:text-white cursor-pointer transition-all active:scale-95 shadow-sm"
@@ -1412,19 +1443,22 @@ export default function App() {
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="hidden md:flex items-center gap-3 shrink-0"
+            className="hidden md:flex items-center gap-2 shrink-0"
           >
-            {/* User Avatar / Account Pill */}
+            {/* Profile Capsule */}
             {user && !user.isAnonymous ? (
               <div className="relative">
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="group/user relative flex items-center gap-3 px-4 py-2 rounded-xl
-                    border border-white/10 bg-white/[0.05] hover:bg-white/[0.10] hover:border-fivem-orange/40
-                    transition-all duration-300 cursor-pointer active:scale-[0.97] hover:scale-[1.02]"
+                  className={cn(
+                    "group/user relative flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full",
+                    "bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.10] hover:border-white/[0.20]",
+                    "transition-all duration-300 cursor-pointer active:scale-[0.97]",
+                    isProfileDropdownOpen && "bg-white/[0.12] border-fivem-orange/30"
+                  )}
                   title="Open account menu & profile settings"
                 >
-                  {/* Avatar */}
+                  {/* Avatar capsule */}
                   <div className="relative shrink-0">
                     <img
                       src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
@@ -1434,26 +1468,21 @@ export default function App() {
                         const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
                         if (target.src !== fallback) target.src = fallback;
                       }}
-                      className="w-8 h-8 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300 border-2 border-fivem-orange/50 shadow-[0_0_10px_rgba(234,88,12,0.25)]"
+                      className="w-7 h-7 rounded-full object-cover border border-fivem-orange/40 shadow-[0_0_8px_rgba(234,88,12,0.2)]"
                     />
-                    {/* Online dot on avatar */}
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#09090b] shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
+                    <span className="absolute -bottom-px -right-px w-2.5 h-2.5 rounded-full bg-emerald-400 border-[1.5px] border-[#09090b] shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
                   </div>
                   
-                  <div className="flex flex-col items-start leading-tight gap-0.5">
-                    <span className="text-sm font-black font-display text-white group-hover/user:text-fivem-orange transition-colors flex items-center gap-2">
-                      {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
-                      <ChevronDown size={14} className={cn("text-white/50 group-hover/user:text-fivem-orange transition-all duration-300", isProfileDropdownOpen && "rotate-180")} />
-                    </span>
-                    <span className="text-[10px] font-semibold text-emerald-400/90 font-mono uppercase tracking-widest">Online</span>
-                  </div>
+                  <span className="text-xs font-bold font-display text-white/90 group-hover/user:text-white transition-colors max-w-[80px] truncate">
+                    {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
+                  </span>
+                  <ChevronDown size={12} className={cn("text-white/40 group-hover/user:text-white/70 transition-all duration-300", isProfileDropdownOpen && "rotate-180 text-fivem-orange")} />
                 </button>
 
-                {/* Fixed Unclipped Account Options Dropdown Menu */}
+                {/* Account Options Dropdown */}
                 <AnimatePresence>
                   {isProfileDropdownOpen && (
                     <>
-                      {/* Fixed backdrop for clicking outside */}
                       <div
                         className="fixed inset-0 z-[99998] bg-transparent"
                         onClick={() => setIsProfileDropdownOpen(false)}
@@ -1464,7 +1493,7 @@ export default function App() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                        className="fixed top-20 right-4 sm:right-8 md:right-12 z-[99999] w-80 rounded-3xl border border-white/20 bg-[#0c0c10]/98 shadow-[0_24px_60px_rgba(0,0,0,0.95)] p-5 backdrop-blur-2xl flex flex-col gap-4"
+                        className="fixed top-20 right-4 sm:right-8 md:right-12 z-[99999] w-80 rounded-2xl border border-white/15 bg-[#0c0c10]/98 shadow-[0_24px_60px_rgba(0,0,0,0.95)] p-5 backdrop-blur-2xl flex flex-col gap-4"
                       >
                         {/* User Summary Header */}
                         <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
@@ -1567,7 +1596,7 @@ export default function App() {
             ) : (
               <button
                 onClick={() => setShowSignInModal(true)}
-                className="group/login relative flex items-center gap-2 px-4 h-9 rounded-xl
+                className="group/login relative flex items-center gap-2 px-4 h-8 rounded-full
                   bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.5)] border border-orange-400/30"
               >
                 <User className="w-3.5 h-3.5 relative z-10 opacity-90 group-hover/login:opacity-100 transition-opacity duration-200" size={14} />
@@ -1577,40 +1606,40 @@ export default function App() {
               </button>
             )}
 
-            {/* Vertical Divider */}
-            <div className="w-px h-4 bg-white/15" />
+            {/* Separator dot */}
+            <div className="w-1 h-1 rounded-full bg-white/20" />
 
-            {/* Admin / Settings Gear */}
+            {/* Admin / Settings */}
             <button
               onClick={() => isAdmin ? (setShowAdminModal(true), setIsAdminMinimized(false)) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })()}
               className={cn(
-                'group/setting relative flex items-center justify-center w-8.5 h-8.5 rounded-xl transition-all duration-300 cursor-pointer border',
+                'group/setting relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 cursor-pointer border',
                 isAdmin
-                  ? 'bg-fivem-orange/15 border-fivem-orange/40 hover:border-fivem-orange/70 shadow-[0_0_12px_rgba(234,88,12,0.2)]'
-                  : 'bg-white/[0.03] border-white/15 hover:border-white/30 hover:bg-white/[0.06]'
+                  ? 'bg-fivem-orange/15 border-fivem-orange/30 hover:border-fivem-orange/60 shadow-[0_0_12px_rgba(234,88,12,0.15)]'
+                  : 'bg-white/[0.04] border-white/10 hover:border-white/25 hover:bg-white/[0.08]'
               )}
             >
               <Settings
-                size={15}
+                size={14}
                 className={cn(
                   'transition-all duration-500',
                   isAdmin
                     ? 'text-fivem-orange group-hover/setting:rotate-90'
-                    : 'text-white/60 group-hover/setting:text-white group-hover/setting:rotate-45'
+                    : 'text-white/50 group-hover/setting:text-white group-hover/setting:rotate-45'
                 )}
               />
               {isAdmin && (
-                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />
+                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />
               )}
             </button>
 
-            {/* Bug Report / Contact Damon Button */}
+            {/* Bug Report */}
             <button
               onClick={() => setShowBugModal(true)}
               title="Report Bug / Contact Creator Damon (@mcspace)"
-              className="group/bug relative flex items-center justify-center w-8.5 h-8.5 rounded-xl border border-fivem-orange/30 bg-fivem-orange/10 hover:bg-fivem-orange/20 hover:border-fivem-orange/60 text-fivem-orange transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(234,88,12,0.15)] active:scale-95"
+              className="group/bug relative flex items-center justify-center w-8 h-8 rounded-full border border-white/10 bg-white/[0.04] hover:bg-fivem-orange/15 hover:border-fivem-orange/40 text-white/50 hover:text-fivem-orange transition-all duration-300 cursor-pointer active:scale-95"
             >
-              <Bug size={15} className="group-hover/bug:scale-110 transition-transform" />
+              <Bug size={14} className="group-hover/bug:scale-110 transition-transform" />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)] animate-pulse" />
             </button>
           </motion.div>
@@ -2036,7 +2065,7 @@ export default function App() {
       {categories.length > 0 && <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />}
 
       {/* ── Sticky Minimized Category Selector ── */}
-      {/* Uses clipPath to create a true "slide out from under navbar" reveal effect */}
+      {/* Matches navbar glass architecture — slides out from underneath */}
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
           <motion.div
@@ -2047,56 +2076,71 @@ export default function App() {
             style={{ top: miniCatTop }}
             className="fixed left-0 right-0 z-40 px-0 sm:px-6 pointer-events-none flex justify-center"
           >
-            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#252535] border-x border-b border-t-0 border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl px-5 py-3 flex items-center justify-between gap-4 overflow-hidden relative">
+            {/* Outer shell with gradient border accents (matching navbar) */}
+            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto relative">
+              {/* Gradient side accents */}
+              <div className="hidden sm:block absolute top-[15%] bottom-[15%] left-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/20 to-transparent" />
+              <div className="hidden sm:block absolute top-[15%] bottom-[15%] right-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/20 to-transparent" />
+              <div className="absolute bottom-0 left-[5%] right-[5%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-              {/* Left label badge */}
-              <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-fivem-orange/20 border border-fivem-orange/35">
-                <span className="w-2 h-2 rounded-full bg-fivem-orange animate-pulse shadow-[0_0_10px_rgba(234,88,12,0.9)]" />
-                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-fivem-orange font-mono">Category</span>
+              {/* Frosted glass interior */}
+              <div className="absolute inset-0 sm:inset-x-[1px] rounded-b-2xl rounded-t-none bg-[#0e0e14]/95 backdrop-blur-2xl shadow-[inset_0_-1px_0_rgba(255,255,255,0.05),0_16px_50px_rgba(0,0,0,0.7)]">
+                {/* Noise texture */}
+                <div
+                  className="absolute inset-0 rounded-b-2xl opacity-[0.03] mix-blend-overlay pointer-events-none"
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}
+                />
               </div>
 
-              {/* Category pill track */}
-              <div className="relative flex-1 overflow-hidden">
-                {/* Left fade mask */}
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#252535] to-transparent z-10" />
-                {/* Right fade mask */}
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#252535] to-transparent z-10" />
+              {/* Content layer */}
+              <div className="relative z-10 px-5 py-3 flex items-center justify-between gap-4">
 
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-2 py-0.5">
-                  {categories.map((cat) => {
-                    const isActive = selectedCategory?.id === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={cn(
-                          "relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-display transition-all duration-200 cursor-pointer shrink-0 select-none",
-                          isActive
-                            ? "text-white font-black"
-                            : "text-white/90 hover:text-white font-semibold bg-white/[0.10] hover:bg-white/[0.18] border border-white/15 hover:border-white/30"
-                        )}
-                      >
-                        {isActive && (
-                          <motion.div
-                            layoutId="sticky-cat-active-pill"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 shadow-[0_4px_16px_rgba(234,88,12,0.4)]"
-                            transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                          />
-                        )}
-                        <span className="relative z-10 text-base leading-none">{cat.emoji}</span>
-                        <span className="relative z-10">{cat.name}</span>
-                      </button>
-                    );
-                  })}
+                {/* Left: Filter icon pill */}
+                <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-full bg-fivem-orange/10 border border-fivem-orange/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-fivem-orange/90 font-mono">Filter</span>
                 </div>
-              </div>
 
-              {/* Right active indicator */}
-              <div className="hidden lg:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/10 text-xs font-mono text-white/60">
-                <span>Active:</span>
-                <span className="font-black text-fivem-orange">{selectedCategory?.name || 'All'}</span>
-              </div>
+                {/* Center: Category pill track */}
+                <div className="relative flex-1 overflow-hidden">
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0e0e14] to-transparent z-10" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0e0e14] to-transparent z-10" />
 
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-3 py-0.5">
+                    {categories.map((cat) => {
+                      const isActive = selectedCategory?.id === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={cn(
+                            "relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-display transition-all duration-200 cursor-pointer shrink-0 select-none",
+                            isActive
+                              ? "text-white font-black"
+                              : "text-white/80 hover:text-white font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.10] hover:border-white/[0.20]"
+                          )}
+                        >
+                          {isActive && (
+                            <motion.div
+                              layoutId="sticky-cat-active-pill"
+                              className="absolute inset-0 rounded-full bg-gradient-to-r from-fivem-orange to-orange-500 shadow-[0_4px_16px_rgba(234,88,12,0.35)]"
+                              transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                            />
+                          )}
+                          <span className="relative z-10 text-base leading-none">{cat.emoji}</span>
+                          <span className="relative z-10">{cat.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Right: Active indicator */}
+                <div className="hidden lg:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-mono text-white/50">
+                  <span>{selectedCategory?.name || 'All'}</span>
+                </div>
+
+              </div>
             </div>
           </motion.div>
         )}

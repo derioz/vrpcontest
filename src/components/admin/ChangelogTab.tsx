@@ -25,6 +25,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260811-2115',
+    version: 'v1.9.0',
+    title: 'Premium Dual-Layer Glass Navbar & Category Bar Redesign',
+    category: 'UI/UX',
+    description: `• Dual-Layer Glass Architecture: Redesigned navbar with an outer chrome shell featuring animated shimmer gradient border that travels along the top edge, and a frosted glass interior panel with inset shadows and noise texture overlay for premium depth.
+• Animated Shimmer Border: Added a continuously travelling orange-to-gold gradient highlight along the navbar top edge using a custom CSS shimmer keyframe animation, with subtle vertical gradient accents on side edges.
+• Profile Capsule Button: Redesigned profile button as a compact rounded-full capsule with circular avatar, green online dot, truncated name, and chevron — fits cleanly within the navbar without any overflow.
+• Category Bar Glass Matching: Rebuilt the sticky category menu with the same dual-layer glass architecture as the navbar — noise texture overlay, gradient side accents, frosted interior, and rounded-full pill buttons for visual consistency.
+• Navigation Capsule: Center nav tabs now sit inside an inset-shadow container with refined hover indicators for depth.
+• Rounded Action Buttons: Settings, bug report, and profile actions all use consistent rounded-full styling with dot separator instead of vertical divider.`,
+    author: 'Damon',
+    date: 'Aug 11, 2026 at 9:15 PM',
+  },
+  {
     id: 'release-20260811-2032',
     version: 'v1.8.0',
     title: 'High-Fidelity 3D Category Redesign & Prominent Emoji Visual Polish',
