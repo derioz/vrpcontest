@@ -80,6 +80,7 @@ import { RetroGrid } from './components/ui/retro-grid';
 import { Spotlight } from './components/ui/spotlight';
 import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
+import { UITripledCategoryCard } from './components/UITripledCategoryCard';
 
 
 // Integrations
@@ -1981,115 +1982,60 @@ export default function App() {
               </div>
 
               {/* ========================================= */}
-              {/* DESKTOP: Beautiful High-Fidelity Grid    */}
+              {/* DESKTOP: High-Fidelity UI Tripled Grid    */}
               {/* ========================================= */}
-              <div className="hidden sm:block relative overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.015] shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-6 backdrop-blur-md">
+              <div className="hidden sm:block relative overflow-hidden rounded-3xl border border-white/10 bg-[#09090b]/80 shadow-[0_12px_48px_rgba(0,0,0,0.6)] p-7 backdrop-blur-xl">
                 
                 {/* Background MagicUI DotPattern overlay */}
-                <DotPattern width={24} height={24} cr={1.2} className="opacity-35 z-0 pointer-events-none" />
+                <DotPattern width={24} height={24} cr={1.2} className="opacity-25 z-0 pointer-events-none" />
                 
-                {/* Ambient glow light spot behind title */}
-                <div className="absolute -top-24 -left-24 w-64 h-64 bg-fivem-orange/10 blur-[90px] rounded-full pointer-events-none" />
+                {/* Ambient dual glow spots */}
+                <div className="absolute -top-24 -left-24 w-72 h-72 bg-fivem-orange/15 blur-[100px] rounded-full pointer-events-none" />
+                <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-                <div className="relative z-10 flex flex-col gap-5">
+                <div className="relative z-10 flex flex-col gap-6">
                   
                   {/* Section Title & Header */}
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.25em] bg-fivem-orange/20 text-fivem-orange rounded-full border border-fivem-orange/30 animate-pulse">
-                        Interactive filters
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                    <div className="flex items-center gap-3.5 flex-wrap">
+                      <span className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.25em] bg-fivem-orange/20 text-fivem-orange rounded-full border border-fivem-orange/30 shadow-[0_0_12px_rgba(234,88,12,0.3)] animate-pulse">
+                        UI Tripled Filters
                       </span>
-                      <h3 className="text-sm font-black text-white uppercase tracking-wider font-display">
+                      <h3 className="text-base font-black text-white uppercase tracking-wider font-display">
                         Filter Submissions by Category
                       </h3>
-                      <span className="text-xs font-mono text-white/40">(<NumberTicker value={categories.length} /> topics live)</span>
+                      <span className="text-xs font-mono text-white/50">
+                        (<NumberTicker value={categories.length} /> topics live)
+                      </span>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-xs font-mono text-white/40">
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>Contest Entries:</span>
-                        <span className="font-black text-white font-display text-base"><NumberTicker value={allPhotos.length} /></span>
+                    <div className="flex items-center gap-5 text-xs font-mono text-white/50">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-white/60">Contest Entries:</span>
+                        <span className="font-black text-white font-display text-sm">
+                          <NumberTicker value={allPhotos.length} />
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Grid layout with MagicUI BlurFade & MagicCard */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {/* UI Tripled 3D Grid layout with MagicUI BlurFade */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
                     {categories.map((cat, catIdx) => {
                       const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
                       const isActive = selectedCategory?.id === cat.id;
-                      const totalAll = allPhotos.length;
-                      const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
 
                       return (
-                        <BlurFade key={cat.id} delay={catIdx * 0.04} duration={0.3} className="h-full">
-                          <MagicCard
-                            active={isActive}
-                            borderBeamProps={{ size: 220, duration: 6, colorFrom: "#ea580c", colorTo: "#fcd34d", borderWidth: 2 }}
-                            gradientColor={isActive ? "rgba(234, 88, 12, 0.28)" : "rgba(255, 255, 255, 0.08)"}
-                            className={cn(
-                              "group/cat relative flex flex-col justify-between p-5 rounded-2xl border text-left transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1 hover:shadow-lg h-full",
-                              isActive
-                                ? "bg-gradient-to-b from-fivem-orange/[0.03] to-fivem-orange/[0.08] border-fivem-orange/60 text-white shadow-[0_8px_24px_rgba(234,88,12,0.18)]"
-                                : "bg-[#0b0b0d]/50 hover:bg-[#121215]/80 border-white/[0.06] hover:border-white/15 text-white/60 hover:text-white"
-                            )}
-                            onClick={() => setSelectedCategory(cat)}
-                          >
-                            {/* Inner shining hover gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.015] via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
-                            <div className="w-full">
-                              <div className="flex items-start justify-between gap-3 mb-3.5">
-                                <span className="text-3xl group-hover/cat:scale-110 transition-transform duration-350 leading-none block">{cat.emoji || '✨'}</span>
-                                <div className={cn(
-                                  "w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-300",
-                                  isActive 
-                                    ? "border-fivem-orange bg-fivem-orange/20 shadow-[0_0_8px_rgba(234,88,12,0.35)]"
-                                    : "border-white/15 bg-transparent group-hover/cat:border-white/30"
-                                )}>
-                                  {isActive && (
-                                    <span className="w-1.5 h-1.5 rounded-sm bg-fivem-orange" />
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <span className={cn(
-                                "block text-[14px] font-bold leading-tight mb-1.5 transition-colors",
-                                isActive ? "text-white" : "text-white/80 group-hover/cat:text-white"
-                              )}>
-                                {cat.name}
-                              </span>
-                              
-                              {cat.description && (
-                                <span className="block text-[11px] text-white/40 leading-relaxed mb-5">
-                                  {cat.description}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Stat details with progress bar & NumberTicker */}
-                            <div className="w-full mt-auto pt-3.5 border-t border-white/5 flex flex-col gap-2">
-                              <div className="flex items-center justify-between text-[9px] font-mono text-white/30">
-                                <span className="uppercase tracking-wider">
-                                  <NumberTicker value={entryCount} /> submissions
-                                </span>
-                                <span className={cn("font-bold transition-all", isActive ? "text-fivem-orange font-black" : "text-white/40")}>
-                                  {pct}%
-                                </span>
-                              </div>
-                              {/* Horizontal Progress Bar */}
-                              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full transition-all duration-500",
-                                    isActive ? "bg-gradient-to-r from-fivem-orange to-orange-400 shadow-[0_0_8px_rgba(234,88,12,0.4)]" : "bg-white/20 group-hover/cat:bg-white/40"
-                                  )}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                            </div>
-                          </MagicCard>
+                        <BlurFade key={cat.id} delay={catIdx * 0.05} duration={0.35} className="h-full">
+                          <UITripledCategoryCard
+                            category={cat}
+                            index={catIdx}
+                            isActive={isActive}
+                            entryCount={entryCount}
+                            totalEntries={allPhotos.length}
+                            onSelect={() => setSelectedCategory(cat)}
+                          />
                         </BlurFade>
                       );
                     })}

@@ -25,6 +25,19 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260811-2028',
+    version: 'v1.8.0',
+    title: 'UI Tripled 3D Category Redesign, MagicUI Beams & ElevenLabs AI Voice Narration',
+    category: 'UI/UX',
+    description: `• UI Tripled 3D Card Tilt: Added realistic spring-based 3D cursor tilt physics and specular glare glass reflection to all category cards.
+• MagicUI Neon Border Beams: Integrated active-state BorderBeam glow effects and ambient DotPattern background overlay.
+• ElevenLabs AI Voice Narration: Added an interactive ElevenLabs voice narrator button on category cards with animated audio waveform equalizer visualizer.
+• High-Contrast Glassmorphic Card Styling: Rebuilt topic cards with vibrant per-category gradient accents, status pills, and high-visibility typography.
+• Real-time Submission Percentage Ring: Displayed animated live submission stats and progress bars using MagicUI NumberTicker.`,
+    author: 'Damon',
+    date: 'Aug 11, 2026 at 8:28 PM',
+  },
+  {
     id: 'release-20260810-2151',
     version: 'v1.7.0',
     title: 'DiceBear Dynamic Default Avatars & Discord Fallback Integration',
