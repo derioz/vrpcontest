@@ -1407,10 +1407,14 @@ export default function App() {
               },
               {
                 id: 'submit',
-                label: 'Submit Entry',
-                icon: Plus,
-                accent: true,
+                label: submissionsOpen ? 'Submit Entry' : 'Submissions Closed',
+                icon: submissionsOpen ? Plus : Lock,
+                accent: submissionsOpen,
                 action: () => {
+                  if (!submissionsOpen) {
+                    toast.error('Submissions are currently closed for this contest.');
+                    return;
+                  }
                   if (!user) {
                     setShowSignInModal(true);
                   } else {
@@ -1711,7 +1715,7 @@ export default function App() {
                   <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Navigation</span>
                   {[
                     { label: 'Categories', action: () => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
-                    { label: 'Submit Entry', action: () => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); } },
+                    { label: submissionsOpen ? 'Submit Entry' : 'Submissions Closed', action: () => { if (!submissionsOpen) { toast.error('Submissions are currently closed for this contest.'); return; } if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); } },
                     ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); } }] : []),
                     { label: 'Rules', action: () => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } }
                   ].map((item) => (
@@ -2758,15 +2762,19 @@ export default function App() {
       </main>
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg max-h-[88vh] overflow-y-auto bg-fivem-card border-white/10 text-white p-4 sm:p-6">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl max-h-[92vh] overflow-y-auto bg-[#0a0a0e] border-white/15 text-white p-5 sm:p-7 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)]">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg font-black">Upload Entry</DialogTitle>
+            <DialogTitle className="font-display text-xl font-black flex items-center gap-2">
+              <Sparkles className="text-fivem-orange" size={20} />
+              Submit Contest Entry
+            </DialogTitle>
           </DialogHeader>
-          <Suspense fallback={<div className="p-8 text-center text-white/50 animate-pulse font-mono text-xs">Loading form...</div>}>
+          <Suspense fallback={<div className="p-8 text-center text-white/50 animate-pulse font-mono text-xs">Loading submission module...</div>}>
             <UploadForm
               categories={categories}
               initialCategoryId={selectedCategory?.id || ''}
               discordName={user?.displayName || user?.providerData?.[0]?.displayName || user?.email || 'Authenticated User'}
+              submissionsOpen={submissionsOpen}
               onClose={() => setShowUploadModal(false)}
               onUpload={async (imageData, caption, discordName, formPlayerName, categoryId) => {
                 await handleUpload(imageData, caption, discordName, formPlayerName, categoryId);

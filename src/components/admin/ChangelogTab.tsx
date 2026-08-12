@@ -34,7 +34,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Profile Capsule Button: Redesigned profile button as a compact rounded-full capsule with circular avatar, green online dot, truncated name, and chevron — fits cleanly within the navbar without any overflow.
 • Category Bar Glass Matching: Rebuilt the sticky category menu with the same dual-layer glass architecture as the navbar — noise texture overlay, gradient side accents, frosted interior, and rounded-full pill buttons for visual consistency.
 • Navigation Capsule Refinement: Removed obsolete Gallery button and added high-utility nav tabs ("Categories", "Submit Entry" CTA with glowing orange badge, "Rules", and "Hall of Fame") with Lucide icons for quick access.
-• Mini Category Bar Spacing: Added 6px top offset under navbar and increased internal track padding (pt-4 pb-3.5) so category buttons are comfortably spaced and easy to read/tap.`,
+• Mini Category Bar Spacing: Added 6px top offset under navbar and increased internal track padding (pt-4 pb-3.5) so category buttons are comfortably spaced and easy to read/tap.
+• Closed Submissions Guard: Navbar "Submit Entry" button checks contest status and blocks modal launch with a clear toast message when submissions are closed by admins.
+• Strict 1920x1080 Resolution Inspector: Image selection inspects dimensions and immediately alerts the user if resolution is under 1920x1080 Full HD, displaying current dimensions vs requirement with explicit error banners and button lock.
+• High-Utility Upload Modal: Enhanced upload form with live image metadata badges (resolution, aspect ratio, file size), category description preview, quick caption tags, and verified Discord badge.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },
