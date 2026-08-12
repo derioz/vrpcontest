@@ -49,7 +49,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Universal Profile Picture Display: Integrated user profile avatars across gallery photo cards, lightbox viewer, sidebar profile section, and Hall of Fame winner cards.
 • "My Victories" Personal Vault Filter: Added an intuitive filter tab and profile dropdown shortcut allowing users to immediately view all past winning photo entries submitted by their account.
 • Multi-Identifier User Victory Resolution: Enhanced user victory matching logic to resolve wins across uid, displayName, discord_name, player_name, email, and local storage handles so past archived victories are reliably detected and counted.
-• Consistent Winner Card Layout Baseline: Added a fixed 2-line caption container height (min-h-[2.5rem] flex items-center) so the divider line and user profile footer line up at the exact same vertical baseline across every card regardless of caption length.`,
+• Consistent Winner Card Layout Baseline: Added a fixed 2-line caption container height (min-h-[2.5rem] flex items-center) so the divider line and user profile footer line up at the exact same vertical baseline across every card regardless of caption length.
+• Official Discord Profile Avatar Resolution: Updated resolveAvatarUrl on the Hall of Fame view to prioritize official Discord profile pictures (user.photoURL) for all winning entries, backed by automatic fallback error handling.
+• High-Performance Memoized Winner Cards: Isolated winner cards into a memoized WinnerCard component with GPU hardware acceleration (transform-gpu, lazy decoding, optimized particle background count) for ultra-smooth 60fps scrolling and filtering.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },

@@ -1,18 +1,14 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy,
   ArrowLeft,
-  Calendar,
   ImageIcon,
   Heart,
   Download,
   Share2,
-  Sparkles,
   Flame,
   Search,
-  User,
-  Filter,
   Maximize2,
   Crown
 } from 'lucide-react';
@@ -29,7 +25,7 @@ import { Particles } from './ui/particles';
 import { toast } from 'sonner';
 import { downloadPhoto } from '../lib/download';
 import { ChampionBadge } from './ChampionBadge';
-import { getProfileAvatar } from '../lib/dicebear';
+import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
 
 interface ArchivedWinnersViewProps {
   currentUser?: any | null;
@@ -42,6 +38,127 @@ function sanitizeFilePart(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+// ── MEMOIZED WINNER CARD COMPONENT FOR ULTRA-SMOOTH GPU PERFORMANCE ──
+const WinnerCard = React.memo(({
+  winner,
+  userWinCount,
+  avatarUrl,
+  onInspect,
+  onShare,
+  onDownload
+}: {
+  winner: ArchivedWinner;
+  userWinCount: number;
+  avatarUrl: string;
+  onInspect: (w: ArchivedWinner) => void;
+  onShare: (w: ArchivedWinner) => void;
+  onDownload: (w: ArchivedWinner) => void;
+}) => {
+  return (
+    <div className="group relative transform-gpu">
+      <MagicCard
+        active={true}
+        borderBeamProps={{ size: 240, duration: 8, colorFrom: "#ea580c", colorTo: "#fb923c", borderWidth: 1.5 }}
+        gradientColor="rgba(234, 88, 12, 0.16)"
+        className="group relative flex flex-col bg-[#0a0a0d]/90 border border-fivem-orange/30 rounded-3xl overflow-hidden group-hover:border-fivem-orange/70 transition-all duration-300 shadow-xl h-full justify-between p-4 transform-gpu"
+      >
+        {/* Image Container */}
+        <div
+          className="relative aspect-[4/3] bg-black/60 rounded-2xl overflow-hidden mb-4 border border-white/5 cursor-pointer transform-gpu"
+          onClick={() => onInspect(winner)}
+        >
+          <img
+            src={winner.image_url}
+            alt={winner.caption || 'Archived winning entry'}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 transform-gpu"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80" />
+
+          {/* Category Badge */}
+          <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-full border border-amber-500/40 flex items-center gap-1.5 shadow-xl">
+            <Trophy size={11} className="text-amber-400" />
+            <span className="text-[10px] uppercase tracking-wider font-bold text-white/90 truncate max-w-[120px]">
+              {winner.category_name}
+            </span>
+          </div>
+
+          {/* Zoom Overlay Trigger */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
+            <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-black/70 border border-white/20 shadow-xl">
+              <Maximize2 size={13} /> Inspect Winner
+            </span>
+          </div>
+
+          {/* Vote Count Badge */}
+          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-1 bg-amber-500/90 backdrop-blur-md rounded-full text-black font-bold text-xs shadow-lg font-mono">
+            <Heart size={12} className="fill-black stroke-none" />
+            <NumberTicker value={winner.vote_count} />
+          </div>
+        </div>
+
+        {/* Info Section */}
+        <div className="flex flex-col flex-1 justify-between gap-3">
+          <div className="min-h-[2.5rem] flex items-center">
+            <p className="text-xs text-white/80 line-clamp-2 italic leading-relaxed">
+              "{winner.caption || 'No caption provided'}"
+            </p>
+          </div>
+
+          {/* Footer: User Profile Avatar & Champion Badge */}
+          <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto w-full">
+            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+              <img
+                src={avatarUrl}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  const fallback = getDiceBearAvatarUrl(winner.avatar_seed || winner.discord_name, (winner.avatar_style as any) || 'botttsNeutral');
+                  if (target.src !== fallback) target.src = fallback;
+                }}
+                className="w-8 h-8 rounded-full object-cover border border-amber-500/50 shadow-md shrink-0"
+              />
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-white truncate">{winner.player_name}</span>
+                  <ChampionBadge winCount={userWinCount} size="sm" showLabel={false} />
+                </div>
+                <span className="text-[9px] font-mono text-white/40 uppercase truncate">@{winner.discord_name}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onShare(winner)}
+                className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 cursor-pointer"
+                title="Share entry"
+              >
+                <Share2 size={14} />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onDownload(winner)}
+                className="w-8 h-8 rounded-xl bg-amber-500/15 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 cursor-pointer"
+                title="Download winning photo"
+              >
+                <Download size={14} />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </MagicCard>
+    </div>
+  );
+});
+
+WinnerCard.displayName = 'WinnerCard';
 
 export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersViewProps) {
   const [winners, setWinners] = useState<ArchivedWinner[]>([]);
@@ -134,6 +251,37 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     });
   }, [currentUser, winners]);
 
+  // Resolution helper: Priority to Discord OAuth photoURL if available for user or winner
+  const resolveAvatarUrl = useCallback((winner: ArchivedWinner) => {
+    // 1. Direct photo URL on winner record
+    if (winner.user_photo_url && winner.user_photo_url.trim()) {
+      return winner.user_photo_url;
+    }
+    
+    // 2. If logged in user matches winner, check logged in user's photoURL (official Discord OAuth picture)
+    if (currentUser && !currentUser.isAnonymous) {
+      const currentUid = currentUser.uid;
+      const currentName = currentUser.displayName?.toLowerCase().trim();
+      const currentDiscord = localStorage.getItem('fivem_discord_name')?.toLowerCase().trim();
+      const currentPlayer = localStorage.getItem('fivem_player_name')?.toLowerCase().trim();
+      const wName = winner.discord_name?.toLowerCase().trim();
+      const wPlayer = winner.player_name?.toLowerCase().trim();
+
+      const isMatch =
+        (currentUid && winner.user_id === currentUid) ||
+        (currentName && (wName === currentName || wPlayer === currentName)) ||
+        (currentDiscord && (wName === currentDiscord || wPlayer === currentDiscord)) ||
+        (currentPlayer && (wName === currentPlayer || wPlayer === currentPlayer));
+
+      if (isMatch && currentUser.photoURL && currentUser.photoURL.trim()) {
+        return currentUser.photoURL;
+      }
+    }
+
+    // 3. Fallback to DiceBear deterministically
+    return getProfileAvatar(winner.user_photo_url, winner.avatar_seed || winner.user_id || winner.discord_name, (winner.avatar_style as any) || 'botttsNeutral');
+  }, [currentUser]);
+
   // Filter displayed winners by selected contest, filter mode, and search query
   const displayedWinners = useMemo(() => {
     let result = winners;
@@ -158,7 +306,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return result;
   }, [winners, filterMode, selectedContest, searchQuery, userWinningEntries]);
 
-  const handleDownload = async (winner: ArchivedWinner) => {
+  const handleDownload = useCallback(async (winner: ArchivedWinner) => {
     const toastId = `download-archive-${winner.id}`;
     toast.loading("Preparing archived photo download...", { id: toastId });
 
@@ -173,22 +321,26 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     } else {
       toast.error("Could not download image.", { id: toastId });
     }
-  };
+  }, []);
 
-  const handleShare = (winner: ArchivedWinner) => {
+  const handleShare = useCallback((winner: ArchivedWinner) => {
     const url = `${window.location.origin}/?photo=${winner.id}`;
     navigator.clipboard.writeText(url);
     toast.success("Archived entry link copied to clipboard!");
-  };
+  }, []);
+
+  const handleInspect = useCallback((winner: ArchivedWinner) => {
+    setSelectedWinnerPhoto(winner);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-[150] bg-[#060608] flex flex-col overflow-y-scroll text-white pattern-bg scrollbar-gutter-stable">
-      {/* Background Ambient Particles (MagicUI) */}
+    <div className="fixed inset-0 z-[150] bg-[#060608] flex flex-col overflow-y-scroll text-white pattern-bg scrollbar-gutter-stable transform-gpu">
+      {/* Background Ambient Particles (Optimized quantity=20 for 60fps performance) */}
       <Particles
-        className="absolute inset-0 z-0 opacity-30 pointer-events-none"
-        quantity={50}
+        className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+        quantity={20}
         color="#ea580c"
-        staticity={40}
+        staticity={50}
         size={0.6}
       />
 
@@ -282,7 +434,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                       setFilterMode('all');
                     }}
                     className={cn(
-                      "w-full text-left px-4 py-3 rounded-2xl transition-all duration-300 flex items-center justify-between group cursor-pointer border",
+                      "w-full text-left px-4 py-3 rounded-2xl transition-all duration-200 flex items-center justify-between group cursor-pointer border",
                       selectedContest === contest && filterMode === 'all'
                         ? "bg-gradient-to-r from-amber-500/20 to-orange-500/10 border-amber-500/40 text-white shadow-[0_0_20px_rgba(245,158,11,0.15)] font-bold"
                         : "hover:bg-white/[0.04] text-white/50 border-transparent hover:border-white/10 hover:text-white"
@@ -316,7 +468,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
             </div>
 
             {/* Main Winner Cards Grid Container */}
-            <div className="flex-1 overflow-y-scroll px-4 py-6 relative bg-[#060608]/90 scrollbar-gutter-stable">
+            <div className="flex-1 overflow-y-scroll px-4 py-6 relative bg-[#060608]/90 scrollbar-gutter-stable transform-gpu">
               <div className="max-w-[1400px] mx-auto space-y-6">
                 
                 {/* Header Title */}
@@ -346,106 +498,25 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {displayedWinners.map((winner, idx) => {
+                    {displayedWinners.map((winner) => {
                       const userWinCount = Math.max(
                         winnerWinsMap.get(winner.discord_name?.toLowerCase()?.trim() || '') || 0,
                         winnerWinsMap.get(winner.player_name?.toLowerCase()?.trim() || '') || 0,
                         winnerWinsMap.get(winner.user_id || '') || 0,
                         1
                       );
-                      const avatarUrl = getProfileAvatar(winner.user_photo_url, winner.avatar_seed || winner.user_id || winner.discord_name, winner.avatar_style);
+                      const avatarUrl = resolveAvatarUrl(winner);
 
                       return (
-                        <div key={winner.id} className="group relative">
-                          <MagicCard
-                            active={true}
-                            borderBeamProps={{ size: 240, duration: 8, colorFrom: "#ea580c", colorTo: "#fb923c", borderWidth: 1.5 }}
-                            gradientColor="rgba(234, 88, 12, 0.16)"
-                            className="group relative flex flex-col bg-[#0a0a0d]/90 border border-fivem-orange/30 rounded-3xl overflow-hidden group-hover:border-fivem-orange/70 transition-all duration-300 shadow-xl h-full justify-between p-4"
-                          >
-                            {/* Image Container */}
-                            <div
-                              className="relative aspect-[4/3] bg-black/60 rounded-2xl overflow-hidden mb-4 border border-white/5 cursor-pointer"
-                              onClick={() => setSelectedWinnerPhoto(winner)}
-                            >
-                              <img
-                                src={winner.image_url}
-                                alt={winner.caption}
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80" />
-
-                              {/* Category Badge */}
-                              <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-full border border-amber-500/40 flex items-center gap-1.5 shadow-xl">
-                                <Trophy size={11} className="text-amber-400" />
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-white/90 truncate max-w-[120px]">
-                                  {winner.category_name}
-                                </span>
-                              </div>
-
-                              {/* Zoom Overlay Trigger */}
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
-                                <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 border border-white/20">
-                                  <Maximize2 size={13} /> Inspect Winner
-                                </span>
-                              </div>
-
-                              {/* Vote Count Badge */}
-                              <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-1 bg-amber-500/90 backdrop-blur-md rounded-full text-black font-bold text-xs shadow-lg font-mono">
-                                <Heart size={12} className="fill-black stroke-none" />
-                                <NumberTicker value={winner.vote_count} />
-                              </div>
-                            </div>
-
-                            {/* Info Section */}
-                            <div className="flex flex-col flex-1 justify-between gap-3">
-                              <div className="min-h-[2.5rem] flex items-center">
-                                <p className="text-xs text-white/80 line-clamp-2 italic leading-relaxed">
-                                  "{winner.caption || 'No caption provided'}"
-                                </p>
-                              </div>
-
-                              {/* Footer: User Profile Avatar & Champion Badge */}
-                              <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto w-full">
-                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                                  <img
-                                    src={avatarUrl}
-                                    alt=""
-                                    className="w-8 h-8 rounded-full object-cover border border-amber-500/50 shadow-md shrink-0"
-                                  />
-                                  <div className="flex flex-col min-w-0">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-xs font-bold text-white truncate">{winner.player_name}</span>
-                                      <ChampionBadge winCount={userWinCount} size="sm" showLabel={false} />
-                                    </div>
-                                    <span className="text-[9px] font-mono text-white/40 uppercase truncate">@{winner.discord_name}</span>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => handleShare(winner)}
-                                    className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 cursor-pointer"
-                                    title="Share entry"
-                                  >
-                                    <Share2 size={14} />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => handleDownload(winner)}
-                                    className="w-8 h-8 rounded-xl bg-amber-500/15 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 cursor-pointer"
-                                    title="Download winning photo"
-                                  >
-                                    <Download size={14} />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </MagicCard>
-                        </div>
+                        <WinnerCard
+                          key={winner.id}
+                          winner={winner}
+                          userWinCount={userWinCount}
+                          avatarUrl={avatarUrl}
+                          onInspect={handleInspect}
+                          onShare={handleShare}
+                          onDownload={handleDownload}
+                        />
                       );
                     })}
                   </div>
@@ -491,8 +562,13 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
               <div className="p-5 bg-[#0f0f14] border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <img
-                    src={getProfileAvatar(selectedWinnerPhoto.user_photo_url, selectedWinnerPhoto.avatar_seed || selectedWinnerPhoto.discord_name, selectedWinnerPhoto.avatar_style)}
+                    src={resolveAvatarUrl(selectedWinnerPhoto)}
                     alt=""
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const fallback = getDiceBearAvatarUrl(selectedWinnerPhoto.avatar_seed || selectedWinnerPhoto.discord_name, selectedWinnerPhoto.avatar_style);
+                      if (target.src !== fallback) target.src = fallback;
+                    }}
                     className="w-10 h-10 rounded-full object-cover border-2 border-amber-500/40"
                   />
                   <div>
@@ -506,7 +582,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
 
                 <Button
                   onClick={() => handleDownload(selectedWinnerPhoto)}
-                  className="h-10 px-5 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 shrink-0"
+                  className="h-10 px-5 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 shrink-0 cursor-pointer"
                 >
                   <Download size={15} /> Download Photo
                 </Button>
