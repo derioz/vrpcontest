@@ -10,7 +10,12 @@ import {
   Flame,
   Search,
   Maximize2,
-  Crown
+  Crown,
+  User,
+  X,
+  Copy,
+  Check,
+  ExternalLink
 } from 'lucide-react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -45,6 +50,7 @@ const WinnerCard = React.memo(({
   userWinCount,
   avatarUrl,
   onInspect,
+  onUserClick,
   onShare,
   onDownload
 }: {
@@ -52,6 +58,7 @@ const WinnerCard = React.memo(({
   userWinCount: number;
   avatarUrl: string;
   onInspect: (w: ArchivedWinner) => void;
+  onUserClick: (w: ArchivedWinner) => void;
   onShare: (w: ArchivedWinner) => void;
   onDownload: (w: ArchivedWinner) => void;
 }) => {
@@ -107,9 +114,16 @@ const WinnerCard = React.memo(({
             </p>
           </div>
 
-          {/* Footer: User Profile Avatar & Champion Badge */}
+          {/* Footer: User Profile Avatar & Champion Badge (Clickable Username filter) */}
           <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto w-full">
-            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+            <div
+              className="flex items-center gap-2.5 min-w-0 pr-2 cursor-pointer group/user hover:opacity-90 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUserClick(winner);
+              }}
+              title={`Click to view all winning entries from ${winner.player_name}`}
+            >
               <img
                 src={avatarUrl}
                 alt=""
@@ -120,14 +134,18 @@ const WinnerCard = React.memo(({
                   const fallback = getDiceBearAvatarUrl(winner.avatar_seed || winner.discord_name, (winner.avatar_style as any) || 'botttsNeutral');
                   if (target.src !== fallback) target.src = fallback;
                 }}
-                className="w-8 h-8 rounded-full object-cover border border-amber-500/50 shadow-md shrink-0"
+                className="w-8 h-8 rounded-full object-cover border border-amber-500/50 shadow-md shrink-0 group-hover/user:border-amber-400 transition-colors"
               />
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs font-bold text-white truncate">{winner.player_name}</span>
+                  <span className="text-xs font-bold text-white truncate group-hover/user:text-amber-400 transition-colors">
+                    {winner.player_name}
+                  </span>
                   <ChampionBadge winCount={userWinCount} size="sm" showLabel={false} />
                 </div>
-                <span className="text-[9px] font-mono text-white/40 uppercase truncate">@{winner.discord_name}</span>
+                <span className="text-[9px] font-mono text-white/40 uppercase truncate group-hover/user:text-amber-400/80 transition-colors">
+                  @{winner.discord_name}
+                </span>
               </div>
             </div>
 
@@ -166,7 +184,10 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
   const [selectedContest, setSelectedContest] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'my-wins'>('all');
+  const [selectedUserFilter, setSelectedUserFilter] = useState<string | null>(null);
   const [selectedWinnerPhoto, setSelectedWinnerPhoto] = useState<ArchivedWinner | null>(null);
+  const [shareWinner, setShareWinner] = useState<ArchivedWinner | null>(null);
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWinners = async () => {
@@ -282,11 +303,18 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return getProfileAvatar(winner.user_photo_url, winner.avatar_seed || winner.user_id || winner.discord_name, (winner.avatar_style as any) || 'botttsNeutral');
   }, [currentUser]);
 
-  // Filter displayed winners by selected contest, filter mode, and search query
+  // Filter displayed winners by selected contest, user filter, filter mode, and search query
   const displayedWinners = useMemo(() => {
     let result = winners;
 
-    if (filterMode === 'my-wins') {
+    if (selectedUserFilter) {
+      const uq = selectedUserFilter.toLowerCase().trim();
+      result = winners.filter(w =>
+        (w.discord_name && w.discord_name.toLowerCase().trim() === uq) ||
+        (w.player_name && w.player_name.toLowerCase().trim() === uq) ||
+        (w.user_id && w.user_id === selectedUserFilter)
+      );
+    } else if (filterMode === 'my-wins') {
       result = userWinningEntries;
     } else if (selectedContest) {
       result = winners.filter(w => w.contest_name === selectedContest);
@@ -304,7 +332,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     }
 
     return result;
-  }, [winners, filterMode, selectedContest, searchQuery, userWinningEntries]);
+  }, [winners, filterMode, selectedContest, searchQuery, userWinningEntries, selectedUserFilter]);
 
   const handleDownload = useCallback(async (winner: ArchivedWinner) => {
     const toastId = `download-archive-${winner.id}`;
@@ -324,9 +352,13 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
   }, []);
 
   const handleShare = useCallback((winner: ArchivedWinner) => {
-    const url = `${window.location.origin}/?photo=${winner.id}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Archived entry link copied to clipboard!");
+    setShareWinner(winner);
+  }, []);
+
+  const handleUserClick = useCallback((winner: ArchivedWinner) => {
+    const filterHandle = winner.discord_name || winner.player_name;
+    setSelectedUserFilter(filterHandle);
+    toast.info(`Filtering Hall of Fame entries by photographer: ${winner.player_name}`);
   }, []);
 
   const handleInspect = useCallback((winner: ArchivedWinner) => {
@@ -380,15 +412,18 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
           <div className="flex items-center gap-2">
             {currentUser && !currentUser.isAnonymous && (
               <button
-                onClick={() => setFilterMode(filterMode === 'my-wins' ? 'all' : 'my-wins')}
+                onClick={() => {
+                  setSelectedUserFilter(null);
+                  setFilterMode(filterMode === 'my-wins' ? 'all' : 'my-wins');
+                }}
                 className={cn(
                   "px-3.5 py-1.5 rounded-full text-xs font-bold font-display uppercase tracking-wider transition-all duration-300 flex items-center gap-2 cursor-pointer border shadow-md",
-                  filterMode === 'my-wins'
+                  filterMode === 'my-wins' && !selectedUserFilter
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300 shadow-amber-500/30"
                     : "bg-white/[0.05] hover:bg-white/[0.12] border-white/15 text-white/80"
                 )}
               >
-                <Crown size={14} className={filterMode === 'my-wins' ? 'text-white' : 'text-amber-400'} />
+                <Crown size={14} className={filterMode === 'my-wins' && !selectedUserFilter ? 'text-white' : 'text-amber-400'} />
                 <span>My Victories ({userWinningEntries.length})</span>
               </button>
             )}
@@ -432,10 +467,11 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                     onClick={() => {
                       setSelectedContest(contest);
                       setFilterMode('all');
+                      setSelectedUserFilter(null);
                     }}
                     className={cn(
                       "w-full text-left px-4 py-3 rounded-2xl transition-all duration-200 flex items-center justify-between group cursor-pointer border",
-                      selectedContest === contest && filterMode === 'all'
+                      selectedContest === contest && filterMode === 'all' && !selectedUserFilter
                         ? "bg-gradient-to-r from-amber-500/20 to-orange-500/10 border-amber-500/40 text-white shadow-[0_0_20px_rgba(245,158,11,0.15)] font-bold"
                         : "hover:bg-white/[0.04] text-white/50 border-transparent hover:border-white/10 hover:text-white"
                     )}
@@ -446,7 +482,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                         {winners.filter(w => w.contest_name === contest).length} Champions
                       </p>
                     </div>
-                    <Trophy size={14} className={cn("shrink-0 transition-opacity", selectedContest === contest && filterMode === 'all' ? "text-amber-400 opacity-100" : "opacity-0 group-hover:opacity-40")} />
+                    <Trophy size={14} className={cn("shrink-0 transition-opacity", selectedContest === contest && filterMode === 'all' && !selectedUserFilter ? "text-amber-400 opacity-100" : "opacity-0 group-hover:opacity-40")} />
                   </button>
                 ))}
               </div>
@@ -471,14 +507,33 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
             <div className="flex-1 overflow-y-scroll px-4 py-6 relative bg-[#060608]/90 scrollbar-gutter-stable transform-gpu">
               <div className="max-w-[1400px] mx-auto space-y-6">
                 
+                {/* Active Photographer Filter Pill if user clicked a username */}
+                {selectedUserFilter && (
+                  <div className="flex items-center justify-between gap-3 bg-amber-500/15 border border-amber-500/30 px-4 py-2.5 rounded-2xl text-xs font-bold text-amber-300 backdrop-blur-md shadow-lg">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <User size={15} className="text-amber-400 shrink-0" />
+                      <span className="truncate">
+                        Viewing winning entries from <strong className="text-white font-display uppercase tracking-wide">@{selectedUserFilter}</strong>
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedUserFilter(null)}
+                      className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 hover:text-white transition-colors cursor-pointer text-[11px] font-mono uppercase flex items-center gap-1 shrink-0"
+                      title="Clear photographer filter"
+                    >
+                      <X size={13} /> Clear Filter
+                    </button>
+                  </div>
+                )}
+
                 {/* Header Title */}
                 <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                   <div>
                     <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-400 font-bold block mb-1">
-                      {filterMode === 'my-wins' ? 'Your Personal Vault' : 'Archived Vault Record'}
+                      {selectedUserFilter ? 'Photographer Portfolio' : filterMode === 'my-wins' ? 'Your Personal Vault' : 'Archived Vault Record'}
                     </span>
                     <h2 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white flex items-center gap-3">
-                      {filterMode === 'my-wins' ? 'Your Winning Entries' : selectedContest}
+                      {selectedUserFilter ? `@${selectedUserFilter}'s Wins` : filterMode === 'my-wins' ? 'Your Winning Entries' : selectedContest}
                     </h2>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs font-mono text-white/60">
@@ -492,7 +547,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   <div className="py-20 text-center space-y-3 bg-white/[0.02] border border-white/[0.06] rounded-3xl">
                     <Trophy size={36} className="mx-auto text-white/20" />
                     <p className="text-sm font-bold text-white/60">
-                      {filterMode === 'my-wins' ? "You haven't won any contest categories yet." : "No winning entries match your search."}
+                      {selectedUserFilter ? `No winning entries found for @${selectedUserFilter}.` : filterMode === 'my-wins' ? "You haven't won any contest categories yet." : "No winning entries match your search."}
                     </p>
                     <p className="text-xs text-white/30">Submit your best shots to earn a spot in the Hall of Fame!</p>
                   </div>
@@ -514,6 +569,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                           userWinCount={userWinCount}
                           avatarUrl={avatarUrl}
                           onInspect={handleInspect}
+                          onUserClick={handleUserClick}
                           onShare={handleShare}
                           onDownload={handleDownload}
                         />
@@ -560,33 +616,148 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
 
               {/* Footer details */}
               <div className="p-5 bg-[#0f0f14] border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div
+                  className="flex items-center gap-3 cursor-pointer group/user hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    handleUserClick(selectedWinnerPhoto);
+                    setSelectedWinnerPhoto(null);
+                  }}
+                  title={`View all winning entries from ${selectedWinnerPhoto.player_name}`}
+                >
                   <img
                     src={resolveAvatarUrl(selectedWinnerPhoto)}
                     alt=""
                     onError={(e) => {
                       const target = e.currentTarget;
-                      const fallback = getDiceBearAvatarUrl(selectedWinnerPhoto.avatar_seed || selectedWinnerPhoto.discord_name, selectedWinnerPhoto.avatar_style);
+                      const fallback = getDiceBearAvatarUrl(selectedWinnerPhoto.avatar_seed || selectedWinnerPhoto.discord_name, (selectedWinnerPhoto.avatar_style as any) || 'botttsNeutral');
                       if (target.src !== fallback) target.src = fallback;
                     }}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-500/40"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-500/40 group-hover/user:border-amber-400 transition-colors"
                   />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white font-display">{selectedWinnerPhoto.player_name}</span>
+                      <span className="text-sm font-bold text-white font-display group-hover/user:text-amber-400 transition-colors">{selectedWinnerPhoto.player_name}</span>
                       <ChampionBadge winCount={winnerWinsMap.get(selectedWinnerPhoto.discord_name?.toLowerCase()?.trim() || '') || 1} size="sm" />
                     </div>
                     <p className="text-xs text-white/60 italic">"{selectedWinnerPhoto.caption || 'No caption'}"</p>
                   </div>
                 </div>
 
-                <Button
-                  onClick={() => handleDownload(selectedWinnerPhoto)}
-                  className="h-10 px-5 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 shrink-0 cursor-pointer"
-                >
-                  <Download size={15} /> Download Photo
-                </Button>
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                  <Button
+                    onClick={() => handleShare(selectedWinnerPhoto)}
+                    className="h-10 px-4 bg-white/10 hover:bg-white/20 text-white font-bold font-display rounded-xl flex items-center gap-2 border border-white/15 cursor-pointer"
+                  >
+                    <Share2 size={15} /> Share
+                  </Button>
+                  <Button
+                    onClick={() => handleDownload(selectedWinnerPhoto)}
+                    className="h-10 px-5 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer"
+                  >
+                    <Download size={15} /> Download
+                  </Button>
+                </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── ENHANCED SHARE WINNER ENTRY MODAL ── */}
+      <AnimatePresence>
+        {shareWinner && (
+          <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShareWinner(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-w-md w-full bg-[#0d0d12] border border-amber-500/40 rounded-3xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.9)] space-y-5 text-white"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                    <Share2 size={16} className="text-amber-400" />
+                  </div>
+                  <h3 className="text-base font-bold font-display">Share Winning Entry</h3>
+                </div>
+                <button onClick={() => setShareWinner(null)} className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white cursor-pointer">
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Winner Card Preview Strip */}
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/10">
+                <img src={shareWinner.image_url} alt="" className="w-14 h-14 rounded-xl object-cover border border-white/10 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white truncate">{shareWinner.player_name}</p>
+                  <p className="text-[10px] text-amber-400 font-mono uppercase">{shareWinner.contest_name} • {shareWinner.category_name}</p>
+                  <p className="text-[11px] text-white/50 italic truncate mt-0.5">"{shareWinner.caption || 'No caption'}"</p>
+                </div>
+              </div>
+
+              {/* Option 1: Copy Link Button */}
+              <Button
+                onClick={() => {
+                  const url = `${window.location.origin}/?photo=${shareWinner.id}`;
+                  navigator.clipboard.writeText(url);
+                  setCopiedShareId(shareWinner.id);
+                  toast.success("Link copied to clipboard!");
+                  setTimeout(() => setCopiedShareId(null), 2500);
+                }}
+                className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer"
+              >
+                {copiedShareId === shareWinner.id ? (
+                  <>
+                    <Check size={16} className="text-black" />
+                    <span>Link Copied to Clipboard!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={16} />
+                    <span>Copy Link to Clipboard</span>
+                  </>
+                )}
+              </Button>
+
+              {/* Option 2: Selectable Text Box with Copy Button */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase text-white/40 tracking-wider block">Or copy link directly from text box:</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/?photo=${shareWinner.id}`}
+                    onClick={(e) => e.currentTarget.select()}
+                    className="flex-1 bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-amber-300 select-all focus:outline-none focus:border-amber-400"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const url = `${window.location.origin}/?photo=${shareWinner.id}`;
+                      navigator.clipboard.writeText(url);
+                      setCopiedShareId(shareWinner.id);
+                      toast.success("Link copied!");
+                      setTimeout(() => setCopiedShareId(null), 2500);
+                    }}
+                    className="h-9 px-3 bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                  >
+                    {copiedShareId === shareWinner.id ? <Check size={14} className="text-amber-400" /> : <Copy size={14} />}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Option 3: Twitter / X Share Shortcut */}
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this winning entry by ${shareWinner.player_name} on Vital RP Photo Contest!`)}&url=${encodeURIComponent(`${window.location.origin}/?photo=${shareWinner.id}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white/80 hover:text-white flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer"
+              >
+                <ExternalLink size={14} className="text-amber-400" />
+                <span>Share on Twitter / X</span>
+              </a>
             </motion.div>
           </div>
         )}
