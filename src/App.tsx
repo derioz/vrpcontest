@@ -129,22 +129,20 @@ export default function App() {
   }, [isCategoryMenuOpen, isMobileMenuOpen]);
 
   useEffect(() => {
-    const sentinel = categorySentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // Set sticky to true sooner when scrolling down
-        setIsCategorySticky(!entry.isIntersecting || entry.boundingClientRect.top < 300);
-      },
-      {
-        threshold: 0,
-        rootMargin: "150px 0px 0px 0px"
+    const handleScroll = () => {
+      const sentinel = categorySentinelRef.current;
+      if (!sentinel) {
+        setIsCategorySticky(window.scrollY > 600);
+        return;
       }
-    );
+      const rect = sentinel.getBoundingClientRect();
+      // Only show sticky category bar when user has scrolled down past the top section and is scrolling past the category cards (rect.top <= 140)
+      setIsCategorySticky(window.scrollY > 350 && rect.top <= 140);
+    };
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [categories]);
 
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
@@ -2040,31 +2038,34 @@ export default function App() {
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -30 }}
+            initial={{ opacity: 0, y: -36 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -36 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             style={{ top: miniCatTop }}
             className="fixed left-0 right-0 z-40 px-3 sm:px-6 pointer-events-none flex justify-center"
           >
-            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#0c0c12]/98 border-x border-b border-t-0 border-white/20 shadow-none backdrop-blur-2xl px-4 py-2.5 flex items-center justify-between gap-3 overflow-hidden relative">
+            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#0a0a0f]/98 border-x border-b border-t-0 border-fivem-orange/35 shadow-[0_20px_60px_rgba(0,0,0,0.95)] backdrop-blur-2xl px-4 py-2.5 flex items-center justify-between gap-3 overflow-hidden relative">
               
+              {/* Glowing orange ambient line linking to navbar */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent pointer-events-none" />
+
               {/* Left label badge */}
-              <div className="hidden sm:flex items-center gap-2 shrink-0 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10">
-                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60 font-mono">Category</span>
+              <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-fivem-orange/15 border border-fivem-orange/35">
+                <span className="w-2 h-2 rounded-full bg-fivem-orange animate-pulse shadow-[0_0_10px_rgba(234,88,12,0.9)]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white font-mono">Category</span>
               </div>
 
               {/* Single-Line Scroll Track Container with edge gradient masks */}
               <div className="relative flex-1 overflow-hidden">
                 {/* Left gradient fade mask */}
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#0c0c12] to-transparent z-10" />
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0a0a0f] to-transparent z-10" />
                 
                 {/* Right gradient fade mask */}
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0c0c12] to-transparent z-10" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0a0a0f] to-transparent z-10" />
 
                 {/* 1-Line pill track (no wrap, smooth horizontal scroll) */}
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-2 py-0.5">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-3 py-0.5">
                   {categories.map((cat) => {
                     const isActive = selectedCategory?.id === cat.id;
 
@@ -2073,23 +2074,23 @@ export default function App() {
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat)}
                         className={cn(
-                          "relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold font-display transition-colors duration-200 cursor-pointer shrink-0 select-none",
+                          "relative flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-bold font-display transition-all duration-200 cursor-pointer shrink-0 select-none",
                           isActive
-                            ? "text-white drop-shadow-sm font-black"
-                            : "text-white/70 hover:text-white hover:bg-white/[0.08]"
+                            ? "text-white drop-shadow-md font-black"
+                            : "text-white/80 hover:text-white bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 shadow-sm"
                         )}
                       >
                         {/* Active spring slider background */}
                         {isActive && (
                           <motion.div
                             layoutId="sticky-cat-active-pill"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 border border-orange-400/40 shadow-none"
+                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 border border-orange-400/50 shadow-[0_4px_20px_rgba(234,88,12,0.45)]"
                             transition={{ type: "spring", stiffness: 450, damping: 30 }}
                           />
                         )}
 
-                        <span className="relative z-10 text-sm leading-none">{cat.emoji}</span>
-                        <span className="relative z-10 tracking-wide font-bold">{cat.name}</span>
+                        <span className="relative z-10 text-base leading-none filter drop-shadow">{cat.emoji}</span>
+                        <span className="relative z-10 tracking-wide font-black text-xs">{cat.name}</span>
                       </button>
                     );
                   })}
@@ -2097,15 +2098,16 @@ export default function App() {
               </div>
 
               {/* Right info indicator */}
-              <div className="hidden lg:flex items-center gap-2 shrink-0 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 text-[10px] font-mono text-white/40">
-                <span>Active:</span>
-                <span className="font-bold text-fivem-orange">{selectedCategory?.name || 'All'}</span>
+              <div className="hidden lg:flex items-center gap-2 shrink-0 px-3.5 py-1.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white/70">
+                <span className="text-[11px]">Active:</span>
+                <span className="font-black text-fivem-orange drop-shadow-sm">{selectedCategory?.name || 'All'}</span>
               </div>
 
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
 
       {
         categories.length > 0 && (

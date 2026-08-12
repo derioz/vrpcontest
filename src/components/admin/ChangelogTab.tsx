@@ -33,7 +33,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • MagicUI Neon Border Beams: Integrated active-state BorderBeam glow effects and ambient DotPattern background overlay.
 • Large Floating Emojis: Removed emoji border boxes and enlarged emojis to text-5xl floating graphics with smooth drop-shadow glow effects.
 • Cleaned Badge Header: Updated section header badge to clean "Interactive Filters".
-• Clean Navbar Slide-Out Categories & Border Animation Removal: Updated sticky mini category selector to trigger sooner, removed top borders, top curves, and shadows for seamless slide-out under navbar; removed all fancy border beam animations across the website.
+• High-Contrast Navbar Slide-Down Categories: Configured sticky category menu to strictly stay hidden at top of page, sliding down smoothly only when scrolling past the main category section; upgraded tab contrast with high-visibility glass pill containers and glowing orange top accent beam.
 • Real-time Submission Percentage Ring: Displayed animated live submission stats and progress bars using MagicUI NumberTicker.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 8:32 PM',
