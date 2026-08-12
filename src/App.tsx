@@ -1295,10 +1295,9 @@ export default function App() {
         ref={navbarRef}
         style={{ height: navH, backgroundColor: navBg }}
         className={cn(
-          "fixed z-50 transition-all duration-500 overflow-hidden backdrop-blur-2xl",
-          isScrolled
-            ? "top-0 left-0 right-0 border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.8)] bg-[#060608]/92"
-            : "top-0 sm:top-3 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto sm:w-[calc(100%-3rem)] sm:max-w-6xl sm:rounded-2xl border-b sm:border border-white/[0.1] shadow-[0_16px_50px_rgba(0,0,0,0.6)] bg-[#09090b]/75"
+          "fixed z-50 transition-all duration-500 ease-out backdrop-blur-2xl border-b sm:border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.6)]",
+          "top-0 sm:top-3 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl sm:rounded-2xl",
+          isScrolled ? "bg-[#060608]/92 border-white/15 shadow-[0_20px_40px_rgba(0,0,0,0.85)]" : "bg-[#09090b]/75 border-white/10"
         )}
       >
         {/* Top ambient glass glow beam */}
@@ -1456,7 +1455,7 @@ export default function App() {
                     <>
                       {/* Fixed backdrop for clicking outside */}
                       <div
-                        className="fixed inset-0 z-[99998] bg-black/20 backdrop-blur-[1px]"
+                        className="fixed inset-0 z-[99998] bg-transparent"
                         onClick={() => setIsProfileDropdownOpen(false)}
                       />
 
