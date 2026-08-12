@@ -1141,6 +1141,72 @@ export default function App() {
     }
   };
 
+  const handleRetryDiscordAvatar = async () => {
+    if (!user || user.isAnonymous) {
+      toast.error('Please sign in to fetch your Discord profile picture.');
+      return;
+    }
+
+    const toastId = 'retry-discord-avatar';
+    toast.loading('Fetching Discord profile picture...', { id: toastId });
+
+    try {
+      // Refresh current Supabase session metadata
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user;
+      const meta = currentUser?.user_metadata || user.rawSupabaseUser?.user_metadata || {};
+
+      const discordId = 
+        user.discordId ||
+        meta.provider_id || 
+        meta.sub || 
+        currentUser?.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
+        currentUser?.identities?.find((i: any) => i.provider === 'discord')?.id;
+
+      let discordAvatar = meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
+
+      if (!discordAvatar && discordId) {
+        discordAvatar = `https://cdn.discordapp.com/avatars/${discordId}/avatar.png`;
+      }
+
+      if (discordAvatar) {
+        const freshAvatarUrl = `${discordAvatar.split('?')[0]}?t=${Date.now()}`;
+
+        // Verify image loads
+        const imgTest = new Image();
+        imgTest.src = freshAvatarUrl;
+        
+        await new Promise((resolve) => {
+          imgTest.onload = () => resolve(true);
+          imgTest.onerror = () => resolve(false);
+        });
+
+        setUser((prev: any) => prev ? {
+          ...prev,
+          photoURL: freshAvatarUrl,
+          hasCustomOAuthAvatar: true,
+        } : null);
+
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          await setDoc(userDocRef, {
+            photo_url: freshAvatarUrl,
+            updated_at: new Date().toISOString(),
+          }, { merge: true });
+        } catch (dbErr) {
+          console.warn('Failed to save photo_url in Firestore:', dbErr);
+        }
+
+        toast.success('Successfully updated Discord profile picture!', { id: toastId });
+      } else {
+        toast.error('No Discord avatar found. Make sure your Discord account has an avatar uploaded.', { id: toastId });
+      }
+    } catch (err) {
+      console.error('Error retrying Discord avatar:', err);
+      toast.error('Failed to reload Discord profile picture.', { id: toastId });
+    }
+  };
+
   const handleSaveDisplayName = async () => {
     if (!editedDisplayName.trim() || !user) {
       toast.error('Display name cannot be empty');
@@ -2293,7 +2359,7 @@ export default function App() {
 
                 <div className="relative z-10 flex flex-col gap-5">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="relative shrink-0 group/avatar cursor-pointer" onClick={handleShuffleAvatarSeed} title="Click to generate a new random avatar!">
+                    <div className="relative shrink-0 group/avatar cursor-pointer" onClick={handleRetryDiscordAvatar} title="Click to retry/reload your Discord profile picture!">
                       <div className="w-14 h-14 rounded-full border-2 border-fivem-orange/30 p-1 relative overflow-hidden bg-black/40">
                         <img
                           src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
@@ -2373,33 +2439,46 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* DiceBear Avatar Style Selector & Randomizer */}
-                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-white/60 uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles size={11} className="text-fivem-orange" />
-                        Default Avatar Style
-                      </span>
-                      <button
-                        onClick={handleShuffleAvatarSeed}
-                        className="text-[10px] font-mono text-fivem-orange hover:text-orange-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors"
-                        title="Randomize avatar seed"
-                      >
-                        <RefreshCw size={10} />
-                        Randomize
-                      </button>
-                    </div>
-                    <select
-                      value={user.avatarStyle || 'botttsNeutral'}
-                      onChange={(e) => handleChangeAvatarStyle(e.target.value as DiceBearStyleName)}
-                      className="w-full px-2.5 py-1.5 text-xs font-semibold bg-black/60 border border-white/15 text-white/90 rounded-lg focus:outline-none focus:border-fivem-orange cursor-pointer"
+                  {/* Retry Discord Profile Picture & DiceBear Avatar Style Selector */}
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-3">
+                    
+                    {/* Retry Discord Profile Picture Action Button */}
+                    <button
+                      onClick={handleRetryDiscordAvatar}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7983f5] hover:text-white border border-[#5865F2]/30 transition-all duration-200 text-xs font-bold cursor-pointer active:scale-95 shadow-sm group/discord-btn"
+                      title="Reload/Sync your official Discord avatar image"
                     >
-                      {AVAILABLE_DICEBEAR_STYLES.map((st) => (
-                        <option key={st.id} value={st.id} className="bg-neutral-900 text-white">
-                          {st.label}
-                        </option>
-                      ))}
-                    </select>
+                      <RefreshCw size={12} className="group-hover/discord-btn:rotate-180 transition-transform duration-500 text-[#7983f5]" />
+                      <span>Retry Discord Profile Picture</span>
+                    </button>
+
+                    <div className="pt-2 border-t border-white/5 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-white/60 uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles size={11} className="text-fivem-orange" />
+                          Fallback Avatar Style
+                        </span>
+                        <button
+                          onClick={handleShuffleAvatarSeed}
+                          className="text-[10px] font-mono text-fivem-orange hover:text-orange-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors"
+                          title="Randomize avatar seed"
+                        >
+                          <RefreshCw size={10} />
+                          Randomize
+                        </button>
+                      </div>
+                      <select
+                        value={user.avatarStyle || 'botttsNeutral'}
+                        onChange={(e) => handleChangeAvatarStyle(e.target.value as DiceBearStyleName)}
+                        className="w-full px-2.5 py-1.5 text-xs font-semibold bg-black/60 border border-white/15 text-white/90 rounded-lg focus:outline-none focus:border-fivem-orange cursor-pointer"
+                      >
+                        {AVAILABLE_DICEBEAR_STYLES.map((st) => (
+                          <option key={st.id} value={st.id} className="bg-neutral-900 text-white">
+                            {st.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pb-1">

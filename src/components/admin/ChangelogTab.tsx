@@ -33,6 +33,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • MagicUI Neon Border Beams: Integrated active-state BorderBeam glow effects and ambient DotPattern background overlay.
 • Large Floating Emojis: Removed emoji border boxes and enlarged emojis to text-5xl floating graphics with smooth drop-shadow glow effects.
 • Cleaned Badge Header: Updated section header badge to clean "Interactive Filters".
+• Retry Discord Avatar Button: Added a one-click "Retry Discord Profile Picture" button to re-sync, refresh, and reload official Discord OAuth avatars.
 • Real-time Submission Percentage Ring: Displayed animated live submission stats and progress bars using MagicUI NumberTicker.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 8:32 PM',
