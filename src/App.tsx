@@ -1285,7 +1285,7 @@ export default function App() {
   const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
   const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
-  const miniCatTop = useTransform(navH, (h) => `${h + 2}px`);
+  const miniCatTop = useTransform(navH, (h) => `${h}px`);
 
   return (
     <ShaderBackground className="min-h-screen flex flex-col">
@@ -1419,32 +1419,33 @@ export default function App() {
               <div className="relative">
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="group/user relative flex items-center gap-3 px-4 py-2.5 rounded-2xl
-                    border border-white/20 bg-black/40 hover:bg-black/60 hover:border-fivem-orange/60
-                    transition-all duration-300 shadow-md cursor-pointer active:scale-95 hover:scale-[1.02] overflow-hidden"
+                  className="group/user relative flex items-center gap-3.5 px-5 py-3 rounded-2xl
+                    border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] hover:border-fivem-orange/50
+                    transition-all duration-300 shadow-lg shadow-black/30 cursor-pointer active:scale-[0.97] hover:scale-[1.02]"
                   title="Open account menu & profile settings"
                 >
-
-                  <img
-                    src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
-                    alt=""
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
-                      if (target.src !== fallback) target.src = fallback;
-                    }}
-                    className="w-9 h-9 rounded-xl object-cover group-hover/user:scale-105 transition-transform duration-300 border-2 border-fivem-orange/50 shadow-[0_0_12px_rgba(234,88,12,0.35)] shrink-0 relative z-10"
-                  />
+                  {/* Avatar with ring */}
+                  <div className="relative shrink-0">
+                    <img
+                      src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                      alt=""
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                        if (target.src !== fallback) target.src = fallback;
+                      }}
+                      className="w-10 h-10 rounded-xl object-cover group-hover/user:scale-105 transition-transform duration-300 ring-2 ring-fivem-orange/50 ring-offset-2 ring-offset-black/60 shadow-[0_0_16px_rgba(234,88,12,0.3)]"
+                    />
+                    {/* Online dot on avatar */}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#09090b] shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
+                  </div>
                   
-                  <div className="flex flex-col items-start leading-tight gap-1 relative z-10">
-                    <span className="text-xs font-black font-display text-white group-hover/user:text-fivem-orange transition-colors flex items-center gap-1.5">
+                  <div className="flex flex-col items-start leading-tight gap-0.5">
+                    <span className="text-sm font-black font-display text-white group-hover/user:text-fivem-orange transition-colors flex items-center gap-2">
                       {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
-                      <ChevronDown size={14} className={cn("text-fivem-orange transition-transform duration-300", isProfileDropdownOpen && "rotate-180")} />
+                      <ChevronDown size={14} className={cn("text-white/50 group-hover/user:text-fivem-orange transition-all duration-300", isProfileDropdownOpen && "rotate-180")} />
                     </span>
-                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.15)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
-                      <span>Online</span>
-                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-400/90 font-mono uppercase tracking-widest">Online</span>
                   </div>
                 </button>
 
@@ -2034,73 +2035,66 @@ export default function App() {
       {/* Category Sentinel */}
       {categories.length > 0 && <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />}
 
-      {/* ── Sticky Minimized Category Selector (Hugging Navbar + Slide-Out Underneath) ── */}
+      {/* ── Sticky Minimized Category Selector ── */}
+      {/* Uses clipPath to create a true "slide out from under navbar" reveal effect */}
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -36 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -36 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ clipPath: 'inset(100% 0 0 0)' }}
+            animate={{ clipPath: 'inset(0% 0 0 0)' }}
+            exit={{ clipPath: 'inset(100% 0 0 0)' }}
+            transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
             style={{ top: miniCatTop }}
-            className="fixed left-0 right-0 z-40 px-3 sm:px-6 pointer-events-none flex justify-center"
+            className="fixed left-0 right-0 z-40 px-0 sm:px-6 pointer-events-none flex justify-center"
           >
-            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#0a0a0f]/98 border-x border-b border-t-0 border-fivem-orange/35 shadow-[0_20px_60px_rgba(0,0,0,0.95)] backdrop-blur-2xl px-4 py-2.5 flex items-center justify-between gap-3 overflow-hidden relative">
-              
-              {/* Glowing orange ambient line linking to navbar */}
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent pointer-events-none" />
+            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#16161e] border-x border-b border-t-0 border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.7)] backdrop-blur-xl px-5 py-3 flex items-center justify-between gap-4 overflow-hidden relative">
 
               {/* Left label badge */}
-              <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-fivem-orange/15 border border-fivem-orange/35">
+              <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30">
                 <span className="w-2 h-2 rounded-full bg-fivem-orange animate-pulse shadow-[0_0_10px_rgba(234,88,12,0.9)]" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white font-mono">Category</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-fivem-orange font-mono">Category</span>
               </div>
 
-              {/* Single-Line Scroll Track Container with edge gradient masks */}
+              {/* Category pill track */}
               <div className="relative flex-1 overflow-hidden">
-                {/* Left gradient fade mask */}
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0a0a0f] to-transparent z-10" />
-                
-                {/* Right gradient fade mask */}
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0a0a0f] to-transparent z-10" />
+                {/* Left fade mask */}
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#16161e] to-transparent z-10" />
+                {/* Right fade mask */}
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#16161e] to-transparent z-10" />
 
-                {/* 1-Line pill track (no wrap, smooth horizontal scroll) */}
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-3 py-0.5">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-2 py-0.5">
                   {categories.map((cat) => {
                     const isActive = selectedCategory?.id === cat.id;
-
                     return (
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat)}
                         className={cn(
-                          "relative flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-bold font-display transition-all duration-200 cursor-pointer shrink-0 select-none",
+                          "relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-display transition-all duration-200 cursor-pointer shrink-0 select-none",
                           isActive
-                            ? "text-white drop-shadow-md font-black"
-                            : "text-white/80 hover:text-white bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 shadow-sm"
+                            ? "text-white font-black"
+                            : "text-white/70 hover:text-white font-semibold bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 hover:border-white/25"
                         )}
                       >
-                        {/* Active spring slider background */}
                         {isActive && (
                           <motion.div
                             layoutId="sticky-cat-active-pill"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 border border-orange-400/50 shadow-[0_4px_20px_rgba(234,88,12,0.45)]"
+                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 shadow-[0_4px_16px_rgba(234,88,12,0.4)]"
                             transition={{ type: "spring", stiffness: 450, damping: 30 }}
                           />
                         )}
-
-                        <span className="relative z-10 text-base leading-none filter drop-shadow">{cat.emoji}</span>
-                        <span className="relative z-10 tracking-wide font-black text-xs">{cat.name}</span>
+                        <span className="relative z-10 text-base leading-none">{cat.emoji}</span>
+                        <span className="relative z-10">{cat.name}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Right info indicator */}
-              <div className="hidden lg:flex items-center gap-2 shrink-0 px-3.5 py-1.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white/70">
-                <span className="text-[11px]">Active:</span>
-                <span className="font-black text-fivem-orange drop-shadow-sm">{selectedCategory?.name || 'All'}</span>
+              {/* Right active indicator */}
+              <div className="hidden lg:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/10 text-xs font-mono text-white/60">
+                <span>Active:</span>
+                <span className="font-black text-fivem-orange">{selectedCategory?.name || 'All'}</span>
               </div>
 
             </div>
