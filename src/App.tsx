@@ -170,6 +170,7 @@ export default function App() {
   const [discordReqMessage, setDiscordReqMessage] = useState<string | null>(null);
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [editedDisplayName, setEditedDisplayName] = useState('');
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [notAdminClickCount, setNotAdminClickCount] = useState(0);
   const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
@@ -2419,65 +2420,105 @@ export default function App() {
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 group">
-                          <h3 className="text-base font-bold text-white truncate">{user.displayName || 'Anonymous Explorer'}</h3>
+                        <div className="relative">
                           <button
-                            onClick={() => {
-                              setEditedDisplayName(user.displayName || '');
-                              setIsEditingDisplayName(true);
-                            }}
-                            className="opacity-60 group-hover:opacity-100 p-1 text-white/40 hover:text-fivem-orange hover:bg-white/5 rounded-md transition-all cursor-pointer shrink-0"
-                            title="Change display name"
+                            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                            className="flex items-center gap-1.5 group/pname cursor-pointer py-0.5 px-1.5 -ml-1 rounded-lg hover:bg-white/[0.06] transition-colors"
+                            title="Click to open profile options menu"
                           >
-                            <Edit3 size={13} />
+                            <h3 className="text-base font-bold text-white truncate max-w-[130px] group-hover/pname:text-fivem-orange transition-colors">
+                              {user.displayName || 'Anonymous Explorer'}
+                            </h3>
+                            <ChevronDown size={14} className={cn("text-fivem-orange/70 group-hover/pname:text-fivem-orange transition-transform duration-300", isProfileDropdownOpen && "rotate-180")} />
                           </button>
+
+                          {/* Profile Dropdown Menu */}
+                          <AnimatePresence>
+                            {isProfileDropdownOpen && (
+                              <>
+                                {/* Click outside backdrop */}
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setIsProfileDropdownOpen(false)}
+                                />
+
+                                <motion.div
+                                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                                  transition={{ duration: 0.15, ease: "easeOut" }}
+                                  className="absolute left-0 top-full mt-2 w-64 z-50 rounded-2xl border border-white/15 bg-[#0e0e12]/95 shadow-[0_16px_48px_rgba(0,0,0,0.85)] p-3.5 backdrop-blur-xl flex flex-col gap-3"
+                                >
+                                  <div className="flex items-center justify-between pb-2 border-b border-white/10 text-[10px] font-mono text-white/50 uppercase tracking-wider">
+                                    <span>Profile Settings</span>
+                                    <button
+                                      onClick={() => {
+                                        setEditedDisplayName(user.displayName || '');
+                                        setIsEditingDisplayName(true);
+                                        setIsProfileDropdownOpen(false);
+                                      }}
+                                      className="text-fivem-orange hover:underline flex items-center gap-1 cursor-pointer font-bold"
+                                    >
+                                      <Edit3 size={11} />
+                                      Edit Name
+                                    </button>
+                                  </div>
+
+                                  {/* Option 1: Retry Discord Profile Picture */}
+                                  <button
+                                    onClick={() => {
+                                      handleRetryDiscordAvatar();
+                                      setIsProfileDropdownOpen(false);
+                                    }}
+                                    className="w-full flex items-center justify-start gap-2 px-3 py-2 rounded-xl bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7983f5] hover:text-white border border-[#5865F2]/30 transition-all text-xs font-bold cursor-pointer active:scale-95 group/dbtn"
+                                    title="Reload/Sync official Discord profile picture"
+                                  >
+                                    <RefreshCw size={13} className="group-hover/dbtn:rotate-180 transition-transform duration-500 text-[#7983f5] shrink-0" />
+                                    <span>Retry Discord Profile Picture</span>
+                                  </button>
+
+                                  {/* Option 2: Fallback Avatar Style Selector & Randomizer */}
+                                  <div className="pt-2.5 border-t border-white/10 flex flex-col gap-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-mono text-white/60 uppercase tracking-wider flex items-center gap-1">
+                                        <Sparkles size={11} className="text-fivem-orange" />
+                                        Fallback Avatar Style
+                                      </span>
+                                      <button
+                                        onClick={() => {
+                                          handleShuffleAvatarSeed();
+                                        }}
+                                        className="text-[10px] font-mono text-fivem-orange hover:text-orange-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors"
+                                        title="Randomize avatar seed"
+                                      >
+                                        <RefreshCw size={10} />
+                                        Randomize
+                                      </button>
+                                    </div>
+                                    <select
+                                      value={user.avatarStyle || 'botttsNeutral'}
+                                      onChange={(e) => {
+                                        handleChangeAvatarStyle(e.target.value as DiceBearStyleName);
+                                      }}
+                                      className="w-full px-2.5 py-1.5 text-xs font-semibold bg-black/60 border border-white/15 text-white/90 rounded-lg focus:outline-none focus:border-fivem-orange cursor-pointer"
+                                    >
+                                      {AVAILABLE_DICEBEAR_STYLES.map((st) => (
+                                        <option key={st.id} value={st.id} className="bg-neutral-900 text-white">
+                                          {st.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                </motion.div>
+                              </>
+                            )}
+                          </AnimatePresence>
                         </div>
                       )}
                       <p className="text-[11px] text-fivem-orange/80 font-mono uppercase tracking-wider mt-0.5">
                         {isAdmin ? 'System Admin' : 'Verified Member'}
                       </p>
-                    </div>
-                  </div>
-
-                  {/* Retry Discord Profile Picture & DiceBear Avatar Style Selector */}
-                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-3">
-                    
-                    {/* Retry Discord Profile Picture Action Button */}
-                    <button
-                      onClick={handleRetryDiscordAvatar}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7983f5] hover:text-white border border-[#5865F2]/30 transition-all duration-200 text-xs font-bold cursor-pointer active:scale-95 shadow-sm group/discord-btn"
-                      title="Reload/Sync your official Discord avatar image"
-                    >
-                      <RefreshCw size={12} className="group-hover/discord-btn:rotate-180 transition-transform duration-500 text-[#7983f5]" />
-                      <span>Retry Discord Profile Picture</span>
-                    </button>
-
-                    <div className="pt-2 border-t border-white/5 flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-white/60 uppercase tracking-wider flex items-center gap-1.5">
-                          <Sparkles size={11} className="text-fivem-orange" />
-                          Fallback Avatar Style
-                        </span>
-                        <button
-                          onClick={handleShuffleAvatarSeed}
-                          className="text-[10px] font-mono text-fivem-orange hover:text-orange-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors"
-                          title="Randomize avatar seed"
-                        >
-                          <RefreshCw size={10} />
-                          Randomize
-                        </button>
-                      </div>
-                      <select
-                        value={user.avatarStyle || 'botttsNeutral'}
-                        onChange={(e) => handleChangeAvatarStyle(e.target.value as DiceBearStyleName)}
-                        className="w-full px-2.5 py-1.5 text-xs font-semibold bg-black/60 border border-white/15 text-white/90 rounded-lg focus:outline-none focus:border-fivem-orange cursor-pointer"
-                      >
-                        {AVAILABLE_DICEBEAR_STYLES.map((st) => (
-                          <option key={st.id} value={st.id} className="bg-neutral-900 text-white">
-                            {st.label}
-                          </option>
-                        ))}
-                      </select>
                     </div>
                   </div>
 
