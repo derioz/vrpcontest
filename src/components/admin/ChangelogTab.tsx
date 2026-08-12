@@ -25,17 +25,17 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260811-2028',
+    id: 'release-20260811-2032',
     version: 'v1.8.0',
-    title: 'UI Tripled 3D Category Redesign, MagicUI Beams & ElevenLabs AI Voice Narration',
+    title: 'High-Fidelity 3D Category Redesign & Prominent Emoji Visual Polish',
     category: 'UI/UX',
-    description: `• UI Tripled 3D Card Tilt: Added realistic spring-based 3D cursor tilt physics and specular glare glass reflection to all category cards.
+    description: `• 3D Glassmorphic Card Physics: Added spring-loaded 3D cursor tilt physics and specular glare reflection on hover.
 • MagicUI Neon Border Beams: Integrated active-state BorderBeam glow effects and ambient DotPattern background overlay.
-• ElevenLabs AI Voice Narration: Added an interactive ElevenLabs voice narrator button on category cards with animated audio waveform equalizer visualizer.
-• High-Contrast Glassmorphic Card Styling: Rebuilt topic cards with vibrant per-category gradient accents, status pills, and high-visibility typography.
+• Large Floating Emojis: Removed emoji border boxes and enlarged emojis to text-5xl floating graphics with smooth drop-shadow glow effects.
+• Cleaned Badge Header: Updated section header badge to clean "Interactive Filters".
 • Real-time Submission Percentage Ring: Displayed animated live submission stats and progress bars using MagicUI NumberTicker.`,
     author: 'Damon',
-    date: 'Aug 11, 2026 at 8:28 PM',
+    date: 'Aug 11, 2026 at 8:32 PM',
   },
   {
     id: 'release-20260810-2151',

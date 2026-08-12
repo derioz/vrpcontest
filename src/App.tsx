@@ -1999,7 +1999,7 @@ export default function App() {
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
                     <div className="flex items-center gap-3.5 flex-wrap">
                       <span className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.25em] bg-fivem-orange/20 text-fivem-orange rounded-full border border-fivem-orange/30 shadow-[0_0_12px_rgba(234,88,12,0.3)] animate-pulse">
-                        UI Tripled Filters
+                        Interactive Filters
                       </span>
                       <h3 className="text-base font-black text-white uppercase tracking-wider font-display">
                         Filter Submissions by Category

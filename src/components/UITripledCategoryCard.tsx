@@ -1,11 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { Volume2, VolumeX, Sparkles, CheckCircle2, Mic } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category } from '../types';
 import { BorderBeam } from './ui/border-beam';
 import { NumberTicker } from './ui/number-ticker';
-import { useElevenLabsVoice } from '../lib/ElevenLabsVoiceService';
 
 interface UITripledCategoryCardProps {
   category: Category;
@@ -16,13 +15,12 @@ interface UITripledCategoryCardProps {
   onSelect: () => void;
 }
 
-// Preset vibrant UI Tripled color schemes for categories
+// Preset vibrant color schemes for category cards
 const CATEGORY_THEMES = [
   {
     gradient: 'from-orange-500/20 via-amber-500/10 to-transparent',
     border: 'group-hover:border-orange-500/50',
     activeBorder: 'border-orange-500/80',
-    badge: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
     accentColor: '#f97316',
     progressGradient: 'from-orange-500 to-amber-400',
     glow: 'shadow-[0_0_30px_rgba(249,115,22,0.25)]',
@@ -31,7 +29,6 @@ const CATEGORY_THEMES = [
     gradient: 'from-cyan-500/20 via-blue-500/10 to-transparent',
     border: 'group-hover:border-cyan-500/50',
     activeBorder: 'border-cyan-500/80',
-    badge: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
     accentColor: '#06b6d4',
     progressGradient: 'from-cyan-500 to-blue-400',
     glow: 'shadow-[0_0_30px_rgba(6,182,212,0.25)]',
@@ -40,7 +37,6 @@ const CATEGORY_THEMES = [
     gradient: 'from-rose-500/20 via-purple-500/10 to-transparent',
     border: 'group-hover:border-rose-500/50',
     activeBorder: 'border-rose-500/80',
-    badge: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
     accentColor: '#f43f5e',
     progressGradient: 'from-rose-500 to-purple-400',
     glow: 'shadow-[0_0_30px_rgba(244,63,94,0.25)]',
@@ -49,7 +45,6 @@ const CATEGORY_THEMES = [
     gradient: 'from-emerald-500/20 via-teal-500/10 to-transparent',
     border: 'group-hover:border-emerald-500/50',
     activeBorder: 'border-emerald-500/80',
-    badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     accentColor: '#10b981',
     progressGradient: 'from-emerald-500 to-teal-400',
     glow: 'shadow-[0_0_30px_rgba(16,185,129,0.25)]',
@@ -58,7 +53,6 @@ const CATEGORY_THEMES = [
     gradient: 'from-indigo-500/20 via-fuchsia-500/10 to-transparent',
     border: 'group-hover:border-indigo-500/50',
     activeBorder: 'border-indigo-500/80',
-    badge: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
     accentColor: '#6366f1',
     progressGradient: 'from-indigo-500 to-fuchsia-400',
     glow: 'shadow-[0_0_30px_rgba(99,102,241,0.25)]',
@@ -77,15 +71,12 @@ export const UITripledCategoryCard: React.FC<UITripledCategoryCardProps> = ({
   const theme = CATEGORY_THEMES[index % CATEGORY_THEMES.length];
   const percentage = totalEntries > 0 ? ((entryCount / totalEntries) * 100).toFixed(0) : '0';
 
-  const { activeId, isPlaying, speakCategory, stop } = useElevenLabsVoice();
-  const isThisSpeaking = activeId === category.id && isPlaying;
-
   // 3D Tilt Spring Physics values
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [12, -12]), { stiffness: 300, damping: 20 });
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-12, 12]), { stiffness: 300, damping: 20 });
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [10, -10]), { stiffness: 300, damping: 20 });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-10, 10]), { stiffness: 300, damping: 20 });
   const glareX = useTransform(mouseX, [-0.5, 0.5], [0, 100]);
   const glareY = useTransform(mouseY, [-0.5, 0.5], [0, 100]);
 
@@ -108,11 +99,6 @@ export const UITripledCategoryCard: React.FC<UITripledCategoryCardProps> = ({
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-  };
-
-  const handleVoiceToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    speakCategory(category.id, category.name, category.description || '');
   };
 
   return (
@@ -167,79 +153,42 @@ export const UITripledCategoryCard: React.FC<UITripledCategoryCardProps> = ({
         {/* Card Header Content */}
         <div className="relative z-20 w-full flex flex-col gap-4">
           
-          {/* Top Row: Emoji & Status Indicators */}
-          <div className="flex items-center justify-between gap-3">
+          {/* Top Row: Prominent Floating Emoji & Selection Indicator */}
+          <div className="flex items-start justify-between gap-3">
             
-            {/* Category Emoji Badge */}
+            {/* Prominent Floating Emoji without Box Container */}
             <div className="relative">
-              <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border shadow-inner transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
-                theme.badge
-              )}>
+              <span className="text-4xl sm:text-5xl leading-none block transform group-hover:scale-115 group-hover:-translate-y-1 transition-transform duration-300 filter drop-shadow-[0_6px_16px_rgba(0,0,0,0.6)] select-none">
                 {category.emoji || '✨'}
-              </div>
+              </span>
               {isActive && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0c0c0e] rounded-full animate-pulse" />
+                <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0c0c0e] rounded-full animate-pulse" />
               )}
             </div>
 
-            {/* Right Controls: ElevenLabs Voice Narration Button & Selection Indicator */}
-            <div className="flex items-center gap-2">
-              
-              {/* ElevenLabs AI Voice Speaker Pill */}
-              <button
-                onClick={handleVoiceToggle}
-                title={isThisSpeaking ? "Stop ElevenLabs Narration" : "Listen to ElevenLabs AI Voice Narration"}
-                className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-mono font-bold border transition-all duration-200 cursor-pointer backdrop-blur-md",
-                  isThisSpeaking
-                    ? "bg-fivem-orange/30 text-white border-fivem-orange/60 animate-pulse shadow-[0_0_12px_rgba(234,88,12,0.4)]"
-                    : "bg-white/[0.05] hover:bg-white/10 text-white/60 hover:text-white border-white/10 hover:border-white/20"
-                )}
-              >
-                {isThisSpeaking ? (
-                  <>
-                    {/* Animated Equalizer Sound Wave Bars */}
-                    <div className="flex items-end gap-0.5 h-3">
-                      <span className="w-0.5 bg-fivem-orange rounded-full animate-[bounce_0.6s_infinite_100ms] h-full" />
-                      <span className="w-0.5 bg-fivem-orange rounded-full animate-[bounce_0.6s_infinite_300ms] h-2" />
-                      <span className="w-0.5 bg-fivem-orange rounded-full animate-[bounce_0.6s_infinite_200ms] h-3" />
-                    </div>
-                    <span className="text-[9px] uppercase tracking-wider text-fivem-orange font-black">AI Voice</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-3 h-3 text-white/50 group-hover:text-fivem-orange transition-colors" />
-                    <span className="text-[9px] uppercase tracking-wider text-white/40 group-hover:text-white">Listen</span>
-                  </>
-                )}
-              </button>
-
-              {/* Selection Checkbox Pill */}
-              <div className={cn(
-                "w-6 h-6 rounded-xl border flex items-center justify-center transition-all duration-300",
-                isActive
-                  ? "border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
-                  : "border-white/15 bg-white/[0.02] group-hover:border-white/30 text-transparent"
-              )}>
-                <CheckCircle2 className={cn("w-3.5 h-3.5 transition-transform duration-300", isActive ? "scale-100" : "scale-0")} />
-              </div>
-
+            {/* Selection Checkbox Pill */}
+            <div className={cn(
+              "w-6 h-6 rounded-xl border flex items-center justify-center transition-all duration-300 shrink-0",
+              isActive
+                ? "border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                : "border-white/15 bg-white/[0.02] group-hover:border-white/30 text-transparent"
+            )}>
+              <CheckCircle2 className={cn("w-3.5 h-3.5 transition-transform duration-300", isActive ? "scale-100" : "scale-0")} />
             </div>
 
           </div>
 
           {/* Title & Prompt Description */}
-          <div>
+          <div className="mt-1">
             <h4 className={cn(
-              "text-base font-black tracking-tight font-display transition-colors mb-1.5 flex items-center justify-between",
+              "text-base font-black tracking-tight font-display transition-colors mb-2 leading-snug",
               isActive ? "text-white" : "text-white/90 group-hover:text-white"
             )}>
-              <span>{category.name}</span>
+              {category.name}
             </h4>
 
             {category.description && (
-              <p className="text-xs font-normal text-white/60 group-hover:text-white/80 leading-relaxed transition-colors line-clamp-4">
+              <p className="text-xs font-normal text-white/60 group-hover:text-white/85 leading-relaxed transition-colors line-clamp-4">
                 {category.description}
               </p>
             )}
