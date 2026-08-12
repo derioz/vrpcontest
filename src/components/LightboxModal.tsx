@@ -6,11 +6,13 @@ import { VotersModal } from './VotersModal';
 import { downloadPhoto } from '../lib/download';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import { ChampionBadge } from './ChampionBadge';
 
 interface LightboxModalProps {
   photo: Photo | null;
   photos?: Photo[];
   privateKey: string | null;
+  winCount?: number;
   onClose: () => void;
   onNavigate?: (photo: Photo) => void;
 }
@@ -19,6 +21,7 @@ export default function LightboxModal({
   photo,
   photos = [],
   privateKey,
+  winCount = 0,
   onClose,
   onNavigate,
 }: LightboxModalProps) {
@@ -236,9 +239,14 @@ export default function LightboxModal({
                       {photo.player_name?.[0]?.toUpperCase() || <User size={18} />}
                     </div>
                     <div className="flex flex-col leading-none gap-1">
-                      <span className="text-sm font-bold text-white font-display">
-                        {privateKey ? photo.player_name : "Anonymous Entry"}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-white font-display">
+                          {privateKey ? photo.player_name : "Anonymous Entry"}
+                        </span>
+                        {winCount > 0 && (
+                          <ChampionBadge winCount={winCount} size="sm" />
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
                         <span className="flex items-center gap-1">
                           <Calendar size={11} className="text-white/30" />

@@ -39,7 +39,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Strict 1920x1080 Resolution Inspector: Image selection inspects dimensions and immediately alerts the user if resolution is under 1920x1080 Full HD, displaying current dimensions vs requirement with explicit error banners and button lock.
 • High-Utility Upload Modal: Enhanced upload form with live image metadata badges (resolution, aspect ratio, file size), category description preview, quick caption tags, and verified Discord badge.
 • 1 Photo Per User Limit Enforcement: Strictly enforced the single submission per user rule across modal and upload handler logic.
-• Existing Submission Preview & Delete CTA: When a participant with an existing entry opens the upload modal while the 1-photo limit is active, the modal displays an intuitive preview card of their current entry (thumbnail, category, votes, caption) with an immediate "Delete Current Submission & Upload New Photo" button to easily swap entries.`,
+• Existing Submission Preview & Delete CTA: When a participant with an existing entry opens the upload modal while the 1-photo limit is active, the modal displays an intuitive preview card of their current entry (thumbnail, category, votes, caption) with an immediate "Delete Current Submission & Upload New Photo" button to easily swap entries.
+• Permanent Flagged Voters Retention: Verified and documented that the flagged_voters collection is strictly retained across contest archives and resets, ensuring alt account bans persist across all future contests.
+• Multi-Tier Champion Badges: Implemented dynamic badges for contest winners: Gold Champion (1x Winner), Platinum Crown (2x Champion), and Legendary Flame/Diamond (3+ Wins Grand Champion).
+• Universal Winner Badge Display: Displayed Champion Badges across navbar profile capsule, account dropdown header, sidebar profile, gallery photo cards, lightbox viewer, and Hall of Fame vault.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },

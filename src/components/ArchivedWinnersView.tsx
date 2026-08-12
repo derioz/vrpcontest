@@ -12,6 +12,7 @@ import { SparklesText } from './ui/sparkles-text';
 import { Particles } from './ui/particles';
 import { toast } from 'sonner';
 import { downloadPhoto } from '../lib/download';
+import { ChampionBadge } from './ChampionBadge';
 
 interface ArchivedWinnersViewProps {
     onClose: () => void;
@@ -58,6 +59,17 @@ export function ArchivedWinnersView({ onClose }: ArchivedWinnersViewProps) {
 
     const contests = Array.from(new Set(winners.map(w => w.contest_name)));
     const displayedWinners = winners.filter(w => w.contest_name === selectedContest);
+
+    const winnerWinsMap = React.useMemo(() => {
+        const map = new Map<string, number>();
+        winners.forEach(w => {
+            if (w.discord_name) {
+                const key = w.discord_name.toLowerCase().trim();
+                map.set(key, (map.get(key) || 0) + 1);
+            }
+        });
+        return map;
+    }, [winners]);
 
     const handleDownload = async (winner: ArchivedWinner) => {
         const toastId = `download-archive-${winner.id}`;
@@ -265,7 +277,10 @@ export function ArchivedWinnersView({ onClose }: ArchivedWinnersViewProps) {
                                                                             </span>
                                                                         </div>
                                                                         <div className="flex flex-col min-w-0">
-                                                                            <span className="text-xs font-bold text-white truncate">{winner.player_name}</span>
+                                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                <span className="text-xs font-bold text-white truncate">{winner.player_name}</span>
+                                                                                <ChampionBadge winCount={winnerWinsMap.get(winner.discord_name?.toLowerCase()?.trim() || '') || 1} size="sm" showLabel={false} />
+                                                                            </div>
                                                                             <span className="text-[9px] font-mono text-white/40 uppercase truncate">{winner.discord_name}</span>
                                                                         </div>
                                                                     </div>

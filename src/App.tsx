@@ -60,6 +60,7 @@ import { verifyDiscordGuildAndRole } from './lib/discord';
 import { getProfileAvatar, getDiceBearAvatarUrl, AVAILABLE_DICEBEAR_STYLES, DiceBearStyleName } from './lib/dicebear';
 import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
 import { BugReportModal } from './components/BugReportModal';
+import { ChampionBadge } from './components/ChampionBadge';
 import { ShaderBackground } from './components/ui/shader-background';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
@@ -88,7 +89,7 @@ import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthS
 import { supabase } from './lib/supabase';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch, deleteField } from 'firebase/firestore';
 
-import { Category, Photo, Rule, Theme } from './types';
+import { Category, Photo, Rule, Theme, ArchivedWinner } from './types';
 
 const UploadForm = lazy(() => import('./components/UploadForm'));
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
@@ -182,6 +183,7 @@ export default function App() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
+  const [archivedWinners, setArchivedWinners] = useState<ArchivedWinner[]>([]);
 
   // ── Easter Egg: rapid-click logo triggers party mode ──
   const [easterEggActive, setEasterEggActive] = useState(false);
@@ -263,6 +265,44 @@ export default function App() {
       (user.providerData && user.providerData.some((pd: any) => pd.displayName === p.discord_name))
     ) || null;
   }, [user, allPhotos]);
+
+  // Subscribe to archived_winners collection to track user win badges
+  useEffect(() => {
+    const q = query(collection(db, 'archived_winners'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ArchivedWinner[];
+      setArchivedWinners(fetched);
+    }, (err) => {
+      console.error('Archived winners listener error:', err);
+    });
+    return () => unsub();
+  }, []);
+
+  const winnerCountsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    archivedWinners.forEach((w) => {
+      if (w.discord_name) {
+        const key = w.discord_name.toLowerCase().trim();
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+      if ((w as any).user_id) {
+        const key = (w as any).user_id;
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+    });
+    return map;
+  }, [archivedWinners]);
+
+  const getUserWinCount = useCallback((discordName?: string, userId?: string): number => {
+    let count = 0;
+    if (discordName) {
+      count = Math.max(count, winnerCountsMap.get(discordName.toLowerCase().trim()) || 0);
+    }
+    if (userId) {
+      count = Math.max(count, winnerCountsMap.get(userId) || 0);
+    }
+    return count;
+  }, [winnerCountsMap]);
 
   const sortedPhotos = useMemo(() => {
     return [...photos].sort((a, b) => {
@@ -1534,6 +1574,9 @@ export default function App() {
                   <span className="text-xs font-bold font-display text-white/90 group-hover/user:text-white transition-colors max-w-[80px] truncate">
                     {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
                   </span>
+                  {getUserWinCount(user.displayName, user.uid) > 0 && (
+                    <ChampionBadge winCount={getUserWinCount(user.displayName, user.uid)} size="sm" showLabel={false} />
+                  )}
                   <ChevronDown size={12} className={cn("text-white/40 group-hover/user:text-white/70 transition-all duration-300", isProfileDropdownOpen && "rotate-180 text-fivem-orange")} />
                 </button>
 
@@ -1560,8 +1603,11 @@ export default function App() {
                             alt=""
                             className="w-12 h-12 rounded-2xl object-cover border-2 border-fivem-orange/40 shadow-md shrink-0"
                           />
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-black font-display text-white truncate">{user.displayName || 'Verified Member'}</span>
+                          <div className="flex flex-col min-w-0 gap-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm font-black font-display text-white truncate">{user.displayName || 'Verified Member'}</span>
+                              <ChampionBadge winCount={getUserWinCount(user.displayName, user.uid)} size="sm" />
+                            </div>
                             <span className="text-[10px] font-mono text-fivem-orange/90 font-bold uppercase tracking-wider">{isAdmin ? 'System Admin' : 'Verified Member'}</span>
                           </div>
                         </div>
@@ -2625,8 +2671,11 @@ export default function App() {
                           </button>
                         </div>
                       ) : (
-                        <div>
-                          <h3 className="text-base font-bold text-white truncate">{user.displayName || 'Anonymous Explorer'}</h3>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base font-bold text-white truncate">{user.displayName || 'Anonymous Explorer'}</h3>
+                            <ChampionBadge winCount={getUserWinCount(user.displayName, user.uid)} size="sm" />
+                          </div>
                           <p className="text-[11px] text-fivem-orange/80 font-mono uppercase tracking-wider mt-0.5">
                             {isAdmin ? 'System Admin' : 'Verified Member'}
                           </p>
@@ -2945,15 +2994,18 @@ export default function App() {
       </AnimatePresence>
 
       {/* Lightbox Modal */}
-      <Suspense fallback={null}>
-        <LightboxModal
-          photo={lightboxPhoto}
-          photos={photos}
-          privateKey={privateKey}
-          onClose={() => setLightboxPhoto(null)}
-          onNavigate={(p) => setLightboxPhoto(p)}
-        />
-      </Suspense>
+      {lightboxPhoto && (
+        <Suspense fallback={null}>
+          <LightboxModal
+            photo={lightboxPhoto}
+            photos={photos}
+            privateKey={privateKey}
+            winCount={getUserWinCount(lightboxPhoto.discord_name, (lightboxPhoto as any).user_id || (lightboxPhoto as any).uploader_uid)}
+            onClose={() => setLightboxPhoto(null)}
+            onNavigate={(p) => setLightboxPhoto(p)}
+          />
+        </Suspense>
+      )}
 
       {/* Discord Server & Role Requirement Modal */}
       <DiscordRequirementsModal
