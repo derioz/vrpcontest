@@ -19,7 +19,6 @@ import {
 import { downloadPhoto } from "../lib/download";
 import { MagicCard } from "./ui/magic-card";
 import { SparklesText } from "./ui/sparkles-text";
-import { BorderBeam } from "./ui/border-beam";
 import { NumberTicker } from "./ui/number-ticker";
 import { Particles } from "./ui/particles";
 import { cn } from "../lib/utils";

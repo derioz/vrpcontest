@@ -71,7 +71,6 @@ import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 import { NumberTicker } from './components/ui/number-ticker';
 import { Marquee } from './components/ui/marquee';
 import { DotPattern } from './components/ui/dot-pattern';
-import { BorderBeam } from './components/ui/border-beam';
 import { ShimmerButton } from './components/ui/shimmer-button';
 import { AnimatedShinyText } from './components/ui/animated-shiny-text';
 import { MagicCard } from './components/ui/magic-card';
@@ -135,12 +134,12 @@ export default function App() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // Only set sticky to true if the categories sentinel is not intersecting AND has scrolled past the top of the viewport
-        setIsCategorySticky(!entry.isIntersecting && entry.boundingClientRect.top < 80);
+        // Set sticky to true sooner when scrolling down
+        setIsCategorySticky(!entry.isIntersecting || entry.boundingClientRect.top < 300);
       },
       {
         threshold: 0,
-        rootMargin: "-80px 0px 0px 0px"
+        rootMargin: "150px 0px 0px 0px"
       }
     );
 
@@ -1288,7 +1287,7 @@ export default function App() {
   const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
   const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
-  const miniCatTop = useTransform(navH, (h) => `${h + 14}px`);
+  const miniCatTop = useTransform(navH, (h) => `${h + 2}px`);
 
   return (
     <ShaderBackground className="min-h-screen flex flex-col">
@@ -1417,17 +1416,16 @@ export default function App() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
             className="hidden md:flex items-center gap-3 shrink-0"
           >
-            {/* User Avatar / Account Pill with MagicUI BorderBeam & Generous Padding */}
+            {/* User Avatar / Account Pill */}
             {user && !user.isAnonymous ? (
               <div className="relative">
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                   className="group/user relative flex items-center gap-3 px-4 py-2.5 rounded-2xl
                     border border-white/20 bg-black/40 hover:bg-black/60 hover:border-fivem-orange/60
-                    transition-all duration-300 shadow-xl cursor-pointer active:scale-95 hover:scale-[1.02] overflow-hidden"
+                    transition-all duration-300 shadow-md cursor-pointer active:scale-95 hover:scale-[1.02] overflow-hidden"
                   title="Open account menu & profile settings"
                 >
-                  <BorderBeam size={90} duration={8} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
 
                   <img
                     src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
@@ -1872,7 +1870,6 @@ export default function App() {
 
                 {/* Stats row */}
                 <motion.div variants={heroItemVariants} className="relative grid grid-cols-4 gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[#0c0c0e]/40 backdrop-blur-sm max-w-md overflow-hidden">
-                  <BorderBeam size={120} duration={12} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1} />
                   {[
                     { value: categories.length, label: 'Topics', isNum: true },
                     { value: allPhotos.length, label: 'Submissions', isNum: true },
@@ -2036,45 +2033,40 @@ export default function App() {
         </section>
       )}
 
-      {/* Category Tab Bar — spring-animated (inspired by uitripled NativeTabs) */}
-
-      {/* Category Tab Bar — enhanced to avoid scroll on mobile and desktop */}
-
       {/* Category Sentinel */}
       {categories.length > 0 && <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />}
 
-      {/* ── Sticky Minimized Category Selector (Hugging Navbar + Spring Slide-Out from Underneath) ── */}
+      {/* ── Sticky Minimized Category Selector (Hugging Navbar + Slide-Out Underneath) ── */}
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -45, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -45, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             style={{ top: miniCatTop }}
             className="fixed left-0 right-0 z-40 px-3 sm:px-6 pointer-events-none flex justify-center"
           >
-            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-2xl bg-[#08080c]/96 border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl px-4 py-2 flex items-center justify-between gap-3 overflow-hidden relative">
+            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#0c0c12]/98 border-x border-b border-t-0 border-white/20 shadow-none backdrop-blur-2xl px-4 py-2.5 flex items-center justify-between gap-3 overflow-hidden relative">
               
               {/* Left label badge */}
               <div className="hidden sm:flex items-center gap-2 shrink-0 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10">
                 <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse shadow-[0_0_8px_rgba(234,88,12,0.8)]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50 font-mono">Category</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60 font-mono">Category</span>
               </div>
 
               {/* Single-Line Scroll Track Container with edge gradient masks */}
               <div className="relative flex-1 overflow-hidden">
                 {/* Left gradient fade mask */}
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#09090b] to-transparent z-10" />
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#0c0c12] to-transparent z-10" />
                 
                 {/* Right gradient fade mask */}
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#09090b] to-transparent z-10" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0c0c12] to-transparent z-10" />
 
                 {/* 1-Line pill track (no wrap, smooth horizontal scroll) */}
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-2 py-0.5">
                   {categories.map((cat) => {
                     const isActive = selectedCategory?.id === cat.id;
-                    const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
 
                     return (
                       <button
@@ -2083,27 +2075,21 @@ export default function App() {
                         className={cn(
                           "relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold font-display transition-colors duration-200 cursor-pointer shrink-0 select-none",
                           isActive
-                            ? "text-white drop-shadow-sm"
-                            : "text-white/60 hover:text-white hover:bg-white/[0.05]"
+                            ? "text-white drop-shadow-sm font-black"
+                            : "text-white/70 hover:text-white hover:bg-white/[0.08]"
                         )}
                       >
                         {/* Active spring slider background */}
                         {isActive && (
                           <motion.div
                             layoutId="sticky-cat-active-pill"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 border border-orange-400/40 shadow-[0_2px_12px_rgba(234,88,12,0.4)]"
+                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 border border-orange-400/40 shadow-none"
                             transition={{ type: "spring", stiffness: 450, damping: 30 }}
                           />
                         )}
 
                         <span className="relative z-10 text-sm leading-none">{cat.emoji}</span>
-                        <span className="relative z-10 tracking-wide">{cat.name}</span>
-                        <span className={cn(
-                          "relative z-10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors",
-                          isActive ? "bg-white/20 text-white" : "bg-white/10 text-white/50"
-                        )}>
-                          {entryCount}
-                        </span>
+                        <span className="relative z-10 tracking-wide font-bold">{cat.name}</span>
                       </button>
                     );
                   })}
@@ -2469,7 +2455,6 @@ export default function App() {
             <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Your Profile</h2>
             {user && !user.isAnonymous ? (
               <div className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-md overflow-hidden">
-                <BorderBeam size={150} duration={14} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
                 <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-fivem-orange/10 blur-[50px] pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col gap-5">

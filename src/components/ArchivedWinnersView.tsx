@@ -7,7 +7,6 @@ import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 import { ArchivedWinner } from '../types';
 import { MagicCard } from './ui/magic-card';
-import { BorderBeam } from './ui/border-beam';
 import { NumberTicker } from './ui/number-ticker';
 import { SparklesText } from './ui/sparkles-text';
 import { Particles } from './ui/particles';

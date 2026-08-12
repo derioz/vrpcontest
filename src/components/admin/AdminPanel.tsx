@@ -11,7 +11,6 @@ import { db } from '../../lib/firebase';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
-import { BorderBeam } from '../ui/border-beam';
 import { AnimatedShinyText } from '../ui/animated-shiny-text';
 import { ShimmerButton } from '../ui/shimmer-button';
 import { AdminToggle } from '../ui/admin-toggle';
@@ -89,8 +88,6 @@ export default function AdminPanel(props: AdminPanelProps) {
         transition={{ type: "spring", stiffness: 400, damping: 28 }}
         className="fixed bottom-4 right-4 sm:right-6 z-[170] flex items-center gap-3 p-3 px-4 rounded-2xl bg-[#09090d]/95 backdrop-blur-2xl border border-fivem-orange/40 shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_25px_rgba(234,88,12,0.25)] text-white group pointer-events-auto select-none"
       >
-        <BorderBeam size={140} duration={8} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
-        
         <div
           onClick={onToggleMinimize}
           className="flex items-center gap-3 cursor-pointer flex-1"
@@ -566,8 +563,6 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
 
       {/* ── SUBMITTED BUG REPORTS INBOX ── */}
       <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/30 bg-[#0a0a0d]/90 p-5 sm:p-6 shadow-xl">
-        <BorderBeam size={200} duration={12} colorFrom="#ea580c" colorTo="#fb923c" />
-
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl text-fivem-orange">

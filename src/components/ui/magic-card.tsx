@@ -1,12 +1,6 @@
-/**
- * MagicUI Magic Card — interactive spotlight glow card that tracks cursor movement with optional BorderBeam
- * Adapted from https://magicui.design/docs/components/magic-card
- */
-
 import React, { useCallback } from "react";
 import { motion, useMotionTemplate, useMotionValue } from "motion/react";
 import { cn } from "../../lib/utils";
-import { BorderBeam } from "./border-beam";
 
 interface MagicCardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -61,16 +55,6 @@ export function MagicCard({
       )}
       {...props}
     >
-      {/* Outer Border Beam on the exact outer card boundary */}
-      {active && (
-        <BorderBeam
-          size={borderBeamProps?.size ?? 250}
-          duration={borderBeamProps?.duration ?? 6}
-          colorFrom={borderBeamProps?.colorFrom ?? "#ea580c"}
-          colorTo={borderBeamProps?.colorTo ?? "#fcd34d"}
-          borderWidth={borderBeamProps?.borderWidth ?? 2}
-        />
-      )}
 
       {/* Spotlight glow tracking layer */}
       <motion.div

@@ -3,7 +3,6 @@ import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category } from '../types';
-import { BorderBeam } from './ui/border-beam';
 import { NumberTicker } from './ui/number-ticker';
 
 interface UITripledCategoryCardProps {
@@ -126,16 +125,6 @@ export const UITripledCategoryCard: React.FC<UITripledCategoryCardProps> = ({
             : "bg-[#0c0c0f]/80 hover:bg-[#121217]/90 border-white/[0.08] " + theme.border
         )}
       >
-        {/* MagicUI Border Beam for active topic card */}
-        {isActive && (
-          <BorderBeam
-            size={280}
-            duration={5}
-            colorFrom={theme.accentColor}
-            colorTo="#ffffff"
-            borderWidth={2}
-          />
-        )}
 
         {/* Specular Glare / Glass Reflection Following Cursor */}
         {isHovered && (
