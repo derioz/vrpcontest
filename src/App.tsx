@@ -254,6 +254,16 @@ export default function App() {
     return allPhotos.filter(p => p.category_id === selectedCategory.id);
   }, [allPhotos, selectedCategory]);
 
+  // Current logged-in user's photo submission for this contest
+  const currentUserPhoto = useMemo(() => {
+    if (!user || user.isAnonymous || !allPhotos.length) return null;
+    return allPhotos.find(p =>
+      (user.uid && (p.user_id === user.uid || p.uploader_uid === user.uid)) ||
+      (user.displayName && p.discord_name === user.displayName) ||
+      (user.providerData && user.providerData.some((pd: any) => pd.displayName === p.discord_name))
+    ) || null;
+  }, [user, allPhotos]);
+
   const sortedPhotos = useMemo(() => {
     return [...photos].sort((a, b) => {
       if (sortBy === 'top') return (b.vote_count || 0) - (a.vote_count || 0);
@@ -866,24 +876,29 @@ export default function App() {
     }
   };
 
-  const handleDeletePhoto = async (photoId: string, photoDiscordName: string) => {
+  const handleDeletePhoto = async (photoId: string, photoDiscordName: string, skipConfirm = false) => {
     // Ownership check: only the photo owner or an admin can delete
+    const targetPhoto = allPhotos.find(p => p.id === photoId);
     const isOwner = user && (
-      user.displayName === photoDiscordName ||
-      user.providerData.some(p => p.displayName === photoDiscordName)
+      (targetPhoto?.user_id && targetPhoto.user_id === user.uid) ||
+      (targetPhoto?.uploader_uid && targetPhoto.uploader_uid === user.uid) ||
+      (user.displayName && photoDiscordName && user.displayName === photoDiscordName) ||
+      (user.providerData && user.providerData.some((p: any) => p.displayName === photoDiscordName))
     );
     if (!isAdmin && !isOwner) {
       toast.error('You can only delete your own photos');
-      return;
+      return false;
     }
-    if (!window.confirm("Are you sure you want to delete this photo?")) return;
+    if (!skipConfirm && !window.confirm("Are you sure you want to delete this photo?")) return false;
     try {
       await deleteDoc(doc(db, 'photos', photoId));
       if (lightboxPhoto?.id === photoId) setLightboxPhoto(null);
       toast.success('Photo deleted successfully!');
+      return true;
     } catch (error) {
       console.error("Delete Error:", error);
       toast.error('Failed to delete photo');
+      return false;
     }
   };
 
@@ -2775,6 +2790,11 @@ export default function App() {
               initialCategoryId={selectedCategory?.id || ''}
               discordName={user?.displayName || user?.providerData?.[0]?.displayName || user?.email || 'Authenticated User'}
               submissionsOpen={submissionsOpen}
+              onePhotoPerUser={onePhotoPerUser}
+              existingPhoto={currentUserPhoto}
+              onDeleteExisting={async (photoId, discordName) => {
+                return await handleDeletePhoto(photoId, discordName, true);
+              }}
               onClose={() => setShowUploadModal(false)}
               onUpload={async (imageData, caption, discordName, formPlayerName, categoryId) => {
                 await handleUpload(imageData, caption, discordName, formPlayerName, categoryId);

@@ -37,7 +37,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Mini Category Bar Spacing: Added 6px top offset under navbar and increased internal track padding (pt-4 pb-3.5) so category buttons are comfortably spaced and easy to read/tap.
 • Closed Submissions Guard: Navbar "Submit Entry" button checks contest status and blocks modal launch with a clear toast message when submissions are closed by admins.
 • Strict 1920x1080 Resolution Inspector: Image selection inspects dimensions and immediately alerts the user if resolution is under 1920x1080 Full HD, displaying current dimensions vs requirement with explicit error banners and button lock.
-• High-Utility Upload Modal: Enhanced upload form with live image metadata badges (resolution, aspect ratio, file size), category description preview, quick caption tags, and verified Discord badge.`,
+• High-Utility Upload Modal: Enhanced upload form with live image metadata badges (resolution, aspect ratio, file size), category description preview, quick caption tags, and verified Discord badge.
+• 1 Photo Per User Limit Enforcement: Strictly enforced the single submission per user rule across modal and upload handler logic.
+• Existing Submission Preview & Delete CTA: When a participant with an existing entry opens the upload modal while the 1-photo limit is active, the modal displays an intuitive preview card of their current entry (thumbnail, category, votes, caption) with an immediate "Delete Current Submission & Upload New Photo" button to easily swap entries.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },
