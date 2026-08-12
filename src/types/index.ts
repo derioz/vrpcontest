@@ -10,6 +10,11 @@ export interface Photo {
     category_id: string;
     player_name: string;
     discord_name: string;
+    user_id?: string;
+    uploader_uid?: string;
+    user_photo_url?: string;
+    avatar_seed?: string;
+    avatar_style?: string;
     image_url: string; // This remains for backwards compatibility and for the decrypted state on the client
     censored_image_url?: string; // Pixelated version visible before voting
     encrypted_image_url?: string; // RSA-encrypted original URL
@@ -26,6 +31,10 @@ export interface ArchivedWinner {
     category_name: string;
     player_name: string;
     discord_name: string;
+    user_id?: string;
+    user_photo_url?: string;
+    avatar_seed?: string;
+    avatar_style?: string;
     image_url: string;
     caption: string;
     vote_count: number;

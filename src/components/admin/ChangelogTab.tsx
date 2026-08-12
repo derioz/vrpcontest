@@ -42,7 +42,12 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Existing Submission Preview & Delete CTA: When a participant with an existing entry opens the upload modal while the 1-photo limit is active, the modal displays an intuitive preview card of their current entry (thumbnail, category, votes, caption) with an immediate "Delete Current Submission & Upload New Photo" button to easily swap entries.
 • Permanent Flagged Voters Retention: Verified and documented that the flagged_voters collection is strictly retained across contest archives and resets, ensuring alt account bans persist across all future contests.
 • Multi-Tier Champion Badges: Implemented dynamic badges for contest winners: Gold Champion (1x Winner), Platinum Crown (2x Champion), and Legendary Flame/Diamond (3+ Wins Grand Champion).
-• Universal Winner Badge Display: Displayed Champion Badges across navbar profile capsule, account dropdown header, sidebar profile, gallery photo cards, lightbox viewer, and Hall of Fame vault.`,
+• Universal Winner Badge Display: Displayed Champion Badges across navbar profile capsule, account dropdown header, sidebar profile, gallery photo cards, lightbox viewer, and Hall of Fame vault.
+• Hall of Fame Scrollbar Stabilization: Fixed scrollbar layout flicker by applying CSS scrollbar-gutter: stable and removing popLayout height collapses.
+• Unconditional Navbar Hall of Fame Link: Prominently added "Hall of Fame" directly to the navbar center capsule and mobile menu so it is easily accessible at all times.
+• High-Fidelity Hall of Fame Vault Redesign: Enhanced the Hall of Fame with a glassmorphic hero stats bar, MagicCard spotlight effects, search filters, and interactive winning photo inspection lightbox.
+• Universal Profile Picture Display: Integrated user profile avatars across gallery photo cards, lightbox viewer, sidebar profile section, and Hall of Fame winner cards.
+• "My Victories" Personal Vault Filter: Added an intuitive filter tab and profile dropdown shortcut allowing users to immediately view all past winning photo entries submitted by their account.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },

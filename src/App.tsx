@@ -1483,12 +1483,12 @@ export default function App() {
                 icon: FileText,
                 action: () => document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' })
               },
-              ...(showWinnersToggle ? [{
+              {
                 id: 'winners',
                 label: 'Hall of Fame',
                 icon: Trophy,
                 action: () => setShowArchivedWinners(true)
-              }] : [])
+              }
             ].map((item, index) => {
               const isHovered = hoveredNavIndex === index;
               const Icon = item.icon;
@@ -1646,6 +1646,24 @@ export default function App() {
                           <div className="flex flex-col items-start leading-tight">
                             <span className="text-xs font-black font-display text-white">Retry Discord Avatar</span>
                             <span className="text-[10px] font-normal text-white/50">Re-sync Discord profile picture</span>
+                          </div>
+                        </button>
+
+                        {/* Option 3: View Hall of Fame Victories */}
+                        <button
+                          onClick={() => {
+                            setShowArchivedWinners(true);
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center justify-start gap-3 px-3.5 py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/30 transition-all cursor-pointer active:scale-95 shadow-md group/trophy"
+                          title="View winning entries in the Hall of Fame"
+                        >
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                            <Trophy size={16} className="text-amber-400 group-hover/trophy:scale-110 transition-transform" />
+                          </div>
+                          <div className="flex flex-col items-start leading-tight">
+                            <span className="text-xs font-black font-display text-white">Hall of Fame Vault</span>
+                            <span className="text-[10px] font-normal text-white/50">Browse past winning entries</span>
                           </div>
                         </button>
 
@@ -2471,17 +2489,24 @@ export default function App() {
                             </div>
                           )}
 
-                          {/* Top-left: rank badge + player name in one row */}
+                          {/* Top-left: rank badge + player avatar + name in one row */}
                           <div className={cn("absolute left-3 flex items-center gap-2 z-10", photo.is_disqualified ? "top-9" : "top-3")}>
                             {rankEmoji && (
                               <span className="text-2xl drop-shadow-lg leading-none">{rankEmoji}</span>
                             )}
-                            <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5 max-w-[160px]">
-                              <User size={10} className="text-fivem-orange shrink-0" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider truncate">
+                            <div className="bg-black/70 backdrop-blur-md pl-1 pr-2.5 py-1 rounded-full border border-white/15 flex items-center gap-1.5 max-w-[200px] shadow-lg">
+                              <img
+                                src={getProfileAvatar((photo as any).user_photo_url, (photo as any).avatar_seed || (photo as any).user_id || photo.discord_name, (photo as any).avatar_style)}
+                                alt=""
+                                className="w-4 h-4 rounded-full object-cover border border-fivem-orange/50 shrink-0"
+                              />
+                              <span className="text-[10px] font-bold uppercase tracking-wider truncate text-white">
                                 {privateKey ? photo.player_name : "Anonymous"}
                               </span>
                             </div>
+                            {getUserWinCount(photo.discord_name, photo.user_id || photo.uploader_uid) > 0 && (
+                              <ChampionBadge winCount={getUserWinCount(photo.discord_name, photo.user_id || photo.uploader_uid)} size="sm" showLabel={false} />
+                            )}
                           </div>
 
                           {/* Top-right: action buttons (hover) */}
@@ -2698,6 +2723,14 @@ export default function App() {
                       <span className="text-[9px] text-fivem-orange/70 uppercase tracking-wider mt-0.5">Votes Recv'd</span>
                     </div>
                   </div>
+
+                  <button
+                    onClick={() => setShowArchivedWinners(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white transition-all text-xs font-bold font-display uppercase tracking-wider cursor-pointer shadow-md"
+                  >
+                    <Trophy size={14} className="text-amber-400" />
+                    <span>View Hall of Fame Archives</span>
+                  </button>
 
                   <button
                     onClick={() => handleSignOut()}
@@ -3051,7 +3084,7 @@ export default function App() {
         {/* Archived Winners Fullscreen Render */}
         {showArchivedWinners && (
           <Suspense fallback={null}>
-            <ArchivedWinnersView onClose={() => setShowArchivedWinners(false)} />
+            <ArchivedWinnersView currentUser={user} onClose={() => setShowArchivedWinners(false)} />
           </Suspense>
         )}
       </AnimatePresence>
