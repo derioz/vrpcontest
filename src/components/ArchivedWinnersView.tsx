@@ -95,9 +95,9 @@ const WinnerCard = React.memo(({
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80" />
 
           {/* Category Badge */}
-          <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-full border border-amber-500/40 flex items-center gap-1.5 shadow-xl">
-            <Trophy size={11} className="text-amber-400" />
-            <span className="text-[10px] uppercase tracking-wider font-bold text-white/90 truncate max-w-[120px]">
+          <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-full border border-amber-500/40 flex items-center gap-1.5 shadow-xl max-w-[70%]">
+            <Trophy size={11} className="text-amber-400 shrink-0" />
+            <span className="text-[10px] uppercase tracking-wider font-bold text-white/90 truncate">
               {winner.category_name}
             </span>
           </div>
@@ -418,7 +418,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[150] bg-[#060608] flex flex-col overflow-y-scroll text-white pattern-bg scrollbar-gutter-stable transform-gpu">
+    <div className="fixed inset-0 z-[150] bg-[#060608] flex flex-col overflow-y-auto overflow-x-hidden text-white pattern-bg scrollbar-gutter-stable transform-gpu w-full max-w-full">
       {/* Background Ambient Particles (Optimized quantity=20 for 60fps performance) */}
       <Particles
         className="absolute inset-0 z-0 opacity-20 pointer-events-none"
@@ -428,30 +428,30 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
         size={0.6}
       />
 
-      {/* Header Bar */}
-      <header className="relative z-20 shrink-0 border-b border-white/[0.08] bg-black/70 backdrop-blur-2xl">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      {/* Header Bar - Responsive without horizontal scroll */}
+      <header className="relative z-20 shrink-0 border-b border-white/[0.08] bg-black/70 backdrop-blur-2xl w-full max-w-full overflow-hidden">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 min-h-[4.5rem] py-3 flex items-center justify-between gap-2 sm:gap-4 w-full">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all hover:-translate-x-1 cursor-pointer"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all hover:-translate-x-1 cursor-pointer shrink-0"
             >
               <ArrowLeft size={18} />
             </Button>
             
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.2)] shrink-0">
                 <Trophy size={18} className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-black font-display tracking-wide leading-none text-white flex items-center gap-2">
-                  <SparklesText text="Hall of Fame Vault" sparklesCount={4} colors={{ first: "#f59e0b", second: "#fbbf24" }} />
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-black font-display tracking-wide leading-none text-white truncate">
+                  <SparklesText text="Hall of Fame Vault" sparklesCount={3} colors={{ first: "#f59e0b", second: "#fbbf24" }} />
                 </h1>
-                <p className="text-[10px] text-white/40 font-mono mt-1 uppercase tracking-widest flex items-center gap-2">
-                  <span>Immortalized Champions</span>
-                  <span className="w-1 h-1 rounded-full bg-amber-400" />
+                <p className="text-[9px] sm:text-[10px] text-white/40 font-mono mt-1 uppercase tracking-widest flex items-center gap-1.5 truncate">
+                  <span className="hidden xs:inline">Immortalized Champions</span>
+                  <span className="hidden xs:inline w-1 h-1 rounded-full bg-amber-400" />
                   <span>{contests.length} Archives</span>
                   <span className="w-1 h-1 rounded-full bg-amber-400" />
                   <span>{winners.length} Winners</span>
@@ -461,7 +461,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
           </div>
 
           {/* Quick Filters: All Archives vs My Victories */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {currentUser && !currentUser.isAnonymous && (
               <button
                 onClick={() => {
@@ -469,14 +469,14 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   setFilterMode(filterMode === 'my-wins' ? 'all' : 'my-wins');
                 }}
                 className={cn(
-                  "px-3.5 py-1.5 rounded-full text-xs font-bold font-display uppercase tracking-wider transition-all duration-300 flex items-center gap-2 cursor-pointer border shadow-md",
+                  "px-3 py-1.5 rounded-full text-xs font-bold font-display uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer border shadow-md shrink-0",
                   filterMode === 'my-wins' && !selectedUserFilter
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300 shadow-amber-500/30"
                     : "bg-white/[0.05] hover:bg-white/[0.12] border-white/15 text-white/80"
                 )}
               >
                 <Crown size={14} className={filterMode === 'my-wins' && !selectedUserFilter ? 'text-white' : 'text-amber-400'} />
-                <span>My Victories ({userWinningEntries.length})</span>
+                <span className="hidden sm:inline">My Victories</span> ({userWinningEntries.length})
               </button>
             )}
           </div>
@@ -484,7 +484,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
       </header>
 
       {/* Main Container */}
-      <div className="flex-1 flex overflow-hidden min-h-0 relative z-10">
+      <div className="flex-1 flex overflow-hidden min-h-0 relative z-10 w-full max-w-full">
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-white/30 space-y-4">
             <div className="w-12 h-12 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
@@ -503,9 +503,9 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-            {/* Sidebar: Contest Selector Track */}
-            <div className="w-full md:w-64 lg:w-72 shrink-0 border-r border-white/[0.08] bg-black/40 backdrop-blur-md overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden w-full max-w-full">
+            {/* ── DESKTOP SIDEBAR TRACK (Hidden on mobile < md) ── */}
+            <div className="hidden md:flex flex-col w-64 lg:w-72 shrink-0 border-r border-white/[0.08] bg-black/40 backdrop-blur-md overflow-y-auto p-4 space-y-3">
               <div className="px-2 mb-2 flex items-center justify-between">
                 <h3 className="text-[10px] font-mono font-bold text-amber-400/80 uppercase tracking-[0.2em]">Select Vault</h3>
                 <span className="text-[10px] font-mono text-white/30">{contests.length} contest(s)</span>
@@ -555,13 +555,53 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
               </div>
             </div>
 
+            {/* ── MOBILE COMPACT CONTROLS BAR (Only visible on mobile < md) ── */}
+            <div className="md:hidden shrink-0 border-b border-white/[0.08] bg-black/60 backdrop-blur-md p-3 space-y-2.5 w-full max-w-full overflow-hidden">
+              {/* Horizontal Scroll Pill Bar for Contests */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 w-full">
+                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
+                  <Trophy size={12} /> Vaults:
+                </span>
+                {contests.map((contest) => (
+                  <button
+                    key={contest}
+                    onClick={() => {
+                      setSelectedContest(contest);
+                      setFilterMode('all');
+                      setSelectedUserFilter(null);
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-all border cursor-pointer",
+                      selectedContest === contest && filterMode === 'all' && !selectedUserFilter
+                        ? "bg-amber-500 text-black border-amber-400 shadow-md font-extrabold"
+                        : "bg-white/5 hover:bg-white/10 border-white/10 text-white/70"
+                    )}
+                  >
+                    {contest}
+                  </button>
+                ))}
+              </div>
+
+              {/* Mobile Search Bar */}
+              <div className="relative w-full">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                <Input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search champions..."
+                  className="pl-8 h-8 text-xs bg-black/70 border-white/15 focus:border-amber-400 w-full"
+                />
+              </div>
+            </div>
+
             {/* Main Winner Cards Grid Container */}
-            <div className="flex-1 overflow-y-scroll px-4 py-6 relative bg-[#060608]/90 scrollbar-gutter-stable transform-gpu">
-              <div className="max-w-[1400px] mx-auto space-y-6">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 relative bg-[#060608]/90 scrollbar-gutter-stable transform-gpu w-full max-w-full overflow-x-hidden">
+              <div className="max-w-[1400px] mx-auto space-y-4 sm:space-y-6 w-full">
                 
                 {/* Active Photographer Filter Pill if user clicked a username */}
                 {selectedUserFilter && (
-                  <div className="flex items-center justify-between gap-3 bg-amber-500/15 border border-amber-500/30 px-4 py-2.5 rounded-2xl text-xs font-bold text-amber-300 backdrop-blur-md shadow-lg">
+                  <div className="flex items-center justify-between gap-3 bg-amber-500/15 border border-amber-500/30 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-amber-300 backdrop-blur-md shadow-lg w-full">
                     <div className="flex items-center gap-2 min-w-0">
                       <User size={15} className="text-amber-400 shrink-0" />
                       <span className="truncate">
@@ -573,30 +613,30 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                       className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 hover:text-white transition-colors cursor-pointer text-[11px] font-mono uppercase flex items-center gap-1 shrink-0"
                       title="Clear photographer filter"
                     >
-                      <X size={13} /> Clear Filter
+                      <X size={13} /> Clear
                     </button>
                   </div>
                 )}
 
                 {/* Header Title */}
-                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
-                  <div>
+                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 pb-3 border-b border-white/[0.08] w-full">
+                  <div className="min-w-0">
                     <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-400 font-bold block mb-1">
                       {selectedUserFilter ? 'Photographer Portfolio' : filterMode === 'my-wins' ? 'Your Personal Vault' : 'Archived Vault Record'}
                     </span>
-                    <h2 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white flex items-center gap-3">
+                    <h2 className="text-xl sm:text-3xl font-display font-black tracking-tight text-white flex items-center gap-3 truncate">
                       {selectedUserFilter ? selectedUserFilter.displayName : filterMode === 'my-wins' ? 'Your Winning Entries' : selectedContest}
                     </h2>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs font-mono text-white/60">
-                    <Flame size={14} className="text-amber-400" />
-                    <span>{displayedWinners.length} Hall of Fame Entries</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-xs font-mono text-white/60 shrink-0">
+                    <Flame size={13} className="text-amber-400" />
+                    <span>{displayedWinners.length} Entries</span>
                   </div>
                 </div>
 
                 {/* Empty State for Filters */}
                 {displayedWinners.length === 0 ? (
-                  <div className="py-20 text-center space-y-3 bg-white/[0.02] border border-white/[0.06] rounded-3xl">
+                  <div className="py-16 text-center space-y-3 bg-white/[0.02] border border-white/[0.06] rounded-3xl p-4">
                     <Trophy size={36} className="mx-auto text-white/20" />
                     <p className="text-sm font-bold text-white/60">
                       {selectedUserFilter ? `No winning entries found for ${selectedUserFilter.displayName}.` : filterMode === 'my-wins' ? "You haven't won any contest categories yet." : "No winning entries match your search."}
@@ -604,7 +644,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                     <p className="text-xs text-white/30">Submit your best shots to earn a spot in the Hall of Fame!</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
                     {displayedWinners.map((winner) => {
                       const userWinCount = Math.max(
                         winnerWinsMap.get(winner.discord_name?.toLowerCase()?.trim() || '') || 0,
@@ -641,37 +681,37 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
       {/* ── WINNING PHOTO LIGHTBOX MODAL ── */}
       <AnimatePresence>
         {selectedWinnerPhoto && (
-          <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6" onClick={() => setSelectedWinnerPhoto(null)}>
+          <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6" onClick={() => setSelectedWinnerPhoto(null)}>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative max-w-4xl w-full bg-[#0a0a0e] border border-amber-500/40 rounded-3xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.95)] flex flex-col max-h-[90vh]"
+              className="relative max-w-4xl w-full bg-[#0a0a0e] border border-amber-500/40 rounded-3xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.95)] flex flex-col max-h-[92vh]"
             >
               {/* Header */}
-              <div className="p-4 px-6 border-b border-white/10 flex items-center justify-between bg-black/40">
-                <div className="flex items-center gap-3">
-                  <Trophy className="text-amber-400" size={20} />
-                  <div>
-                    <h3 className="text-sm font-bold text-white">{selectedWinnerPhoto.contest_name} Winner</h3>
-                    <p className="text-[10px] text-amber-400/80 font-mono uppercase tracking-wider">{selectedWinnerPhoto.category_name} Category</p>
+              <div className="p-3 sm:p-4 px-4 sm:px-6 border-b border-white/10 flex items-center justify-between bg-black/40">
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <Trophy className="text-amber-400 shrink-0" size={18} />
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-white truncate">{selectedWinnerPhoto.contest_name} Winner</h3>
+                    <p className="text-[9px] sm:text-[10px] text-amber-400/80 font-mono uppercase tracking-wider truncate">{selectedWinnerPhoto.category_name} Category</p>
                   </div>
                 </div>
-                <button onClick={() => setSelectedWinnerPhoto(null)} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer">
+                <button onClick={() => setSelectedWinnerPhoto(null)} className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer shrink-0">
                   ✕
                 </button>
               </div>
 
               {/* Photo Stage */}
-              <div className="relative flex-1 bg-black/80 flex items-center justify-center p-4 min-h-[300px] max-h-[60vh] overflow-hidden">
+              <div className="relative flex-1 bg-black/80 flex items-center justify-center p-2 sm:p-4 min-h-[250px] max-h-[60vh] overflow-hidden">
                 <img src={selectedWinnerPhoto.image_url} alt="" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
               </div>
 
               {/* Footer details */}
-              <div className="p-5 bg-[#0f0f14] border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="p-4 sm:p-5 bg-[#0f0f14] border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div
-                  className="flex items-center gap-3 cursor-pointer group/user hover:opacity-90 transition-opacity"
+                  className="flex items-center gap-3 cursor-pointer group/user hover:opacity-90 transition-opacity min-w-0 w-full sm:w-auto"
                   onClick={() => {
                     handleUserClick(selectedWinnerPhoto);
                     setSelectedWinnerPhoto(null);
@@ -686,29 +726,29 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                       const fallback = getDiceBearAvatarUrl(selectedWinnerPhoto.avatar_seed || selectedWinnerPhoto.discord_name, (selectedWinnerPhoto.avatar_style as any) || 'botttsNeutral');
                       if (target.src !== fallback) target.src = fallback;
                     }}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-500/40 group-hover/user:border-amber-400 transition-colors"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-amber-500/40 group-hover/user:border-amber-400 transition-colors shrink-0"
                   />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white font-display group-hover/user:text-amber-400 transition-colors">{resolveDisplayName(selectedWinnerPhoto)}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs sm:text-sm font-bold text-white font-display group-hover/user:text-amber-400 transition-colors truncate">{resolveDisplayName(selectedWinnerPhoto)}</span>
                       <ChampionBadge winCount={winnerWinsMap.get(selectedWinnerPhoto.discord_name?.toLowerCase()?.trim() || '') || 1} size="sm" />
                     </div>
-                    <p className="text-xs text-white/60 italic">"{selectedWinnerPhoto.caption || 'No caption'}"</p>
+                    <p className="text-[11px] sm:text-xs text-white/60 italic truncate">"{selectedWinnerPhoto.caption || 'No caption'}"</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
                   <Button
                     onClick={() => handleShare(selectedWinnerPhoto)}
-                    className="h-10 px-4 bg-white/10 hover:bg-white/20 text-white font-bold font-display rounded-xl flex items-center gap-2 border border-white/15 cursor-pointer"
+                    className="h-9 sm:h-10 px-3 sm:px-4 bg-white/10 hover:bg-white/20 text-white font-bold font-display rounded-xl flex items-center gap-1.5 border border-white/15 cursor-pointer text-xs"
                   >
-                    <Share2 size={15} /> Share
+                    <Share2 size={14} /> Share
                   </Button>
                   <Button
                     onClick={() => handleDownload(selectedWinnerPhoto)}
-                    className="h-10 px-5 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer"
+                    className="h-9 sm:h-10 px-4 sm:px-5 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display rounded-xl flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer text-xs"
                   >
-                    <Download size={15} /> Download
+                    <Download size={14} /> Download
                   </Button>
                 </div>
               </div>
@@ -726,7 +766,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative max-w-md w-full bg-[#0d0d12] border border-amber-500/40 rounded-3xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.9)] space-y-5 text-white"
+              className="relative max-w-md w-full bg-[#0d0d12] border border-amber-500/40 rounded-3xl p-5 sm:p-6 shadow-[0_24px_80px_rgba(0,0,0,0.9)] space-y-4 sm:space-y-5 text-white"
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-white/10">

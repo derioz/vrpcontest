@@ -56,7 +56,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Enhanced Share Entry Modal: Rebuilt the Share action to present a dedicated dialog with 1-click "Copy Link to Clipboard", a visible selectable text box for manual copying, and Twitter/X social share shortcuts.
 • Custom Display Name Filter Resolution: Updated resolveDisplayName in ArchivedWinnersView.tsx so user filters and winner card headers respect customized display names when a user renames their account.
 • Direct Shared Link Deep-Linking: Added URL search parameter listener on page mount (?photo=..., ?archive=..., ?winner=...) in App.tsx and ArchivedWinnersView.tsx so visiting or clicking any shared entry URL automatically launches the winning photo in full detail.
-• Accurate Win Count Deduplication: Fixed double-counting bug where a single winning entry document with matching discord_name and player_name double-incremented the winner map. Win count badges and photographer filter counts now precisely reflect the exact number of winning photo documents in the vault.`,
+• Accurate Win Count Deduplication: Fixed double-counting bug where a single winning entry document with matching discord_name and player_name double-incremented the winner map. Win count badges and photographer filter counts now precisely reflect the exact number of winning photo documents in the vault.
+• Compact Mobile Vault Selector: Replaced vertical sidebar block on mobile viewports with a sleek horizontal scrollable capsule pill bar to prevent the vault menu from taking over the screen.
+• Mobile Navbar Overflow & Side-Scroll Elimination: Enforced strict w-full max-w-full overflow-x-hidden constraints, text truncations, and responsive flex-wrap logic across the Hall of Fame navbar header to eliminate horizontal side-scrolling.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },
