@@ -1419,12 +1419,12 @@ export default function App() {
               <div className="relative">
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="group/user relative flex items-center gap-3.5 px-5 py-3 rounded-2xl
-                    border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] hover:border-fivem-orange/50
-                    transition-all duration-300 shadow-lg shadow-black/30 cursor-pointer active:scale-[0.97] hover:scale-[1.02]"
+                  className="group/user relative flex items-center gap-3 px-4 py-2 rounded-xl
+                    border border-white/10 bg-white/[0.05] hover:bg-white/[0.10] hover:border-fivem-orange/40
+                    transition-all duration-300 cursor-pointer active:scale-[0.97] hover:scale-[1.02]"
                   title="Open account menu & profile settings"
                 >
-                  {/* Avatar with ring */}
+                  {/* Avatar */}
                   <div className="relative shrink-0">
                     <img
                       src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
@@ -1434,7 +1434,7 @@ export default function App() {
                         const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
                         if (target.src !== fallback) target.src = fallback;
                       }}
-                      className="w-10 h-10 rounded-xl object-cover group-hover/user:scale-105 transition-transform duration-300 ring-2 ring-fivem-orange/50 ring-offset-2 ring-offset-black/60 shadow-[0_0_16px_rgba(234,88,12,0.3)]"
+                      className="w-8 h-8 rounded-lg object-cover group-hover/user:scale-105 transition-transform duration-300 border-2 border-fivem-orange/50 shadow-[0_0_10px_rgba(234,88,12,0.25)]"
                     />
                     {/* Online dot on avatar */}
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#09090b] shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
@@ -2047,10 +2047,10 @@ export default function App() {
             style={{ top: miniCatTop }}
             className="fixed left-0 right-0 z-40 px-0 sm:px-6 pointer-events-none flex justify-center"
           >
-            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#16161e] border-x border-b border-t-0 border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.7)] backdrop-blur-xl px-5 py-3 flex items-center justify-between gap-4 overflow-hidden relative">
+            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto rounded-b-2xl rounded-t-none bg-[#252535] border-x border-b border-t-0 border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl px-5 py-3 flex items-center justify-between gap-4 overflow-hidden relative">
 
               {/* Left label badge */}
-              <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30">
+              <div className="hidden sm:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-fivem-orange/20 border border-fivem-orange/35">
                 <span className="w-2 h-2 rounded-full bg-fivem-orange animate-pulse shadow-[0_0_10px_rgba(234,88,12,0.9)]" />
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-fivem-orange font-mono">Category</span>
               </div>
@@ -2058,9 +2058,9 @@ export default function App() {
               {/* Category pill track */}
               <div className="relative flex-1 overflow-hidden">
                 {/* Left fade mask */}
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#16161e] to-transparent z-10" />
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#252535] to-transparent z-10" />
                 {/* Right fade mask */}
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#16161e] to-transparent z-10" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#252535] to-transparent z-10" />
 
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-2 py-0.5">
                   {categories.map((cat) => {
@@ -2073,7 +2073,7 @@ export default function App() {
                           "relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-display transition-all duration-200 cursor-pointer shrink-0 select-none",
                           isActive
                             ? "text-white font-black"
-                            : "text-white/70 hover:text-white font-semibold bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 hover:border-white/25"
+                            : "text-white/90 hover:text-white font-semibold bg-white/[0.10] hover:bg-white/[0.18] border border-white/15 hover:border-white/30"
                         )}
                       >
                         {isActive && (
