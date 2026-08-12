@@ -246,22 +246,18 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return Array.from(new Set(winners.map(w => w.contest_name)));
   }, [winners]);
 
-  // Compute map of total win counts per user
+  // Compute map of total win counts per user (deduplicated per document)
   const winnerWinsMap = useMemo(() => {
     const map = new Map<string, number>();
     winners.forEach(w => {
-      if (w.discord_name) {
-        const key = w.discord_name.toLowerCase().trim();
+      const docKeys = new Set<string>();
+      if (w.discord_name) docKeys.add(w.discord_name.toLowerCase().trim());
+      if (w.player_name) docKeys.add(w.player_name.toLowerCase().trim());
+      if (w.user_id) docKeys.add(w.user_id);
+
+      docKeys.forEach(key => {
         map.set(key, (map.get(key) || 0) + 1);
-      }
-      if (w.player_name) {
-        const key = w.player_name.toLowerCase().trim();
-        map.set(key, (map.get(key) || 0) + 1);
-      }
-      if (w.user_id) {
-        const key = w.user_id;
-        map.set(key, (map.get(key) || 0) + 1);
-      }
+      });
     });
     return map;
   }, [winners]);

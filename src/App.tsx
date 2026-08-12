@@ -303,18 +303,14 @@ export default function App() {
   const winnerCountsMap = useMemo(() => {
     const map = new Map<string, number>();
     archivedWinners.forEach((w) => {
-      if (w.discord_name) {
-        const key = w.discord_name.toLowerCase().trim();
+      const docKeys = new Set<string>();
+      if (w.discord_name) docKeys.add(w.discord_name.toLowerCase().trim());
+      if (w.player_name) docKeys.add(w.player_name.toLowerCase().trim());
+      if ((w as any).user_id) docKeys.add((w as any).user_id);
+
+      docKeys.forEach(key => {
         map.set(key, (map.get(key) || 0) + 1);
-      }
-      if (w.player_name) {
-        const key = w.player_name.toLowerCase().trim();
-        map.set(key, (map.get(key) || 0) + 1);
-      }
-      if ((w as any).user_id) {
-        const key = (w as any).user_id;
-        map.set(key, (map.get(key) || 0) + 1);
-      }
+      });
     });
     return map;
   }, [archivedWinners]);

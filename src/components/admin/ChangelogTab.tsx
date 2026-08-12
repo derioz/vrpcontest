@@ -55,7 +55,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Interactive Photographer Portfolio Filter: Clicking any winner's username or avatar in the Hall of Fame now immediately filters the gallery view to show all past winning entries from that specific photographer, complete with an active filter pill and 1-click clear option.
 • Enhanced Share Entry Modal: Rebuilt the Share action to present a dedicated dialog with 1-click "Copy Link to Clipboard", a visible selectable text box for manual copying, and Twitter/X social share shortcuts.
 • Custom Display Name Filter Resolution: Updated resolveDisplayName in ArchivedWinnersView.tsx so user filters and winner card headers respect customized display names when a user renames their account.
-• Direct Shared Link Deep-Linking: Added URL search parameter listener on page mount (?photo=..., ?archive=..., ?winner=...) in App.tsx and ArchivedWinnersView.tsx so visiting or clicking any shared entry URL automatically launches the winning photo in full detail.`,
+• Direct Shared Link Deep-Linking: Added URL search parameter listener on page mount (?photo=..., ?archive=..., ?winner=...) in App.tsx and ArchivedWinnersView.tsx so visiting or clicking any shared entry URL automatically launches the winning photo in full detail.
+• Accurate Win Count Deduplication: Fixed double-counting bug where a single winning entry document with matching discord_name and player_name double-incremented the winner map. Win count badges and photographer filter counts now precisely reflect the exact number of winning photo documents in the vault.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },
