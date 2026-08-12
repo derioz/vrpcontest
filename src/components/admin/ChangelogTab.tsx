@@ -33,7 +33,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • MagicUI Neon Border Beams: Integrated active-state BorderBeam glow effects and ambient DotPattern background overlay.
 • Large Floating Emojis: Removed emoji border boxes and enlarged emojis to text-5xl floating graphics with smooth drop-shadow glow effects.
 • Cleaned Badge Header: Updated section header badge to clean "Interactive Filters".
-• Profile Settings Dropdown: Moved Retry Discord Profile Picture, fallback avatar style selector, and name editing into a sleek profile name dropdown menu.
+• Profile Settings Dropdown & Obvious Rename: Fixed dropdown popup clipping by removing card overflow bounds, added a prominent highlighted "Rename Display Name" action, and added a quick "Rename" badge button next to the username.
 • Real-time Submission Percentage Ring: Displayed animated live submission stats and progress bars using MagicUI NumberTicker.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 8:32 PM',

@@ -2354,9 +2354,9 @@ export default function App() {
           <section>
             <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Your Profile</h2>
             {user && !user.isAnonymous ? (
-              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-md">
+              <div className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-md">
                 <BorderBeam size={150} duration={14} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
-                <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-fivem-orange/10 blur-[50px] pointer-events-none" />
+                <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-fivem-orange/10 blur-[50px] pointer-events-none overflow-hidden" />
 
                 <div className="relative z-10 flex flex-col gap-5">
                   <div className="flex items-center gap-3.5 min-w-0">
@@ -2421,16 +2421,32 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="relative">
-                          <button
-                            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                            className="flex items-center gap-1.5 group/pname cursor-pointer py-0.5 px-1.5 -ml-1 rounded-lg hover:bg-white/[0.06] transition-colors"
-                            title="Click to open profile options menu"
-                          >
-                            <h3 className="text-base font-bold text-white truncate max-w-[130px] group-hover/pname:text-fivem-orange transition-colors">
-                              {user.displayName || 'Anonymous Explorer'}
-                            </h3>
-                            <ChevronDown size={14} className={cn("text-fivem-orange/70 group-hover/pname:text-fivem-orange transition-transform duration-300", isProfileDropdownOpen && "rotate-180")} />
-                          </button>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                              className="flex items-center gap-1.5 group/pname cursor-pointer py-1 px-2 -ml-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-fivem-orange/40 transition-all shadow-sm"
+                              title="Click to open profile options menu"
+                            >
+                              <h3 className="text-base font-bold text-white truncate max-w-[110px] group-hover/pname:text-fivem-orange transition-colors">
+                                {user.displayName || 'Anonymous Explorer'}
+                              </h3>
+                              <ChevronDown size={14} className={cn("text-fivem-orange transition-transform duration-300", isProfileDropdownOpen && "rotate-180")} />
+                            </button>
+
+                            {/* Obvious Quick Rename Button */}
+                            <button
+                              onClick={() => {
+                                setEditedDisplayName(user.displayName || '');
+                                setIsEditingDisplayName(true);
+                                setIsProfileDropdownOpen(false);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-fivem-orange/15 hover:bg-fivem-orange/25 text-fivem-orange hover:text-white border border-fivem-orange/30 hover:border-fivem-orange/60 text-[10px] font-bold font-mono uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-sm active:scale-95"
+                              title="Click to rename display name"
+                            >
+                              <Edit3 size={11} />
+                              <span>Rename</span>
+                            </button>
+                          </div>
 
                           {/* Profile Dropdown Menu */}
                           <AnimatePresence>
@@ -2447,37 +2463,47 @@ export default function App() {
                                   animate={{ opacity: 1, y: 0, scale: 1 }}
                                   exit={{ opacity: 0, y: 6, scale: 0.95 }}
                                   transition={{ duration: 0.15, ease: "easeOut" }}
-                                  className="absolute left-0 top-full mt-2 w-64 z-50 rounded-2xl border border-white/15 bg-[#0e0e12]/95 shadow-[0_16px_48px_rgba(0,0,0,0.85)] p-3.5 backdrop-blur-xl flex flex-col gap-3"
+                                  className="absolute left-0 top-full mt-2.5 w-72 z-50 rounded-2xl border border-white/15 bg-[#0e0e12]/98 shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-4 backdrop-blur-2xl flex flex-col gap-3"
                                 >
-                                  <div className="flex items-center justify-between pb-2 border-b border-white/10 text-[10px] font-mono text-white/50 uppercase tracking-wider">
+                                  <div className="pb-2 border-b border-white/10 text-[10px] font-mono text-white/50 uppercase tracking-wider flex items-center justify-between">
                                     <span>Profile Settings</span>
-                                    <button
-                                      onClick={() => {
-                                        setEditedDisplayName(user.displayName || '');
-                                        setIsEditingDisplayName(true);
-                                        setIsProfileDropdownOpen(false);
-                                      }}
-                                      className="text-fivem-orange hover:underline flex items-center gap-1 cursor-pointer font-bold"
-                                    >
-                                      <Edit3 size={11} />
-                                      Edit Name
-                                    </button>
+                                    <span className="text-fivem-orange font-bold text-[9px] uppercase">Options</span>
                                   </div>
 
-                                  {/* Option 1: Retry Discord Profile Picture */}
+                                  {/* Prominent Action 1: Rename Display Name */}
+                                  <button
+                                    onClick={() => {
+                                      setEditedDisplayName(user.displayName || '');
+                                      setIsEditingDisplayName(true);
+                                      setIsProfileDropdownOpen(false);
+                                    }}
+                                    className="w-full flex items-center justify-start gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-fivem-orange/20 to-amber-500/15 hover:from-fivem-orange/30 hover:to-amber-500/25 text-fivem-orange hover:text-white border border-fivem-orange/40 transition-all text-xs font-bold cursor-pointer active:scale-95 shadow-sm group/rename"
+                                    title="Change your public display name"
+                                  >
+                                    <Edit3 size={15} className="text-fivem-orange group-hover/rename:scale-110 transition-transform shrink-0" />
+                                    <div className="flex flex-col items-start leading-tight">
+                                      <span className="text-xs font-bold text-white">Rename Display Name</span>
+                                      <span className="text-[9px] font-normal text-white/50">Edit your public contest handle</span>
+                                    </div>
+                                  </button>
+
+                                  {/* Prominent Action 2: Retry Discord Profile Picture */}
                                   <button
                                     onClick={() => {
                                       handleRetryDiscordAvatar();
                                       setIsProfileDropdownOpen(false);
                                     }}
-                                    className="w-full flex items-center justify-start gap-2 px-3 py-2 rounded-xl bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7983f5] hover:text-white border border-[#5865F2]/30 transition-all text-xs font-bold cursor-pointer active:scale-95 group/dbtn"
+                                    className="w-full flex items-center justify-start gap-2.5 px-3 py-2.5 rounded-xl bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7983f5] hover:text-white border border-[#5865F2]/30 transition-all text-xs font-bold cursor-pointer active:scale-95 group/dbtn"
                                     title="Reload/Sync official Discord profile picture"
                                   >
-                                    <RefreshCw size={13} className="group-hover/dbtn:rotate-180 transition-transform duration-500 text-[#7983f5] shrink-0" />
-                                    <span>Retry Discord Profile Picture</span>
+                                    <RefreshCw size={14} className="group-hover/dbtn:rotate-180 transition-transform duration-500 text-[#7983f5] shrink-0" />
+                                    <div className="flex flex-col items-start leading-tight">
+                                      <span className="text-xs font-bold text-white">Retry Discord Avatar</span>
+                                      <span className="text-[9px] font-normal text-white/50">Re-sync Discord profile picture</span>
+                                    </div>
                                   </button>
 
-                                  {/* Option 2: Fallback Avatar Style Selector & Randomizer */}
+                                  {/* Action 3: Fallback Avatar Style Selector & Randomizer */}
                                   <div className="pt-2.5 border-t border-white/10 flex flex-col gap-2">
                                     <div className="flex items-center justify-between">
                                       <span className="text-[10px] font-mono text-white/60 uppercase tracking-wider flex items-center gap-1">
