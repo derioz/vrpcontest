@@ -1731,23 +1731,6 @@ export default function App() {
                           </div>
                         </button>
 
-                        {/* Option 3: View Hall of Fame Victories */}
-                        <button
-                          onClick={() => {
-                            setShowArchivedWinners(true);
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center justify-start gap-3 px-3.5 py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/30 transition-all cursor-pointer active:scale-95 shadow-md group/trophy"
-                          title="View winning entries in the Hall of Fame"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
-                            <Trophy size={16} className="text-amber-400 group-hover/trophy:scale-110 transition-transform" />
-                          </div>
-                          <div className="flex flex-col items-start leading-tight">
-                            <span className="text-xs font-black font-display text-white">Hall of Fame Vault</span>
-                            <span className="text-[10px] font-normal text-white/50">Browse past winning entries</span>
-                          </div>
-                        </button>
 
                         {/* Option 3: Fallback Avatar Style Selector & Randomizer */}
                         <div className="pt-3 border-t border-white/10 flex flex-col gap-2.5">
@@ -1907,7 +1890,7 @@ export default function App() {
                   <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Account details</span>
                   {user && !user.isAnonymous ? (
                     <div className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <img
                           src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
                           alt=""
@@ -1918,14 +1901,25 @@ export default function App() {
                           }}
                           className="w-8 h-8 rounded-lg object-cover border border-white/10 shrink-0"
                         />
-                        <div className="flex flex-col leading-none gap-1">
-                          <span className="text-sm font-bold text-white">{user.displayName || user.email?.split('@')[0]}</span>
+                        <div className="flex flex-col leading-none gap-1 min-w-0">
+                          <span className="text-sm font-bold text-white truncate">{user.displayName || user.email?.split('@')[0]}</span>
                           <div className="flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
                             <span className="text-[8px] font-mono uppercase tracking-widest text-emerald-400 font-bold">Online</span>
                           </div>
                         </div>
                       </div>
+                      <button
+                        onClick={() => {
+                          setEditedDisplayName(user.displayName || '');
+                          setIsEditingDisplayName(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="p-2 rounded-lg bg-fivem-orange/15 hover:bg-fivem-orange/25 border border-fivem-orange/30 text-fivem-orange transition-all cursor-pointer shrink-0 ml-2"
+                        title="Rename Display Name"
+                      >
+                        <Edit3 size={14} />
+                      </button>
                     </div>
                   ) : (
                     <button
@@ -3152,6 +3146,90 @@ export default function App() {
         onClose={() => setShowBugModal(false)}
         user={user}
       />
+
+      {/* Rename Display Name Dedicated Modal Overlay */}
+      <AnimatePresence>
+        {isEditingDisplayName && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditingDisplayName(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-10 w-full max-w-md bg-[#0c0c10]/98 border border-white/15 rounded-3xl p-6 shadow-[0_24px_60px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-white space-y-5"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange">
+                    <Edit3 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black font-display text-white">Rename Display Name</h3>
+                    <p className="text-[10px] text-white/50 font-mono">Update your public contest handle</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingDisplayName(false)}
+                  className="p-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-white/50 hover:text-white border border-white/10 transition-all cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="space-y-3">
+                <label className="text-xs font-mono font-bold text-white/70 uppercase tracking-wider block">
+                  Public Display Name
+                </label>
+                <input
+                  type="text"
+                  value={editedDisplayName}
+                  onChange={(e) => setEditedDisplayName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveDisplayName();
+                    if (e.key === 'Escape') setIsEditingDisplayName(false);
+                  }}
+                  placeholder="Enter new display name..."
+                  autoFocus
+                  className="w-full px-4 py-3 text-sm font-semibold bg-black/60 border border-white/20 focus:border-fivem-orange text-white rounded-2xl focus:outline-none transition-all shadow-inner"
+                />
+                <p className="text-[11px] text-white/40 leading-relaxed font-sans">
+                  This name will be displayed across your contest entries, photo credits, and Hall of Fame victories.
+                </p>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingDisplayName(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveDisplayName}
+                  className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange border border-fivem-orange/40 shadow-lg shadow-fivem-orange/20 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                >
+                  <CheckCircle size={14} />
+                  <span>Save Name</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Analytics Dashboard Fullscreen Render */}
       <AnimatePresence>

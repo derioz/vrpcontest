@@ -25,6 +25,17 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260812-2208',
+    version: 'v1.9.3',
+    title: 'Rename Display Name Modal & Profile Menu Cleanup',
+    category: 'UI/UX',
+    description: `• Rename Display Name Modal Overlay: Rebuilt the "Rename Display Name" feature to launch a dedicated glassmorphic modal overlay when clicked from any profile button (navbar dropdown, mobile menu, or profile card), allowing users to update their handle instantly without having to locate an inline edit field.
+• Profile Dropdown Cleanup: Removed the Hall of Fame Vault option from the navbar user profile dropdown to eliminate redundant navigation options, keeping the account menu focused strictly on account management.
+• Mobile Menu Rename Shortcut: Added an edit display name icon button inside the mobile menu account card for direct access to profile handle editing on mobile devices.`,
+    author: 'Damon',
+    date: 'Aug 12, 2026 at 10:08 PM',
+  },
+  {
     id: 'release-20260812-2114',
     version: 'v1.9.2',
     title: 'Mobile Vault Menu, Admin Panel Width & Scroll Indicator Fixes',
