@@ -1493,34 +1493,24 @@ export default function App() {
                   else window.scrollTo({ top: 380, behavior: 'smooth' });
                 }
               },
-              {
+              ...(submissionsOpen ? [{
                 id: 'submit',
-                label: submissionsOpen ? 'Submit Entry' : 'Submissions Closed',
-                icon: submissionsOpen ? Plus : Lock,
-                accent: submissionsOpen,
+                label: 'Submit Entry',
+                icon: Plus,
+                accent: true,
                 action: () => {
-                  if (!submissionsOpen) {
-                    toast.error('Submissions are currently closed for this contest.');
-                    return;
-                  }
                   if (!user) {
                     setShowSignInModal(true);
                   } else {
                     setShowUploadModal(true);
                   }
                 }
-              },
+              }] : []),
               {
                 id: 'rules',
                 label: 'Rules',
                 icon: FileText,
                 action: () => document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' })
-              },
-              {
-                id: 'winners',
-                label: 'Hall of Fame',
-                icon: Trophy,
-                action: () => setShowArchivedWinners(true)
               }
             ].map((item, index) => {
               const isHovered = hoveredNavIndex === index;
@@ -1556,6 +1546,22 @@ export default function App() {
               );
             })}
           </div>
+
+          {/* ── Hall of Fame – Special Standalone Button ── */}
+          <button
+            onClick={() => setShowArchivedWinners(true)}
+            className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black font-display uppercase tracking-wider cursor-pointer select-none transition-all duration-300 relative group
+              bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-yellow-500/20 hover:to-amber-500/25
+              border border-amber-400/30 hover:border-amber-400/50
+              text-amber-300 hover:text-amber-200
+              shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)]"
+          >
+            {/* Animated glow ring */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400/0 via-amber-400/10 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
+            <Trophy size={13} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)] relative z-10" />
+            <span className="relative z-10">Hall of Fame</span>
+            <Sparkles size={10} className="text-amber-400/60 group-hover:text-amber-300 transition-colors relative z-10" />
+          </button>
 
           {/* ── RIGHT: Mobile Menu Toggle ── */}
           <button
@@ -1827,8 +1833,7 @@ export default function App() {
                   <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Navigation</span>
                   {[
                     { label: 'Categories', action: () => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
-                    { label: submissionsOpen ? 'Submit Entry' : 'Submissions Closed', action: () => { if (!submissionsOpen) { toast.error('Submissions are currently closed for this contest.'); return; } if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); } },
-                    ...(showWinnersToggle ? [{ label: 'Hall of Fame', action: () => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); } }] : []),
+                    ...(submissionsOpen ? [{ label: 'Submit Entry', action: () => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); } }] : []),
                     { label: 'Rules', action: () => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } }
                   ].map((item) => (
                     <button
@@ -1839,6 +1844,19 @@ export default function App() {
                       {item.label}
                     </button>
                   ))}
+                </div>
+
+                {/* Hall of Fame – Special Mobile Button */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-400/50 mb-1">✦ Hall of Fame</span>
+                  <button
+                    onClick={() => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-400/20 text-sm font-black uppercase tracking-wider text-amber-300 active:text-amber-200 cursor-pointer active:bg-amber-500/15 transition-all flex items-center gap-2.5 shadow-[0_0_15px_rgba(245,158,11,0.08)]"
+                  >
+                    <Trophy size={16} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
+                    <span>Hall of Fame Vault</span>
+                    <Sparkles size={12} className="text-amber-400/50 ml-auto" />
+                  </button>
                 </div>
 
                 {/* Account Section */}

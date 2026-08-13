@@ -25,6 +25,18 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260812-2042',
+    version: 'v1.9.1',
+    title: 'Hall of Fame Navbar Separation & Submissions Closed Button Cleanup',
+    category: 'UI/UX',
+    description: `• Hall of Fame Special Standalone Button: Separated Hall of Fame from the regular navigation capsule into its own visually distinct standalone button with amber/gold gradient background, glowing shadow, Trophy icon, and Sparkles accent — making it feel premium and immediately eye-catching.
+• Submissions Closed Button Hidden: The "Submissions Closed" navbar button is now completely hidden when submissions are not open, instead of showing a disabled/locked state. The "Submit Entry" button only appears when submissions are actively open.
+• Mobile Hall of Fame Section: Added a dedicated Hall of Fame section in the mobile navigation menu with its own "✦ Hall of Fame" header label, amber gradient styling, Trophy icon, and Sparkles to match the desktop treatment.
+• Mobile Submissions Cleanup: Mobile menu also hides the Submit Entry option entirely when submissions are closed, keeping the navigation clean and uncluttered.`,
+    author: 'Damon',
+    date: 'Aug 12, 2026 at 8:42 PM',
+  },
+  {
     id: 'release-20260811-2115',
     version: 'v1.9.0',
     title: 'Premium Dual-Layer Glass Navbar & Category Bar Redesign',
