@@ -152,12 +152,25 @@ export default function App() {
   const [submissionsOpen, setSubmissionsOpen] = useState(true);
   const [onePhotoPerUser, setOnePhotoPerUser] = useState(false);
   const [showWinnersToggle, setShowWinnersToggle] = useState(false);
-  const [showArchivedWinners, setShowArchivedWinners] = useState(false);
+  const [showArchivedWinners, setShowArchivedWinners] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab') || params.get('view');
+    const archiveId = params.get('archive') || params.get('winner');
+    const storedView = localStorage.getItem('active_view');
+    return tab === 'hall-of-fame' || tab === 'hof' || !!archiveId || storedView === 'hall-of-fame';
+  });
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab') || params.get('view');
+    const storedView = localStorage.getItem('active_view');
+    return tab === 'admin' || storedView === 'admin';
+  });
   const [isAdminMinimized, setIsAdminMinimized] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -249,6 +262,36 @@ export default function App() {
       document.body.style.overflow = 'unset';
     };
   }, [showAdminModal, isAdminMinimized]);
+
+  // Persist current active view (Hall of Fame & Admin Console) across page refreshes
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const currentTab = url.searchParams.get('tab') || url.searchParams.get('view');
+
+    if (showArchivedWinners) {
+      localStorage.setItem('active_view', 'hall-of-fame');
+      if (currentTab !== 'hall-of-fame') {
+        url.searchParams.set('tab', 'hall-of-fame');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } else if (showAdminModal) {
+      localStorage.setItem('active_view', 'admin');
+      if (currentTab !== 'admin') {
+        url.searchParams.set('tab', 'admin');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } else {
+      const storedView = localStorage.getItem('active_view');
+      if (storedView === 'hall-of-fame' || storedView === 'admin') {
+        localStorage.removeItem('active_view');
+      }
+      if (currentTab === 'hall-of-fame' || currentTab === 'hof' || currentTab === 'admin') {
+        url.searchParams.delete('tab');
+        url.searchParams.delete('view');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [showArchivedWinners, showAdminModal]);
 
   // photos for the currently-selected category (derived from allPhotos)
   const photos = useMemo(() => {
