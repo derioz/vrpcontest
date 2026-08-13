@@ -558,28 +558,37 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
             {/* ── MOBILE COMPACT CONTROLS BAR (Only visible on mobile < md) ── */}
             <div className="md:hidden shrink-0 border-b border-white/[0.08] bg-black/60 backdrop-blur-md p-3 space-y-2.5 w-full max-w-full overflow-hidden">
               {/* Horizontal Scroll Pill Bar for Contests */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 w-full">
-                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
-                  <Trophy size={12} /> Vaults:
-                </span>
-                {contests.map((contest) => (
-                  <button
-                    key={contest}
-                    onClick={() => {
-                      setSelectedContest(contest);
-                      setFilterMode('all');
-                      setSelectedUserFilter(null);
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-all border cursor-pointer",
-                      selectedContest === contest && filterMode === 'all' && !selectedUserFilter
-                        ? "bg-amber-500 text-black border-amber-400 shadow-md font-extrabold"
-                        : "bg-white/5 hover:bg-white/10 border-white/10 text-white/70"
-                    )}
-                  >
-                    {contest}
-                  </button>
-                ))}
+              <div className="relative w-full">
+                {/* Left fade scroll indicator */}
+                <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black/60 to-transparent z-10 pointer-events-none rounded-l-xl" />
+                {/* Right fade scroll indicator */}
+                <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none rounded-r-xl" />
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1 w-full touch-pan-x">
+                  <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider shrink-0 flex items-center gap-1 pl-4">
+                    <Trophy size={11} />
+                  </span>
+                  {contests.map((contest) => (
+                    <button
+                      key={contest}
+                      onClick={() => {
+                        setSelectedContest(contest);
+                        setFilterMode('all');
+                        setSelectedUserFilter(null);
+                      }}
+                      className={cn(
+                        "px-2.5 py-1.5 rounded-full text-[11px] font-bold shrink-0 transition-all border cursor-pointer max-w-[140px] truncate",
+                        selectedContest === contest && filterMode === 'all' && !selectedUserFilter
+                          ? "bg-amber-500 text-black border-amber-400 shadow-md font-extrabold"
+                          : "bg-white/5 hover:bg-white/10 border-white/10 text-white/70"
+                      )}
+                      title={contest}
+                    >
+                      {contest}
+                    </button>
+                  ))}
+                  {/* Spacer so last item isn't hidden under fade */}
+                  <div className="shrink-0 w-4" aria-hidden="true" />
+                </div>
               </div>
 
               {/* Mobile Search Bar */}
@@ -619,12 +628,12 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                 )}
 
                 {/* Header Title */}
-                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 pb-3 border-b border-white/[0.08] w-full">
-                  <div className="min-w-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-white/[0.08] w-full overflow-hidden">
+                  <div className="min-w-0 w-full sm:w-auto">
                     <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-400 font-bold block mb-1">
                       {selectedUserFilter ? 'Photographer Portfolio' : filterMode === 'my-wins' ? 'Your Personal Vault' : 'Archived Vault Record'}
                     </span>
-                    <h2 className="text-xl sm:text-3xl font-display font-black tracking-tight text-white flex items-center gap-3 truncate">
+                    <h2 className="text-lg sm:text-3xl font-display font-black tracking-tight text-white flex items-center gap-3 truncate">
                       {selectedUserFilter ? selectedUserFilter.displayName : filterMode === 'my-wins' ? 'Your Winning Entries' : selectedContest}
                     </h2>
                   </div>

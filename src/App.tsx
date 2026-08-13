@@ -3004,7 +3004,7 @@ export default function App() {
                 "fixed z-[160] transition-all duration-300",
                 isAdminMinimized
                   ? "pointer-events-none inset-0"
-                  : "fixed inset-0 flex items-center justify-center p-2 sm:p-4 pointer-events-auto"
+                  : "fixed inset-0 flex items-center justify-center p-0 sm:p-4 pointer-events-auto"
               )}
             >
               {!isAdminMinimized ? (
@@ -3013,7 +3013,7 @@ export default function App() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 15 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="w-full max-w-[98vw] md:max-w-5xl lg:max-w-7xl h-[92vh] sm:h-[85vh] max-h-[92vh] sm:max-h-[850px] bg-[#0a0a0a]/98 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white p-0 overflow-hidden flex flex-col rounded-3xl relative pointer-events-auto"
+                  className="w-full max-w-full sm:max-w-[98vw] md:max-w-5xl lg:max-w-7xl h-full sm:h-[85vh] max-h-full sm:max-h-[850px] bg-[#0a0a0a]/98 backdrop-blur-2xl border-0 sm:border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white p-0 overflow-hidden flex flex-col rounded-none sm:rounded-3xl relative pointer-events-auto"
                 >
                   {/* Ambient glows */}
                   <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fivem-orange/8 blur-[200px] rounded-full pointer-events-none" />

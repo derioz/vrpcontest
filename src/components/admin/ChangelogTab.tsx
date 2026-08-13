@@ -25,6 +25,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260812-2114',
+    version: 'v1.9.2',
+    title: 'Mobile Vault Menu, Admin Panel Width & Scroll Indicator Fixes',
+    category: 'UI/UX',
+    description: `• Mobile Vault Buttons Compacted: Previous contest (vault) selector pills on mobile now have a max-width of 140px with truncated text and smaller font size, preventing super-long buttons that push content off-screen.
+• Vault Scroll Fade Indicators: Added left/right gradient fade overlays on the mobile vault pill bar so users can visually tell the list is horizontally scrollable.
+• Vault Title Overflow Fix: The selected vault title in the content header now properly truncates on mobile with a smaller font size (text-lg) and stacks vertically so it doesn't go off-page.
+• Admin Panel Full Width on Mobile: The admin console modal now fills the entire screen on mobile — no padding, no rounded corners, no max-width constraint — for maximum usable space.
+• Admin Tab Scroll Indicators: The mobile admin tab bar now has gradient fade edges and a pulsing chevron arrow on the right to clearly indicate horizontal scrollability.
+• Touch Scrolling Improvements: Added touch-pan-x and end spacers on both the vault and admin tab scroll bars for smoother iOS scrolling and preventing the last item from being hidden under the fade.`,
+    author: 'Damon',
+    date: 'Aug 12, 2026 at 9:14 PM',
+  },
+  {
     id: 'release-20260812-2042',
     version: 'v1.9.1',
     title: 'Hall of Fame Navbar Separation & Submissions Closed Button Cleanup',

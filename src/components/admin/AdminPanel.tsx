@@ -216,31 +216,41 @@ export default function AdminPanel(props: AdminPanelProps) {
         </SidebarBody>
 
         {/* Mobile Horizontal Tabs Header (< md screens) */}
-        <div className="md:hidden flex items-center gap-1.5 p-2 overflow-x-auto no-scrollbar bg-[#08080b] border-b border-white/10 shrink-0">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            const isDanger = tab.id === 'danger';
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer",
-                  isDanger
-                    ? isActive
-                      ? "bg-red-500/30 text-white border border-red-500/60 shadow-sm"
-                      : "text-red-400 bg-red-500/10 border border-red-500/30"
-                    : isActive
-                      ? "bg-fivem-orange/20 text-white border border-fivem-orange/40 shadow-sm"
-                      : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
-                )}
-              >
-                <Icon size={14} className={isDanger ? 'text-red-400' : (isActive ? tab.color : '')} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className="md:hidden relative shrink-0 border-b border-white/10 bg-[#08080b]">
+          {/* Left fade scroll indicator */}
+          <div className="absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-[#08080b] to-transparent z-10 pointer-events-none" />
+          {/* Right fade scroll indicator with arrow hint */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#08080b] via-[#08080b]/80 to-transparent z-10 pointer-events-none flex items-center justify-end pr-1">
+            <ChevronRight size={14} className="text-white/30 animate-pulse" />
+          </div>
+          <div className="flex items-center gap-1.5 p-2 overflow-x-auto no-scrollbar touch-pan-x">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const isDanger = tab.id === 'danger';
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer",
+                    isDanger
+                      ? isActive
+                        ? "bg-red-500/30 text-white border border-red-500/60 shadow-sm"
+                        : "text-red-400 bg-red-500/10 border border-red-500/30"
+                      : isActive
+                        ? "bg-fivem-orange/20 text-white border border-fivem-orange/40 shadow-sm"
+                        : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
+                  )}
+                >
+                  <Icon size={14} className={isDanger ? 'text-red-400' : (isActive ? tab.color : '')} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+            {/* End spacer so last tab isn't hidden under fade */}
+            <div className="shrink-0 w-6" aria-hidden="true" />
+          </div>
         </div>
 
         {/* ── MAIN CONTENT STAGE ── */}
@@ -292,7 +302,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
-                className="max-w-5xl mx-auto"
+                className="w-full max-w-full sm:max-w-5xl mx-auto"
               >
                 {activeTab === 'dashboard' && (
                   <OverviewTab
