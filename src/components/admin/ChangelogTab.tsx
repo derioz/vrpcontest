@@ -25,6 +25,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260813-2010',
+    version: 'v1.9.4',
+    title: 'Site Closed Lockdown Mode, Contest Closed Modal & Admin Controls',
+    category: 'Feature',
+    description: `• Site Closed Lockdown Mode: Added a global toggle switch in the Admin Console (Controls & Security tab) allowing administrators to restrict access to the contest portal when a contest round is concluded or undergoing scheduled maintenance.
+• High-Fidelity Contest Closed Modal: Non-admin visitors and guests are presented with a centered, glassmorphic "Contest is Closed" modal featuring a sleek gradient frame, pulsing ripple rings, lock centerpiece, next contest preparation notice, and a super-blurred backdrop showing the live website beneath.
+• Interactive Creator Easter Egg: Styled a clean "Created by Damon" footer badge featuring Damon's custom avatar that triggers an animated playful wiggle when clicked.
+• Seamless Hall of Fame Shortcut: Built-in high-contrast button allowing visitors to immediately explore all past champions and winning entries in the Hall of Fame without requiring login.
+• Administrator Sign-In & Live Bypass: Integrated instant login for administrators directly from the closed modal, accompanied by an admin bypass toggle and quick shortcut to launch the Admin Console.
+• Real-time Firestore Sync & Admin Mode Indicator: Contest lock status synchronizes live across all connected clients via Firestore, and displays a floating indicator banner when an administrator is browsing the platform with the lock active.`,
+    author: 'Damon',
+    date: 'Aug 13, 2026 at 8:15 PM',
+  },
+  {
     id: 'release-20260812-2208',
     version: 'v1.9.3',
     title: 'Rename Display Name Modal & Profile Menu Cleanup',

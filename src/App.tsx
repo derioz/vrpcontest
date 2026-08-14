@@ -96,6 +96,7 @@ const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView'
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 import AdminPanel from './components/admin/AdminPanel';
+import { ContestClosedModal } from './components/ContestClosedModal';
 
 
 
@@ -152,6 +153,8 @@ export default function App() {
   const [submissionsOpen, setSubmissionsOpen] = useState(true);
   const [onePhotoPerUser, setOnePhotoPerUser] = useState(false);
   const [showWinnersToggle, setShowWinnersToggle] = useState(false);
+  const [siteClosed, setSiteClosed] = useState(false);
+  const [adminBypassClosedModal, setAdminBypassClosedModal] = useState(false);
   const [showArchivedWinners, setShowArchivedWinners] = useState(() => {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
@@ -741,6 +744,7 @@ export default function App() {
         setSubmissionsOpen(data.submissionsOpen !== false);
         setOnePhotoPerUser(!!data.onePhotoPerUser); // default false (no limit)
         setShowWinnersToggle(!!data.showWinnersToggle);
+        setSiteClosed(!!data.siteClosed);
         setRulesMarkdown(data.rulesMarkdown || '');
         if (data.theme) setCurrentTheme(data.theme);
         setPublicKey(data.publicKey || null);
@@ -1147,6 +1151,18 @@ export default function App() {
     }
   };
 
+  const toggleSiteClosed = async (closed: boolean) => {
+    if (!isAdmin) return;
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { siteClosed: closed });
+      setSiteClosed(closed);
+      toast.success(`Contest access ${closed ? 'restricted (Site Closed Mode Active)' : 'opened to all users'}`);
+    } catch (error) {
+      console.error("Toggle Site Closed Error:", error);
+      toast.error('Failed to toggle site closed status');
+    }
+  };
+
   const handleGenerateKeys = async () => {
     if (!isAdmin) return;
     if (publicKey && !window.confirm("Keys already exist. Generating new keys will completely break existing encrypted images. Continue?")) return;
@@ -1418,9 +1434,12 @@ export default function App() {
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
   const miniCatTop = useTransform(navH, (h) => `${h + 6}px`);
 
+  const isSiteLocked = siteClosed && (!isAdmin || !adminBypassClosedModal);
+
   return (
-    <ShaderBackground className="min-h-screen flex flex-col">
-      <motion.header
+    <ShaderBackground className={cn("min-h-screen flex flex-col relative", isSiteLocked && !showArchivedWinners && "overflow-hidden")}>
+      <div className={cn("flex flex-col flex-1 transition-all duration-500", isSiteLocked && !showArchivedWinners && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
+        <motion.header
         ref={navbarRef}
         style={{ height: navH }}
         className={cn(
@@ -3043,6 +3062,7 @@ export default function App() {
                         submissionsOpen={submissionsOpen}
                         onePhotoPerUser={onePhotoPerUser}
                         showWinnersToggle={showWinnersToggle}
+                        siteClosed={siteClosed}
                         publicKey={publicKey}
                         privateKey={privateKey}
                         rulesMarkdown={rulesMarkdown}
@@ -3051,6 +3071,7 @@ export default function App() {
                         onToggleSubmissions={toggleSubmissions}
                         onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
                         onToggleShowWinners={toggleShowWinners}
+                        onToggleSiteClosed={toggleSiteClosed}
                         onGenerateKeys={handleGenerateKeys}
                         onToggleReveal={handleToggleReveal}
                         onDownloadWinners={handleDownloadWinningPhotos}
@@ -3083,6 +3104,7 @@ export default function App() {
                   submissionsOpen={submissionsOpen}
                   onePhotoPerUser={onePhotoPerUser}
                   showWinnersToggle={showWinnersToggle}
+                  siteClosed={siteClosed}
                   publicKey={publicKey}
                   privateKey={privateKey}
                   rulesMarkdown={rulesMarkdown}
@@ -3091,6 +3113,7 @@ export default function App() {
                   onToggleSubmissions={toggleSubmissions}
                   onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
                   onToggleShowWinners={toggleShowWinners}
+                  onToggleSiteClosed={toggleSiteClosed}
                   onGenerateKeys={handleGenerateKeys}
                   onToggleReveal={handleToggleReveal}
                   onDownloadWinners={handleDownloadWinningPhotos}
@@ -3433,6 +3456,40 @@ export default function App() {
           </div>
         </div>
       </footer>
+      </div>
+
+      {/* ─── SITE CLOSED / LOCKDOWN MODAL OVERLAY ─── */}
+      {isSiteLocked && !showArchivedWinners && (
+        <ContestClosedModal
+          isAdmin={isAdmin}
+          user={user}
+          adminBypass={adminBypassClosedModal}
+          onToggleAdminBypass={(bypass) => setAdminBypassClosedModal(bypass)}
+          onOpenHallOfFame={() => setShowArchivedWinners(true)}
+          onOpenSignIn={() => setShowSignInModal(true)}
+          onSignOut={() => signOut(auth)}
+          onOpenAdminPanel={() => {
+            setShowAdminModal(true);
+            setIsAdminMinimized(false);
+          }}
+        />
+      )}
+
+      {/* Floating Admin Banner when Admin has bypassed the modal */}
+      {siteClosed && isAdmin && adminBypassClosedModal && (
+        <div className="fixed top-24 right-4 z-[90] bg-[#09090d]/95 border border-red-500/40 backdrop-blur-xl px-4 py-2 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(239,68,68,0.25)] flex items-center gap-3 text-xs font-mono text-white select-none animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+            <span className="font-bold text-red-300">Site Closed Mode Active</span>
+          </div>
+          <button
+            onClick={() => setAdminBypassClosedModal(false)}
+            className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[10px] font-bold uppercase tracking-wider text-white transition-all cursor-pointer"
+          >
+            Show Lock Screen
+          </button>
+        </div>
+      )}
 
       {/* ─── NOT AN ADMIN: Humorous Gate Modal ─── */}
       <AnimatePresence>

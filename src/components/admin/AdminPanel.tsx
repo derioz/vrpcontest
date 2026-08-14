@@ -34,6 +34,7 @@ interface AdminPanelProps {
   submissionsOpen: boolean;
   onePhotoPerUser: boolean;
   showWinnersToggle: boolean;
+  siteClosed?: boolean;
   publicKey: string | null;
   privateKey: string | null;
   rulesMarkdown: string;
@@ -42,6 +43,7 @@ interface AdminPanelProps {
   onToggleSubmissions: (open: boolean) => void;
   onToggleOnePhotoPerUser: (enabled: boolean) => void;
   onToggleShowWinners: (enabled: boolean) => void;
+  onToggleSiteClosed?: (closed: boolean) => void;
   onGenerateKeys: () => void;
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
@@ -67,8 +69,8 @@ const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string;
 export default function AdminPanel(props: AdminPanelProps) {
   const {
     isAdmin, user, activeContest, categories = [], allPhotos = [], votingOpen, submissionsOpen,
-    onePhotoPerUser, showWinnersToggle, publicKey, privateKey, rulesMarkdown, winners = [],
-    onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners,
+    onePhotoPerUser, showWinnersToggle, siteClosed = false, publicKey, privateKey, rulesMarkdown, winners = [],
+    onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed,
     onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
     isMinimized = false, onToggleMinimize, onClose
   } = props;
@@ -311,6 +313,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                     allPhotos={allPhotos}
                     votingOpen={votingOpen}
                     submissionsOpen={submissionsOpen}
+                    siteClosed={siteClosed}
                     setActiveTab={setActiveTab}
                     onOpenAnalytics={onOpenAnalytics}
                   />
@@ -366,12 +369,14 @@ export default function AdminPanel(props: AdminPanelProps) {
                     submissionsOpen={submissionsOpen}
                     onePhotoPerUser={onePhotoPerUser}
                     showWinnersToggle={showWinnersToggle}
+                    siteClosed={siteClosed}
                     publicKey={publicKey}
                     privateKey={privateKey}
                     onToggleVoting={onToggleVoting}
                     onToggleSubmissions={onToggleSubmissions}
                     onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
                     onToggleShowWinners={onToggleShowWinners}
+                    onToggleSiteClosed={onToggleSiteClosed}
                     onGenerateKeys={onGenerateKeys}
                     onToggleReveal={onToggleReveal}
                   />
@@ -413,8 +418,8 @@ interface BugReport {
   dateStr?: string;
 }
 
-function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submissionsOpen, setActiveTab, onOpenAnalytics }: {
-  activeContest: any; categories: Category[]; allPhotos: Photo[]; votingOpen: boolean; submissionsOpen: boolean;
+function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submissionsOpen, siteClosed = false, setActiveTab, onOpenAnalytics }: {
+  activeContest: any; categories: Category[]; allPhotos: Photo[]; votingOpen: boolean; submissionsOpen: boolean; siteClosed?: boolean;
   setActiveTab: (tab: AdminTab) => void; onOpenAnalytics: () => void;
 }) {
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
@@ -528,12 +533,13 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
       </div>
 
       {/* Hero Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         {[
           { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
           { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
           { label: 'Total Entries', value: allPhotos.length, icon: ImageIcon, color: 'purple' },
           { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
+          { label: 'Site Access', value: siteClosed ? 'Locked' : 'Open', icon: siteClosed ? Lock : Unlock, color: siteClosed ? 'red' : 'emerald' },
           { label: 'Pending Bugs', value: openBugCount, icon: Bug, color: openBugCount > 0 ? 'orange' : 'emerald' },
         ].map((stat, i) => {
           const Icon = stat.icon;
@@ -889,14 +895,15 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
    TAB: Controls & Security
    ═══════════════════════════════════════════════════════════════════════ */
 function ControlsAndSecurityTab({
-  votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, publicKey, privateKey,
-  onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners,
+  votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, siteClosed = false, publicKey, privateKey,
+  onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed,
   onGenerateKeys, onToggleReveal
 }: {
-  votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean;
+  votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean; siteClosed?: boolean;
   publicKey: string | null; privateKey: string | null;
   onToggleVoting: (v: boolean) => void; onToggleSubmissions: (v: boolean) => void;
   onToggleOnePhotoPerUser: (v: boolean) => void; onToggleShowWinners: (v: boolean) => void;
+  onToggleSiteClosed?: (v: boolean) => void;
   onGenerateKeys: () => void; onToggleReveal: (v: boolean) => void;
 }) {
   return (
@@ -915,6 +922,15 @@ function ControlsAndSecurityTab({
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Contest Real-Time Switches</p>
         </div>
         <div className="space-y-1 px-2 pb-2">
+          <AdminToggle
+            label="Site Closed / Lockdown"
+            description="Block non-admin visitors with the 'Contest is Closed' modal (Admins can bypass/preview)"
+            checked={siteClosed}
+            onToggle={onToggleSiteClosed || (() => {})}
+            activeColor="bg-red-500"
+            activeGlow="shadow-[0_0_12px_rgba(239,68,68,0.5)]"
+            icon={<Lock size={16} />}
+          />
           <AdminToggle
             label="Voting"
             description="Allow users to vote on contest submissions"
