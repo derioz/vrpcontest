@@ -154,6 +154,7 @@ export default function App() {
   const [onePhotoPerUser, setOnePhotoPerUser] = useState(false);
   const [showWinnersToggle, setShowWinnersToggle] = useState(false);
   const [siteClosed, setSiteClosed] = useState(false);
+  const [censorSubmissions, setCensorSubmissions] = useState(false);
   const [adminBypassClosedModal, setAdminBypassClosedModal] = useState(false);
   const [showArchivedWinners, setShowArchivedWinners] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -745,6 +746,7 @@ export default function App() {
         setOnePhotoPerUser(!!data.onePhotoPerUser); // default false (no limit)
         setShowWinnersToggle(!!data.showWinnersToggle);
         setSiteClosed(!!data.siteClosed);
+        setCensorSubmissions(!!data.censorSubmissions);
         setRulesMarkdown(data.rulesMarkdown || '');
         if (data.theme) setCurrentTheme(data.theme);
         setPublicKey(data.publicKey || null);
@@ -832,16 +834,35 @@ export default function App() {
       const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Photo[];
 
       const processedPhotos = await Promise.all(fetched.map(async (photo) => {
+        const isCensoredNow = censorSubmissions && !votingOpen;
+
         if (privateKey && photo.encrypted_image_url) {
           try {
             const clearUrl = await decryptUrl(photo.encrypted_image_url, privateKey);
-            return { ...photo, image_url: clearUrl };
+            return {
+              ...photo,
+              image_url: isCensoredNow ? (photo.censored_image_url || clearUrl) : clearUrl,
+              clear_image_url: clearUrl
+            };
           } catch (e) {
             console.error("Failed to decrypt photo", photo.id);
             return { ...photo, image_url: photo.censored_image_url || photo.image_url };
           }
         }
-        return { ...photo, image_url: photo.censored_image_url || photo.image_url };
+
+        if (isCensoredNow) {
+          return {
+            ...photo,
+            image_url: photo.censored_image_url || photo.image_url,
+            clear_image_url: photo.image_url
+          };
+        }
+
+        if (photo.encrypted_image_url && !privateKey) {
+          return { ...photo, image_url: photo.censored_image_url || photo.image_url };
+        }
+
+        return { ...photo, image_url: photo.image_url };
       }));
 
       setAllPhotos(processedPhotos);
@@ -850,7 +871,7 @@ export default function App() {
       toast.error('Failed to load photos');
     });
     return () => unsub();
-  }, [activeContestId, categoryIdsKey, privateKey]);
+  }, [activeContestId, categoryIdsKey, privateKey, censorSubmissions, votingOpen]);
 
   // Subscribe to flagged_voters collection
   const [flaggedVoterIds, setFlaggedVoterIds] = useState<Set<string>>(new Set());
@@ -1202,6 +1223,21 @@ export default function App() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to toggle reveal");
+    }
+  };
+
+  const toggleCensorSubmissions = async (enabled: boolean) => {
+    if (!isAdmin) return;
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { censorSubmissions: enabled });
+      toast.success(
+        enabled
+          ? "Image censoring enabled (Submissions pixelated until voting starts)."
+          : "Image censoring disabled (Full resolution images visible)."
+      );
+    } catch (error) {
+      console.error("Failed to toggle censor submissions:", error);
+      toast.error("Failed to update censor setting");
     }
   };
 
@@ -2583,6 +2619,14 @@ export default function App() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                           </div>
 
+                          {/* Pixelated / Censored Indicator */}
+                          {censorSubmissions && !votingOpen && (
+                            <div className="absolute bottom-3 left-3 bg-amber-500/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 text-[9px] font-mono text-amber-300 font-bold z-10 shadow-sm">
+                              <EyeOff size={10} />
+                              <span>Pixelated until voting</span>
+                            </div>
+                          )}
+
                           {/* DISQUALIFIED Permanent Banner */}
                           {photo.is_disqualified && (
                             <div className="absolute top-0 inset-x-0 bg-red-600/95 text-white font-black text-xs uppercase tracking-widest py-1.5 px-3 flex items-center justify-center gap-1.5 z-30 shadow-lg border-b border-red-400/40">
@@ -3063,6 +3107,7 @@ export default function App() {
                         onePhotoPerUser={onePhotoPerUser}
                         showWinnersToggle={showWinnersToggle}
                         siteClosed={siteClosed}
+                        censorSubmissions={censorSubmissions}
                         publicKey={publicKey}
                         privateKey={privateKey}
                         rulesMarkdown={rulesMarkdown}
@@ -3072,6 +3117,7 @@ export default function App() {
                         onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
                         onToggleShowWinners={toggleShowWinners}
                         onToggleSiteClosed={toggleSiteClosed}
+                        onToggleCensorSubmissions={toggleCensorSubmissions}
                         onGenerateKeys={handleGenerateKeys}
                         onToggleReveal={handleToggleReveal}
                         onDownloadWinners={handleDownloadWinningPhotos}
@@ -3105,6 +3151,7 @@ export default function App() {
                   onePhotoPerUser={onePhotoPerUser}
                   showWinnersToggle={showWinnersToggle}
                   siteClosed={siteClosed}
+                  censorSubmissions={censorSubmissions}
                   publicKey={publicKey}
                   privateKey={privateKey}
                   rulesMarkdown={rulesMarkdown}
@@ -3114,6 +3161,7 @@ export default function App() {
                   onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
                   onToggleShowWinners={toggleShowWinners}
                   onToggleSiteClosed={toggleSiteClosed}
+                  onToggleCensorSubmissions={toggleCensorSubmissions}
                   onGenerateKeys={handleGenerateKeys}
                   onToggleReveal={handleToggleReveal}
                   onDownloadWinners={handleDownloadWinningPhotos}
@@ -3144,6 +3192,7 @@ export default function App() {
             photo={lightboxPhoto}
             photos={photos}
             privateKey={privateKey}
+            isCensored={censorSubmissions && !votingOpen}
             winCount={getUserWinCount(lightboxPhoto.discord_name, (lightboxPhoto as any).user_id || (lightboxPhoto as any).uploader_uid)}
             onClose={() => setLightboxPhoto(null)}
             onNavigate={(p) => setLightboxPhoto(p)}

@@ -28,9 +28,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260814-1635',
     version: 'v1.9.5',
-    title: 'Contest Rules Markdown Engine, Split Live Preview & Instant Rules Persistence',
+    title: 'Contest Rules Markdown Engine, Image Censor Pixelation Gate & Instant Rules Persistence',
     category: 'Feature',
-    description: `• ReactMarkdown & GFM Rendering Engine: Replaced the legacy plain-text line-splitting preview with a high-fidelity Markdown engine powered by ReactMarkdown and remark-gfm, delivering 100% accurate rendering for headings (#, ##, ###), bold (**text**), italics (*text*), blockquotes (> note), bullet & numbered lists, tables, links, code snippets, and custom callouts.
+    description: `• Image Censor & Pixelation Gate: Re-introduced the submission image censorship switch in the Admin Console (Controls & Security tab). When activated, all submitted photos are pixelated and obscured to the public throughout the submission phase to eliminate early bias and duplicate concepts. As soon as voting is unlocked (or censorship is toggled off), high-resolution unpixelated images are immediately revealed in real time across photo feeds, category tabs, and the full-screen lightbox.
+• ReactMarkdown & GFM Rendering Engine: Replaced the legacy plain-text line-splitting preview with a high-fidelity Markdown engine powered by ReactMarkdown and remark-gfm, delivering 100% accurate rendering for headings (#, ##, ###), bold (**text**), italics (*text*), blockquotes (> note), bullet & numbered lists, tables, links, code snippets, and custom callouts.
 • Instant "Save Rules Now" Action: Added a dedicated instant-save button right inside the Rules & Live Preview tab in Contest Setup, allowing administrators to persist global rules directly to Firestore in one click without needing to re-validate category fields or round metadata.
 • Real-Time Typing State Protection: Refactored internal state synchronization in EditContestManager to guard against background Firestore listener updates wiping out unsaved text in the rules editor while administrators are typing.
 • One-Click Starter Rules Templates: Integrated quick template presets ("Full Official Rules" and "Short & Compact") and quick formatting syntax chips into the Markdown toolbar for rapid contest rule authoring.

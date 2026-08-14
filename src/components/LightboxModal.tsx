@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Vote, Calendar, Users, Ban, Download, ChevronLeft, ChevronRight, Eye, Sparkles } from 'lucide-react';
+import { X, User, Vote, Calendar, Users, Ban, Download, ChevronLeft, ChevronRight, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { Photo } from '../types';
 import { VotersModal } from './VotersModal';
 import { downloadPhoto } from '../lib/download';
@@ -13,6 +13,7 @@ interface LightboxModalProps {
   photos?: Photo[];
   privateKey: string | null;
   winCount?: number;
+  isCensored?: boolean;
   onClose: () => void;
   onNavigate?: (photo: Photo) => void;
 }
@@ -22,6 +23,7 @@ export default function LightboxModal({
   photos = [],
   privateKey,
   winCount = 0,
+  isCensored = false,
   onClose,
   onNavigate,
 }: LightboxModalProps) {
@@ -227,6 +229,14 @@ export default function LightboxModal({
                         — {photo.disqualification_reason}
                       </span>
                     )}
+                  </div>
+                )}
+
+                {/* Pixelated Preview Notice if applicable */}
+                {isCensored && !photo.is_disqualified && (
+                  <div className="flex items-center gap-2 bg-amber-500/20 backdrop-blur-xl px-4 py-2 rounded-xl border border-amber-500/40 text-amber-300 text-xs font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                    <EyeOff size={16} className="shrink-0" />
+                    <span>Pixelated Preview — Full resolution revealed when voting begins</span>
                   </div>
                 )}
 

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
-  Eye, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
+  Eye, EyeOff, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
   Bug, CheckCircle2, Trash2, Clock, Minus, Maximize2, X, Wrench, Sparkles, TrendingUp
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -38,6 +38,7 @@ interface AdminPanelProps {
   onePhotoPerUser: boolean;
   showWinnersToggle: boolean;
   siteClosed?: boolean;
+  censorSubmissions?: boolean;
   publicKey: string | null;
   privateKey: string | null;
   rulesMarkdown: string;
@@ -47,6 +48,7 @@ interface AdminPanelProps {
   onToggleOnePhotoPerUser: (enabled: boolean) => void;
   onToggleShowWinners: (enabled: boolean) => void;
   onToggleSiteClosed?: (closed: boolean) => void;
+  onToggleCensorSubmissions?: (enabled: boolean) => void;
   onGenerateKeys: () => void;
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
@@ -100,8 +102,8 @@ const ALL_TABS = TAB_GROUPS.flatMap(g => g.tabs);
 export default function AdminPanel(props: AdminPanelProps) {
   const {
     isAdmin, user, activeContest, categories = [], allPhotos = [], votingOpen, submissionsOpen,
-    onePhotoPerUser, showWinnersToggle, siteClosed = false, publicKey, privateKey, rulesMarkdown, winners = [],
-    onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed,
+    onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false, publicKey, privateKey, rulesMarkdown, winners = [],
+    onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed, onToggleCensorSubmissions,
     onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
     isMinimized = false, onToggleMinimize, onClose
   } = props;
@@ -464,6 +466,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                     onePhotoPerUser={onePhotoPerUser}
                     showWinnersToggle={showWinnersToggle}
                     siteClosed={siteClosed}
+                    censorSubmissions={censorSubmissions}
                     publicKey={publicKey}
                     privateKey={privateKey}
                     onToggleVoting={onToggleVoting}
@@ -471,6 +474,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                     onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
                     onToggleShowWinners={onToggleShowWinners}
                     onToggleSiteClosed={onToggleSiteClosed}
+                    onToggleCensorSubmissions={onToggleCensorSubmissions}
                     onGenerateKeys={onGenerateKeys}
                     onToggleReveal={onToggleReveal}
                   />
@@ -1046,16 +1050,17 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
    TAB: Controls & Security (Real-Time Toggles & RSA Key Management)
    ═══════════════════════════════════════════════════════════════════════ */
 function ControlsAndSecurityTab({
-  votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, siteClosed = false,
+  votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false,
   publicKey, privateKey,
-  onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed,
+  onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed, onToggleCensorSubmissions,
   onGenerateKeys, onToggleReveal
 }: {
-  votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean; siteClosed?: boolean;
+  votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean; siteClosed?: boolean; censorSubmissions?: boolean;
   publicKey: string | null; privateKey: string | null;
   onToggleVoting: (open: boolean) => void; onToggleSubmissions: (open: boolean) => void;
   onToggleOnePhotoPerUser: (enabled: boolean) => void; onToggleShowWinners: (enabled: boolean) => void;
   onToggleSiteClosed?: (closed: boolean) => void;
+  onToggleCensorSubmissions?: (enabled: boolean) => void;
   onGenerateKeys: () => void; onToggleReveal: (reveal: boolean) => void;
 }) {
   return (
@@ -1096,6 +1101,18 @@ function ControlsAndSecurityTab({
             activeGlow="shadow-[0_0_12px_rgba(245,158,11,0.5)]"
             icon={<Trophy size={16} />}
           />
+
+          {onToggleCensorSubmissions && (
+            <AdminToggle
+              label="Censor Submissions Until Voting Starts"
+              description="Pixelates all entry photos publicly during the submission phase. Once voting opens, all images automatically unpixelate and reveal full resolution."
+              checked={censorSubmissions}
+              onToggle={(checked) => onToggleCensorSubmissions(checked)}
+              activeColor="bg-amber-500"
+              activeGlow="shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+              icon={<EyeOff size={16} />}
+            />
+          )}
 
           <AdminToggle
             label="1 Photo Per User Enforcement"
