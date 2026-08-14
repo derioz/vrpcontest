@@ -82,6 +82,7 @@ import { Spotlight } from './components/ui/spotlight';
 import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
 import { UITripledCategoryCard } from './components/UITripledCategoryCard';
+import { StickyCategoryNav } from './components/StickyCategoryNav';
 
 
 // Integrations
@@ -2338,81 +2339,12 @@ export default function App() {
       {/* Matches navbar glass architecture — slides out from underneath */}
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
-          <motion.div
-            initial={{ clipPath: 'inset(100% 0 0 0)' }}
-            animate={{ clipPath: 'inset(0% 0 0 0)' }}
-            exit={{ clipPath: 'inset(100% 0 0 0)' }}
-            transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
-            style={{ top: miniCatTop }}
-            className="fixed left-0 right-0 z-40 px-0 sm:px-6 pointer-events-none flex justify-center"
-          >
-            {/* Outer shell with gradient border accents (matching navbar) */}
-            <div className="pointer-events-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl mx-auto relative">
-              {/* Gradient side accents */}
-              <div className="hidden sm:block absolute top-[15%] bottom-[15%] left-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/20 to-transparent" />
-              <div className="hidden sm:block absolute top-[15%] bottom-[15%] right-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/20 to-transparent" />
-              <div className="absolute bottom-0 left-[5%] right-[5%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-              {/* Frosted glass interior */}
-              <div className="absolute inset-0 sm:inset-x-[1px] rounded-b-2xl rounded-t-none bg-[#0e0e14]/95 backdrop-blur-2xl shadow-[inset_0_-1px_0_rgba(255,255,255,0.05),0_16px_50px_rgba(0,0,0,0.7)]">
-                {/* Noise texture */}
-                <div
-                  className="absolute inset-0 rounded-b-2xl opacity-[0.03] mix-blend-overlay pointer-events-none"
-                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}
-                />
-              </div>
-
-              {/* Content layer */}
-              <div className="relative z-10 px-5 pt-4 pb-3.5 flex items-center justify-between gap-4">
-
-                {/* Left: Filter icon pill */}
-                <div className="hidden sm:flex items-center gap-2 shrink-0 px-3.5 py-1.5 rounded-full bg-fivem-orange/15 border border-fivem-orange/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.8)] animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-fivem-orange font-mono">Filter</span>
-                </div>
-
-                {/* Center: Category pill track */}
-                <div className="relative flex-1 overflow-hidden">
-                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0e0e14] to-transparent z-10" />
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0e0e14] to-transparent z-10" />
-
-                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap px-3 py-1.5">
-                    {categories.map((cat) => {
-                      const isActive = selectedCategory?.id === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          onClick={() => setSelectedCategory(cat)}
-                          className={cn(
-                            "relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-display transition-all duration-200 cursor-pointer shrink-0 select-none",
-                            isActive
-                              ? "text-white font-black"
-                              : "text-white/80 hover:text-white font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.10] hover:border-white/[0.20]"
-                          )}
-                        >
-                          {isActive && (
-                            <motion.div
-                              layoutId="sticky-cat-active-pill"
-                              className="absolute inset-0 rounded-full bg-gradient-to-r from-fivem-orange to-orange-500 shadow-[0_4px_16px_rgba(234,88,12,0.35)]"
-                              transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                            />
-                          )}
-                          <span className="relative z-10 text-base leading-none">{cat.emoji}</span>
-                          <span className="relative z-10">{cat.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Right: Active indicator */}
-                <div className="hidden lg:flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-mono text-white/50">
-                  <span>{selectedCategory?.name || 'All'}</span>
-                </div>
-
-              </div>
-            </div>
-          </motion.div>
+          <StickyCategoryNav
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={(cat) => setSelectedCategory(cat)}
+            topOffset={miniCatTop}
+          />
         )}
       </AnimatePresence>
 
