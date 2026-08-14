@@ -391,13 +391,12 @@ export default function AdminPanel(props: AdminPanelProps) {
                       </button>
                     </div>
                     <Suspense fallback={<div className="flex justify-center p-16"><Loader2 className="animate-spin text-blue-400" /></div>}>
-                      <div className="rounded-3xl border border-white/10 bg-[#09090e]/95 p-4 sm:p-6 shadow-2xl overflow-hidden">
-                        <AnalyticsDashboard
-                          photos={allPhotos}
-                          categories={categories}
-                          onClose={() => setActiveTab('dashboard')}
-                        />
-                      </div>
+                      <AnalyticsDashboard
+                        photos={allPhotos}
+                        categories={categories}
+                        onClose={() => setActiveTab('dashboard')}
+                        isInline={true}
+                      />
                     </Suspense>
                   </div>
                 )}

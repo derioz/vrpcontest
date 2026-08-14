@@ -251,8 +251,8 @@ export default function App() {
   }, [spawnConfetti]);
 
 
-  const isVotingOpen = votingOpen && (!activeContest?.voting_end_date || new Date() < new Date(activeContest.voting_end_date));
-  const isSubmissionsOpen = submissionsOpen && (!activeContest?.submissions_close_date || new Date() < new Date(activeContest.submissions_close_date));
+  const isVotingOpen = votingOpen;
+  const isSubmissionsOpen = submissionsOpen;
 
   // Disable background page scrolling when Admin Console overlay is open and not minimized
   useEffect(() => {

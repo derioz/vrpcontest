@@ -43,7 +43,7 @@ export function ContestClosedModal({
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] sm:w-[750px] h-[600px] sm:h-[750px] bg-gradient-to-tr from-fivem-orange/20 via-amber-500/10 to-transparent rounded-full blur-[100px] opacity-70" />
       </div>
 
-      {/* Modal Outer Container with Sleek Gradient Frame (No BorderBeam) */}
+      {/* Modal Outer Container with Sleek Gradient Frame */}
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -55,30 +55,34 @@ export function ContestClosedModal({
           {/* Top subtle highlight reflection line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-fivem-orange/80 to-transparent" />
 
-          {/* Floating background ripple behind lock */}
+          {/* Floating background ripple behind logo */}
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 pointer-events-none opacity-35">
             <Ripple mainCircleSize={120} numCircles={4} mainCircleOpacity={0.2} />
           </div>
 
           <div className="relative z-10 flex flex-col items-center text-center">
-            {/* Brand Pill */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md px-4 py-1.5 text-xs font-semibold tracking-wider text-fivem-orange uppercase mb-5 shadow-[0_0_20px_rgba(234,88,12,0.2)]">
-              <Lock size={13} className="text-fivem-orange animate-pulse" />
-              <span className="font-display font-black tracking-[0.15em] text-white">
-                VITAL <span className="text-fivem-orange">RP</span>
-              </span>
-              <span className="w-1 h-1 rounded-full bg-white/30" />
-              <span className="text-[10px] text-white/70 font-mono">PHOTO CONTEST</span>
-            </div>
-
-            {/* Lock Icon Centerpiece */}
-            <div className="relative mb-5">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-fivem-orange/20 to-black/70 border border-fivem-orange/40 flex items-center justify-center shadow-[0_0_35px_rgba(234,88,12,0.3)] relative group">
-                <div className="absolute inset-0 rounded-2xl bg-fivem-orange/15 animate-ping opacity-25 pointer-events-none" />
-                <Lock size={36} className="text-fivem-orange drop-shadow-[0_0_12px_rgba(234,88,12,0.6)]" />
+            
+            {/* Official Vital RP Logo Centerpiece */}
+            <div className="relative mb-4 flex flex-col items-center">
+              <div className="relative group">
+                <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-fivem-orange/40 via-amber-500/25 to-fivem-orange/40 blur-xl opacity-75 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-black/70 border border-white/15 p-3 flex items-center justify-center shadow-2xl backdrop-blur-md">
+                  <img
+                    src="https://r2.fivemanage.com/image/FFN7c54pQkLA.png"
+                    alt="Vital RP"
+                    className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(234,88,12,0.6)]"
+                  />
+                  {/* Floating Lock Badge */}
+                  <div className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-[#09090e] border border-fivem-orange/50 text-fivem-orange shadow-lg">
+                    <Lock size={15} />
+                  </div>
+                </div>
               </div>
-              <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#09090e] border border-amber-500/40 text-amber-400 shadow-md">
-                <Sparkles size={14} />
+
+              {/* Brand Subtitle Pill */}
+              <div className="inline-flex items-center gap-2 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md px-3.5 py-1 text-xs font-semibold tracking-wider text-fivem-orange uppercase mt-4 shadow-[0_0_15px_rgba(234,88,12,0.15)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" />
+                <span className="text-[10px] text-white/80 font-mono font-bold tracking-widest">OFFICIAL PHOTO CONTEST</span>
               </div>
             </div>
 

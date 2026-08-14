@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, History, Plus, Tag, Calendar, User, Code, CheckCircle,
   FileCode, ShieldCheck, Zap, Wrench, Bug, ExternalLink, Trash2, Search,
-  Terminal, Share2
+  Terminal, Share2, Layers
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -27,21 +27,22 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260813-2010',
     version: 'v1.9.4',
-    title: 'Admin Console Redesign, Animated Sidebar, Analytics Tab & Site Lockdown',
+    title: 'Admin Console Redesign, Analytics Inline View, Contest Setup & Site Lockdown',
     category: 'Feature',
     description: `• Expanded High-Fidelity Admin Console: Enlarged modal stage to an expansive responsive viewport (up to 1600px width with 88vh height), providing spacious layouts for data tables, telemetry graphs, and photo previews.
 • Enhanced Categorized Sidebar Dock: Upgraded the Admin Side Menu with organized category sections (Core Operations, Contest Control, Platform), interactive spring physics, layout pills, micro-zoom hover states, and live indicator counters.
 • Fluid Category Switching Motion: Added motion transitions with spring easing, subtle blur reveals, and layout animations across all admin tabs.
-• Dedicated Analytics Tab: Promoted Analytics into its own first-class sidebar category featuring full inline telemetry, vote velocity trends, category breakdowns, and fullscreen capability.
-• Streamlined Platform Changelog Header: Redesigned the Changelog tab header into a clean, modern version history portal.
+• Full-Width Inline Analytics Dashboard: Refactored the Analytics category view into a native full-width inline dashboard layout, eliminating nested scrollbars and cramped frames.
+• Rebuilt Contest Setup Manager: Streamlined contest creation and management workflows with enhanced category emoji selectors, live markdown split-preview rules editor, and removed obsolete schedule dates in favor of real-time gates.
+• Official Vital RP Branded Lock Screen: Enhanced the "Contest is Closed" modal with the official high-resolution Vital RP logo centerpiece, ambient neon glow, and reassuring next round notice.
+• Streamlined Platform Changelog Header: Redesigned the Changelog tab header into a clean, modern version history portal and resolved rendering crashes.
 • Site Closed Lockdown Mode: Added a global toggle switch in the Admin Console (Controls & Security tab) allowing administrators to restrict access to the contest portal when a contest round is concluded or undergoing scheduled maintenance.
-• High-Fidelity Contest Closed Modal: Non-admin visitors and guests are presented with a centered, glassmorphic "Contest is Closed" modal featuring a sleek gradient frame, pulsing ripple rings, lock centerpiece, next contest preparation notice, and a super-blurred backdrop showing the live website beneath.
 • Interactive Creator Easter Egg: Styled a clean "Created by Damon" footer badge featuring Damon's custom avatar that triggers an animated playful wiggle when clicked.
 • Seamless Hall of Fame Shortcut: Built-in high-contrast button allowing visitors to immediately explore all past champions and winning entries in the Hall of Fame without requiring login.
 • Intuitive Minimize Window Controls: Updated the console minimize button to a standard window-style minus control with bottom dock restoration.
 • Administrator Sign-In & Live Bypass: Integrated instant login for administrators directly from the closed modal, accompanied by an admin bypass toggle and quick shortcut to launch the Admin Console.`,
     author: 'Damon',
-    date: 'Aug 13, 2026 at 8:31 PM',
+    date: 'Aug 13, 2026 at 8:43 PM',
   },
   {
     id: 'release-20260812-2208',

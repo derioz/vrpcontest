@@ -1,13 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react'; import { toast } from 'sonner';
+import React, { useState, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Category, Photo } from '../../types';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, writeBatch } from 'firebase/firestore';
-import { AlertCircle, X, Plus, Bold, Italic, Heading, List, Link as LinkIcon, Smile, Trash2, ServerCrash, Clock, Activity } from 'lucide-react';
+import {
+  AlertCircle, X, Plus, Bold, Italic, Heading, List,
+  Link as LinkIcon, Smile, Trash2, ServerCrash, Trophy, Sparkles,
+  Layers, CheckCircle2, Rocket
+} from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+
 function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, textareaRef: React.RefObject<HTMLTextAreaElement | null>, onTextChange: (t: string) => void }) {
   const [showEmoji, setShowEmoji] = useState(false);
 
@@ -36,23 +42,23 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
 
   return (
     <div className="flex gap-2 p-2 bg-white/5 border border-white/10 rounded-t-xl border-b-0">
-      <button onClick={() => insertText('**', '**')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Bold">
+      <button onClick={() => insertText('**', '**')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer" title="Bold">
         <Bold size={16} />
       </button>
-      <button onClick={() => insertText('*', '*')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Italic">
+      <button onClick={() => insertText('*', '*')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer" title="Italic">
         <Italic size={16} />
       </button>
-      <button onClick={() => insertText('# ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Heading">
+      <button onClick={() => insertText('# ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer" title="Heading">
         <Heading size={16} />
       </button>
-      <button onClick={() => insertText('- ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="List">
+      <button onClick={() => insertText('- ', '')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer" title="List">
         <List size={16} />
       </button>
-      <button onClick={() => insertText('[Link Name](', ')')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Link">
+      <button onClick={() => insertText('[Link Name](', ')')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer" title="Link">
         <LinkIcon size={16} />
       </button>
       <div className="relative static-emoji-wrapper">
-        <button onClick={(e) => { e.preventDefault(); setShowEmoji(!showEmoji); }} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Emoji">
+        <button onClick={(e) => { e.preventDefault(); setShowEmoji(!showEmoji); }} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer" title="Emoji">
           <Smile size={16} />
         </button>
         {showEmoji && (
@@ -485,10 +491,8 @@ export function ArchiveContest({
     setLoading(true);
     try {
       const nowString = new Date().toISOString();
-      console.log('[Archive] Starting archive process...');
 
       // 1. Compute winners
-      console.log('[Archive] Phase 1: Computing winners from', allPhotos.length, 'photos across', categories.length, 'categories');
       const winners = categories.map(cat => {
         const catPhotos = allPhotos.filter(p => p.category_id === cat.id);
         if (!catPhotos.length) return null;
@@ -504,10 +508,8 @@ export function ArchiveContest({
           archived_at: nowString
         };
       }).filter(Boolean) as any[];
-      console.log('[Archive] Winners computed:', winners.length);
 
       // 2. Compute user stats to preserve
-      console.log('[Archive] Phase 2: Computing user stats');
       const statsByDiscordName = new Map<string, { subs: number, votes: number }>();
       allPhotos.forEach(p => {
         const current = statsByDiscordName.get(p.discord_name) || { subs: 0, votes: 0 };
@@ -515,24 +517,14 @@ export function ArchiveContest({
         current.votes += (p.vote_count || 0);
         statsByDiscordName.set(p.discord_name, current);
       });
-      console.log('[Archive] User stats computed for', statsByDiscordName.size, 'users');
 
       // 3. Import increment helper
       const { increment } = await import('firebase/firestore');
 
-      // --- Reads: fetch all data before building write ops ---
-      console.log('[Archive] Phase 3: Fetching active contests...');
       const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
       const activeSnaps = await getDocs(qActive);
-      console.log('[Archive] Active contests found:', activeSnaps.size);
-
-      console.log('[Archive] Phase 4: Fetching all photos...');
       const photosSnap = await getDocs(collection(db, 'photos'));
-      console.log('[Archive] Photos to delete:', photosSnap.size);
-
-      console.log('[Archive] Phase 5: Fetching all votes...');
       const votesSnap = await getDocs(collection(db, 'votes'));
-      console.log('[Archive] Votes to delete:', votesSnap.size);
 
       // Build write operations list
       const writeOps: Array<(batch: any) => void> = [];
@@ -582,142 +574,127 @@ export function ArchiveContest({
 
       // Execute all writes in chunked batches
       const BATCH_SIZE = 400;
-      const totalBatches = Math.ceil(writeOps.length / BATCH_SIZE);
-      console.log(`[Archive] Phase 6: Committing ${writeOps.length} write ops in ${totalBatches} batch(es)...`);
-
       for (let i = 0; i < writeOps.length; i += BATCH_SIZE) {
-        const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
-        console.log(`[Archive] Committing batch ${batchIndex}/${totalBatches}...`);
         const batch = writeBatch(db);
         const chunk = writeOps.slice(i, i + BATCH_SIZE);
         chunk.forEach(op => op(batch));
         await batch.commit();
-        console.log(`[Archive] Batch ${batchIndex}/${totalBatches} committed ✓`);
       }
 
-      console.log('[Archive] ✅ All batches committed successfully!');
       toast.success('Contest safely archived!');
       onArchived();
-      setConfirming(false);
-      setNextName('');
-    } catch (e: any) {
-      console.error('[Archive] ❌ FAILED:', e);
-      console.error('[Archive] Error code:', e?.code);
-      console.error('[Archive] Error message:', e?.message);
-      const msg = e?.message || e?.code || 'Unknown error';
-      toast.error(`Archive failed: ${msg}`);
+    } catch (e) {
+      console.error("Archive Error:", e);
+      toast.error('Failed to archive contest');
     } finally {
       setLoading(false);
-      setLoading(false);
+      setConfirming(null);
     }
   };
 
-  const handleDestroy = async () => {
-    if (!activeContest) return;
+  const handleHardDestroy = async () => {
     setLoading(true);
     try {
-      toast.loading('Permanently destroying test contest...', { id: 'destroy' });
-      const batch = writeBatch(db);
-      
-      // Delete contest
-      batch.delete(doc(db, 'contests', activeContest.id));
-      
-      // Delete categories
-      const catIds = categories.map(c => String(c.id));
-      if (catIds.length > 0) {
-        const catSnap = await getDocs(query(collection(db, 'categories'), where('contest_id', '==', activeContest.id)));
-        catSnap.docs.forEach(d => batch.delete(d.ref));
-        
-        // Delete photos for these categories
-        for (let i = 0; i < catIds.length; i += 10) {
-          const chunk = catIds.slice(i, i + 10);
-          const photoSnap = await getDocs(query(collection(db, 'photos'), where('category_id', 'in', chunk)));
-          photoSnap.docs.forEach(p => batch.delete(p.ref));
-        }
+      const qActive = query(collection(db, 'contests'), where('is_active', '==', true));
+      const activeSnaps = await getDocs(qActive);
+      const photosSnap = await getDocs(collection(db, 'photos'));
+      const votesSnap = await getDocs(collection(db, 'votes'));
+
+      const writeOps: Array<(batch: any) => void> = [];
+
+      activeSnaps.docs.forEach(d => {
+        writeOps.push(batch => batch.delete(d.ref));
+      });
+
+      writeOps.push(batch => batch.set(doc(db, 'settings', 'global'), { votingOpen: false, rulesMarkdown: '' }, { merge: true }));
+
+      photosSnap.docs.forEach(pSnap => {
+        writeOps.push(batch => batch.delete(pSnap.ref));
+      });
+
+      votesSnap.docs.forEach(vSnap => {
+        writeOps.push(batch => batch.delete(vSnap.ref));
+      });
+
+      const BATCH_SIZE = 400;
+      for (let i = 0; i < writeOps.length; i += BATCH_SIZE) {
+        const batch = writeBatch(db);
+        const chunk = writeOps.slice(i, i + BATCH_SIZE);
+        chunk.forEach(op => op(batch));
+        await batch.commit();
       }
-      
-      await batch.commit();
-      toast.success('Test contest completely destroyed.', { id: 'destroy' });
-      setConfirming(null);
+
+      toast.success('Contest completely destroyed.');
       onArchived();
-      
-      // Attempt window reload if possible so UI resyncs completely
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (e: any) {
-      console.error(e);
-      toast.error('Failed to destroy contest: ' + e.message, { id: 'destroy' });
+    } catch (e) {
+      console.error("Destroy Error:", e);
+      toast.error('Failed to destroy contest');
     } finally {
       setLoading(false);
+      setConfirming(null);
     }
   };
 
-  if (confirming === 'archive') {
-    return (
-      <div className="p-6 bg-red-500/10 rounded-xl border border-red-500/30 space-y-4">
-        <div className="flex items-center gap-3 text-red-400">
-          <AlertCircle size={24} />
-          <h4 className="font-bold">Are you absolutely sure?</h4>
-        </div>
-        <p className="text-xs text-red-400/80 leading-relaxed">
-          This action will immediately archive the current contest. Winners will be saved to the Hall of Fame, user statistics preserved, and all current photos and votes will be permanently deleted. This cannot be undone. Are you sure you want to proceed?
-        </p>
-        <div className="flex gap-3 pt-2">
-          <Button variant="secondary" onClick={() => setConfirming(null)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
-          <Button onClick={handleArchive} disabled={loading} variant="destructive" className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-            {loading ? 'Archiving...' : 'Yes, Archive Now'}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (confirming === 'destroy') {
-    return (
-      <div className="p-6 bg-red-500/10 rounded-xl border border-red-500/30 space-y-4">
-        <div className="flex items-center gap-3 text-red-500">
-          <Trash2 size={24} />
-          <h4 className="font-bold">Destroy Test Contest</h4>
-        </div>
-        <p className="text-xs text-red-400/80 leading-relaxed font-bold">
-          This will vaporize the current active contest completely. NO winners will be saved, and NO user statistics will be tracked. All current categories and photos will be erased. Use this ONLY for cleaning up test contests!
-        </p>
-        <div className="flex gap-3 pt-2">
-          <Button variant="secondary" onClick={() => setConfirming(null)} className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white">Cancel</Button>
-          <Button onClick={handleDestroy} disabled={loading} variant="destructive" className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-            {loading ? 'Destroying...' : 'Yes, Nuke It'}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
-      <p className="text-xs text-white/60">Finalize this contest by saving winners, storing participant stats, and clearing the database for the next round.</p>
-      <Input
-        placeholder="Next Contest Name (Optional)"
-        value={nextName}
-        onChange={(e) => setNextName(e.target.value)}
-        className="bg-white/5 border-white/10"
-      />
-      <div className="grid grid-cols-2 gap-3 mt-4">
+    <div className="space-y-6">
+      {/* Archive Modal Alert Confirmation */}
+      {confirming === 'archive' && (
+        <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-sm font-bold text-white">Confirm Safe Archive</p>
+              <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                This will lock winners into the Hall of Fame archive, preserve user historical statistics, and clear all current photos and votes.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirming(null)} disabled={loading} className="text-xs text-white/60 hover:text-white cursor-pointer">
+              Cancel
+            </Button>
+            <Button onClick={handleArchive} disabled={loading} className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs cursor-pointer">
+              {loading ? 'Archiving...' : 'Yes, Archive Contest'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Destroy Confirmation */}
+      {confirming === 'destroy' && (
+        <div className="p-5 rounded-2xl bg-red-900/30 border border-red-500/50 space-y-4">
+          <div className="flex items-start gap-3">
+            <ServerCrash className="text-red-400 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-sm font-bold text-red-300">Permanent Hard Destroy</p>
+              <p className="text-xs text-red-200/60 mt-1 leading-relaxed">
+                This permanently erases the active contest without archiving winners. Use only for test contests.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirming(null)} disabled={loading} className="text-xs text-white/60 hover:text-white cursor-pointer">
+              Cancel
+            </Button>
+            <Button onClick={handleHardDestroy} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer">
+              {loading ? 'Destroying...' : 'Yes, Permanently Destroy'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/10">
+        <div>
+          <p className="text-sm font-bold text-white">Safe Contest Archive</p>
+          <p className="text-xs text-white/40">Saves champions to Hall of Fame, increments stats, and prepares clean round.</p>
+        </div>
         <Button
           onClick={() => setConfirming('archive')}
-          disabled={loading}
-          variant="destructive"
-          className="w-full bg-fivem-orange/20 text-fivem-orange hover:bg-fivem-orange/30 hover:text-white border border-fivem-orange/30"
-          title="Save winners and preserve statistics"
+          disabled={loading || confirming !== null}
+          className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/40 text-xs font-bold px-5 h-10 rounded-xl transition-all cursor-pointer"
         >
-          Archive Contest
-        </Button>
-        <Button
-          onClick={() => setConfirming('destroy')}
-          disabled={loading}
-          variant="destructive"
-          className="w-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20"
-          title="Delete current contest completely without archiving"
-        >
-          Destroy Test Contest
+          Archive Active Contest
         </Button>
       </div>
     </div>
@@ -727,8 +704,6 @@ export function ArchiveContest({
 export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState('');
   const [rules, setRules] = useState('');
-  const [submissionsCloseDate, setSubmissionsCloseDate] = useState('');
-  const [votingEndDate, setVotingEndDate] = useState('');
   const [categories, setCategories] = useState<{ id: number, name: string, desc: string, emoji?: string }[]>([]);
 
   const [catName, setCatName] = useState('');
@@ -775,14 +750,12 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         batch.update(dSnap.ref, { is_active: false });
       });
 
-      // 2. Create new Contest Document
+      // 2. Create new Contest Document (No schedule requirement)
       const newContestRef = doc(collection(db, 'contests'));
       batch.set(newContestRef, {
         name: title,
         is_active: true,
-        created_at: new Date().toISOString(),
-        ...(submissionsCloseDate ? { submissions_close_date: new Date(submissionsCloseDate).toISOString() } : {}),
-        ...(votingEndDate ? { voting_end_date: new Date(votingEndDate).toISOString() } : {})
+        created_at: new Date().toISOString()
       });
 
       // 3. Create embedded Category references
@@ -819,38 +792,55 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-fivem-dark to-fivem-dark/80 rounded-2xl border border-white/10 relative">
-      {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="space-y-6 p-6 sm:p-8 bg-[#09090d]/95 rounded-3xl border border-white/10 relative overflow-hidden shadow-2xl">
+      {/* Decorative Top Accent */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
 
+      {/* Header */}
+      <div className="flex items-center gap-3 pb-2 border-b border-white/10">
+        <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+          <Rocket size={20} />
+        </div>
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-white font-display">New Contest Round Setup</h3>
+          <p className="text-xs text-white/40">Deploy a new photo contest round with custom categories and rules.</p>
+        </div>
+      </div>
+
+      {/* Step 1: Title */}
       <div className="space-y-2">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">1. Contest Title</label>
+        <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+          <span>1. Contest Title</span>
+        </label>
         <Input
-          placeholder="e.g. Cyberpunk Nights V2"
+          placeholder="e.g. 🏆 Cyberpunk Nights V2"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="bg-white/5 border-white/10 h-14 text-lg font-display"
+          className="bg-white/5 border-white/15 h-12 text-base font-bold text-white font-display rounded-2xl focus:border-emerald-400"
         />
       </div>
 
+      {/* Step 2: Categories */}
       <div className="space-y-4">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">2. Define Categories</label>
+        <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+          <span>2. Define Contest Categories</span>
+        </label>
 
         {/* Current Categories List */}
         {categories.length > 0 && (
           <div className="space-y-2 mb-4">
             {categories.map((c, i) => (
-              <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+              <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-fivem-orange/10 flex items-center justify-center text-xl">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0">
                     {c.emoji || '✨'}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{i + 1}. {c.name}</p>
+                    <p className="text-sm font-bold text-white font-display">{i + 1}. {c.name}</p>
                     <p className="text-xs text-white/50">{c.desc}</p>
                   </div>
                 </div>
-                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-lg transition-colors">
+                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-xl transition-colors cursor-pointer">
                   <X size={16} />
                 </button>
               </div>
@@ -860,14 +850,14 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
 
         {/* Builder Box */}
         <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 space-y-3">
-          <p className="text-[11px] font-mono text-white/40 uppercase tracking-widest font-bold">Add Category</p>
+          <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest font-bold">Add Category</p>
           <div className="flex items-center gap-2.5">
             <div className="relative shrink-0 static-emoji-wrapper">
-              <Button variant="outline" className="h-10 w-12 bg-white/5 border-white/10 text-xl flex items-center justify-center p-0 rounded-xl" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
+              <Button variant="outline" className="h-11 w-12 bg-white/20 hover:bg-white/30 border-white/30 text-xl flex items-center justify-center p-0 rounded-2xl cursor-pointer text-white shadow-md" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
                 {catEmoji}
               </Button>
               {showEmojiPicker && (
-                <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[300px]">
+                <div className="absolute top-13 left-0 z-[999999] shadow-2xl bg-[#0d0d12] border border-white/20 rounded-2xl overflow-hidden p-1 min-w-[320px]">
                   <Picker
                     data={data}
                     theme="dark"
@@ -881,11 +871,11 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
                 </div>
               )}
             </div>
-            <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/10 flex-1 h-10 text-xs sm:text-sm font-bold" />
+            <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-xl" />
           </div>
           <textarea
             rows={2}
-            placeholder="Description..."
+            placeholder="Category Description..."
             value={catDesc}
             onChange={e => setCatDesc(e.target.value)}
             onInput={(e: any) => {
@@ -893,18 +883,19 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
               e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
             }}
             style={{ fieldSizing: 'content' } as any}
-            className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-white/90 outline-none focus:border-fivem-orange/50 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
+            className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-xl p-3 text-xs text-white outline-none focus:border-emerald-400 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
           />
-          <Button variant="secondary" onClick={addCategory} className="w-full bg-white/10 hover:bg-white/20 text-white h-10 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer">
+          <Button variant="secondary" onClick={addCategory} className="w-full bg-emerald-500/20 hover:bg-emerald-500 hover:text-black border border-emerald-500/40 text-emerald-300 h-11 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all">
             <Plus size={16} /> Add Category
           </Button>
         </div>
       </div>
 
+      {/* Step 3: Rules */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
-          <span className="text-[10px] text-white/40">Optional - can be edited later</span>
+          <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold">3. Contest Rules (Markdown)</label>
+          <span className="text-[10px] text-white/40 font-mono">Optional · Can be edited anytime</span>
         </div>
         <div className="flex flex-col">
           <MarkdownToolbar text={rules} textareaRef={textareaRef} onTextChange={setRules} />
@@ -913,34 +904,19 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
             placeholder="Define the rules for this new contest..."
             value={rules}
             onChange={(e) => setRules(e.target.value)}
-            className="w-full min-h-[128px] bg-white/5 border border-white/10 rounded-b-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-fivem-orange/50 transition-colors resize-y placeholder:text-white/20 text-white"
+            className="w-full min-h-[140px] bg-black/50 border border-white/10 rounded-b-2xl p-4 text-xs font-mono leading-relaxed outline-none focus:border-emerald-400 transition-colors resize-y placeholder:text-white/20 text-white"
           />
         </div>
       </div>
 
-      <div className="space-y-4">
-        <label className="text-xs font-mono text-fivem-orange uppercase tracking-wider font-bold">4. Schedule</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Submissions Close Date/Time (Optional)</label>
-            <Input type="datetime-local" value={submissionsCloseDate} onChange={(e) => setSubmissionsCloseDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-white/50">Voting End Date/Time (Optional)</label>
-            <Input type="datetime-local" value={votingEndDate} onChange={(e) => setVotingEndDate(e.target.value)} className="bg-white/5 border-white/10 text-white [color-scheme:dark]" />
-          </div>
-        </div>
-      </div>
-
+      {/* Launch Action */}
       <Button
         onClick={handleLaunch}
         disabled={loading}
-        className="w-full h-14 bg-fivem-orange hover:bg-fivem-orange/90 text-white font-display text-lg tracking-wide rounded-xl mt-4 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all relative z-0"
+        className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-display font-black text-base tracking-wide rounded-2xl mt-4 shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all cursor-pointer active:scale-95"
       >
-        {loading ? 'Initializing Core Systems...' : '🚀 Launch New Contest'}
+        {loading ? 'Initializing Core Systems...' : '🚀 Launch New Contest Round'}
       </Button>
     </div>
   );
-
 }
-
