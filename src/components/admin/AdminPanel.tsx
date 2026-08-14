@@ -4,7 +4,7 @@ import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
   Eye, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
-  Bug, CheckCircle2, Trash2, Clock, Minimize2, Maximize2, X, Wrench
+  Bug, CheckCircle2, Trash2, Clock, Minus, Maximize2, X, Wrench, Sparkles, TrendingUp
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -22,7 +22,9 @@ import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
 import { EditContestManager, ArchiveContest, CreateContestManager } from './ContestManagers';
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 
-type AdminTab = 'dashboard' | 'submissions' | 'voters' | 'contest' | 'controls' | 'changelogs' | 'danger';
+const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
+
+type AdminTab = 'dashboard' | 'analytics' | 'submissions' | 'voters' | 'contest' | 'controls' | 'changelogs' | 'danger';
 
 interface AdminPanelProps {
   isAdmin: boolean;
@@ -56,15 +58,43 @@ interface AdminPanelProps {
   onClose?: () => void;
 }
 
-const TABS: { id: AdminTab; label: string; icon: typeof Settings; color: string; description: string }[] = [
-  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, color: 'text-fivem-orange', description: 'Metrics & status' },
-  { id: 'submissions', label: 'Submissions', icon: ImageIcon, color: 'text-cyan-400', description: 'Photos & decryption' },
-  { id: 'voters', label: 'Voter Audit', icon: UserCheck, color: 'text-blue-400', description: 'Search & fraud check' },
-  { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', description: 'Edit rules & winners' },
-  { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-emerald-400', description: 'Toggles & RSA keys' },
-  { id: 'changelogs', label: 'Changelogs', icon: Layers, color: 'text-fivem-orange', description: 'Releases & credits' },
-  { id: 'danger', label: 'Danger Zone', icon: AlertCircle, color: 'text-red-400', description: 'Reset & archive' },
+const TAB_GROUPS: {
+  section: string;
+  tabs: {
+    id: AdminTab;
+    label: string;
+    icon: typeof Settings;
+    color: string;
+    glowColor: string;
+    description: string;
+  }[];
+}[] = [
+  {
+    section: "Core Operations",
+    tabs: [
+      { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, color: 'text-fivem-orange', glowColor: 'from-fivem-orange/20 via-fivem-orange/10 to-transparent', description: 'Metrics & status' },
+      { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-blue-400', glowColor: 'from-blue-500/20 via-blue-500/10 to-transparent', description: 'Charts & telemetry' },
+      { id: 'submissions', label: 'Submissions', icon: ImageIcon, color: 'text-cyan-400', glowColor: 'from-cyan-500/20 via-cyan-500/10 to-transparent', description: 'Photos & decryption' },
+      { id: 'voters', label: 'Voter Audit', icon: UserCheck, color: 'text-emerald-400', glowColor: 'from-emerald-500/20 via-emerald-500/10 to-transparent', description: 'Search & fraud check' },
+    ]
+  },
+  {
+    section: "Contest Control",
+    tabs: [
+      { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', glowColor: 'from-amber-500/20 via-amber-500/10 to-transparent', description: 'Rules & winners' },
+      { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-purple-400', glowColor: 'from-purple-500/20 via-purple-500/10 to-transparent', description: 'Lockdown & RSA keys' },
+    ]
+  },
+  {
+    section: "Platform",
+    tabs: [
+      { id: 'changelogs', label: 'Changelog', icon: Layers, color: 'text-fivem-orange', glowColor: 'from-fivem-orange/20 via-fivem-orange/10 to-transparent', description: 'Version history & log' },
+      { id: 'danger', label: 'Danger Zone', icon: AlertCircle, color: 'text-red-400', glowColor: 'from-red-500/20 via-red-500/10 to-transparent', description: 'Reset & archive' },
+    ]
+  }
 ];
+
+const ALL_TABS = TAB_GROUPS.flatMap(g => g.tabs);
 
 export default function AdminPanel(props: AdminPanelProps) {
   const {
@@ -145,58 +175,82 @@ export default function AdminPanel(props: AdminPanelProps) {
     <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
       <div className="relative z-10 flex flex-col md:flex-row h-full w-full overflow-hidden bg-[#060609]">
         
-        {/* ── ACETERNITY SIDEBAR DOCK ── */}
+        {/* ── ACETERNITY ENHANCED SIDEBAR DOCK ── */}
         <SidebarBody>
           <div className="flex flex-col flex-1 min-h-0 justify-between space-y-4">
             
-            {/* Header & Navigation */}
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-3 px-2">
-                <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl text-fivem-orange shrink-0 shadow-[0_0_12px_rgba(234,88,12,0.2)]">
+            {/* Header & Categorized Navigation */}
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center gap-3 px-2 py-1">
+                <div className="p-2.5 bg-gradient-to-br from-fivem-orange/25 to-fivem-orange/10 border border-fivem-orange/40 rounded-2xl text-fivem-orange shrink-0 shadow-[0_0_15px_rgba(234,88,12,0.25)]">
                   <Settings size={18} />
                 </div>
                 {sidebarOpen && (
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
                     className="flex flex-col min-w-0"
                   >
-                    <h2 className="text-sm font-black font-display text-white leading-none">
-                      <AnimatedShinyText shimmerWidth={120}>Admin Console</AnimatedShinyText>
-                    </h2>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="text-sm font-black font-display text-white leading-none">
+                        <AnimatedShinyText shimmerWidth={120}>Admin Console</AnimatedShinyText>
+                      </h2>
+                    </div>
                     <span className="text-[10px] text-white/40 font-mono mt-0.5">Vital RP Operations</span>
                   </motion.div>
                 )}
               </div>
 
-              {/* Navigation Links */}
-              <div className="space-y-1">
-                {TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  const isDanger = tab.id === 'danger';
-                  return (
-                    <SidebarLink
-                      key={tab.id}
-                      label={tab.label}
-                      icon={<Icon size={18} />}
-                      active={isActive}
-                      color={tab.color}
-                      isDanger={isDanger}
-                      onClick={() => setActiveTab(tab.id)}
-                    />
-                  );
-                })}
+              {/* Categorized Navigation Groups */}
+              <div className="space-y-3.5">
+                {TAB_GROUPS.map((group) => (
+                  <div key={group.section} className="space-y-0.5">
+                    {sidebarOpen && (
+                      <p className="px-3 text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 font-bold mb-1">
+                        {group.section}
+                      </p>
+                    )}
+                    {group.tabs.map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      const isDanger = tab.id === 'danger';
+                      const badge = tab.id === 'submissions' && allPhotos.length > 0
+                        ? allPhotos.length
+                        : tab.id === 'controls' && siteClosed
+                          ? 'Locked'
+                          : undefined;
+                      const badgeColor = tab.id === 'controls' && siteClosed
+                        ? 'bg-red-500/20 border-red-500/40 text-red-400'
+                        : undefined;
+
+                      return (
+                        <SidebarLink
+                          key={tab.id}
+                          label={tab.label}
+                          icon={<Icon size={16} />}
+                          active={isActive}
+                          color={tab.color}
+                          glowColor={tab.glowColor}
+                          description={tab.description}
+                          badge={badge}
+                          badgeColor={badgeColor}
+                          isDanger={isDanger}
+                          onClick={() => setActiveTab(tab.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Admin Creator Footer Card inside Sidebar */}
-            <div className="border-t border-white/10 pt-3 pb-2 px-1">
+            <div className="border-t border-white/10 pt-3 pb-1 px-1">
               <div className="flex items-center gap-3">
                 <img
                   src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
                   alt="Damon"
-                  className="w-9 h-9 rounded-xl object-cover border border-fivem-orange/60 p-0.5 bg-black/60 shrink-0"
+                  className="w-9 h-9 rounded-xl object-cover border border-fivem-orange/60 p-0.5 bg-black/60 shrink-0 shadow-[0_0_10px_rgba(234,88,12,0.2)]"
                 />
                 {sidebarOpen && (
                   <motion.div
@@ -226,7 +280,7 @@ export default function AdminPanel(props: AdminPanelProps) {
             <ChevronRight size={14} className="text-white/30 animate-pulse" />
           </div>
           <div className="flex items-center gap-1.5 p-2 overflow-x-auto no-scrollbar touch-pan-x">
-            {TABS.map((tab) => {
+            {ALL_TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               const isDanger = tab.id === 'danger';
@@ -278,7 +332,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                   className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-colors cursor-pointer"
                   title="Minimize Admin Console to Bottom Dock"
                 >
-                  <Minimize2 size={15} />
+                  <Minus size={15} />
                 </button>
               )}
 
@@ -295,16 +349,16 @@ export default function AdminPanel(props: AdminPanelProps) {
             </div>
           </div>
 
-          {/* Tab Content Stage */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 h-full">
+          {/* Tab Content Stage with Cool Motion Physics */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 h-full bg-[#08080c]/90">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
-                className="w-full max-w-full sm:max-w-5xl mx-auto"
+                initial={{ opacity: 0, y: 14, filter: "blur(6px)", scale: 0.992 }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
+                exit={{ opacity: 0, y: -10, filter: "blur(6px)", scale: 0.992 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full max-w-full 2xl:max-w-[1440px] xl:max-w-[1280px] lg:max-w-[1100px] mx-auto"
               >
                 {activeTab === 'dashboard' && (
                   <OverviewTab
@@ -315,8 +369,37 @@ export default function AdminPanel(props: AdminPanelProps) {
                     submissionsOpen={submissionsOpen}
                     siteClosed={siteClosed}
                     setActiveTab={setActiveTab}
-                    onOpenAnalytics={onOpenAnalytics}
+                    onOpenAnalytics={() => setActiveTab('analytics')}
                   />
+                )}
+
+                {activeTab === 'analytics' && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
+                          <BarChart3 size={20} className="text-blue-400" /> Contest Telemetry & Analytics
+                        </h3>
+                        <p className="text-sm text-white/40">Real-time vote progression, submission velocity charts, and category popularity distribution.</p>
+                      </div>
+                      <button
+                        onClick={onOpenAnalytics}
+                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-center"
+                      >
+                        <Maximize2 size={13} />
+                        <span>Fullscreen Mode</span>
+                      </button>
+                    </div>
+                    <Suspense fallback={<div className="flex justify-center p-16"><Loader2 className="animate-spin text-blue-400" /></div>}>
+                      <div className="rounded-3xl border border-white/10 bg-[#09090e]/95 p-4 sm:p-6 shadow-2xl overflow-hidden">
+                        <AnalyticsDashboard
+                          photos={allPhotos}
+                          categories={categories}
+                          onClose={() => setActiveTab('dashboard')}
+                        />
+                      </div>
+                    </Suspense>
+                  </div>
                 )}
 
                 {activeTab === 'submissions' && (
@@ -342,7 +425,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-                        <UserCheck size={20} className="text-blue-400" /> Voter Audit & Fraud Check
+                        <UserCheck size={20} className="text-emerald-400" /> Voter Audit & Fraud Check
                       </h3>
                       <p className="text-sm text-white/40">Search voters by Discord username or UID, inspect vote distribution, and clear flagged votes.</p>
                     </div>
@@ -423,304 +506,355 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
   setActiveTab: (tab: AdminTab) => void; onOpenAnalytics: () => void;
 }) {
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
-  const [bugFilter, setBugFilter] = useState<'All' | 'Open' | 'Resolved'>('Open');
+  const [loadingBugs, setLoadingBugs] = useState(true);
+  const [expandedBugId, setExpandedBugId] = useState<string | null>(null);
 
-  // Load Bug Reports from Firestore & Local Storage
+  // Subscribe to bug reports collection
   useEffect(() => {
-    let unsub = () => {};
     try {
-      if (db) {
-        unsub = onSnapshot(
-          query(collection(db, 'bug_reports')),
-          (snapshot) => {
-            try {
-              const firestoreReports: BugReport[] = snapshot.docs.map((d) => ({
-                id: d.id,
-                ...(d.data() as Omit<BugReport, 'id'>),
-              }));
-
-              const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
-              const mergedMap = new Map<string, BugReport>();
-
-              firestoreReports.forEach((r) => mergedMap.set(r.id, r));
-              localReports.forEach((r) => {
-                if (!mergedMap.has(r.id)) mergedMap.set(r.id, r);
-              });
-
-              setBugReports(Array.from(mergedMap.values()));
-            } catch (e) {
-              console.warn('Error parsing bug snapshot:', e);
-            }
-          },
-          (error) => {
-            console.warn('Firestore bug snapshot fallback to local storage:', error);
-            try {
-              const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
-              setBugReports(localReports);
-            } catch (e) {}
+      const q = query(collection(db, 'bug_reports'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const reports: BugReport[] = snapshot.docs.map(d => {
+          const data = d.data();
+          let dateStr = 'Recently';
+          if (data.createdAt?.toDate) {
+            dateStr = data.createdAt.toDate().toLocaleDateString('en-US', {
+              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
           }
-        );
-      }
-    } catch (err) {
-      console.warn('Firestore bug query init error, falling back to local storage:', err);
-      try {
-        const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
-        setBugReports(localReports);
-      } catch (e) {}
+          return {
+            id: d.id,
+            title: data.title || 'Untitled Report',
+            description: data.description || '',
+            contactEmail: data.contactEmail,
+            reportedBy: data.reportedBy,
+            status: data.status === 'Resolved' ? 'Resolved' : 'Open',
+            createdAt: data.createdAt,
+            dateStr
+          };
+        });
+        setBugReports(reports);
+        setLoadingBugs(false);
+      }, (err) => {
+        console.error('Error fetching bug reports:', err);
+        setLoadingBugs(false);
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.error(e);
+      setLoadingBugs(false);
     }
-
-    return () => {
-      try { unsub(); } catch (e) {}
-    };
   }, []);
 
+  const totalVotes = allPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0);
+  const openBugsCount = bugReports.filter(b => b.status === 'Open').length;
+
   const handleToggleBugStatus = async (bug: BugReport) => {
-    const newStatus = bug.status === 'Open' ? 'Resolved' : 'Open';
+    const nextStatus = bug.status === 'Open' ? 'Resolved' : 'Open';
     try {
-      if (!bug.id.startsWith('local-')) {
-        await updateDoc(doc(db, 'bug_reports', bug.id), { status: newStatus });
-      }
-      setBugReports((prev) =>
-        prev.map((item) => (item.id === bug.id ? { ...item, status: newStatus } : item))
-      );
-
-      // Update local storage
-      const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
-      const updatedLocal = localReports.map((item) => (item.id === bug.id ? { ...item, status: newStatus } : item));
-      localStorage.setItem('local_bug_reports', JSON.stringify(updatedLocal));
-
-      toast.success(`Bug report marked as ${newStatus}`);
-    } catch (err) {
-      toast.error('Could not update bug report status');
+      await updateDoc(doc(db, 'bug_reports', bug.id), { status: nextStatus });
+      toast.success(`Bug marked as ${nextStatus}`);
+    } catch (e) {
+      toast.error('Failed to update bug status');
     }
   };
 
   const handleDeleteBug = async (id: string) => {
+    if (!window.confirm('Delete this bug report?')) return;
     try {
-      if (!id.startsWith('local-')) {
-        await deleteDoc(doc(db, 'bug_reports', id));
-      }
-      setBugReports((prev) => prev.filter((item) => item.id !== id));
-
-      const localReports: BugReport[] = JSON.parse(localStorage.getItem('local_bug_reports') || '[]');
-      const updatedLocal = localReports.filter((item) => item.id !== id);
-      localStorage.setItem('local_bug_reports', JSON.stringify(updatedLocal));
-
+      await deleteDoc(doc(db, 'bug_reports', id));
       toast.success('Bug report deleted');
-    } catch (err) {
-      toast.error('Could not delete report');
+    } catch (e) {
+      toast.error('Failed to delete bug report');
     }
   };
 
-  const openBugCount = bugReports.filter((b) => b.status === 'Open').length;
-  const filteredBugs = bugReports.filter((b) => bugFilter === 'All' || b.status === bugFilter);
-
   return (
-    <div className="space-y-6">
-      {/* Section heading */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Welcome Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-fivem-orange/15 via-[#0d0d12] to-transparent border border-fivem-orange/30 shadow-[0_4px_30px_rgba(234,88,12,0.1)]">
         <div>
-          <h3 className="text-xl font-black font-display text-white mb-1">Dashboard Overview</h3>
-          <p className="text-sm text-white/40">Real-time snapshot of contest state, analytics launcher, and bug reports inbox.</p>
-        </div>
-        
-        {openBugCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-xs font-bold font-mono animate-pulse">
-            <Bug size={14} />
-            <span>{openBugCount} Pending Bug{openBugCount !== 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30">
+              OPERATIONAL HUB
+            </span>
+            <span className="text-white/40 text-xs font-mono">• Vital RP Photo Platform</span>
           </div>
-        )}
+          <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight">
+            Contest Control Center
+          </h2>
+          <p className="text-xs sm:text-sm text-white/50 mt-1 max-w-xl">
+            {activeContest ? `Active Session: "${activeContest.name}"` : 'No active contest round configured.'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('controls')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 border border-fivem-orange/40 text-fivem-orange font-bold text-xs transition-all shadow-sm cursor-pointer"
+          >
+            <Zap size={14} />
+            <span>Fast Switches</span>
+          </button>
+        </div>
       </div>
 
-      {/* Hero Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        {[
-          { label: 'Active Contest', value: activeContest?.name || 'None', icon: Trophy, color: 'orange' },
-          { label: 'Categories', value: categories.length, icon: Layers, color: 'blue' },
-          { label: 'Total Entries', value: allPhotos.length, icon: ImageIcon, color: 'purple' },
-          { label: 'Voting', value: votingOpen ? 'Open' : 'Closed', icon: votingOpen ? Unlock : Lock, color: votingOpen ? 'emerald' : 'red' },
-          { label: 'Site Access', value: siteClosed ? 'Locked' : 'Open', icon: siteClosed ? Lock : Unlock, color: siteClosed ? 'red' : 'emerald' },
-          { label: 'Pending Bugs', value: openBugCount, icon: Bug, color: openBugCount > 0 ? 'orange' : 'emerald' },
-        ].map((stat, i) => {
-          const Icon = stat.icon;
-          const colors: Record<string, string> = {
-            orange: 'from-fivem-orange/20 border-fivem-orange/30',
-            blue: 'from-blue-500/15 border-blue-500/20',
-            purple: 'from-purple-500/15 border-purple-500/20',
-            emerald: 'from-emerald-500/15 border-emerald-500/20',
-            red: 'from-red-500/15 border-red-500/20',
-          };
-          const iconColors: Record<string, string> = {
-            orange: 'text-fivem-orange',
-            blue: 'text-blue-400',
-            purple: 'text-purple-400',
-            emerald: 'text-emerald-400',
-            red: 'text-red-400',
-          };
-          return (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04, duration: 0.25 }}
-              className={cn(
-                "relative overflow-hidden rounded-2xl border bg-gradient-to-br to-white/5 p-4 shadow-sm",
-                colors[stat.color]
-              )}
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 blur-[30px] opacity-30 rounded-full bg-current" />
-              <Icon size={16} className={cn("mb-2.5 relative z-10", iconColors[stat.color])} />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">{stat.label}</p>
-              <p className="text-sm sm:text-base font-black text-white leading-tight truncate">{String(stat.value)}</p>
-            </motion.div>
-          );
-        })}
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        {/* Total Submissions */}
+        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-white/40 mb-3">
+            <span className="text-[11px] font-mono uppercase tracking-wider">Submissions</span>
+            <ImageIcon size={16} className="text-cyan-400" />
+          </div>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black font-display text-white">{allPhotos.length}</div>
+            <div className="text-[10px] text-white/40 font-mono mt-1">Across {categories.length} categories</div>
+          </div>
+        </div>
+
+        {/* Total Votes */}
+        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-white/40 mb-3">
+            <span className="text-[11px] font-mono uppercase tracking-wider">Total Votes</span>
+            <Trophy size={16} className="text-amber-400" />
+          </div>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black font-display text-white">{totalVotes}</div>
+            <div className="text-[10px] text-white/40 font-mono mt-1">Verified community votes</div>
+          </div>
+        </div>
+
+        {/* Submissions Status */}
+        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-white/40 mb-3">
+            <span className="text-[11px] font-mono uppercase tracking-wider">Uploads</span>
+            <div className={cn("w-2 h-2 rounded-full", submissionsOpen ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
+          </div>
+          <div>
+            <div className={cn("text-xl sm:text-2xl font-black font-display", submissionsOpen ? "text-emerald-400" : "text-red-400")}>
+              {submissionsOpen ? 'Open' : 'Closed'}
+            </div>
+            <div className="text-[10px] text-white/40 font-mono mt-1">Submission gate</div>
+          </div>
+        </div>
+
+        {/* Voting Status */}
+        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-white/40 mb-3">
+            <span className="text-[11px] font-mono uppercase tracking-wider">Voting</span>
+            <div className={cn("w-2 h-2 rounded-full", votingOpen ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
+          </div>
+          <div>
+            <div className={cn("text-xl sm:text-2xl font-black font-display", votingOpen ? "text-emerald-400" : "text-red-400")}>
+              {votingOpen ? 'Open' : 'Closed'}
+            </div>
+            <div className="text-[10px] text-white/40 font-mono mt-1">Ballot collection</div>
+          </div>
+        </div>
+
+        {/* Site Closed / Access Status */}
+        <div className="col-span-2 lg:col-span-1 p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-white/40 mb-3">
+            <span className="text-[11px] font-mono uppercase tracking-wider">Site Access</span>
+            <Lock size={16} className={siteClosed ? "text-red-400" : "text-emerald-400"} />
+          </div>
+          <div>
+            <div className={cn("text-xl sm:text-2xl font-black font-display", siteClosed ? "text-red-400" : "text-emerald-400")}>
+              {siteClosed ? 'Locked' : 'Open'}
+            </div>
+            <div className="text-[10px] text-white/40 font-mono mt-1">{siteClosed ? 'Modal active' : 'Live access'}</div>
+          </div>
+        </div>
       </div>
 
-      {/* ── SUBMITTED BUG REPORTS INBOX ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/30 bg-[#0a0a0d]/90 p-5 sm:p-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-white/10 pb-4">
+      {/* ── LIVE BUG REPORTS & FEEDBACK INBOX ── */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-fivem-orange/15 border border-fivem-orange/30 rounded-xl text-fivem-orange">
+            <div className="p-2 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400">
               <Bug size={18} />
             </div>
             <div>
-              <h4 className="text-base font-bold font-display text-white flex items-center gap-2">
-                <span>Submitted Bug Reports Inbox</span>
-                <span className="text-xs font-mono bg-fivem-orange/20 text-fivem-orange px-2 py-0.5 rounded-md border border-fivem-orange/30">
-                  {bugReports.length} Total
-                </span>
-              </h4>
-              <p className="text-xs text-white/40 mt-0.5">Issues & feedback submitted by users directly to Damon.</p>
-            </div>
-          </div>
-
-          {/* Bug Filter Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/5 border border-white/10 shrink-0">
-            {(['Open', 'Resolved', 'All'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setBugFilter(filter)}
-                className={cn(
-                  "px-3 py-1 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer",
-                  bugFilter === filter
-                    ? "bg-fivem-orange text-white shadow-sm"
-                    : "text-white/50 hover:text-white"
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black font-display text-white">Community Bug Reports</h3>
+                {openBugsCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-red-500/20 border border-red-500/40 text-red-400">
+                    {openBugsCount} Pending
+                  </span>
                 )}
-              >
-                {filter}
-              </button>
-            ))}
+              </div>
+              <p className="text-xs text-white/40 mt-0.5">Direct reports submitted from the floating Bug Report modal on the live site.</p>
+            </div>
           </div>
         </div>
 
-        {/* Bug Feed List */}
-        {filteredBugs.length === 0 ? (
-          <div className="py-8 text-center border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
-            <Bug size={24} className="mx-auto text-white/20 mb-2" />
-            <p className="text-xs font-bold text-white/40 font-mono">No {bugFilter !== 'All' ? bugFilter.toLowerCase() : ''} bug reports found</p>
-            <p className="text-[11px] text-white/20 mt-1">Users can submit reports via the "Report Bug" header button.</p>
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
-            {filteredBugs.map((bug) => (
-              <motion.div
-                key={bug.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  "p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3",
-                  bug.status === 'Open'
-                    ? "bg-fivem-orange/[0.04] border-fivem-orange/20 hover:border-fivem-orange/40"
-                    : "bg-white/[0.02] border-white/5 opacity-70"
-                )}
-              >
-                <div className="space-y-1 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={cn(
-                      "text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                      bug.status === 'Open'
-                        ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                        : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                    )}>
-                      {bug.status}
-                    </span>
-                    <h5 className="text-xs sm:text-sm font-bold text-white truncate">{bug.title}</h5>
-                  </div>
-                  <p className="text-xs text-white/70 leading-relaxed font-sans">{bug.description}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-[10px] font-mono text-white/30 pt-1">
-                    <span>Reported by: <strong className="text-white/60">{bug.reportedBy || 'Visitor'}</strong></span>
-                    {bug.contactEmail && bug.contactEmail !== 'Not provided' && (
-                      <span className="text-fivem-orange/80">Contact: {bug.contactEmail}</span>
-                    )}
-                    {bug.dateStr && (
-                      <span className="flex items-center gap-1"><Clock size={10} /> {bug.dateStr}</span>
-                    )}
-                  </div>
-                </div>
+        {/* Bug Reports List */}
+        <div className="mt-4 space-y-3">
+          {loadingBugs ? (
+            <div className="flex items-center justify-center p-8 text-white/40 text-xs font-mono">
+              <Loader2 size={16} className="animate-spin text-fivem-orange mr-2" />
+              Loading bug reports...
+            </div>
+          ) : bugReports.length === 0 ? (
+            <div className="p-8 text-center rounded-2xl bg-white/[0.01] border border-dashed border-white/10">
+              <CheckCircle2 size={24} className="mx-auto text-emerald-400 mb-2 opacity-60" />
+              <p className="text-xs font-bold text-white/70">No Bug Reports Submitted</p>
+              <p className="text-[11px] text-white/40 mt-1">Platform is healthy and no issues have been filed by users.</p>
+            </div>
+          ) : (
+            bugReports.map((bug) => {
+              const isOpen = bug.status === 'Open';
+              const isExpanded = expandedBugId === bug.id;
 
-                {/* Status Toggle & Delete Actions */}
-                <div className="flex items-center gap-2 shrink-0 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleBugStatus(bug)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border",
-                      bug.status === 'Open'
-                        ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
-                        : "bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25"
-                    )}
-                  >
-                    <CheckCircle2 size={13} />
-                    <span>{bug.status === 'Open' ? 'Mark Resolved' : 'Reopen'}</span>
-                  </button>
+              return (
+                <div
+                  key={bug.id}
+                  className={cn(
+                    "rounded-2xl border transition-all overflow-hidden",
+                    isOpen
+                      ? "bg-red-500/[0.03] border-red-500/20 hover:border-red-500/40"
+                      : "bg-white/[0.01] border-white/5 opacity-70"
+                  )}
+                >
+                  <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div
+                      onClick={() => setExpandedBugId(isExpanded ? null : bug.id)}
+                      className="flex items-start gap-3 cursor-pointer flex-1 min-w-0"
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleBugStatus(bug);
+                        }}
+                        className={cn(
+                          "mt-0.5 p-1.5 rounded-lg border transition-all cursor-pointer shrink-0",
+                          isOpen
+                            ? "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/40"
+                            : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/40"
+                        )}
+                        title={isOpen ? "Click to mark as Resolved" : "Click to reopen"}
+                      >
+                        {isOpen ? <Clock size={14} /> : <CheckCircle2 size={14} />}
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteBug(bug.id)}
-                    className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 text-white/40 hover:text-red-400 transition-all cursor-pointer"
-                    title="Delete Bug Report"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-white font-display truncate">
+                            {bug.title}
+                          </span>
+                          <span className={cn(
+                            "px-2 py-0.2 rounded text-[10px] font-mono font-bold uppercase",
+                            isOpen ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          )}>
+                            {bug.status}
+                          </span>
+                          <span className="text-[10px] text-white/40 font-mono">
+                            {bug.dateStr}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-white/60 mt-1 line-clamp-1">
+                          {bug.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <button
+                        onClick={() => handleToggleBugStatus(bug)}
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-white/80 transition-colors cursor-pointer"
+                      >
+                        {isOpen ? 'Mark Resolved' : 'Reopen'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBug(bug.id)}
+                        className="p-1.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors cursor-pointer"
+                        title="Delete report"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => setExpandedBugId(isExpanded ? null : bug.id)}
+                        className="p-1.5 rounded-xl bg-white/5 text-white/40 hover:text-white transition-colors cursor-pointer"
+                      >
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Details View */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-2 border-t border-white/5 bg-black/30 space-y-3">
+                      <div>
+                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Full Description</span>
+                        <p className="text-xs sm:text-sm text-white/80 leading-relaxed whitespace-pre-wrap bg-black/40 p-3 rounded-xl border border-white/5 font-sans">
+                          {bug.description}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-4 text-xs font-mono text-white/40 pt-1">
+                        {bug.contactEmail && (
+                          <div>
+                            <span className="text-white/25 mr-1">Contact:</span>
+                            <span className="text-white/70">{bug.contactEmail}</span>
+                          </div>
+                        )}
+                        {bug.reportedBy && (
+                          <div>
+                            <span className="text-white/25 mr-1">Reported By:</span>
+                            <span className="text-white/70">{bug.reportedBy}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-white/25 mr-1">Report ID:</span>
+                          <span className="text-white/40">{bug.id}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
 
-      {/* Quick Jump Shortcuts */}
+      {/* Quick Launch Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
+          type="button"
           onClick={() => setActiveTab('submissions')}
-          className="p-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] hover:bg-cyan-500/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
+          className="p-5 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-cyan-500/40 transition-all text-left group cursor-pointer"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400">
+            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
               <ImageIcon size={18} />
             </div>
-            <ChevronRight size={16} className="text-cyan-400/50 group-hover:translate-x-1 transition-transform" />
+            <ChevronRight size={16} className="text-cyan-500/50 group-hover:translate-x-1 transition-transform" />
           </div>
-          <p className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">Submissions Manager</p>
-          <p className="text-xs text-white/40 mt-1">Decrypt, disqualify, or delete photo entries.</p>
+          <p className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">Submissions Hub</p>
+          <p className="text-xs text-white/40 mt-1">Review photos, inspect decrypted files, and manage submissions.</p>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('voters')}
-          className="p-5 rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] hover:bg-blue-500/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
+          className="p-5 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-emerald-500/40 transition-all text-left group cursor-pointer"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400">
+            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
               <UserCheck size={18} />
             </div>
-            <ChevronRight size={16} className="text-blue-400/50 group-hover:translate-x-1 transition-transform" />
+            <ChevronRight size={16} className="text-emerald-500/50 group-hover:translate-x-1 transition-transform" />
           </div>
-          <p className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Voter Search & Audit</p>
+          <p className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Voter Audit</p>
           <p className="text-xs text-white/40 mt-1">Audit voter logs and revoke suspicious votes.</p>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('changelogs')}
           className="p-5 rounded-2xl border border-fivem-orange/20 bg-fivem-orange/[0.04] hover:bg-fivem-orange/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
         >
@@ -730,7 +864,7 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
             </div>
             <ChevronRight size={16} className="text-fivem-orange/50 group-hover:translate-x-1 transition-transform" />
           </div>
-          <p className="text-sm font-bold text-white group-hover:text-fivem-orange transition-colors">Changelogs & Damon Credits</p>
+          <p className="text-sm font-bold text-white group-hover:text-fivem-orange transition-colors">Platform Changelog</p>
           <p className="text-xs text-white/40 mt-1">View release history and publishing tools.</p>
         </button>
       </div>
@@ -742,7 +876,7 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
         <div className="px-6 pt-5 pb-4 border-b border-blue-500/[0.12] flex items-center gap-2">
           <div className="w-1 h-4 bg-blue-500/70 rounded-full" />
           <BarChart3 size={13} className="text-blue-500/80" />
-          <h4 className="text-[11px] font-mono text-blue-500/80 uppercase tracking-[0.2em]">Analytics & Data Insights</h4>
+          <h4 className="text-[11px] font-mono text-blue-500/80 uppercase tracking-[0.2em]">Analytics & Telemetry</h4>
         </div>
         <div className="p-6 flex flex-col items-center">
           <ShimmerButton
@@ -774,117 +908,82 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
     <div className="space-y-6">
       <div>
         <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-          <Trophy size={20} className="text-amber-400" /> Contest Setup & Winner Assets
+          <Trophy size={20} className="text-amber-400" /> Contest Setup & Management
         </h3>
-        <p className="text-sm text-white/40">Edit active contest rules and categories, export winner photos, or create new contests.</p>
+        <p className="text-sm text-white/40">Configure active contest parameters, edit rules, or download winning entries.</p>
       </div>
 
       {/* Download Winners Section */}
-      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-6">
+      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.03]">
         <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Download size={16} className="text-amber-400" />
-              <h4 className="text-sm font-bold text-white">Download Category Winners</h4>
-              {winners.length > 0 && (
-                <span className="text-[10px] font-mono bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold">
-                  {winners.length} Ready
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-white/40 leading-relaxed">
-              Download the current leading photo from each category as high-resolution files.
+        <div className="px-6 pt-5 pb-4 border-b border-amber-500/[0.12] flex items-center gap-2">
+          <div className="w-1 h-4 bg-amber-500/70 rounded-full" />
+          <Download size={13} className="text-amber-500/80" />
+          <h4 className="text-[11px] font-mono text-amber-500/80 uppercase tracking-[0.2em]">Winners Export</h4>
+        </div>
+        <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h5 className="text-sm font-bold text-white mb-0.5">Download Winning Photos</h5>
+            <p className="text-xs text-white/40">
+              Export high-resolution images of current 1st place winners across all categories as a ZIP package.
             </p>
           </div>
           <button
             onClick={onDownloadWinners}
-            disabled={!activeContest || winners.length === 0}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 shrink-0 flex items-center gap-2 cursor-pointer",
-              activeContest && winners.length > 0
-                ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
-                : "bg-white/5 text-white/30 border border-white/10 opacity-50 cursor-not-allowed"
-            )}
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-all shadow-md shrink-0 flex items-center gap-2 cursor-pointer active:scale-95"
           >
             <Download size={14} />
-            Download {winners.length} Winner{winners.length !== 1 ? 's' : ''}
+            Download ZIP
           </button>
         </div>
       </div>
 
-      {/* Edit Current Contest */}
-      {activeContest ? (
-        <div className="relative overflow-hidden rounded-3xl border border-fivem-orange/30 bg-[#09090d]/90 shadow-2xl">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-fivem-orange via-amber-500 to-fivem-orange" />
-          <div className="px-6 py-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-fivem-orange/10 via-transparent to-transparent">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-fivem-orange/20 border border-fivem-orange/40 flex items-center justify-center text-fivem-orange shrink-0 shadow-inner">
-                <Wrench size={20} />
-              </div>
-              <div>
-                <span className="text-[10px] font-mono text-fivem-orange uppercase tracking-widest font-bold block">Intuitive Setup Workspace</span>
-                <h3 className="text-base sm:text-lg font-bold text-white font-display">Active Contest Configuration</h3>
-              </div>
-            </div>
+      {/* Edit Active Contest */}
+      {activeContest && (
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+          <div className="px-6 pt-5 pb-4 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full shadow-sm">
-                {activeContest.name}
-              </span>
+              <div className="w-1 h-4 bg-fivem-orange rounded-full" />
+              <h4 className="text-[11px] font-mono text-white/60 uppercase tracking-[0.2em]">Active Contest Settings</h4>
             </div>
+            <span className="text-[10px] font-mono text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded border border-fivem-orange/30">
+              ID: {activeContest.id}
+            </span>
           </div>
           <div className="p-6">
-            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-white/30" /></div>}>
+            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-fivem-orange" /></div>}>
               <EditContestManager
                 activeContest={activeContest}
-                currentRules={rulesMarkdown}
-                currentCategories={categories}
-                onUpdated={() => window.location.reload()}
+                categories={categories}
+                rulesMarkdown={rulesMarkdown}
               />
             </Suspense>
           </div>
         </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
-          <Trophy size={32} className="text-white/10 mx-auto mb-3" />
-          <p className="text-sm text-white/40 mb-1 font-bold">No Active Contest</p>
-          <p className="text-xs text-white/25">Create a new contest below to get started.</p>
-        </div>
       )}
 
-      {/* Create New Contest */}
-      <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/15 bg-fivem-orange/[0.03]">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/60 to-transparent" />
-        <div className="absolute top-0 right-0 w-48 h-48 bg-fivem-orange/8 blur-[80px] rounded-full pointer-events-none" />
+      {/* Create New Contest Accordion */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="w-full px-6 pt-5 pb-4 border-b border-fivem-orange/[0.12] flex items-center justify-between group hover:bg-fivem-orange/[0.02] transition-colors text-left cursor-pointer"
+          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-            <h4 className="text-[11px] font-mono text-fivem-orange/70 uppercase tracking-[0.2em]">Create New Contest</h4>
+            <div className="w-1 h-4 bg-emerald-500 rounded-full" />
+            <h4 className="text-[11px] font-mono text-emerald-400 uppercase tracking-[0.2em]">Create New Contest Round</h4>
           </div>
-          <div className="text-fivem-orange/50 group-hover:text-fivem-orange p-1 bg-fivem-orange/10 rounded-md transition-colors">
-            {showCreate ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
+          <span className="text-xs font-mono text-white/40">
+            {showCreate ? '− Collapse' : '+ Expand Form'}
+          </span>
         </button>
 
-        <AnimatePresence initial={false}>
-          {showCreate && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              <div className="p-6 relative z-10">
-                <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-fivem-orange" /></div>}>
-                  <CreateContestManager onCreated={() => window.location.reload()} />
-                </Suspense>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {showCreate && (
+          <div className="p-6 border-t border-white/10">
+            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-emerald-500" /></div>}>
+              <CreateContestManager onContestCreated={() => window.location.reload()} />
+            </Suspense>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -892,120 +991,122 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TAB: Controls & Security
+   TAB: Controls & Security (Real-Time Toggles & RSA Key Management)
    ═══════════════════════════════════════════════════════════════════════ */
 function ControlsAndSecurityTab({
-  votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, siteClosed = false, publicKey, privateKey,
+  votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, siteClosed = false,
+  publicKey, privateKey,
   onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed,
   onGenerateKeys, onToggleReveal
 }: {
   votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean; siteClosed?: boolean;
   publicKey: string | null; privateKey: string | null;
-  onToggleVoting: (v: boolean) => void; onToggleSubmissions: (v: boolean) => void;
-  onToggleOnePhotoPerUser: (v: boolean) => void; onToggleShowWinners: (v: boolean) => void;
-  onToggleSiteClosed?: (v: boolean) => void;
-  onGenerateKeys: () => void; onToggleReveal: (v: boolean) => void;
+  onToggleVoting: (open: boolean) => void; onToggleSubmissions: (open: boolean) => void;
+  onToggleOnePhotoPerUser: (enabled: boolean) => void; onToggleShowWinners: (enabled: boolean) => void;
+  onToggleSiteClosed?: (closed: boolean) => void;
+  onGenerateKeys: () => void; onToggleReveal: (reveal: boolean) => void;
 }) {
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-          <Zap size={20} className="text-emerald-400" /> Controls & Security
+          <Zap size={20} className="text-purple-400" /> Controls & Security
         </h3>
-        <p className="text-sm text-white/40">Manage real-time contest switches, entry constraints, and image encryption parameters.</p>
+        <p className="text-sm text-white/40">Real-time switches, access lockdown, and RSA end-to-end encryption keys.</p>
       </div>
 
-      {/* Voting & Submissions Group */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-1">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-fivem-orange/40 to-transparent" />
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Contest Real-Time Switches</p>
+      {/* Real-time Switches Section */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+        <div className="px-6 pt-5 pb-4 border-b border-white/10 flex items-center gap-2">
+          <div className="w-1 h-4 bg-fivem-orange rounded-full" />
+          <h4 className="text-[11px] font-mono text-white/60 uppercase tracking-[0.2em]">Contest Real-Time Switches</h4>
         </div>
-        <div className="space-y-1 px-2 pb-2">
+
+        <div className="p-6 space-y-4">
           <AdminToggle
-            label="Site Closed / Lockdown"
-            description="Block non-admin visitors with the 'Contest is Closed' modal (Admins can bypass/preview)"
-            checked={siteClosed}
-            onToggle={onToggleSiteClosed || (() => {})}
-            activeColor="bg-red-500"
-            activeGlow="shadow-[0_0_12px_rgba(239,68,68,0.5)]"
-            icon={<Lock size={16} />}
-          />
-          <AdminToggle
-            label="Voting"
-            description="Allow users to vote on contest submissions"
-            checked={votingOpen}
-            onToggle={onToggleVoting}
-            activeColor="bg-emerald-500"
-            activeGlow="shadow-[0_0_12px_rgba(34,197,94,0.5)]"
-            icon={<Unlock size={16} />}
-          />
-          <AdminToggle
-            label="Submissions"
-            description="Allow new photo submissions from users"
+            label="Submissions Gate"
+            description="Allow participants to upload new photos to the contest."
             checked={submissionsOpen}
-            onToggle={onToggleSubmissions}
-            activeColor="bg-fivem-orange"
-            activeGlow="shadow-[0_0_12px_rgba(234,88,12,0.5)]"
+            onToggle={(checked) => onToggleSubmissions(checked)}
+            activeColor="bg-cyan-500"
+            activeGlow="shadow-[0_0_12px_rgba(6,182,212,0.5)]"
             icon={<ImageIcon size={16} />}
           />
-        </div>
-      </div>
 
-      {/* Limits & Display Group */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-1">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Rules & Showcase Display</p>
-        </div>
-        <div className="space-y-1 px-2 pb-2">
           <AdminToggle
-            label="1 Photo Per User"
-            description="Limit each Discord account to a single submission"
-            checked={onePhotoPerUser}
-            onToggle={onToggleOnePhotoPerUser}
+            label="Voting Gate"
+            description="Enable community members to cast votes on submissions."
+            checked={votingOpen}
+            onToggle={(checked) => onToggleVoting(checked)}
             activeColor="bg-amber-500"
             activeGlow="shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-            icon={<Lock size={16} />}
-          />
-          <AdminToggle
-            label="Winner Announcement"
-            description="Show the winner showcase banner above the hero section"
-            checked={showWinnersToggle}
-            onToggle={onToggleShowWinners}
-            activeColor="bg-purple-500"
-            activeGlow="shadow-[0_0_12px_rgba(168,85,247,0.5)]"
             icon={<Trophy size={16} />}
           />
+
+          <AdminToggle
+            label="1 Photo Per User Enforcement"
+            description="Strictly limit each Discord user to 1 active photo entry total."
+            checked={onePhotoPerUser}
+            onToggle={(checked) => onToggleOnePhotoPerUser(checked)}
+            activeColor="bg-purple-500"
+            activeGlow="shadow-[0_0_12px_rgba(168,85,247,0.5)]"
+            icon={<Shield size={16} />}
+          />
+
+          <AdminToggle
+            label="Show Winners Celebration View"
+            description="Display the winners podium and confetti celebration banner to users."
+            checked={showWinnersToggle}
+            onToggle={(checked) => onToggleShowWinners(checked)}
+            activeColor="bg-fivem-orange"
+            activeGlow="shadow-[0_0_12px_rgba(234,88,12,0.5)]"
+            icon={<Trophy size={16} />}
+          />
+
+          {onToggleSiteClosed && (
+            <AdminToggle
+              label="Site Closed / Lockdown Mode"
+              description="Restrict access with a 'Contest is Closed' overlay for non-admins."
+              checked={siteClosed}
+              onToggle={(checked) => onToggleSiteClosed(checked)}
+              activeColor="bg-red-500"
+              activeGlow="shadow-[0_0_12px_rgba(239,68,68,0.5)]"
+              icon={<Lock size={16} />}
+            />
+          )}
         </div>
       </div>
 
-      {/* Security & Encryption Section */}
-      <div className="relative overflow-hidden rounded-2xl border border-purple-500/15 bg-purple-500/[0.03] p-6 space-y-4">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
-        <div className="flex items-center justify-between">
+      {/* RSA Encryption Section */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+        <div className="px-6 pt-5 pb-4 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield size={16} className="text-purple-400" />
-            <h4 className="text-sm font-bold text-white">RSA Security Keys</h4>
-            {publicKey && (
-              <span className="text-[9px] font-mono bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Keys Active</span>
-            )}
+            <div className="w-1 h-4 bg-emerald-500 rounded-full" />
+            <h4 className="text-[11px] font-mono text-white/60 uppercase tracking-[0.2em]">RSA Encryption Keys</h4>
           </div>
-          <button
-            onClick={onGenerateKeys}
-            className="px-4 py-2 rounded-xl font-bold text-xs transition-all duration-300 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
-          >
-            {publicKey ? '🔄 Regenerate Keys' : '🔐 Generate Keys'}
-          </button>
+          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+            {publicKey ? 'Keys Configured' : 'Keys Missing'}
+          </span>
         </div>
-        <p className="text-xs text-white/40 leading-relaxed">
-          RSA key pairs encrypt submission URLs on upload, preventing participants from discovering uncensored photos before the official reveal.
-        </p>
 
-        <div className="pt-2 border-t border-purple-500/10">
+        <div className="p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <div>
+              <p className="text-sm font-bold text-white mb-0.5">Generate New RSA Keypair</p>
+              <p className="text-xs text-white/40">Creates fresh 2048-bit RSA keys for encrypting submissions before reveal.</p>
+            </div>
+            <button
+              onClick={onGenerateKeys}
+              className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-2 cursor-pointer"
+            >
+              <Shield size={14} />
+              Generate Keys
+            </button>
+          </div>
+
           <AdminToggle
-            label="Global Image Decryption"
-            description="Publish private key globally to un-censor images for all visitors"
+            label="Instant Submission Decryption (Reveal)"
+            description="Automatically decrypt all encrypted submissions for public viewing."
             checked={!!privateKey}
             onToggle={(checked) => onToggleReveal(checked)}
             activeColor="bg-emerald-500"
@@ -1059,7 +1160,7 @@ function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
           <div>
             <h5 className="text-sm font-bold text-white mb-0.5">Reset All Votes</h5>
             <p className="text-xs text-white/40">
-              Clear all cast vote records and set `vote_count` back to 0 on every photo in the current contest.
+              Clear all cast vote records and set vote_count back to 0 on every photo in the current contest.
             </p>
           </div>
           <button

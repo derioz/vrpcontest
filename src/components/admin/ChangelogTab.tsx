@@ -27,16 +27,21 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260813-2010',
     version: 'v1.9.4',
-    title: 'Site Closed Lockdown Mode, Contest Closed Modal & Admin Controls',
+    title: 'Admin Console Redesign, Animated Sidebar, Analytics Tab & Site Lockdown',
     category: 'Feature',
-    description: `• Site Closed Lockdown Mode: Added a global toggle switch in the Admin Console (Controls & Security tab) allowing administrators to restrict access to the contest portal when a contest round is concluded or undergoing scheduled maintenance.
+    description: `• Expanded High-Fidelity Admin Console: Enlarged modal stage to an expansive responsive viewport (up to 1600px width with 88vh height), providing spacious layouts for data tables, telemetry graphs, and photo previews.
+• Enhanced Categorized Sidebar Dock: Upgraded the Admin Side Menu with organized category sections (Core Operations, Contest Control, Platform), interactive spring physics, layout pills, micro-zoom hover states, and live indicator counters.
+• Fluid Category Switching Motion: Added motion transitions with spring easing, subtle blur reveals, and layout animations across all admin tabs.
+• Dedicated Analytics Tab: Promoted Analytics into its own first-class sidebar category featuring full inline telemetry, vote velocity trends, category breakdowns, and fullscreen capability.
+• Streamlined Platform Changelog Header: Redesigned the Changelog tab header into a clean, modern version history portal.
+• Site Closed Lockdown Mode: Added a global toggle switch in the Admin Console (Controls & Security tab) allowing administrators to restrict access to the contest portal when a contest round is concluded or undergoing scheduled maintenance.
 • High-Fidelity Contest Closed Modal: Non-admin visitors and guests are presented with a centered, glassmorphic "Contest is Closed" modal featuring a sleek gradient frame, pulsing ripple rings, lock centerpiece, next contest preparation notice, and a super-blurred backdrop showing the live website beneath.
 • Interactive Creator Easter Egg: Styled a clean "Created by Damon" footer badge featuring Damon's custom avatar that triggers an animated playful wiggle when clicked.
 • Seamless Hall of Fame Shortcut: Built-in high-contrast button allowing visitors to immediately explore all past champions and winning entries in the Hall of Fame without requiring login.
-• Administrator Sign-In & Live Bypass: Integrated instant login for administrators directly from the closed modal, accompanied by an admin bypass toggle and quick shortcut to launch the Admin Console.
-• Real-time Firestore Sync & Admin Mode Indicator: Contest lock status synchronizes live across all connected clients via Firestore, and displays a floating indicator banner when an administrator is browsing the platform with the lock active.`,
+• Intuitive Minimize Window Controls: Updated the console minimize button to a standard window-style minus control with bottom dock restoration.
+• Administrator Sign-In & Live Bypass: Integrated instant login for administrators directly from the closed modal, accompanied by an admin bypass toggle and quick shortcut to launch the Admin Console.`,
     author: 'Damon',
-    date: 'Aug 13, 2026 at 8:15 PM',
+    date: 'Aug 13, 2026 at 8:31 PM',
   },
   {
     id: 'release-20260812-2208',
@@ -388,43 +393,29 @@ export function ChangelogTab() {
   return (
     <div className="space-y-8 relative">
       
-      {/* ── CREATOR CREDIT BANNER: "Website Created & Designed by Damon" ── */}
-      <div className="relative overflow-hidden rounded-3xl border border-fivem-orange/30 bg-gradient-to-r from-fivem-orange/15 via-[#0c0c10] to-[#08080a] p-6 sm:p-8 shadow-[0_10px_40px_rgba(234,88,12,0.15)]">
-        <BorderBeam size={280} duration={12} colorFrom="#ea580c" colorTo="#fb923c" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-fivem-orange/20 border border-fivem-orange/40 flex items-center justify-center text-fivem-orange shrink-0 shadow-[0_0_20px_rgba(234,88,12,0.3)]">
-              <Code size={28} />
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange text-[10px] font-bold uppercase tracking-widest mb-2">
-                <Sparkles size={12} />
-                <span>Lead Creator & Architect</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black font-display text-white tracking-tight">
-                Website Created & Designed by <span className="text-fivem-orange">Damon</span>
-              </h2>
-              <p className="text-xs sm:text-sm text-white/50 mt-1 max-w-xl leading-relaxed">
-                Full-stack architecture, custom UI/UX design system, real-time Firebase integrations, and interactive components built exclusively for the Vital RP community.
-              </p>
-              <div className="flex flex-wrap items-center gap-2 mt-3 text-[10px] font-mono text-white/40">
-                <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-emerald-400 font-bold">@mcspace</span>
-                <span>•</span>
-                <span>Discord ID: 150580708144840704</span>
-              </div>
-            </div>
+      {/* ── TOP SECTION: Platform Changelog Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-[10px] font-mono uppercase tracking-widest mb-2 font-bold">
+            <Layers size={12} />
+            <span>Version History</span>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white font-bold text-xs uppercase tracking-wider transition-all shadow-[0_4px_20px_rgba(234,88,12,0.4)] cursor-pointer shrink-0 active:scale-95"
-          >
-            <Plus size={16} />
-            <span>New Release Entry</span>
-          </button>
+          <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight">
+            Platform Changelog
+          </h2>
+          <p className="text-xs sm:text-sm text-white/40 mt-1 max-w-xl">
+            Live log of platform releases, performance upgrades, security patches, and feature updates.
+          </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 text-fivem-orange border border-fivem-orange/40 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
+        >
+          <Plus size={15} />
+          <span>New Release Entry</span>
+        </button>
       </div>
 
       {/* ── FILTER & SEARCH TOOLBAR ── */}
