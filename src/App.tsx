@@ -33,6 +33,7 @@ import {
   Layers,
   BarChart3,
   Eye,
+  EyeOff,
   Download,
   ChevronDown,
   ChevronUp,
