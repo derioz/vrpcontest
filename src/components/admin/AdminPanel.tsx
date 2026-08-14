@@ -904,6 +904,7 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
   activeContest: any; categories: Category[]; rulesMarkdown: string; winners: any[];
   onDownloadWinners: () => void;
 }) {
+  const [showEditActive, setShowEditActive] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
   return (
@@ -951,41 +952,68 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
         </div>
       </div>
 
-      {/* Edit Active Contest */}
-      {activeContest && (
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
-          <div className="px-6 pt-5 pb-4 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+      {/* Edit Current Contest (Collapsible Accordion) */}
+      {activeContest ? (
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] transition-all">
+          <button
+            type="button"
+            onClick={() => setShowEditActive(!showEditActive)}
+            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.03] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
               <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-              <h4 className="text-[11px] font-mono text-white/60 uppercase tracking-[0.2em]">Active Contest Settings</h4>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-[11px] font-mono text-fivem-orange uppercase tracking-[0.2em] font-bold">
+                  Edit Current Contest
+                </h4>
+                <span className="text-xs text-white font-bold font-display px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10">
+                  {activeContest.name}
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] font-mono text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded border border-fivem-orange/30">
-              ID: {activeContest.id}
-            </span>
-          </div>
-          <div className="p-6">
-            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-fivem-orange" /></div>}>
-              <EditContestManager
-                activeContest={activeContest}
-                categories={categories}
-                rulesMarkdown={rulesMarkdown}
-              />
-            </Suspense>
-          </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-mono text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded border border-fivem-orange/30 hidden sm:inline-block">
+                ID: {activeContest.id}
+              </span>
+              <span className="text-xs font-mono text-white/40 group-hover:text-white transition-colors">
+                {showEditActive ? '− Collapse' : '+ Expand Editor'}
+              </span>
+            </div>
+          </button>
+
+          {showEditActive && (
+            <div className="p-6 border-t border-white/10">
+              <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-fivem-orange" /></div>}>
+                <EditContestManager
+                  activeContest={activeContest}
+                  categories={categories}
+                  rulesMarkdown={rulesMarkdown}
+                  onUpdated={() => {}}
+                />
+              </Suspense>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="p-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.01] text-center text-white/40 text-xs font-mono">
+          No active contest found. Create a new contest round below to get started.
         </div>
       )}
 
       {/* Create New Contest Accordion */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] transition-all">
         <button
+          type="button"
           onClick={() => setShowCreate(!showCreate)}
-          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.03] transition-colors cursor-pointer group"
         >
           <div className="flex items-center gap-2">
             <div className="w-1 h-4 bg-emerald-500 rounded-full" />
-            <h4 className="text-[11px] font-mono text-emerald-400 uppercase tracking-[0.2em]">Create New Contest Round</h4>
+            <h4 className="text-[11px] font-mono text-emerald-400 uppercase tracking-[0.2em] font-bold">
+              Create New Contest Round
+            </h4>
           </div>
-          <span className="text-xs font-mono text-white/40">
+          <span className="text-xs font-mono text-white/40 group-hover:text-white transition-colors">
             {showCreate ? '− Collapse' : '+ Expand Form'}
           </span>
         </button>
@@ -993,7 +1021,10 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
         {showCreate && (
           <div className="p-6 border-t border-white/10">
             <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-emerald-500" /></div>}>
-              <CreateContestManager onContestCreated={() => window.location.reload()} />
+              <CreateContestManager
+                onCreated={() => window.location.reload()}
+                onContestCreated={() => window.location.reload()}
+              />
             </Suspense>
           </div>
         )}

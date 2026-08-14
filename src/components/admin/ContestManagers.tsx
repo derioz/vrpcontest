@@ -80,14 +80,31 @@ function MarkdownToolbar({ text, textareaRef, onTextChange }: { text: string, te
   );
 }
 
-export function EditContestManager({ activeContest, currentRules, currentCategories, onUpdated }: { activeContest: any, currentRules: string, currentCategories: Category[], onUpdated: () => void }) {
+export function EditContestManager({
+  activeContest,
+  currentRules = '',
+  currentCategories = [],
+  onUpdated = () => {},
+  rulesMarkdown,
+  categories: propCategories
+}: {
+  activeContest: any;
+  currentRules?: string;
+  currentCategories?: Category[];
+  onUpdated?: () => void;
+  rulesMarkdown?: string;
+  categories?: Category[];
+}) {
+  const effectiveRules = currentRules || rulesMarkdown || '';
+  const effectiveCats = currentCategories && currentCategories.length > 0 ? currentCategories : (propCategories || []);
+
   const [setupTab, setSetupTab] = useState<'general' | 'categories' | 'rules'>('general');
   
   const [title, setTitle] = useState(activeContest?.name || '');
   const [showTitleEmojiPicker, setShowTitleEmojiPicker] = useState(false);
-  const [rules, setRules] = useState(currentRules || '');
+  const [rules, setRules] = useState(effectiveRules);
   const [categories, setCategories] = useState<{ id: string | number, name: string, desc: string, emoji?: string }[]>(
-    currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji }))
+    effectiveCats.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji }))
   );
 
   const [catName, setCatName] = useState('');
@@ -101,9 +118,11 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
 
   useEffect(() => {
     setTitle(activeContest?.name || '');
-    setRules(currentRules || '');
-    setCategories(currentCategories.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji })));
-  }, [activeContest, currentRules, currentCategories]);
+    const r = currentRules || rulesMarkdown || '';
+    const cats = currentCategories && currentCategories.length > 0 ? currentCategories : (propCategories || []);
+    setRules(r);
+    setCategories(cats.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji })));
+  }, [activeContest, currentRules, rulesMarkdown, currentCategories, propCategories]);
 
   const addCategory = () => {
     if (!catName.trim() || !catDesc.trim()) {
@@ -707,7 +726,13 @@ export function ArchiveContest({
   );
 }
 
-export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
+export function CreateContestManager({
+  onCreated,
+  onContestCreated
+}: {
+  onCreated?: () => void;
+  onContestCreated?: () => void;
+}) {
   const [title, setTitle] = useState('');
   const [rules, setRules] = useState('');
   const [categories, setCategories] = useState<{ id: number, name: string, desc: string, emoji?: string }[]>([]);
@@ -791,7 +816,7 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
       setCatDesc('');
       setCatEmoji('✨');
       setRules('');
-      onCreated();
+      (onCreated || onContestCreated)?.();
     } catch (e) {
       console.error("Launch Error:", e);
       toast.error('Failed to create contest');

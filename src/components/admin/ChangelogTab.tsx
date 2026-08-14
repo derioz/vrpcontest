@@ -28,9 +28,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260813-2010',
     version: 'v1.9.4',
-    title: 'Admin Console Redesign, Unified Page Headers, Editable Categories & Site Lockdown',
+    title: 'Admin Console Redesign, Unified Headers, Collapsible Contest Editors & Site Lockdown',
     category: 'Feature',
-    description: `• Unified Admin Page Header Architecture: Implemented a standardized AdminHeader component across all 8 Admin Console categories (Dashboard, Analytics, Submissions, Voter Audit, Contest Setup, Controls & Security, Changelog, and Danger Zone) delivering complete visual consistency with high-contrast themed badges, pulsating status lights, stylized icons, and action controls.
+    description: `• Collapsible Active Contest Editor Accordion: Added a collapsible accordion section for "Edit Current Contest" in Contest Setup matching the "Create New Contest Round" accordion, featuring active round indicator pills, ID badges, and smooth collapse/expand triggers.
+• Unified Admin Page Header Architecture: Implemented a standardized AdminHeader component across all 8 Admin Console categories (Dashboard, Analytics, Submissions, Voter Audit, Contest Setup, Controls & Security, Changelog, and Danger Zone) delivering complete visual consistency with high-contrast themed badges, pulsating status lights, stylized icons, and action controls.
 • In-Place Editable Categories in Contest Setup: After adding categories in the Contest Setup builder, each category item remains fully editable in place (allowing instant adjustments to category names, descriptions, and custom emojis without needing to delete and recreate).
 • Expanded High-Fidelity Admin Console: Enlarged modal stage to an expansive responsive viewport (up to 1600px width with 88vh height), providing spacious layouts for data tables, telemetry graphs, and photo previews.
 • Enhanced Categorized Sidebar Dock: Upgraded the Admin Side Menu with organized category sections (Core Operations, Contest Control, Platform), interactive spring physics, layout pills, micro-zoom hover states, and live indicator counters.
@@ -45,7 +46,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Intuitive Minimize Window Controls: Updated the console minimize button to a standard window-style minus control with bottom dock restoration.
 • Administrator Sign-In & Live Bypass: Integrated instant login for administrators directly from the closed modal, accompanied by an admin bypass toggle and quick shortcut to launch the Admin Console.`,
     author: 'Damon',
-    date: 'Aug 13, 2026 at 8:51 PM',
+    date: 'Aug 13, 2026 at 8:59 PM',
   },
   {
     id: 'release-20260812-2208',
