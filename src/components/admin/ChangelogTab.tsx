@@ -26,6 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260814-1635',
+    version: 'v1.9.5',
+    title: 'Contest Rules Markdown Engine, Split Live Preview & Instant Rules Persistence',
+    category: 'Feature',
+    description: `• ReactMarkdown & GFM Rendering Engine: Replaced the legacy plain-text line-splitting preview with a high-fidelity Markdown engine powered by ReactMarkdown and remark-gfm, delivering 100% accurate rendering for headings (#, ##, ###), bold (**text**), italics (*text*), blockquotes (> note), bullet & numbered lists, tables, links, code snippets, and custom callouts.
+• Instant "Save Rules Now" Action: Added a dedicated instant-save button right inside the Rules & Live Preview tab in Contest Setup, allowing administrators to persist global rules directly to Firestore in one click without needing to re-validate category fields or round metadata.
+• Real-Time Typing State Protection: Refactored internal state synchronization in EditContestManager to guard against background Firestore listener updates wiping out unsaved text in the rules editor while administrators are typing.
+• One-Click Starter Rules Templates: Integrated quick template presets ("Full Official Rules" and "Short & Compact") and quick formatting syntax chips into the Markdown toolbar for rapid contest rule authoring.
+• Dual-Mode Split Preview in Contest Creator: Upgraded the "Create New Contest Round" builder with the full split-view Markdown toolbar and real-time live preview panel matching the active contest editor.
+• Standalone Platform Rules Editor: Added a standalone fallback rules management panel in Contest Setup so administrators can configure global platform rules even when no active contest round is currently deployed.`,
+    author: 'Damon',
+    date: 'Aug 14, 2026 at 4:35 PM',
+  },
+  {
     id: 'release-20260813-2010',
     version: 'v1.9.4',
     title: 'Admin Console Redesign, Unified Headers, Collapsible Contest Editors & Site Lockdown',

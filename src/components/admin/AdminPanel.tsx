@@ -20,7 +20,7 @@ import { ChangelogTab } from './ChangelogTab';
 import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
 import { AdminHeader } from './AdminHeader';
 
-import { EditContestManager, ArchiveContest, CreateContestManager } from './ContestManagers';
+import { EditContestManager, ArchiveContest, CreateContestManager, StandaloneRulesEditor } from './ContestManagers';
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
@@ -995,8 +995,16 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
           )}
         </div>
       ) : (
-        <div className="p-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.01] text-center text-white/40 text-xs font-mono">
-          No active contest found. Create a new contest round below to get started.
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div>
+              <h4 className="text-xs font-mono text-fivem-orange uppercase tracking-[0.2em] font-bold">
+                Global Contest Rules Editor
+              </h4>
+              <p className="text-xs text-white/40">No active contest round is selected, but you can configure platform rules ahead of time.</p>
+            </div>
+          </div>
+          <StandaloneRulesEditor rulesMarkdown={rulesMarkdown} />
         </div>
       )}
 
