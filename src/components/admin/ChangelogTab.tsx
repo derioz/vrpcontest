@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { AnimatedShinyText } from '../ui/animated-shiny-text';
 import { BorderBeam } from '../ui/border-beam';
+import { AdminHeader } from './AdminHeader';
 
 export interface ChangelogEntry {
   id?: string;
@@ -27,9 +28,11 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260813-2010',
     version: 'v1.9.4',
-    title: 'Admin Console Redesign, Analytics Inline View, Contest Setup & Site Lockdown',
+    title: 'Admin Console Redesign, Unified Page Headers, Editable Categories & Site Lockdown',
     category: 'Feature',
-    description: `• Expanded High-Fidelity Admin Console: Enlarged modal stage to an expansive responsive viewport (up to 1600px width with 88vh height), providing spacious layouts for data tables, telemetry graphs, and photo previews.
+    description: `• Unified Admin Page Header Architecture: Implemented a standardized AdminHeader component across all 8 Admin Console categories (Dashboard, Analytics, Submissions, Voter Audit, Contest Setup, Controls & Security, Changelog, and Danger Zone) delivering complete visual consistency with high-contrast themed badges, pulsating status lights, stylized icons, and action controls.
+• In-Place Editable Categories in Contest Setup: After adding categories in the Contest Setup builder, each category item remains fully editable in place (allowing instant adjustments to category names, descriptions, and custom emojis without needing to delete and recreate).
+• Expanded High-Fidelity Admin Console: Enlarged modal stage to an expansive responsive viewport (up to 1600px width with 88vh height), providing spacious layouts for data tables, telemetry graphs, and photo previews.
 • Enhanced Categorized Sidebar Dock: Upgraded the Admin Side Menu with organized category sections (Core Operations, Contest Control, Platform), interactive spring physics, layout pills, micro-zoom hover states, and live indicator counters.
 • Fluid Category Switching Motion: Added motion transitions with spring easing, subtle blur reveals, and layout animations across all admin tabs.
 • Full-Width Inline Analytics Dashboard: Refactored the Analytics category view into a native full-width inline dashboard layout, eliminating nested scrollbars and cramped frames.
@@ -42,7 +45,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Intuitive Minimize Window Controls: Updated the console minimize button to a standard window-style minus control with bottom dock restoration.
 • Administrator Sign-In & Live Bypass: Integrated instant login for administrators directly from the closed modal, accompanied by an admin bypass toggle and quick shortcut to launch the Admin Console.`,
     author: 'Damon',
-    date: 'Aug 13, 2026 at 8:43 PM',
+    date: 'Aug 13, 2026 at 8:51 PM',
   },
   {
     id: 'release-20260812-2208',
@@ -395,29 +398,24 @@ export function ChangelogTab() {
     <div className="space-y-8 relative">
       
       {/* ── TOP SECTION: Platform Changelog Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-[10px] font-mono uppercase tracking-widest mb-2 font-bold">
-            <Layers size={12} />
-            <span>Version History</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight">
-            Platform Changelog
-          </h2>
-          <p className="text-xs sm:text-sm text-white/40 mt-1 max-w-xl">
-            Live log of platform releases, performance upgrades, security patches, and feature updates.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 text-fivem-orange border border-fivem-orange/40 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
-        >
-          <Plus size={15} />
-          <span>New Release Entry</span>
-        </button>
-      </div>
+      <AdminHeader
+        badge="VERSION HISTORY"
+        badgeColor="bg-fivem-orange/15 text-fivem-orange border-fivem-orange/30"
+        title="Platform Changelog"
+        subtitle="Live log of platform releases, performance upgrades, security patches, and feature updates."
+        icon={<Layers size={20} className="text-fivem-orange" />}
+        iconBg="bg-fivem-orange/15 border-fivem-orange/30"
+        actions={
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 text-fivem-orange border border-fivem-orange/40 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
+          >
+            <Plus size={15} />
+            <span>New Release Entry</span>
+          </button>
+        }
+      />
 
       {/* ── FILTER & SEARCH TOOLBAR ── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/10">

@@ -18,6 +18,7 @@ import { AdminVoterSearch } from './AdminVoterSearch';
 
 import { ChangelogTab } from './ChangelogTab';
 import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
+import { AdminHeader } from './AdminHeader';
 
 import { EditContestManager, ArchiveContest, CreateContestManager } from './ContestManagers';
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
@@ -375,21 +376,23 @@ export default function AdminPanel(props: AdminPanelProps) {
 
                 {activeTab === 'analytics' && (
                   <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-                          <BarChart3 size={20} className="text-blue-400" /> Contest Telemetry & Analytics
-                        </h3>
-                        <p className="text-sm text-white/40">Real-time vote progression, submission velocity charts, and category popularity distribution.</p>
-                      </div>
-                      <button
-                        onClick={onOpenAnalytics}
-                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-center"
-                      >
-                        <Maximize2 size={13} />
-                        <span>Fullscreen Mode</span>
-                      </button>
-                    </div>
+                    <AdminHeader
+                      badge="LIVE TELEMETRY"
+                      badgeColor="bg-blue-500/15 text-blue-400 border-blue-500/30"
+                      title="Contest Telemetry & Analytics"
+                      subtitle="Real-time vote progression, submission velocity charts, and category popularity distribution."
+                      icon={<BarChart3 size={20} className="text-blue-400" />}
+                      iconBg="bg-blue-500/15 border-blue-500/30"
+                      actions={
+                        <button
+                          onClick={onOpenAnalytics}
+                          className="px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
+                        >
+                          <Maximize2 size={13} />
+                          <span>Fullscreen Mode</span>
+                        </button>
+                      }
+                    />
                     <Suspense fallback={<div className="flex justify-center p-16"><Loader2 className="animate-spin text-blue-400" /></div>}>
                       <AnalyticsDashboard
                         photos={allPhotos}
@@ -403,12 +406,19 @@ export default function AdminPanel(props: AdminPanelProps) {
 
                 {activeTab === 'submissions' && (
                   <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-                        <ImageIcon size={20} className="text-cyan-400" /> Submissions Management
-                      </h3>
-                      <p className="text-sm text-white/40">Review decrypted photo submissions, disqualify entries, or delete photos.</p>
-                    </div>
+                    <AdminHeader
+                      badge="ENTRIES & MEDIA"
+                      badgeColor="bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
+                      title="Submissions Management"
+                      subtitle="Review decrypted photo submissions, inspect photographer details, and manage entries."
+                      icon={<ImageIcon size={20} className="text-cyan-400" />}
+                      iconBg="bg-cyan-500/15 border-cyan-500/30"
+                      actions={
+                        <span className="px-3.5 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs font-bold">
+                          {allPhotos.length} Total Submissions
+                        </span>
+                      }
+                    />
                     <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-cyan-400" /></div>}>
                       <AdminSubmissionsPreview
                         allPhotos={allPhotos}
@@ -422,12 +432,14 @@ export default function AdminPanel(props: AdminPanelProps) {
 
                 {activeTab === 'voters' && (
                   <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-                        <UserCheck size={20} className="text-emerald-400" /> Voter Audit & Fraud Check
-                      </h3>
-                      <p className="text-sm text-white/40">Search voters by Discord username or UID, inspect vote distribution, and clear flagged votes.</p>
-                    </div>
+                    <AdminHeader
+                      badge="SECURITY & AUDIT"
+                      badgeColor="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                      title="Voter Audit & Fraud Check"
+                      subtitle="Search voters by Discord username or UID, inspect vote distribution, and clear flagged records."
+                      icon={<UserCheck size={20} className="text-emerald-400" />}
+                      iconBg="bg-emerald-500/15 border-emerald-500/30"
+                    />
                     <AdminVoterSearch
                       allPhotos={allPhotos}
                       categories={categories}
@@ -570,33 +582,24 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
 
   return (
     <div className="space-y-8">
-      {/* Welcome Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-fivem-orange/15 via-[#0d0d12] to-transparent border border-fivem-orange/30 shadow-[0_4px_30px_rgba(234,88,12,0.1)]">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30">
-              OPERATIONAL HUB
-            </span>
-            <span className="text-white/40 text-xs font-mono">• Vital RP Photo Platform</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight">
-            Contest Control Center
-          </h2>
-          <p className="text-xs sm:text-sm text-white/50 mt-1 max-w-xl">
-            {activeContest ? `Active Session: "${activeContest.name}"` : 'No active contest round configured.'}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
+      {/* Header */}
+      <AdminHeader
+        badge="OPERATIONAL HUB"
+        badgeColor="bg-fivem-orange/15 text-fivem-orange border-fivem-orange/30"
+        title="Contest Control Center"
+        subtitle={activeContest ? `Active Session: "${activeContest.name}" • Real-time telemetry, quick switches, and operational health.` : 'No active contest round configured.'}
+        icon={<LayoutDashboard size={20} className="text-fivem-orange" />}
+        iconBg="bg-fivem-orange/15 border-fivem-orange/30"
+        actions={
           <button
             onClick={() => setActiveTab('controls')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 border border-fivem-orange/40 text-fivem-orange font-bold text-xs transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 border border-fivem-orange/40 text-fivem-orange font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
           >
             <Zap size={14} />
             <span>Fast Switches</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -905,12 +908,23 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-          <Trophy size={20} className="text-amber-400" /> Contest Setup & Management
-        </h3>
-        <p className="text-sm text-white/40">Configure active contest parameters, edit rules, or download winning entries.</p>
-      </div>
+      <AdminHeader
+        badge="ROUND CONFIGURATION"
+        badgeColor="bg-amber-500/15 text-amber-400 border-amber-500/30"
+        title="Contest Setup & Management"
+        subtitle="Configure active contest parameters, edit categories, customize rules, or download winning entries."
+        icon={<Trophy size={20} className="text-amber-400" />}
+        iconBg="bg-amber-500/15 border-amber-500/30"
+        actions={
+          <button
+            onClick={onDownloadWinners}
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95 shrink-0"
+          >
+            <Download size={14} />
+            <span>Download ZIP</span>
+          </button>
+        }
+      />
 
       {/* Download Winners Section */}
       <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.03]">
@@ -1007,12 +1021,14 @@ function ControlsAndSecurityTab({
 }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-black font-display text-white mb-1 flex items-center gap-2">
-          <Zap size={20} className="text-purple-400" /> Controls & Security
-        </h3>
-        <p className="text-sm text-white/40">Real-time switches, access lockdown, and RSA end-to-end encryption keys.</p>
-      </div>
+      <AdminHeader
+        badge="SYSTEM CONTROL"
+        badgeColor="bg-purple-500/15 text-purple-400 border-purple-500/30"
+        title="Controls & Security"
+        subtitle="Real-time switches, access lockdown, and RSA end-to-end encryption keys."
+        icon={<Zap size={20} className="text-purple-400" />}
+        iconBg="bg-purple-500/15 border-purple-500/30"
+      />
 
       {/* Real-time Switches Section */}
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
@@ -1128,12 +1144,14 @@ function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
 }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-black font-display text-red-400 mb-1 flex items-center gap-2">
-          <AlertCircle size={20} /> Danger Zone
-        </h3>
-        <p className="text-sm text-white/40">Destructive actions that cannot be undone. Proceed with extreme caution.</p>
-      </div>
+      <AdminHeader
+        badge="CRITICAL ACTIONS"
+        badgeColor="bg-red-500/15 text-red-400 border-red-500/30"
+        title="Danger Zone"
+        subtitle="Destructive actions that cannot be undone. Proceed with extreme caution."
+        icon={<AlertCircle size={20} className="text-red-400" />}
+        iconBg="bg-red-500/15 border-red-500/30"
+      />
 
       {/* Warning banner */}
       <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">

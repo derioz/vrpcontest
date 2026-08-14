@@ -9,7 +9,7 @@ import { collection, query, where, getDocs, doc, writeBatch } from 'firebase/fir
 import {
   AlertCircle, X, Plus, Bold, Italic, Heading, List,
   Link as LinkIcon, Smile, Trash2, ServerCrash, Trophy, Sparkles,
-  Layers, CheckCircle2, Rocket
+  Layers, CheckCircle2, Rocket, Edit3
 } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
@@ -106,15 +106,15 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
   }, [activeContest, currentRules, currentCategories]);
 
   const addCategory = () => {
-    if (!catName || !catDesc) {
+    if (!catName.trim() || !catDesc.trim()) {
       toast.error('Please enter category name and description');
       return;
     }
-    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
+    setCategories(prev => [...prev, { id: Date.now(), name: catName.trim(), desc: catDesc.trim(), emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
     setCatEmoji('✨');
-    toast.success(`Added "${catName}" category`);
+    toast.success(`Added "${catName.trim()}" category`);
   };
 
   const removeCategory = (id: string | number) => {
@@ -124,11 +124,11 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
 
   const handleUpdate = async () => {
     if (!activeContest) return;
-    if (!title) return toast.error('Contest title is required');
+    if (!title.trim()) return toast.error('Contest title is required');
 
     let finalCategories = [...categories];
-    if (catName && catDesc) {
-      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji });
+    if (catName.trim() && catDesc.trim()) {
+      finalCategories.push({ id: Date.now(), name: catName.trim(), desc: catDesc.trim(), emoji: catEmoji });
     }
 
     if (finalCategories.length === 0) return toast.error('At least one category is required');
@@ -138,7 +138,7 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
       const batch = writeBatch(db);
 
       const updates: any = {};
-      if (title !== activeContest.name) updates.name = title;
+      if (title.trim() !== activeContest.name) updates.name = title.trim();
 
       if (Object.keys(updates).length > 0) {
         batch.update(doc(db, 'contests', activeContest.id), updates);
@@ -287,13 +287,14 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 02 · Categories</span>
               <h3 className="text-lg font-bold text-white font-display">Manage Contest Categories ({categories.length})</h3>
             </div>
+            <span className="text-xs text-white/40 font-mono">In-Place Editable</span>
           </div>
 
-          {/* Categories Cards List */}
+          {/* Categories Cards List (Fully Editable in Place) */}
           {categories.length > 0 && (
             <div className="space-y-3">
               {categories.map((c, i) => (
-                <div key={c.id} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-fivem-orange/30 group/cat shadow-sm">
+                <div key={c.id} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-fivem-orange/40 group/cat shadow-sm relative">
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0 static-emoji-wrapper">
                       <button
@@ -319,12 +320,17 @@ export function EditContestManager({ activeContest, currentRules, currentCategor
                       )}
                     </div>
 
-                    <input
-                      value={c.name}
-                      onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
-                      placeholder="Category Name (e.g. Wildlife)"
-                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white outline-none focus:border-fivem-orange transition-all font-display"
-                    />
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="text-xs font-mono text-fivem-orange font-bold px-2 py-1 rounded-lg bg-fivem-orange/10 border border-fivem-orange/20 shrink-0">
+                        #{i + 1}
+                      </span>
+                      <input
+                        value={c.name}
+                        onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
+                        placeholder="Category Name (e.g. Wildlife)"
+                        className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white outline-none focus:border-fivem-orange transition-all font-display"
+                      />
+                    </div>
 
                     <button
                       type="button"
@@ -710,31 +716,34 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
   const [catDesc, setCatDesc] = useState('');
   const [catEmoji, setCatEmoji] = useState('✨');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [editingEmojiIdx, setEditingEmojiIdx] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const addCategory = () => {
-    if (!catName || !catDesc) {
-      toast.error('Please enter name and description');
+    if (!catName.trim() || !catDesc.trim()) {
+      toast.error('Please enter category name and description');
       return;
     }
-    setCategories(prev => [...prev, { id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji }]);
+    setCategories(prev => [...prev, { id: Date.now(), name: catName.trim(), desc: catDesc.trim(), emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
     setCatEmoji('✨');
+    toast.success(`Added "${catName.trim()}" category`);
   };
 
   const removeCategory = (id: number) => {
     setCategories(prev => prev.filter(c => c.id !== id));
+    toast.info('Category removed');
   };
 
   const handleLaunch = async () => {
-    if (!title) return toast.error('Contest title is required');
+    if (!title.trim()) return toast.error('Contest title is required');
 
     let finalCategories = [...categories];
-    if (catName && catDesc) {
-      finalCategories.push({ id: Date.now(), name: catName, desc: catDesc, emoji: catEmoji });
+    if (catName.trim() && catDesc.trim()) {
+      finalCategories.push({ id: Date.now(), name: catName.trim(), desc: catDesc.trim(), emoji: catEmoji });
     }
 
     if (finalCategories.length === 0) return toast.error('At least one category is required');
@@ -750,10 +759,10 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         batch.update(dSnap.ref, { is_active: false });
       });
 
-      // 2. Create new Contest Document (No schedule requirement)
+      // 2. Create new Contest Document
       const newContestRef = doc(collection(db, 'contests'));
       batch.set(newContestRef, {
-        name: title,
+        name: title.trim(),
         is_active: true,
         created_at: new Date().toISOString()
       });
@@ -820,29 +829,90 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
         />
       </div>
 
-      {/* Step 2: Categories */}
+      {/* Step 2: Categories (Fully in-place editable!) */}
       <div className="space-y-4">
-        <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-          <span>2. Define Contest Categories</span>
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+            <span>2. Contest Categories ({categories.length})</span>
+          </label>
+          {categories.length > 0 && (
+            <span className="text-[11px] text-emerald-400/80 font-mono flex items-center gap-1">
+              <Edit3 size={12} /> Click any field below to edit
+            </span>
+          )}
+        </div>
 
-        {/* Current Categories List */}
+        {/* Current Categories List with in-place editing */}
         {categories.length > 0 && (
-          <div className="space-y-2 mb-4">
+          <div className="space-y-3 mb-4">
             {categories.map((c, i) => (
-              <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl">
+              <div key={c.id} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-emerald-500/40 group/cat shadow-sm relative">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0">
-                    {c.emoji || '✨'}
+                  {/* Category Emoji Selector */}
+                  <div className="relative shrink-0 static-emoji-wrapper">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
+                      className="w-11 h-11 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center text-xl transition-all shrink-0 cursor-pointer shadow-md text-white"
+                      title="Change Category Emoji"
+                    >
+                      {c.emoji || '✨'}
+                    </button>
+                    {editingEmojiIdx === i && (
+                      <div className="absolute top-13 left-0 z-[999999] shadow-2xl bg-[#0d0d12] border border-white/20 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                        <Picker
+                          data={data}
+                          theme="dark"
+                          onEmojiSelect={(e: any) => {
+                            setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, emoji: e.native } : cat));
+                            setEditingEmojiIdx(null);
+                          }}
+                          previewPosition="none"
+                          navPosition="bottom"
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-white font-display">{i + 1}. {c.name}</p>
-                    <p className="text-xs text-white/50">{c.desc}</p>
+
+                  {/* Category Name Input */}
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <span className="text-xs font-mono text-emerald-400 font-bold px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                      #{i + 1}
+                    </span>
+                    <input
+                      value={c.name}
+                      onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
+                      placeholder="Category Name (e.g. Action Shots)"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white outline-none focus:border-emerald-400 transition-all font-display"
+                    />
                   </div>
+
+                  {/* Remove Button */}
+                  <button
+                    type="button"
+                    onClick={() => removeCategory(c.id)}
+                    className="p-2.5 hover:bg-red-500/20 text-white/40 hover:text-red-400 rounded-xl border border-transparent hover:border-red-500/30 transition-all shrink-0 cursor-pointer"
+                    title="Remove Category"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <button onClick={() => removeCategory(c.id)} className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-xl transition-colors cursor-pointer">
-                  <X size={16} />
-                </button>
+
+                {/* Category Description Textarea */}
+                <div>
+                  <textarea
+                    rows={2}
+                    value={c.desc}
+                    onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, desc: e.target.value } : cat))}
+                    onInput={(e: any) => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
+                    }}
+                    placeholder="Category description..."
+                    style={{ fieldSizing: 'content' } as any}
+                    className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white/90 outline-none focus:border-emerald-400 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -850,7 +920,9 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
 
         {/* Builder Box */}
         <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 space-y-3">
-          <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest font-bold">Add Category</p>
+          <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest font-bold flex items-center gap-1.5">
+            <Plus size={12} className="text-emerald-400" /> Add Category to Round
+          </p>
           <div className="flex items-center gap-2.5">
             <div className="relative shrink-0 static-emoji-wrapper">
               <Button variant="outline" className="h-11 w-12 bg-white/20 hover:bg-white/30 border-white/30 text-xl flex items-center justify-center p-0 rounded-2xl cursor-pointer text-white shadow-md" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
@@ -871,7 +943,7 @@ export function CreateContestManager({ onCreated }: { onCreated: () => void }) {
                 </div>
               )}
             </div>
-            <Input placeholder="Category Name..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-xl" />
+            <Input placeholder="Category Name (e.g. Wildlife)..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-xl" />
           </div>
           <textarea
             rows={2}
