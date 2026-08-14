@@ -35,6 +35,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Real-Time Typing State Protection: Refactored internal state synchronization in EditContestManager to guard against background Firestore listener updates wiping out unsaved text in the rules editor while administrators are typing.
 • One-Click Starter Rules Templates: Integrated quick template presets ("Full Official Rules" and "Short & Compact") and quick formatting syntax chips into the Markdown toolbar for rapid contest rule authoring.
 • Dual-Mode Split Preview in Contest Creator: Upgraded the "Create New Contest Round" builder with the full split-view Markdown toolbar and real-time live preview panel matching the active contest editor.
+• Front Page Markdown Typography Synchronization: Aligned the main landing page rules section (#rules) with the exact same typography, custom heading accents (#, ##, ###), bold/italic highlights, blockquote callouts, tables, and link styling as the admin live preview.
 • Standalone Platform Rules Editor: Added a standalone fallback rules management panel in Contest Setup so administrators can configure global platform rules even when no active contest round is currently deployed.`,
     author: 'Damon',
     date: 'Aug 14, 2026 at 4:35 PM',
