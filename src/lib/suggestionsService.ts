@@ -119,6 +119,7 @@ export async function fetchCategorySuggestions(
         downvotes,
         user_vote: userVotesMap.get(docSnap.id) || 0,
         voters_sample: Array.isArray(data.voters_sample) ? data.voters_sample : [],
+        admin_votes: Array.isArray(data.admin_votes) ? data.admin_votes : [],
         created_at: data.created_at || new Date().toISOString(),
         updated_at: data.updated_at || new Date().toISOString()
       });
@@ -224,6 +225,7 @@ export function subscribeCategorySuggestions(
           downvotes,
           user_vote: userVotesMap.get(docSnap.id) || 0,
           voters_sample: Array.isArray(data.voters_sample) ? data.voters_sample : [],
+          admin_votes: Array.isArray(data.admin_votes) ? data.admin_votes : [],
           created_at: data.created_at || new Date().toISOString(),
           updated_at: data.updated_at || new Date().toISOString()
         });

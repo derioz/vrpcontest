@@ -65,16 +65,15 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Dedicated Admin Console Category for Suggestions: Created an independent top-level category group in the Admin Console sidebar and navigation specifically for Category Suggestions with custom theme styling, live telemetry metrics, and dedicated navigation.
 • Functional Suggestion Workflow Statuses: Replaced static moderation tags with 6 functional workflow statuses (Open for Voting, Under Review, Approved for Contest, Implemented / Used, Declined, and Archived) with instant dropdown selectors and glowing indicators.
 • Admin Status Filtering Tabs with Count Badges: Added dedicated horizontal status filter tabs with dynamic live counters, allowing administrators to filter proposals by workflow state with 0 Firestore read costs.
-• One-Click Category Promotion to Contest: Added an instant "Promote Category" button to proposal cards, enabling administrators to push approved suggestions directly into active contest categories.
 • Anti-Jitter Layout Stabilization Engine: Engineered a frozen display order architecture across both community and admin suggestion views to prevent cards from constantly shifting and jumping on screen during peak voting traffic.
 • Live Vote Inbound Banners & "Update Ranking" Action: Added non-intrusive live activity banners indicating how many proposals have moved rank in the background, with one-click ranking alignment on user demand.
 • Stable View vs Live Stream Mode Toggle: Integrated a toolbar toggle allowing users and administrators to switch between Stable Reading mode (frozen positions) and Live Stream mode (continuous auto-gliding animations).
-• Staff Contest Decision Voting Suite: Engineered a dedicated admin decision voting system in the Admin Console specifically for staff to vote on whether proposals will be used for upcoming contest rounds, visible when status is Open for Voting.
-• Public Community User Vote Telemetry in Admin Cards: Admin suggestion cards now prominently display public community scores, upvote/downvote totals, and hover voter popovers alongside staff decision metrics.
+• Staff Contest Decision Voting Suite & Multi-Status Support: Engineered a dedicated staff contest decision voting system in the Admin Console specifically for admins to vote on whether proposals will be used for upcoming contest rounds, active across both "Open for Voting" and "Under Review" statuses with atomic real-time persistence.
+• Public Community User Vote Telemetry in Admin Cards: Admin suggestion cards prominently display public community scores, upvote/downvote totals, and hover voter popovers alongside staff decision metrics.
 • Multi-Strategy Live Discord Avatar Sync ("Pull Discord Photo"): Upgraded the avatar refresh flow to fetch the latest Discord photo directly from Discord API via OAuth bearer tokens, guild member lookups, and user CDN endpoints, resolving avatar cache staleness.
 • Verified Feed Manual Refresh: Ensured the manual refresh button in the Admin Console re-fetches and synchronizes category proposals and staff decisions seamlessly.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 10:35 PM',
+    date: 'Aug 14, 2026 at 10:40 PM',
   },
   {
     id: 'release-20260813-2010',

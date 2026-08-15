@@ -376,31 +376,6 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     }
   };
 
-  // Handle promote to active contest category
-  const handlePromoteToContest = async (suggestion: CategorySuggestion) => {
-    if (!onAddCategoryToContest) {
-      toast.info('Category copied to clipboard!', {
-        description: 'You can paste this into the Contest Setup categories editor.'
-      });
-      navigator.clipboard.writeText(`Name: ${suggestion.category_name}\nDescription: ${suggestion.description}`);
-      return;
-    }
-
-    try {
-      onAddCategoryToContest({
-        name: suggestion.category_name,
-        description: suggestion.description,
-        emoji: '✨'
-      });
-      await handleStatusChange(suggestion.id, 'approved');
-      toast.success(`Promoted "${suggestion.category_name}" to Contest Categories!`, {
-        description: 'Status set to Approved for Contest.'
-      });
-    } catch (err: any) {
-      toast.error('Failed to promote category', { description: err.message });
-    }
-  };
-
   // Handle delete
   const handleDelete = async () => {
     if (!deletingSuggestion) return;
@@ -759,7 +734,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
           {filteredSuggestions.map((suggestion) => {
             const statusConfig = getStatusDetails(suggestion.status);
             const isApproved = suggestion.status === 'approved';
-            const isOpenForVoting = !suggestion.status || suggestion.status === 'open' || suggestion.status === 'active';
+            const isDecisionVotingEligible = !suggestion.status || suggestion.status === 'open' || suggestion.status === 'active' || suggestion.status === 'under_review';
 
             const adminVotes: SuggestionAdminVote[] = suggestion.admin_votes || [];
             const currentAdminId = effectiveUserId || currentUser?.uid;
@@ -944,7 +919,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                     </div>
 
                     {/* ── Staff Contest Decision Section (Shows when Open for Voting or Under Review) ── */}
-                    {isOpenForVoting && (
+                    {isDecisionVotingEligible && (
                       <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap bg-white/[0.015] p-2 rounded-xl border">
                         <div className="flex items-center gap-2 min-w-0">
                           <ShieldCheck size={14} className="text-purple-400 shrink-0" />
@@ -993,16 +968,6 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
                 {/* Right: Functional Admin Workflow Controls */}
                 <div className="flex items-center gap-2 shrink-0 self-end xl:self-center flex-wrap pt-2 xl:pt-0">
-                  {/* 1-Click Promote to Contest Round */}
-                  <button
-                    onClick={() => handlePromoteToContest(suggestion)}
-                    title="Promote this idea to active Contest Categories"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 hover:text-white text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
-                  >
-                    <Plus size={13} className="text-purple-400" />
-                    <span>Promote Category</span>
-                  </button>
-
                   {/* Functional Status Selector Dropdown */}
                   <div className="relative">
                     <select
