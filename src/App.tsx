@@ -58,7 +58,7 @@ import Picker from '@emoji-mart/react';
 import { cn, pixelateImage } from './lib/utils';
 import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
 import { downloadPhoto } from './lib/download';
-import { verifyDiscordGuildAndRole } from './lib/discord';
+import { verifyDiscordGuildAndRole, fetchFreshDiscordAvatar } from './lib/discord';
 import { getProfileAvatar, getDiceBearAvatarUrl, AVAILABLE_DICEBEAR_STYLES, DiceBearStyleName } from './lib/dicebear';
 import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
 import { BugReportModal } from './components/BugReportModal';
@@ -1395,12 +1395,12 @@ export default function App() {
 
   const handleRetryDiscordAvatar = async () => {
     if (!user || user.isAnonymous) {
-      toast.error('Please sign in to fetch your Discord profile picture.');
+      toast.error('Please sign in to pull your Discord photo.');
       return;
     }
 
     const toastId = 'retry-discord-avatar';
-    toast.loading('Fetching Discord profile picture...', { id: toastId });
+    toast.loading('Fetching latest Discord photo...', { id: toastId });
 
     try {
       // Refresh current Supabase session metadata
@@ -1415,7 +1415,13 @@ export default function App() {
         currentUser?.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
         currentUser?.identities?.find((i: any) => i.provider === 'discord')?.id;
 
-      let discordAvatar = meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
+      // Pull latest avatar directly from Discord API via multi-tiered resolver
+      const freshRes = await fetchFreshDiscordAvatar(discordId ? String(discordId) : null);
+      let discordAvatar = freshRes.avatarUrl;
+
+      if (!discordAvatar) {
+        discordAvatar = meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
+      }
 
       if (!discordAvatar && discordId) {
         discordAvatar = `https://cdn.discordapp.com/avatars/${discordId}/avatar.png`;
@@ -1454,8 +1460,8 @@ export default function App() {
         toast.error('No Discord avatar found. Make sure your Discord account has an avatar uploaded.', { id: toastId });
       }
     } catch (err) {
-      console.error('Error retrying Discord avatar:', err);
-      toast.error('Failed to reload Discord profile picture.', { id: toastId });
+      console.error('Error refreshing Discord avatar:', err);
+      toast.error('Failed to pull latest Discord photo.', { id: toastId });
     }
   };
 
@@ -1839,21 +1845,21 @@ export default function App() {
                           </div>
                         </button>
 
-                        {/* Option 2: Retry Discord Profile Picture */}
+                        {/* Option 2: Pull Latest Discord Profile Picture */}
                         <button
                           onClick={() => {
                             handleRetryDiscordAvatar();
                             setIsProfileDropdownOpen(false);
                           }}
                           className="w-full flex items-center justify-start gap-3 px-3.5 py-3 rounded-2xl bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7983f5] hover:text-white border border-[#5865F2]/30 transition-all cursor-pointer active:scale-95 shadow-md group/dbtn"
-                          title="Reload/Sync official Discord profile picture"
+                          title="Pull and update your latest Discord profile picture"
                         >
                           <div className="w-8 h-8 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/40 flex items-center justify-center shrink-0">
                             <RefreshCw size={15} className="group-hover/dbtn:rotate-180 transition-transform duration-500 text-[#7983f5]" />
                           </div>
                           <div className="flex flex-col items-start leading-tight">
-                            <span className="text-xs font-black font-display text-white">Retry Discord Avatar</span>
-                            <span className="text-[10px] font-normal text-white/50">Re-sync Discord profile picture</span>
+                            <span className="text-xs font-black font-display text-white">Pull Discord Photo</span>
+                            <span className="text-[10px] font-normal text-white/50">Update & fetch latest Discord avatar</span>
                           </div>
                         </button>
 

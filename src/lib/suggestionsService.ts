@@ -18,7 +18,8 @@ import {
   SuggestionSortOption,
   CreateSuggestionInput,
   SuggestionVoterSummary,
-  SuggestionStatus
+  SuggestionStatus,
+  SuggestionAdminVote
 } from '../types';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
@@ -525,5 +526,57 @@ export async function updateCategorySuggestionStatus(
   } catch (error: any) {
     console.error('Error updating suggestion status:', error);
     throw new Error(error?.message || 'Failed to update suggestion status.');
+  }
+}
+
+/**
+ * Toggle an administrator's vote on whether staff will use this category proposal for the contest.
+ * Persists in admin_votes on the suggestion document.
+ */
+export async function toggleAdminSuggestionVote(
+  suggestionId: string,
+  adminId: string,
+  adminName: string,
+  adminAvatarUrl?: string | null
+): Promise<SuggestionAdminVote[]> {
+  try {
+    const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
+    let updatedVotes: SuggestionAdminVote[] = [];
+
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(suggestionDocRef);
+      if (!snap.exists()) {
+        throw new Error('Suggestion does not exist');
+      }
+
+      const data = snap.data();
+      const currentVotes: SuggestionAdminVote[] = Array.isArray(data.admin_votes) ? data.admin_votes : [];
+
+      const existingIndex = currentVotes.findIndex((v) => v.adminId === adminId);
+      if (existingIndex >= 0) {
+        // Toggle off (remove admin vote)
+        updatedVotes = currentVotes.filter((v) => v.adminId !== adminId);
+      } else {
+        // Toggle on (add admin vote to use for contest)
+        const newVote: SuggestionAdminVote = {
+          adminId,
+          adminName,
+          adminAvatarUrl: adminAvatarUrl || undefined,
+          vote: 'yes',
+          votedAt: new Date().toISOString()
+        };
+        updatedVotes = [...currentVotes, newVote];
+      }
+
+      transaction.update(suggestionDocRef, {
+        admin_votes: updatedVotes,
+        updated_at: new Date().toISOString()
+      });
+    });
+
+    return updatedVotes;
+  } catch (error: any) {
+    console.error('Error toggling admin suggestion vote:', error);
+    throw new Error(error?.message || 'Failed to submit admin decision vote.');
   }
 }

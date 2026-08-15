@@ -27,17 +27,19 @@ import {
   Send,
   AlertCircle,
   Award,
-  History
+  History,
+  ThumbsUp,
+  UserCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
-import { CategorySuggestion, SuggestionStatus, SuggestionSortOption } from '../../types';
+import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote } from '../../types';
 import {
   fetchCategorySuggestions,
   subscribeCategorySuggestions,
   deleteCategorySuggestion,
   updateCategorySuggestionStatus,
-  castCategorySuggestionVote,
+  toggleAdminSuggestionVote,
   fetchSuggestionVoters,
   SuggestionVoter,
   sortSuggestions
@@ -74,7 +76,7 @@ export const FUNCTIONAL_STATUSES: {
     badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     dot: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]',
     icon: CheckCircle2,
-    description: 'Community members and admins can vote and submit ideas'
+    description: 'Community members can vote and submit ideas'
   },
   {
     id: 'under_review',
@@ -194,30 +196,31 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
   const handleApplyRanking = useCallback(() => {
     const sorted = sortSuggestions(suggestions, sortBy);
     setOrderedIds(sorted.map((s) => s.id));
-    toast.success('Live rankings updated!', {
-      description: 'Proposals aligned with newest vote scores.'
-    });
   }, [suggestions, sortBy]);
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
     try {
-      const data = await fetchCategorySuggestions(effectiveUserId, 'top');
+      const data = await fetchCategorySuggestions(effectiveUserId, sortBy);
       setSuggestions(data);
-      handleApplyRanking();
-      toast.success('Category suggestions refreshed');
+      const sorted = sortSuggestions(data, sortBy);
+      setOrderedIds(sorted.map((s) => s.id));
+      toast.success('Category proposals refreshed!', {
+        description: 'Synchronized newest scores and staff decision votes.'
+      });
     } catch (err: any) {
-      toast.error('Failed to refresh', { description: err.message });
+      console.error('Refresh error:', err);
+      toast.error('Failed to refresh category proposals', { description: err.message });
     } finally {
       setRefreshing(false);
     }
   };
 
-  // ── Admin Voting Mechanism ──
-  const handleVote = async (suggestionId: string, requestedVote: 1 | -1) => {
+  // ── Staff Contest Decision Vote: Admins vote on whether to use this theme in the contest ──
+  const handleAdminContestVote = async (suggestionId: string) => {
     if (!currentUser) {
-      toast.info('Sign in required', {
-        description: 'You must be signed in as admin to cast votes.'
+      toast.info('Admin Authentication Required', {
+        description: 'You must be signed in with admin privileges to cast staff decision votes.'
       });
       return;
     }
@@ -227,83 +230,59 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     const target = suggestions.find((s) => s.id === suggestionId);
     if (!target) return;
 
-    const currentVote = target.user_vote || 0;
-    const newVote: 1 | -1 | 0 = currentVote === requestedVote ? 0 : requestedVote;
+    const adminId = effectiveUserId || currentUser.uid;
+    const adminName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin';
+    const adminAvatarUrl = currentUser.photoURL || null;
 
-    // Calculate optimistic counts
-    let optUpvotes = target.upvotes;
-    let optDownvotes = target.downvotes;
+    const currentAdminVotes: SuggestionAdminVote[] = target.admin_votes || [];
+    const hasVoted = currentAdminVotes.some((v) => v.adminId === adminId);
 
-    if (currentVote === 1) optUpvotes = Math.max(0, optUpvotes - 1);
-    if (currentVote === -1) optDownvotes = Math.max(0, optDownvotes - 1);
+    // Optimistic toggle
+    const optimisticVotes: SuggestionAdminVote[] = hasVoted
+      ? currentAdminVotes.filter((v) => v.adminId !== adminId)
+      : [
+          ...currentAdminVotes,
+          {
+            adminId,
+            adminName,
+            adminAvatarUrl: adminAvatarUrl || undefined,
+            vote: 'yes',
+            votedAt: new Date().toISOString()
+          }
+        ];
 
-    if (newVote === 1) optUpvotes += 1;
-    if (newVote === -1) optDownvotes += 1;
-
-    const optScore = optUpvotes - optDownvotes;
-
-    // Optimistically update state
     setSuggestions((prev) =>
-      prev.map((s) => {
-        if (s.id !== suggestionId) return s;
-        return {
-          ...s,
-          score: optScore,
-          user_vote: newVote,
-          upvotes: optUpvotes,
-          downvotes: optDownvotes
-        };
-      })
+      prev.map((s) => (s.id === suggestionId ? { ...s, admin_votes: optimisticVotes } : s))
     );
 
     setVotingLocks((prev) => ({ ...prev, [suggestionId]: true }));
 
-    // Invalidate local voter cache for this suggestion
-    setVotersCache((prev) => {
-      const copy = { ...prev };
-      delete copy[suggestionId];
-      return copy;
-    });
-
     try {
-      const res = await castCategorySuggestionVote(
+      const serverVotes = await toggleAdminSuggestionVote(
         suggestionId,
-        effectiveUserId || currentUser.uid,
-        newVote,
-        currentUser?.discordId,
-        currentUser?.displayName || currentUser?.email?.split('@')[0],
-        currentUser?.photoURL || null,
-        currentUser?.avatarSeed || currentUser?.uid,
-        currentUser?.avatarStyle || 'botttsNeutral'
+        adminId,
+        adminName,
+        adminAvatarUrl
       );
 
       setSuggestions((prev) =>
-        prev.map((s) => {
-          if (s.id !== suggestionId) return s;
-          return {
-            ...s,
-            score: res.score,
-            user_vote: res.user_vote,
-            upvotes: res.upvotes,
-            downvotes: res.downvotes,
-            voters_sample: res.voters_sample || s.voters_sample
-          };
-        })
+        prev.map((s) => (s.id === suggestionId ? { ...s, admin_votes: serverVotes } : s))
       );
 
-      toast.success(
-        newVote === 1 ? 'Upvoted proposal' : newVote === -1 ? 'Downvoted proposal' : 'Vote removed'
-      );
+      if (hasVoted) {
+        toast.info(`Removed staff vote for "${target.category_name}"`);
+      } else {
+        toast.success(`Voted to use "${target.category_name}" for contest!`, {
+          description: 'Staff decision recorded.'
+        });
+      }
     } catch (err: any) {
-      console.error('Vote failed in Admin Console:', err);
+      console.error('Admin decision vote failed:', err);
       // Rollback on error
       setSuggestions((prev) =>
-        prev.map((s) => {
-          if (s.id !== suggestionId) return s;
-          return target;
-        })
+        prev.map((s) => (s.id === suggestionId ? target : s))
       );
-      toast.error('Failed to register vote', { description: err.message });
+      toast.error('Failed to submit staff decision vote', { description: err.message });
     } finally {
       setTimeout(() => {
         setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
@@ -466,9 +445,15 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     return counts;
   }, [suggestions]);
 
-  // Total votes cast metric
+  // Total community votes cast metric
   const totalVotes = useMemo(
     () => suggestions.reduce((acc, s) => acc + s.upvotes + s.downvotes, 0),
+    [suggestions]
+  );
+
+  // Total admin decision votes cast
+  const totalAdminVotes = useMemo(
+    () => suggestions.reduce((acc, s) => acc + (s.admin_votes?.length || 0), 0),
     [suggestions]
   );
 
@@ -558,10 +543,10 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     <div className="space-y-6">
       {/* Admin Header */}
       <AdminHeader
-        badge="COMMUNITY BRAINSTORM"
+        badge="STAFF CURATION & COMMUNITY IDEAS"
         badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
         title="Category Suggestions Management"
-        subtitle="Review community theme proposals, track Discord user votes, vote directly on ideas, manage review workflows, and promote top concepts into active contest rounds."
+        subtitle="Review community ideas, inspect public user votes, vote on whether staff will use proposals in upcoming contest rounds, and promote top concepts."
         icon={<Sparkles size={20} className="text-orange-400" />}
         iconBg="bg-orange-500/15 border-orange-500/30"
         actions={
@@ -572,7 +557,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
               className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 active:scale-95"
             >
               <RefreshCw size={13} className={cn(refreshing && "animate-spin text-orange-400")} />
-              <span>Refresh</span>
+              <span>Refresh Feed</span>
             </button>
           </div>
         }
@@ -591,27 +576,27 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         </div>
 
         <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Total Votes Cast</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Community Votes</span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-black font-display text-fivem-orange">
               <NumberTicker value={totalVotes} />
             </span>
-            <span className="text-[10px] font-mono text-white/30">votes</span>
+            <span className="text-[10px] font-mono text-white/30">user votes</span>
           </div>
         </div>
 
         <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Approved for Contest</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Staff Contest Votes</span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-black font-display text-purple-400">
-              <NumberTicker value={statusCounts.approved} />
+              <NumberTicker value={totalAdminVotes} />
             </span>
-            <span className="text-[10px] font-mono text-purple-400/50">selected</span>
+            <span className="text-[10px] font-mono text-purple-400/50">staff picks</span>
           </div>
         </div>
 
         <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Top Rated Concept</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Top Community Concept</span>
           <div className="flex items-baseline gap-2 mt-2 truncate">
             <span className="text-2xl font-black font-display text-amber-300">
               {topSuggestion ? `+${topSuggestion.score}` : '0'}
@@ -757,7 +742,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         )}
       </AnimatePresence>
 
-      {/* ── Suggestions Feed with Functional Workflow Actions & Admin Voting ── */}
+      {/* ── Suggestions Feed with Functional Workflow Actions & Dedicated Admin Contest Selection Voting ── */}
       {loading ? (
         <div className="p-12 text-center text-orange-400/50 font-mono text-xs flex items-center justify-center gap-2">
           <RefreshCw className="animate-spin" size={16} />
@@ -773,10 +758,12 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         <motion.div layout className="space-y-3.5">
           {filteredSuggestions.map((suggestion) => {
             const statusConfig = getStatusDetails(suggestion.status);
-            const userVote = suggestion.user_vote || 0;
-            const isUpvoted = userVote === 1;
-            const isDownvoted = userVote === -1;
             const isApproved = suggestion.status === 'approved';
+            const isOpenForVoting = !suggestion.status || suggestion.status === 'open' || suggestion.status === 'active';
+
+            const adminVotes: SuggestionAdminVote[] = suggestion.admin_votes || [];
+            const currentAdminId = effectiveUserId || currentUser?.uid;
+            const currentAdminHasVoted = adminVotes.some((v) => v.adminId === currentAdminId);
 
             return (
               <motion.div
@@ -788,7 +775,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   opacity: { duration: 0.25 }
                 }}
                 className={cn(
-                  "p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4",
+                  "p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4",
                   isApproved
                     ? "bg-purple-500/[0.06] border-purple-400/30 hover:border-purple-400/50 shadow-[0_0_24px_rgba(168,85,247,0.06)]"
                     : suggestion.status === 'under_review'
@@ -800,29 +787,13 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                     : "bg-[#0c0c10] border-white/10 hover:border-white/20"
                 )}
               >
-                {/* Left: Reddit-Style Vote Capsule + Info */}
+                {/* Left: Community Votes Capsule + Info */}
                 <div className="flex items-start gap-4 flex-1 min-w-0">
-                  {/* Interactive Admin Vote Capsule */}
-                  <div className="flex flex-col items-center justify-center p-1.5 rounded-2xl bg-black/60 border border-white/10 shrink-0 min-w-[54px] text-center">
-                    {/* Upvote Button */}
-                    <button
-                      onClick={() => handleVote(suggestion.id, 1)}
-                      disabled={votingLocks[suggestion.id]}
-                      title={isUpvoted ? "Remove your upvote" : "Admin Upvote"}
-                      className={cn(
-                        "p-1.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
-                        isUpvoted
-                          ? "bg-fivem-orange/25 text-fivem-orange shadow-[0_0_10px_rgba(234,88,12,0.4)] border border-fivem-orange/40"
-                          : "text-white/40 hover:text-fivem-orange hover:bg-white/5"
-                      )}
-                    >
-                      <ArrowBigUp size={20} className={cn(isUpvoted && "fill-current")} />
-                    </button>
-
-                    {/* Net Score with Hover Popover */}
+                  {/* Public Community Vote Pill */}
+                  <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-black/60 border border-white/10 shrink-0 min-w-[70px] text-center shadow-inner">
                     <span
                       className={cn(
-                        "text-sm font-black font-display py-0.5 select-none tracking-tight",
+                        "text-lg font-black font-display tracking-tight leading-none mb-1",
                         suggestion.score > 0
                           ? "text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]"
                           : suggestion.score < 0
@@ -832,25 +803,16 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                     >
                       {suggestion.score > 0 ? `+${suggestion.score}` : suggestion.score}
                     </span>
-
-                    {/* Downvote Button */}
-                    <button
-                      onClick={() => handleVote(suggestion.id, -1)}
-                      disabled={votingLocks[suggestion.id]}
-                      title={isDownvoted ? "Remove your downvote" : "Admin Downvote"}
-                      className={cn(
-                        "p-1.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
-                        isDownvoted
-                          ? "bg-blue-500/25 text-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.4)] border border-blue-500/40"
-                          : "text-white/40 hover:text-blue-400 hover:bg-white/5"
-                      )}
-                    >
-                      <ArrowBigDown size={20} className={cn(isDownvoted && "fill-current")} />
-                    </button>
+                    <span className="text-[8px] font-mono uppercase text-white/40 tracking-wider block">
+                      {suggestion.upvotes}▲ {suggestion.downvotes}▼
+                    </span>
+                    <span className="text-[7px] font-mono text-fivem-orange/80 uppercase font-bold mt-1 tracking-tighter">
+                      Community
+                    </span>
                   </div>
 
                   {/* Suggestion Details */}
-                  <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <h4 className="text-base font-black font-display text-white truncate">
                         {suggestion.category_name}
@@ -874,7 +836,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                     </p>
 
                     {/* Submitter details & Live Voter Breakdown Hover Triggers */}
-                    <div className="flex items-center gap-3 pt-1 text-[10px] font-mono text-white/40 flex-wrap">
+                    <div className="flex items-center gap-3 pt-0.5 text-[10px] font-mono text-white/40 flex-wrap">
                       <div className="flex items-center gap-1.5">
                         <img
                           src={getProfileAvatar(
@@ -913,7 +875,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                               className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-2xl bg-[#0e0e13]/98 border border-emerald-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none text-left"
                             >
                               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
-                                <span className="text-[11px] font-bold text-emerald-400">Upvoted by</span>
+                                <span className="text-[11px] font-bold text-emerald-400">Community Upvoters</span>
                                 <span className="text-[9px] font-mono text-white/40">{suggestion.upvotes}</span>
                               </div>
                               {hoveredVoters.voters.length === 0 ? (
@@ -956,7 +918,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                               className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-2xl bg-[#0e0e13]/98 border border-rose-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none text-left"
                             >
                               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
-                                <span className="text-[11px] font-bold text-rose-400">Downvoted by</span>
+                                <span className="text-[11px] font-bold text-rose-400">Community Downvoters</span>
                                 <span className="text-[9px] font-mono text-white/40">{suggestion.downvotes}</span>
                               </div>
                               {hoveredVoters.voters.length === 0 ? (
@@ -980,16 +942,62 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                         </AnimatePresence>
                       </div>
                     </div>
+
+                    {/* ── Staff Contest Decision Section (Shows when Open for Voting or Under Review) ── */}
+                    {isOpenForVoting && (
+                      <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap bg-white/[0.015] p-2 rounded-xl border">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ShieldCheck size={14} className="text-purple-400 shrink-0" />
+                          <span className="text-xs font-bold text-white/90">
+                            Staff Decision:
+                          </span>
+                          <span className="text-xs font-mono font-bold text-purple-300">
+                            {adminVotes.length} {adminVotes.length === 1 ? 'Admin Voted to Use' : 'Admins Voted to Use'}
+                          </span>
+
+                          {/* Mini admin voter avatars */}
+                          {adminVotes.length > 0 && (
+                            <div className="flex items-center -space-x-1.5 ml-1">
+                              {adminVotes.slice(0, 5).map((av, idx) => (
+                                <img
+                                  key={av.adminId || idx}
+                                  src={getProfileAvatar(av.adminAvatarUrl, av.adminId, 'botttsNeutral')}
+                                  title={`Admin: ${av.adminName}`}
+                                  alt=""
+                                  className="w-4 h-4 rounded-full object-cover border border-purple-400/50"
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Admin Decision Vote Toggle Button */}
+                        <button
+                          onClick={() => handleAdminContestVote(suggestion.id)}
+                          disabled={votingLocks[suggestion.id]}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer active:scale-95 shadow-sm border",
+                            currentAdminHasVoted
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40"
+                              : "bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/25 hover:text-white"
+                          )}
+                          title={currentAdminHasVoted ? "Click to withdraw your staff decision vote" : "Vote to use this theme for an upcoming contest round"}
+                        >
+                          <ThumbsUp size={12} className={cn(currentAdminHasVoted && "fill-current")} />
+                          <span>{currentAdminHasVoted ? "✓ You Voted to Use (Undo)" : "+ Vote to Use for Contest"}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Right: Functional Admin Workflow Controls */}
-                <div className="flex items-center gap-2 shrink-0 self-end lg:self-center flex-wrap">
+                <div className="flex items-center gap-2 shrink-0 self-end xl:self-center flex-wrap pt-2 xl:pt-0">
                   {/* 1-Click Promote to Contest Round */}
                   <button
                     onClick={() => handlePromoteToContest(suggestion)}
                     title="Promote this idea to active Contest Categories"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 hover:text-white text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 hover:text-white text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
                   >
                     <Plus size={13} className="text-purple-400" />
                     <span>Promote Category</span>
@@ -1001,7 +1009,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                       value={suggestion.status || 'open'}
                       disabled={updatingStatusId === suggestion.id}
                       onChange={(e) => handleStatusChange(suggestion.id, e.target.value as SuggestionStatus)}
-                      className="px-3 py-1.5 rounded-xl bg-black/70 border border-white/15 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/60 disabled:opacity-50"
+                      className="px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/60 disabled:opacity-50"
                     >
                       {FUNCTIONAL_STATUSES.map((st) => (
                         <option key={st.id} value={st.id} className="bg-[#0c0c10] text-white">
@@ -1015,7 +1023,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   <button
                     onClick={() => handleCopyDetails(suggestion)}
                     title="Copy concept details to clipboard"
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
                   >
                     <Copy size={13} />
                   </button>
@@ -1024,7 +1032,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   <button
                     onClick={() => setDeletingSuggestion(suggestion)}
                     title="Delete suggestion"
-                    className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors cursor-pointer"
+                    className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors cursor-pointer"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -1046,7 +1054,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
               Delete Suggestion "{deletingSuggestion?.category_name}"?
             </DialogTitle>
             <DialogDescription className="text-xs text-white/50">
-              This will permanently delete this category suggestion and all community votes cast on it. This action cannot be undone.
+              This will permanently delete this category suggestion, all community votes, and staff decision records. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

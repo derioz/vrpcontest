@@ -81,6 +81,14 @@ export type SuggestionStatus =
     | 'declined'
     | 'archived';
 
+export interface SuggestionAdminVote {
+    adminId: string;
+    adminName: string;
+    adminAvatarUrl?: string;
+    vote: 'yes' | 'no';
+    votedAt: string;
+}
+
 export interface CategorySuggestion {
     id: string;
     category_name: string;
@@ -100,6 +108,7 @@ export interface CategorySuggestion {
     downvotes: number;
     user_vote: number; // 1 (upvoted), -1 (downvoted), 0 (none)
     voters_sample?: SuggestionVoterSummary[]; // Inlined voter breakdown to eliminate extra read queries
+    admin_votes?: SuggestionAdminVote[]; // Staff votes on whether to use this theme in contest
     created_at: string;
     updated_at?: string;
 }
