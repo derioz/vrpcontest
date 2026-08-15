@@ -531,35 +531,46 @@ export async function updateCategorySuggestionStatus(
   }
 }
 
+export interface AdminVoteResult {
+  admin_votes: SuggestionAdminVote[];
+  status: SuggestionStatus | string;
+  autoTransitioned: boolean;
+  transitionType?: 'opened_for_voting' | 'approved_for_contest';
+}
+
 /**
  * Toggle an administrator's vote on whether staff will use this category proposal for the contest.
- * Persists in admin_votes on the suggestion document.
+ * Enforces 2/3 Admin Quorum:
+ * - When 'under_review': 2/3 admin votes automatically transitions status to 'open' ("Open for Voting").
+ * - When 'open' / 'active': 2/3 admin votes automatically transitions status to 'approved' ("Approved for Contest").
  */
 export async function toggleAdminSuggestionVote(
   suggestionId: string,
   adminId: string,
   adminName: string,
   adminAvatarUrl?: string | null
-): Promise<SuggestionAdminVote[]> {
+): Promise<AdminVoteResult> {
   try {
     const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
-    let updatedVotes: SuggestionAdminVote[] = [];
 
-    await runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
       const snap = await transaction.get(suggestionDocRef);
       if (!snap.exists()) {
         throw new Error('Suggestion does not exist');
       }
 
       const data = snap.data();
+      const currentStatus: string = data.status || 'open';
       const currentVotes: SuggestionAdminVote[] = Array.isArray(data.admin_votes) ? data.admin_votes : [];
 
       const existingIndex = currentVotes.findIndex((v) => v.adminId === adminId);
+      let updatedVotes: SuggestionAdminVote[] = [];
+
       if (existingIndex >= 0) {
         // Toggle off (remove admin vote)
         updatedVotes = currentVotes.filter((v) => v.adminId !== adminId);
       } else {
-        // Toggle on (add admin vote to use for contest)
+        // Toggle on (add admin vote)
         const newVote: SuggestionAdminVote = {
           adminId,
           adminName,
@@ -570,13 +581,48 @@ export async function toggleAdminSuggestionVote(
         updatedVotes = [...currentVotes, newVote];
       }
 
-      transaction.update(suggestionDocRef, {
-        admin_votes: updatedVotes,
-        updated_at: new Date().toISOString()
-      });
+      // ── Automated 2/3 Admin Quorum Transitions ──
+      if (currentStatus === 'under_review' && updatedVotes.length >= 2) {
+        // Threshold reached for Under Review: Promote to Open for Voting
+        transaction.update(suggestionDocRef, {
+          status: 'open',
+          review_admin_votes: updatedVotes,
+          admin_votes: [],
+          updated_at: new Date().toISOString()
+        });
+        return {
+          admin_votes: [],
+          status: 'open',
+          autoTransitioned: true,
+          transitionType: 'opened_for_voting' as const
+        };
+      } else if ((currentStatus === 'open' || currentStatus === 'active') && updatedVotes.length >= 2) {
+        // Threshold reached for Open for Voting: Promote to Approved for Contest
+        transaction.update(suggestionDocRef, {
+          status: 'approved',
+          admin_votes: updatedVotes,
+          updated_at: new Date().toISOString()
+        });
+        return {
+          admin_votes: updatedVotes,
+          status: 'approved',
+          autoTransitioned: true,
+          transitionType: 'approved_for_contest' as const
+        };
+      } else {
+        transaction.update(suggestionDocRef, {
+          admin_votes: updatedVotes,
+          updated_at: new Date().toISOString()
+        });
+        return {
+          admin_votes: updatedVotes,
+          status: currentStatus,
+          autoTransitioned: false
+        };
+      }
     });
 
-    return updatedVotes;
+    return result;
   } catch (error: any) {
     console.error('Error toggling admin suggestion vote:', error);
     throw new Error(error?.message || 'Failed to submit admin decision vote.');

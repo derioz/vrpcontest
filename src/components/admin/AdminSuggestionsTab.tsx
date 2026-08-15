@@ -258,7 +258,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     setVotingLocks((prev) => ({ ...prev, [suggestionId]: true }));
 
     try {
-      const serverVotes = await toggleAdminSuggestionVote(
+      const voteResult = await toggleAdminSuggestionVote(
         suggestionId,
         adminId,
         adminName,
@@ -266,15 +266,34 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
       );
 
       setSuggestions((prev) =>
-        prev.map((s) => (s.id === suggestionId ? { ...s, admin_votes: serverVotes } : s))
+        prev.map((s) =>
+          s.id === suggestionId
+            ? {
+                ...s,
+                admin_votes: voteResult.admin_votes,
+                status: voteResult.status
+              }
+            : s
+        )
       );
 
-      if (hasVoted) {
-        toast.info(`Removed staff vote for "${target.category_name}"`);
+      if (voteResult.autoTransitioned) {
+        if (voteResult.transitionType === 'opened_for_voting') {
+          toast.success(`🎉 Quorum Reached (2/3 Admin Votes)!`, {
+            description: `"${target.category_name}" has automatically transitioned to Open for Voting!`
+          });
+        } else if (voteResult.transitionType === 'approved_for_contest') {
+          toast.success(`🏆 Quorum Reached (2/3 Admin Votes)!`, {
+            description: `"${target.category_name}" has been Approved for Contest!`
+          });
+        }
       } else {
-        toast.success(`Voted to use "${target.category_name}" for contest!`, {
-          description: 'Staff decision recorded.'
-        });
+        if (hasVoted) {
+          toast.info(`Removed staff vote for "${target.category_name}"`);
+        } else {
+          const reqTarget = target.status === 'under_review' ? 'to Open for Voting' : 'to Approve for Contest';
+          toast.success(`Staff vote recorded (${voteResult.admin_votes.length}/2 ${reqTarget})`);
+        }
       }
     } catch (err: any) {
       console.error('Admin decision vote failed:', err);
@@ -924,10 +943,10 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                         <div className="flex items-center gap-2 min-w-0">
                           <ShieldCheck size={14} className="text-purple-400 shrink-0" />
                           <span className="text-xs font-bold text-white/90">
-                            Staff Decision:
+                            {suggestion.status === 'under_review' ? 'Review Quorum (2/3):' : 'Contest Selection (2/3):'}
                           </span>
                           <span className="text-xs font-mono font-bold text-purple-300">
-                            {adminVotes.length} {adminVotes.length === 1 ? 'Admin Voted to Use' : 'Admins Voted to Use'}
+                            {adminVotes.length}/2 {suggestion.status === 'under_review' ? 'to Open for Voting' : 'to Approve for Contest'}
                           </span>
 
                           {/* Mini admin voter avatars */}
@@ -956,10 +975,24 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                               ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40"
                               : "bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/25 hover:text-white"
                           )}
-                          title={currentAdminHasVoted ? "Click to withdraw your staff decision vote" : "Vote to use this theme for an upcoming contest round"}
+                          title={
+                            currentAdminHasVoted
+                              ? "Click to withdraw your staff vote"
+                              : suggestion.status === 'under_review'
+                              ? "Vote to approve this theme to be open for community voting (2/3 quorum)"
+                              : "Vote to select and approve this theme for the contest round (2/3 quorum)"
+                          }
                         >
                           <ThumbsUp size={12} className={cn(currentAdminHasVoted && "fill-current")} />
-                          <span>{currentAdminHasVoted ? "✓ You Voted to Use (Undo)" : "+ Vote to Use for Contest"}</span>
+                          <span>
+                            {currentAdminHasVoted
+                              ? suggestion.status === 'under_review'
+                                ? `✓ You Voted to Open (${adminVotes.length}/2) - Undo`
+                                : `✓ You Voted to Use (${adminVotes.length}/2) - Undo`
+                              : suggestion.status === 'under_review'
+                              ? `+ Vote to Open for Voting (${adminVotes.length}/2)`
+                              : `+ Vote to Use for Contest (${adminVotes.length}/2)`}
+                          </span>
                         </button>
                       </div>
                     )}
