@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles,
@@ -26,7 +26,8 @@ import {
   Plus,
   Send,
   AlertCircle,
-  Award
+  Award,
+  History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
@@ -36,6 +37,9 @@ import {
   subscribeCategorySuggestions,
   deleteCategorySuggestion,
   updateCategorySuggestionStatus,
+  castCategorySuggestionVote,
+  fetchSuggestionVoters,
+  SuggestionVoter,
   sortSuggestions
 } from '../../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../../lib/dicebear';
@@ -44,7 +48,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { NumberTicker } from '../ui/number-ticker';
 
 interface AdminSuggestionsTabProps {
+  currentUser?: any | null;
+  isAdmin?: boolean;
   onAddCategoryToContest?: (category: { name: string; description: string; emoji?: string }) => void;
+}
+
+interface HoveredVotersState {
+  suggestionId: string;
+  type: 'up' | 'down';
+  loading: boolean;
+  voters: SuggestionVoter[];
 }
 
 export const FUNCTIONAL_STATUSES: {
@@ -61,7 +74,7 @@ export const FUNCTIONAL_STATUSES: {
     badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     dot: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]',
     icon: CheckCircle2,
-    description: 'Community members can vote and submit ideas'
+    description: 'Community members and admins can vote and submit ideas'
   },
   {
     id: 'under_review',
@@ -105,7 +118,7 @@ export const FUNCTIONAL_STATUSES: {
   }
 ];
 
-export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestionsTabProps) {
+export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategoryToContest }: AdminSuggestionsTabProps) {
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -120,11 +133,22 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
   // Status updating state
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
+  // Voting locks & hover breakdown state
+  const [votingLocks, setVotingLocks] = useState<Record<string, boolean>>({});
+  const [hoveredVoters, setHoveredVoters] = useState<HoveredVotersState | null>(null);
+  const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
+
+  // Display Order Stability Engine (Prevents card jumping/shuffling when multiple people are voting)
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  const [autoReorder, setAutoReorder] = useState(false);
+
+  const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
+
   // Real-time subscription to suggestions with zero repeated polling
   useEffect(() => {
     setLoading(true);
     const unsub = subscribeCategorySuggestions(
-      null,
+      effectiveUserId,
       (data) => {
         setSuggestions(data);
         setLoading(false);
@@ -135,13 +159,52 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
       }
     );
     return () => unsub();
-  }, []);
+  }, [effectiveUserId]);
+
+  // Synchronize ordered IDs on sort tab switch or initial data arrival
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      const sorted = sortSuggestions(suggestions, sortBy);
+      setOrderedIds(sorted.map((s) => s.id));
+    }
+  }, [sortBy]);
+
+  // Initial load sync
+  useEffect(() => {
+    if (suggestions.length > 0 && orderedIds.length === 0) {
+      const sorted = sortSuggestions(suggestions, sortBy);
+      setOrderedIds(sorted.map((s) => s.id));
+    }
+  }, [suggestions]);
+
+  // Compute how many items have shifted rank due to incoming background votes
+  const pendingRankShifts = useMemo(() => {
+    if (suggestions.length === 0 || orderedIds.length === 0 || autoReorder) return 0;
+    const currentSorted = sortSuggestions(suggestions, sortBy).map((s) => s.id);
+    let shifts = 0;
+    for (let i = 0; i < currentSorted.length; i++) {
+      if (currentSorted[i] !== orderedIds[i]) {
+        shifts++;
+      }
+    }
+    return shifts;
+  }, [suggestions, orderedIds, sortBy, autoReorder]);
+
+  // Apply new ranking order on user demand
+  const handleApplyRanking = useCallback(() => {
+    const sorted = sortSuggestions(suggestions, sortBy);
+    setOrderedIds(sorted.map((s) => s.id));
+    toast.success('Live rankings updated!', {
+      description: 'Proposals aligned with newest vote scores.'
+    });
+  }, [suggestions, sortBy]);
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
     try {
-      const data = await fetchCategorySuggestions(null, 'top');
+      const data = await fetchCategorySuggestions(effectiveUserId, 'top');
       setSuggestions(data);
+      handleApplyRanking();
       toast.success('Category suggestions refreshed');
     } catch (err: any) {
       toast.error('Failed to refresh', { description: err.message });
@@ -149,6 +212,173 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
       setRefreshing(false);
     }
   };
+
+  // ── Admin Voting Mechanism ──
+  const handleVote = async (suggestionId: string, requestedVote: 1 | -1) => {
+    if (!currentUser) {
+      toast.info('Sign in required', {
+        description: 'You must be signed in as admin to cast votes.'
+      });
+      return;
+    }
+
+    if (votingLocks[suggestionId]) return;
+
+    const target = suggestions.find((s) => s.id === suggestionId);
+    if (!target) return;
+
+    const currentVote = target.user_vote || 0;
+    const newVote: 1 | -1 | 0 = currentVote === requestedVote ? 0 : requestedVote;
+
+    // Calculate optimistic counts
+    let optUpvotes = target.upvotes;
+    let optDownvotes = target.downvotes;
+
+    if (currentVote === 1) optUpvotes = Math.max(0, optUpvotes - 1);
+    if (currentVote === -1) optDownvotes = Math.max(0, optDownvotes - 1);
+
+    if (newVote === 1) optUpvotes += 1;
+    if (newVote === -1) optDownvotes += 1;
+
+    const optScore = optUpvotes - optDownvotes;
+
+    // Optimistically update state
+    setSuggestions((prev) =>
+      prev.map((s) => {
+        if (s.id !== suggestionId) return s;
+        return {
+          ...s,
+          score: optScore,
+          user_vote: newVote,
+          upvotes: optUpvotes,
+          downvotes: optDownvotes
+        };
+      })
+    );
+
+    setVotingLocks((prev) => ({ ...prev, [suggestionId]: true }));
+
+    // Invalidate local voter cache for this suggestion
+    setVotersCache((prev) => {
+      const copy = { ...prev };
+      delete copy[suggestionId];
+      return copy;
+    });
+
+    try {
+      const res = await castCategorySuggestionVote(
+        suggestionId,
+        effectiveUserId || currentUser.uid,
+        newVote,
+        currentUser?.discordId,
+        currentUser?.displayName || currentUser?.email?.split('@')[0],
+        currentUser?.photoURL || null,
+        currentUser?.avatarSeed || currentUser?.uid,
+        currentUser?.avatarStyle || 'botttsNeutral'
+      );
+
+      setSuggestions((prev) =>
+        prev.map((s) => {
+          if (s.id !== suggestionId) return s;
+          return {
+            ...s,
+            score: res.score,
+            user_vote: res.user_vote,
+            upvotes: res.upvotes,
+            downvotes: res.downvotes,
+            voters_sample: res.voters_sample || s.voters_sample
+          };
+        })
+      );
+
+      toast.success(
+        newVote === 1 ? 'Upvoted proposal' : newVote === -1 ? 'Downvoted proposal' : 'Vote removed'
+      );
+    } catch (err: any) {
+      console.error('Vote failed in Admin Console:', err);
+      // Rollback on error
+      setSuggestions((prev) =>
+        prev.map((s) => {
+          if (s.id !== suggestionId) return s;
+          return target;
+        })
+      );
+      toast.error('Failed to register vote', { description: err.message });
+    } finally {
+      setTimeout(() => {
+        setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
+      }, 300);
+    }
+  };
+
+  // ── Hover Voter Breakdown ──
+  const handleHoverVoters = useCallback(async (suggestionId: string, type: 'up' | 'down') => {
+    const target = suggestions.find((s) => s.id === suggestionId);
+    const inlined = target?.voters_sample;
+
+    if (Array.isArray(inlined) && inlined.length > 0) {
+      const upvoters: SuggestionVoter[] = [];
+      const downvoters: SuggestionVoter[] = [];
+
+      inlined.forEach((v) => {
+        const item: SuggestionVoter = {
+          userId: v.userId,
+          discordId: v.discordId,
+          discordName: v.discordName || 'Community Member',
+          authorAvatarUrl: v.authorAvatarUrl,
+          avatarSeed: v.avatarSeed || v.userId,
+          avatarStyle: v.avatarStyle || 'botttsNeutral',
+          vote: v.vote,
+          updatedAt: v.updatedAt
+        };
+        if (v.vote === 1) upvoters.push(item);
+        else if (v.vote === -1) downvoters.push(item);
+      });
+
+      setHoveredVoters({
+        suggestionId,
+        type,
+        loading: false,
+        voters: type === 'up' ? upvoters : downvoters
+      });
+      return;
+    }
+
+    if (votersCache[suggestionId]) {
+      setHoveredVoters({
+        suggestionId,
+        type,
+        loading: false,
+        voters: type === 'up' ? votersCache[suggestionId].upvoters : votersCache[suggestionId].downvoters
+      });
+      return;
+    }
+
+    setHoveredVoters({ suggestionId, type, loading: true, voters: [] });
+
+    try {
+      const result = await fetchSuggestionVoters(suggestionId, inlined);
+      setVotersCache((prev) => ({ ...prev, [suggestionId]: result }));
+      setHoveredVoters((curr) => {
+        if (curr && curr.suggestionId === suggestionId && curr.type === type) {
+          return {
+            suggestionId,
+            type,
+            loading: false,
+            voters: type === 'up' ? result.upvoters : result.downvoters
+          };
+        }
+        return curr;
+      });
+    } catch (err) {
+      console.error('Error fetching voters in admin view:', err);
+      setHoveredVoters((curr) => (curr && curr.suggestionId === suggestionId ? { ...curr, loading: false } : null));
+    }
+  }, [suggestions, votersCache]);
+
+  const handleLeaveVoters = useCallback(() => {
+    setHoveredVoters(null);
+  }, []);
 
   // Handle status update
   const handleStatusChange = async (suggestionId: string, newStatus: SuggestionStatus) => {
@@ -247,21 +477,66 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
     return [...suggestions].sort((a, b) => b.score - a.score)[0];
   }, [suggestions]);
 
-  // High-performance in-memory filtered & sorted list
+  // ── High-Performance In-Memory Stable Filtered & Ordered List ──
   const filteredSuggestions = useMemo(() => {
-    let result = [...suggestions];
+    // 1. If live autoReorder is enabled, directly use freshly sorted array
+    if (autoReorder) {
+      let result = [...suggestions];
 
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'open') {
+          result = result.filter((s) => !s.status || s.status === 'open' || s.status === 'active');
+        } else {
+          result = result.filter((s) => s.status === statusFilter);
+        }
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        result = result.filter(
+          (s) =>
+            s.category_name.toLowerCase().includes(q) ||
+            s.description.toLowerCase().includes(q) ||
+            (s.author_name && s.author_name.toLowerCase().includes(q)) ||
+            (s.discord_name && s.discord_name.toLowerCase().includes(q)) ||
+            (s.discord_id && s.discord_id.includes(q))
+        );
+      }
+
+      return sortSuggestions(result, sortBy);
+    }
+
+    // 2. In stable order mode: arrange suggestions according to orderedIds to prevent moving/jumping
+    const suggestionMap = new Map<string, CategorySuggestion>(suggestions.map((s) => [s.id, s]));
+    let orderedList: CategorySuggestion[] = [];
+
+    orderedIds.forEach((id) => {
+      const item = suggestionMap.get(id);
+      if (item) {
+        orderedList.push(item);
+        suggestionMap.delete(id);
+      }
+    });
+
+    // Add any newly arrived proposals not yet in orderedIds at the top/bottom
+    suggestionMap.forEach((item: CategorySuggestion) => {
+      if (sortBy === 'oldest') orderedList.push(item);
+      else orderedList.unshift(item);
+    });
+
+    // Apply status filter
     if (statusFilter !== 'all') {
       if (statusFilter === 'open') {
-        result = result.filter((s) => !s.status || s.status === 'open' || s.status === 'active');
+        orderedList = orderedList.filter((s) => !s.status || s.status === 'open' || s.status === 'active');
       } else {
-        result = result.filter((s) => s.status === statusFilter);
+        orderedList = orderedList.filter((s) => s.status === statusFilter);
       }
     }
 
+    // Apply search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(
+      orderedList = orderedList.filter(
         (s) =>
           s.category_name.toLowerCase().includes(q) ||
           s.description.toLowerCase().includes(q) ||
@@ -271,8 +546,8 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
       );
     }
 
-    return sortSuggestions(result, sortBy);
-  }, [suggestions, statusFilter, searchQuery, sortBy]);
+    return orderedList;
+  }, [suggestions, orderedIds, autoReorder, statusFilter, searchQuery, sortBy]);
 
   const getStatusDetails = (status?: string) => {
     const normalized = (!status || status === 'active') ? 'open' : status;
@@ -286,7 +561,7 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
         badge="COMMUNITY BRAINSTORM"
         badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
         title="Category Suggestions Management"
-        subtitle="Review community theme proposals, track Discord user votes, manage review workflows, and promote top concepts into active contest rounds."
+        subtitle="Review community theme proposals, track Discord user votes, vote directly on ideas, manage review workflows, and promote top concepts into active contest rounds."
         icon={<Sparkles size={20} className="text-orange-400" />}
         iconBg="bg-orange-500/15 border-orange-500/30"
         actions={
@@ -391,7 +666,7 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
         })}
       </div>
 
-      {/* ── Search & Sort Toolbar ── */}
+      {/* ── Search & Sort Toolbar + Anti-Jitter Stability Toggle ── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 p-3 rounded-2xl bg-black/40 border border-white/10">
         {/* Search Input */}
         <div className="relative flex-1 max-w-md">
@@ -413,9 +688,36 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
           )}
         </div>
 
-        {/* Sort selector */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          <span className="text-[11px] font-mono text-white/40 hidden sm:inline-block">Sort by:</span>
+        {/* Stable vs Live Stream Toggle & Sort */}
+        <div className="flex items-center gap-2 self-end sm:self-auto overflow-x-auto pb-1 sm:pb-0">
+          <button
+            onClick={() => {
+              if (!autoReorder) {
+                handleApplyRanking();
+              }
+              setAutoReorder(!autoReorder);
+            }}
+            title={autoReorder ? "Switch to Stable Order (locks positions to prevent cards moving during high voting traffic)" : "Switch to Live Auto-Glide (moves cards as votes change)"}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer select-none shrink-0 border",
+              autoReorder
+                ? "bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-sm"
+                : "bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:bg-white/10"
+            )}
+          >
+            {autoReorder ? (
+              <>
+                <Flame size={13} className="text-amber-400 animate-pulse" />
+                <span>Live Stream</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={13} className="text-emerald-400" />
+                <span>Stable View</span>
+              </>
+            )}
+          </button>
+
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -429,7 +731,33 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
         </div>
       </div>
 
-      {/* ── Suggestions Feed with Functional Workflow Actions ── */}
+      {/* ── Live Inbound Activity Banner ── */}
+      <AnimatePresence>
+        {pendingRankShifts > 0 && !autoReorder && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            className="p-3 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-400/40 backdrop-blur-xl flex items-center justify-between gap-3 shadow-[0_8px_24px_rgba(234,88,12,0.2)]"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-fivem-orange animate-ping shrink-0" />
+              <span className="text-xs font-bold text-white truncate">
+                Live vote activity: <span className="text-amber-300">{pendingRankShifts} {pendingRankShifts === 1 ? 'idea has' : 'ideas have'} moved rank in the background</span>
+              </span>
+            </div>
+            <button
+              onClick={handleApplyRanking}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-md flex items-center gap-1.5 shrink-0"
+            >
+              <Sparkles size={12} />
+              <span>Update Ranking</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Suggestions Feed with Functional Workflow Actions & Admin Voting ── */}
       {loading ? (
         <div className="p-12 text-center text-orange-400/50 font-mono text-xs flex items-center justify-center gap-2">
           <RefreshCw className="animate-spin" size={16} />
@@ -442,15 +770,23 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
           <p className="text-xs text-white/40 mt-1 font-mono">Try clearing your search or switching status tabs above.</p>
         </div>
       ) : (
-        <div className="space-y-3.5">
+        <motion.div layout className="space-y-3.5">
           {filteredSuggestions.map((suggestion) => {
             const statusConfig = getStatusDetails(suggestion.status);
-            const StatusIcon = statusConfig.icon;
+            const userVote = suggestion.user_vote || 0;
+            const isUpvoted = userVote === 1;
+            const isDownvoted = userVote === -1;
             const isApproved = suggestion.status === 'approved';
 
             return (
-              <div
+              <motion.div
+                layout
+                layoutId={`admin-suggestion-${suggestion.id}`}
                 key={suggestion.id}
+                transition={{
+                  layout: { duration: 0.65, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.25 }
+                }}
                 className={cn(
                   "p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4",
                   isApproved
@@ -464,25 +800,53 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
                     : "bg-[#0c0c10] border-white/10 hover:border-white/20"
                 )}
               >
-                {/* Left: Vote Pill + Info */}
+                {/* Left: Reddit-Style Vote Capsule + Info */}
                 <div className="flex items-start gap-4 flex-1 min-w-0">
-                  {/* Vote Score Pill */}
-                  <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-black/50 border border-white/10 shrink-0 min-w-[54px] text-center">
+                  {/* Interactive Admin Vote Capsule */}
+                  <div className="flex flex-col items-center justify-center p-1.5 rounded-2xl bg-black/60 border border-white/10 shrink-0 min-w-[54px] text-center">
+                    {/* Upvote Button */}
+                    <button
+                      onClick={() => handleVote(suggestion.id, 1)}
+                      disabled={votingLocks[suggestion.id]}
+                      title={isUpvoted ? "Remove your upvote" : "Admin Upvote"}
+                      className={cn(
+                        "p-1.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
+                        isUpvoted
+                          ? "bg-fivem-orange/25 text-fivem-orange shadow-[0_0_10px_rgba(234,88,12,0.4)] border border-fivem-orange/40"
+                          : "text-white/40 hover:text-fivem-orange hover:bg-white/5"
+                      )}
+                    >
+                      <ArrowBigUp size={20} className={cn(isUpvoted && "fill-current")} />
+                    </button>
+
+                    {/* Net Score with Hover Popover */}
                     <span
                       className={cn(
-                        "text-base font-black font-display",
+                        "text-sm font-black font-display py-0.5 select-none tracking-tight",
                         suggestion.score > 0
-                          ? "text-emerald-400"
+                          ? "text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]"
                           : suggestion.score < 0
-                          ? "text-rose-400"
+                          ? "text-rose-400 drop-shadow-[0_0_6px_rgba(251,113,133,0.4)]"
                           : "text-white/60"
                       )}
                     >
                       {suggestion.score > 0 ? `+${suggestion.score}` : suggestion.score}
                     </span>
-                    <span className="text-[8px] font-mono uppercase text-white/30 tracking-wider">
-                      {suggestion.upvotes}▲ {suggestion.downvotes}▼
-                    </span>
+
+                    {/* Downvote Button */}
+                    <button
+                      onClick={() => handleVote(suggestion.id, -1)}
+                      disabled={votingLocks[suggestion.id]}
+                      title={isDownvoted ? "Remove your downvote" : "Admin Downvote"}
+                      className={cn(
+                        "p-1.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
+                        isDownvoted
+                          ? "bg-blue-500/25 text-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.4)] border border-blue-500/40"
+                          : "text-white/40 hover:text-blue-400 hover:bg-white/5"
+                      )}
+                    >
+                      <ArrowBigDown size={20} className={cn(isDownvoted && "fill-current")} />
+                    </button>
                   </div>
 
                   {/* Suggestion Details */}
@@ -509,8 +873,8 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
                       {suggestion.description}
                     </p>
 
-                    {/* Submitter details */}
-                    <div className="flex items-center gap-2 pt-1 text-[10px] font-mono text-white/40 flex-wrap">
+                    {/* Submitter details & Live Voter Breakdown Hover Triggers */}
+                    <div className="flex items-center gap-3 pt-1 text-[10px] font-mono text-white/40 flex-wrap">
                       <div className="flex items-center gap-1.5">
                         <img
                           src={getProfileAvatar(
@@ -528,6 +892,93 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
                       )}
                       <span>•</span>
                       <span>{new Date(suggestion.created_at).toLocaleDateString()}</span>
+                      <span>•</span>
+
+                      {/* Upvote Hover Breakdown */}
+                      <div
+                        className="relative"
+                        onMouseEnter={() => handleHoverVoters(suggestion.id, 'up')}
+                        onMouseLeave={handleLeaveVoters}
+                      >
+                        <span className="text-emerald-400 font-bold hover:underline cursor-pointer">
+                          {suggestion.upvotes}▲ Upvotes
+                        </span>
+                        <AnimatePresence>
+                          {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.type === 'up' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-2xl bg-[#0e0e13]/98 border border-emerald-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none text-left"
+                            >
+                              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
+                                <span className="text-[11px] font-bold text-emerald-400">Upvoted by</span>
+                                <span className="text-[9px] font-mono text-white/40">{suggestion.upvotes}</span>
+                              </div>
+                              {hoveredVoters.voters.length === 0 ? (
+                                <p className="text-[10px] text-white/40">No upvotes recorded yet.</p>
+                              ) : (
+                                <div className="max-h-32 overflow-y-auto space-y-1">
+                                  {hoveredVoters.voters.map((v) => (
+                                    <div key={v.userId} className="flex items-center gap-1.5 text-[11px]">
+                                      <img
+                                        src={getProfileAvatar(v.authorAvatarUrl, v.discordId || v.userId, v.avatarStyle)}
+                                        alt=""
+                                        className="w-3.5 h-3.5 rounded-full object-cover border border-white/10 shrink-0"
+                                      />
+                                      <span className="font-bold text-white/90 truncate flex-1">{v.discordName}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Downvote Hover Breakdown */}
+                      <div
+                        className="relative"
+                        onMouseEnter={() => handleHoverVoters(suggestion.id, 'down')}
+                        onMouseLeave={handleLeaveVoters}
+                      >
+                        <span className="text-rose-400 font-bold hover:underline cursor-pointer">
+                          {suggestion.downvotes}▼ Downvotes
+                        </span>
+                        <AnimatePresence>
+                          {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.type === 'down' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-2xl bg-[#0e0e13]/98 border border-rose-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none text-left"
+                            >
+                              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
+                                <span className="text-[11px] font-bold text-rose-400">Downvoted by</span>
+                                <span className="text-[9px] font-mono text-white/40">{suggestion.downvotes}</span>
+                              </div>
+                              {hoveredVoters.voters.length === 0 ? (
+                                <p className="text-[10px] text-white/40">No downvotes recorded yet.</p>
+                              ) : (
+                                <div className="max-h-32 overflow-y-auto space-y-1">
+                                  {hoveredVoters.voters.map((v) => (
+                                    <div key={v.userId} className="flex items-center gap-1.5 text-[11px]">
+                                      <img
+                                        src={getProfileAvatar(v.authorAvatarUrl, v.discordId || v.userId, v.avatarStyle)}
+                                        alt=""
+                                        className="w-3.5 h-3.5 rounded-full object-cover border border-white/10 shrink-0"
+                                      />
+                                      <span className="font-bold text-white/90 truncate flex-1">{v.discordName}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -578,10 +1029,10 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
                     <Trash2 size={13} />
                   </button>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* Delete Confirmation Modal */}

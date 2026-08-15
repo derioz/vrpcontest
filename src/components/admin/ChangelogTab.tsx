@@ -65,9 +65,13 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Dedicated Admin Console Category for Suggestions: Created an independent top-level category group in the Admin Console sidebar and navigation specifically for Category Suggestions with custom theme styling, live telemetry metrics, and dedicated navigation.
 • Functional Suggestion Workflow Statuses: Replaced static moderation tags with 6 functional workflow statuses (Open for Voting, Under Review, Approved for Contest, Implemented / Used, Declined, and Archived) with instant dropdown selectors and glowing indicators.
 • Admin Status Filtering Tabs with Count Badges: Added dedicated horizontal status filter tabs with dynamic live counters, allowing administrators to filter proposals by workflow state with 0 Firestore read costs.
-• One-Click Category Promotion to Contest: Added an instant "Promote Category" button to proposal cards, enabling administrators to push approved suggestions directly into active contest categories.`,
+• One-Click Category Promotion to Contest: Added an instant "Promote Category" button to proposal cards, enabling administrators to push approved suggestions directly into active contest categories.
+• Anti-Jitter Layout Stabilization Engine: Engineered a frozen display order architecture across both community and admin suggestion views to prevent cards from constantly shifting and jumping on screen during peak voting traffic.
+• Live Vote Inbound Banners & "Update Ranking" Action: Added non-intrusive live activity banners indicating how many proposals have moved rank in the background, with one-click ranking alignment on user demand.
+• Stable View vs Live Stream Mode Toggle: Integrated a toolbar toggle allowing users and administrators to switch between Stable Reading mode (frozen positions) and Live Stream mode (continuous auto-gliding animations).
+• Direct Admin Console Voting Suite: Enabled administrators to cast upvotes and downvotes directly on proposal cards within the Admin Console, featuring optimistic score updates and live voter breakdown popovers.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 10:22 PM',
+    date: 'Aug 14, 2026 at 10:26 PM',
   },
   {
     id: 'release-20260813-2010',

@@ -457,7 +457,10 @@ export default function AdminPanel(props: AdminPanelProps) {
                 )}
 
                 {activeTab === 'suggestions' && (
-                  <AdminSuggestionsTab />
+                  <AdminSuggestionsTab
+                    currentUser={user}
+                    isAdmin={isAdmin}
+                  />
                 )}
 
                 {activeTab === 'contest' && (

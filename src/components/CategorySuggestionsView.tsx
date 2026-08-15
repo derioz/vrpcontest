@@ -87,6 +87,10 @@ export function CategorySuggestionsView({
   // Voting optimistic state locks
   const [votingLocks, setVotingLocks] = useState<Record<string, boolean>>({});
 
+  // Display Order Stability Engine (Prevents card jumping/shuffling when many people vote)
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  const [autoReorder, setAutoReorder] = useState(false);
+
   // Voter breakdown hover state & memory cache
   const [hoveredVoters, setHoveredVoters] = useState<HoveredVotersState | null>(null);
   const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
@@ -177,6 +181,44 @@ export function CategorySuggestionsView({
       clearTimeout(safetyTimer);
     };
   }, [effectiveUserId]);
+
+  // Synchronize ordered IDs on sort tab switch or initial data arrival
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      const sorted = sortSuggestions(suggestions, sortBy);
+      setOrderedIds(sorted.map((s) => s.id));
+    }
+  }, [sortBy]);
+
+  // Initial load sync
+  useEffect(() => {
+    if (suggestions.length > 0 && orderedIds.length === 0) {
+      const sorted = sortSuggestions(suggestions, sortBy);
+      setOrderedIds(sorted.map((s) => s.id));
+    }
+  }, [suggestions]);
+
+  // Compute how many items have shifted rank due to incoming background votes
+  const pendingRankShifts = useMemo(() => {
+    if (suggestions.length === 0 || orderedIds.length === 0 || autoReorder) return 0;
+    const currentSorted = sortSuggestions(suggestions, sortBy).map((s) => s.id);
+    let shifts = 0;
+    for (let i = 0; i < currentSorted.length; i++) {
+      if (currentSorted[i] !== orderedIds[i]) {
+        shifts++;
+      }
+    }
+    return shifts;
+  }, [suggestions, orderedIds, sortBy, autoReorder]);
+
+  // Apply new ranking order on user demand
+  const handleApplyRanking = useCallback(() => {
+    const sorted = sortSuggestions(suggestions, sortBy);
+    setOrderedIds(sorted.map((s) => s.id));
+    toast.success('Live rankings updated!', {
+      description: 'Cards aligned with newest vote scores.'
+    });
+  }, [suggestions, sortBy]);
 
   const loadSuggestions = useCallback(async () => {
     setRefreshing(true);
@@ -441,13 +483,47 @@ export function CategorySuggestionsView({
     }
   };
 
-  // ── High-Performance In-Memory Filtering & Sorting (0 Firestore reads!) ──
+  // ── High-Performance In-Memory Stable Filtering & Ordering (0 Firestore reads!) ──
   const filteredSuggestions = useMemo(() => {
-    let result = [...suggestions];
+    // 1. If live autoReorder is enabled, directly use sorted suggestions
+    if (autoReorder) {
+      let result = [...suggestions];
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        result = result.filter(
+          (s) =>
+            s.category_name.toLowerCase().includes(q) ||
+            s.description.toLowerCase().includes(q) ||
+            (s.author_name && s.author_name.toLowerCase().includes(q)) ||
+            (s.discord_name && s.discord_name.toLowerCase().includes(q))
+        );
+      }
+      return sortSuggestions(result, sortBy);
+    }
 
+    // 2. In stable order mode: arrange suggestions according to orderedIds to prevent jumping
+    const suggestionMap = new Map<string, CategorySuggestion>(suggestions.map((s) => [s.id, s]));
+    const result: CategorySuggestion[] = [];
+
+    // Add in current stable order
+    orderedIds.forEach((id) => {
+      const item = suggestionMap.get(id);
+      if (item) {
+        result.push(item);
+        suggestionMap.delete(id);
+      }
+    });
+
+    // Add any newly arrived proposals not yet in orderedIds at the top/bottom
+    suggestionMap.forEach((item: CategorySuggestion) => {
+      if (sortBy === 'oldest') result.push(item);
+      else result.unshift(item);
+    });
+
+    // Apply search filtering
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(
+      return result.filter(
         (s) =>
           s.category_name.toLowerCase().includes(q) ||
           s.description.toLowerCase().includes(q) ||
@@ -456,8 +532,8 @@ export function CategorySuggestionsView({
       );
     }
 
-    return sortSuggestions(result, sortBy);
-  }, [suggestions, searchQuery, sortBy]);
+    return result;
+  }, [suggestions, orderedIds, autoReorder, searchQuery, sortBy]);
 
   // Aggregate Metrics
   const totalVotesCast = useMemo(() => {
@@ -555,8 +631,8 @@ export function CategorySuggestionsView({
           </div>
         </section>
 
-        {/* ── Toolbar: Search & Sort ── */}
-        <section className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        {/* ── Toolbar: Search, Sort & Real-time Stability Controls ── */}
+        <section className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           {/* Search Bar */}
           <div className="relative flex-1 max-w-md">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
@@ -577,8 +653,38 @@ export function CategorySuggestionsView({
             )}
           </div>
 
-          {/* Sort Tabs & Refresh */}
+          {/* Sort Tabs, Anti-Jitter Stability Toggle & Refresh */}
           <div className="flex items-center gap-2 self-end sm:self-auto overflow-x-auto pb-1 sm:pb-0 max-w-full">
+            {/* Stable vs Live Stream Toggle */}
+            <button
+              onClick={() => {
+                if (!autoReorder) {
+                  handleApplyRanking();
+                }
+                setAutoReorder(!autoReorder);
+              }}
+              title={autoReorder ? "Switch to Stable Mode (locks positions to prevent cards moving during high voting traffic)" : "Switch to Live Auto-Glide (moves cards as votes change)"}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer select-none shrink-0 border",
+                autoReorder
+                  ? "bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-sm"
+                  : "bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:bg-white/10"
+              )}
+            >
+              {autoReorder ? (
+                <>
+                  <Flame size={13} className="text-amber-400 animate-pulse" />
+                  <span>Live Stream</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={13} className="text-emerald-400" />
+                  <span>Stable View</span>
+                </>
+              )}
+            </button>
+
+            {/* Sort Tabs */}
             <div className="flex items-center p-1 rounded-xl bg-white/[0.03] border border-white/10 shrink-0">
               {[
                 { id: 'top' as const, label: 'Top Score', icon: Flame },
@@ -607,15 +713,44 @@ export function CategorySuggestionsView({
             </div>
 
             <button
-              onClick={() => loadSuggestions()}
+              onClick={() => {
+                handleApplyRanking();
+                loadSuggestions();
+              }}
               disabled={refreshing}
-              title="Refresh suggestions feed"
+              title="Refresh suggestions and apply latest rankings"
               className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer shrink-0 disabled:opacity-50"
             >
               <RefreshCw size={15} className={cn(refreshing && "animate-spin text-fivem-orange")} />
             </button>
           </div>
         </section>
+
+        {/* ── Live Inbound Votes Notification Pill (Appears when cards have shifted rank in background) ── */}
+        <AnimatePresence>
+          {pendingRankShifts > 0 && !autoReorder && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              className="mb-6 p-3 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-400/40 backdrop-blur-xl flex items-center justify-between gap-3 shadow-[0_8px_24px_rgba(234,88,12,0.2)]"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-fivem-orange animate-ping shrink-0" />
+                <span className="text-xs font-bold text-white truncate">
+                  Live activity detected: <span className="text-amber-300">{pendingRankShifts} {pendingRankShifts === 1 ? 'idea has' : 'ideas have'} moved rank in the background</span>
+                </span>
+              </div>
+              <button
+                onClick={handleApplyRanking}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-md flex items-center gap-1.5 shrink-0"
+              >
+                <Sparkles size={12} />
+                <span>Update Ranking</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Suggestions Feed with Slower, Highly Visible Layout Motion ── */}
         {loading ? (
