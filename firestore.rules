@@ -115,8 +115,13 @@ service cloud.firestore {
       allow read, create, update, delete: if true;
     }
 
-    // Flagged alt voters
-    match /flagged_voters/{doc} {
+    // Category Suggestions
+    match /category_suggestions/{suggestionId} {
+      allow read, create, update, delete: if true;
+    }
+
+    // Category Suggestion Votes
+    match /category_suggestion_votes/{voteId} {
       allow read, write: if true;
     }
 

@@ -28,9 +28,17 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260814-1635',
     version: 'v1.9.5',
-    title: 'Contest Rules Markdown Engine, Image Censor Pixelation Gate & Instant Rules Persistence',
+    title: 'Category Suggestions System, Reddit-Style Voting, Firebase Backend & Admin Console Hub',
     category: 'Feature',
-    description: `• Adaptive Horizontal Category Navigation: Built a responsive StickyCategoryNav component with dynamic chevron navigation controls (‹ and ›), smooth horizontal mouse wheel translation, auto-centering for active categories, dynamic gradient edge indicators, and responsive max-width truncation with title tooltips so long category titles never cut off or overflow awkwardly.
+    description: `• Reddit-Style Category Suggestions Portal: Introduced a dedicated community brainstorm platform where verified community members and administrators can submit theme concepts for upcoming Vital RP Photo Contest rounds.
+• Firebase Cloud Firestore Backend: Permanently stores and synchronizes category proposals and community votes directly via Cloud Firestore, utilizing atomic transactions (runTransaction) for race-condition-free score and vote calculations.
+• Discord OAuth Profile Attribution: Automatically links each proposal and vote to the user's official Discord login profile, preserving Discord handle, Discord ID, and profile avatars across suggestions feeds and moderation screens.
+• Dedicated Admin Console Management Hub: Built a full-featured "Category Ideas" management tab in the Admin Console (Contest Control group), complete with summary telemetry metrics (total proposals, total votes cast, curated concepts, leader scores), status toggles (Active, Shortlisted, Archived), and one-click deletion moderation.
+• Dual-Axis Voting Engine (▲ / ▼): Engineered an interactive Reddit-style voting mechanism allowing members to cast upvotes (+1) or downvotes (-1), toggle their vote off, or seamlessly reverse their vote (shifting scores by 2) with instant optimistic UI feedback and live database score recalculations.
+• Single Vote Document Constraint: Enforced an atomic composite document ID (\${suggestionId}_\${userId}) in Cloud Firestore, strictly guarding against duplicate votes across multiple browser tabs, client reloads, or direct API triggers.
+• Real-Time Suggestions Filtering & Sorting: Implemented dynamic sorting controls across 4 distinct modes (Newest, Top Score / Most Upvoted, Lowest Score, and Oldest) alongside instant real-time keyword search across titles, descriptions, and creator handles.
+• Direct Navbar & Mobile Sheet Navigation: Added dedicated "Suggestions" navigation pills in both the desktop signal bar and mobile navigation drawer, equipped with active administrator badges and seamless full-page view transitions.
+• Adaptive Horizontal Category Navigation: Built a responsive StickyCategoryNav component with dynamic chevron navigation controls (‹ and ›), smooth horizontal mouse wheel translation, auto-centering for active categories, dynamic gradient edge indicators, and responsive max-width truncation with title tooltips so long category titles never cut off or overflow awkwardly.
 • Image Censor & Pixelation Gate: Re-introduced the submission image censorship switch in the Admin Console (Controls & Security tab). When activated, all submitted photos are pixelated and obscured to the public throughout the submission phase to eliminate early bias and duplicate concepts. As soon as voting is unlocked (or censorship is toggled off), high-resolution unpixelated images are immediately revealed in real time across photo feeds, category tabs, and the full-screen lightbox.
 • Censor Badge Component Reference Fix: Resolved a missing icon component reference in App.tsx that caused a blank page render crash when the image censor toggle was enabled.
 • ReactMarkdown & GFM Rendering Engine: Replaced the legacy plain-text line-splitting preview with a high-fidelity Markdown engine powered by ReactMarkdown and remark-gfm, delivering 100% accurate rendering for headings (#, ##, ###), bold (**text**), italics (*text*), blockquotes (> note), bullet & numbered lists, tables, links, code snippets, and custom callouts.
@@ -41,7 +49,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Front Page Markdown Typography Synchronization: Aligned the main landing page rules section (#rules) with the exact same typography, custom heading accents (#, ##, ###), bold/italic highlights, blockquote callouts, tables, and link styling as the admin live preview.
 • Standalone Platform Rules Editor: Added a standalone fallback rules management panel in Contest Setup so administrators can configure global platform rules even when no active contest round is currently deployed.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 4:35 PM',
+    date: 'Aug 14, 2026 at 9:41 PM',
   },
   {
     id: 'release-20260813-2010',

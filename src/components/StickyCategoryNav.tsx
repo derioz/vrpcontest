@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
+import { motion, MotionValue } from 'motion/react';
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category } from '../types';
@@ -8,7 +8,7 @@ interface StickyCategoryNavProps {
   categories: Category[];
   selectedCategory: Category | null;
   onSelectCategory: (category: Category) => void;
-  topOffset: string | number;
+  topOffset: MotionValue<string> | string | number;
 }
 
 export function StickyCategoryNav({

@@ -95,6 +95,7 @@ import { Category, Photo, Rule, Theme, ArchivedWinner } from './types';
 
 const UploadForm = lazy(() => import('./components/UploadForm'));
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
+const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView').then(m => ({ default: m.CategorySuggestionsView })));
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 import AdminPanel from './components/admin/AdminPanel';
@@ -165,6 +166,13 @@ export default function App() {
     const archiveId = params.get('archive') || params.get('winner');
     const storedView = localStorage.getItem('active_view');
     return tab === 'hall-of-fame' || tab === 'hof' || !!archiveId || storedView === 'hall-of-fame';
+  });
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab') || params.get('view');
+    const storedView = localStorage.getItem('active_view');
+    return tab === 'suggestions' || tab === 'suggest' || storedView === 'suggestions';
   });
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1475,8 +1483,8 @@ export default function App() {
   const isSiteLocked = siteClosed && (!isAdmin || !adminBypassClosedModal);
 
   return (
-    <ShaderBackground className={cn("min-h-screen flex flex-col relative", isSiteLocked && !showArchivedWinners && "overflow-hidden")}>
-      <div className={cn("flex flex-col flex-1 transition-all duration-500", isSiteLocked && !showArchivedWinners && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
+    <ShaderBackground className={cn("min-h-screen flex flex-col relative", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
+      <div className={cn("flex flex-col flex-1 transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
         <motion.header
         ref={navbarRef}
         style={{ height: navH }}
@@ -1661,6 +1669,22 @@ export default function App() {
             <Trophy size={13} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)] relative z-10" />
             <span className="relative z-10">Hall of Fame</span>
             <Sparkles size={10} className="text-amber-400/60 group-hover:text-amber-300 transition-colors relative z-10" />
+          </button>
+
+          {/* ── Category Suggestions Button ── */}
+          <button
+            onClick={() => setShowCategorySuggestions(true)}
+            className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black font-display uppercase tracking-wider cursor-pointer select-none transition-all duration-300 relative group
+              bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 hover:from-orange-500/20 hover:via-amber-500/15 hover:to-orange-500/20
+              border border-orange-400/25 hover:border-orange-400/40
+              text-orange-300 hover:text-orange-200
+              shadow-[0_0_12px_rgba(234,88,12,0.1)] hover:shadow-[0_0_20px_rgba(234,88,12,0.25)]"
+          >
+            <Sparkles size={13} className="text-fivem-orange drop-shadow-[0_0_4px_rgba(234,88,12,0.6)] relative z-10 group-hover:rotate-12 transition-transform" />
+            <span className="relative z-10">Suggestions</span>
+            {isAdmin && (
+              <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_6px_rgba(234,88,12,1)]" title="Admin Moderator" />
+            )}
           </button>
 
           {/* ── RIGHT: Mobile Menu Toggle ── */}
@@ -1939,6 +1963,23 @@ export default function App() {
                     <Trophy size={16} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
                     <span>Hall of Fame Vault</span>
                     <Sparkles size={12} className="text-amber-400/50 ml-auto" />
+                  </button>
+                </div>
+
+                {/* Category Suggestions – Mobile Item */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-orange-400/50 mb-1">💡 Community Ideas</span>
+                  <button
+                    onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 border border-orange-400/20 text-sm font-black uppercase tracking-wider text-orange-300 active:text-orange-200 cursor-pointer active:bg-orange-500/15 transition-all flex items-center gap-2.5 shadow-[0_0_15px_rgba(234,88,12,0.08)]"
+                  >
+                    <Sparkles size={16} className="text-fivem-orange drop-shadow-[0_0_4px_rgba(234,88,12,0.6)]" />
+                    <span>Category Suggestions</span>
+                    {isAdmin ? (
+                      <span className="ml-auto px-2 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange uppercase">Mod</span>
+                    ) : (
+                      <Sparkles size={12} className="text-orange-400/50 ml-auto" />
+                    )}
                   </button>
                 </div>
 
@@ -2817,6 +2858,14 @@ export default function App() {
                   </button>
 
                   <button
+                    onClick={() => setShowCategorySuggestions(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/25 text-orange-300 hover:text-white transition-all text-xs font-bold font-display uppercase tracking-wider cursor-pointer shadow-sm"
+                  >
+                    <Sparkles size={14} className="text-fivem-orange" />
+                    <span>Category Suggestions</span>
+                  </button>
+
+                  <button
                     onClick={() => handleSignOut()}
                     className="w-full group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:shadow-[0_0_20px_rgba(239,68,68,0.15)] cursor-pointer"
                   >
@@ -3262,6 +3311,18 @@ export default function App() {
         {showArchivedWinners && (
           <Suspense fallback={null}>
             <ArchivedWinnersView currentUser={user} onClose={() => setShowArchivedWinners(false)} />
+          </Suspense>
+        )}
+
+        {/* Category Suggestions Fullscreen Render */}
+        {showCategorySuggestions && (
+          <Suspense fallback={<div className="min-h-screen bg-[#050507] flex items-center justify-center text-fivem-orange font-mono text-xs">Loading Category Suggestions...</div>}>
+            <CategorySuggestionsView
+              currentUser={user}
+              isAdmin={isAdmin}
+              onClose={() => setShowCategorySuggestions(false)}
+              onOpenSignIn={() => setShowSignInModal(true)}
+            />
           </Suspense>
         )}
       </AnimatePresence>

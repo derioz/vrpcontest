@@ -60,3 +60,53 @@ export interface Theme {
     };
     font: string;
 }
+
+export interface CategorySuggestion {
+    id: string;
+    category_name: string;
+    description: string;
+    user_id: string;
+    author_name: string;
+    author_avatar_url?: string;
+    author_discord_id?: string;
+    discord_id?: string;
+    discord_name?: string;
+    avatar_seed?: string;
+    avatar_style?: string;
+    is_admin_author?: boolean;
+    status?: 'active' | 'shortlisted' | 'archived';
+    score: number;
+    upvotes: number;
+    downvotes: number;
+    user_vote: number; // 1 (upvoted), -1 (downvoted), 0 (none)
+    created_at: string;
+    updated_at?: string;
+}
+
+export interface CategorySuggestionVote {
+    id: string;
+    suggestion_id: string;
+    user_id: string;
+    discord_id?: string;
+    vote: 1 | -1;
+    created_at: string;
+    updated_at?: string;
+}
+
+export type SuggestionSortOption = 'newest' | 'top' | 'lowest' | 'oldest';
+
+export interface CreateSuggestionInput {
+    category_name: string;
+    description: string;
+    user_id: string;
+    author_name: string;
+    author_avatar_url?: string;
+    author_discord_id?: string;
+    discord_id?: string;
+    discord_name?: string;
+    avatar_seed?: string;
+    avatar_style?: string;
+    is_admin_author?: boolean;
+    status?: 'active' | 'shortlisted' | 'archived';
+}
+

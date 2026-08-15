@@ -22,10 +22,11 @@ import { AdminHeader } from './AdminHeader';
 
 import { EditContestManager, ArchiveContest, CreateContestManager, StandaloneRulesEditor } from './ContestManagers';
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
+import { AdminSuggestionsTab } from './AdminSuggestionsTab';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 
-type AdminTab = 'dashboard' | 'analytics' | 'submissions' | 'voters' | 'contest' | 'controls' | 'changelogs' | 'danger';
+type AdminTab = 'dashboard' | 'analytics' | 'submissions' | 'suggestions' | 'voters' | 'contest' | 'controls' | 'changelogs' | 'danger';
 
 interface AdminPanelProps {
   isAdmin: boolean;
@@ -84,6 +85,7 @@ const TAB_GROUPS: {
   {
     section: "Contest Control",
     tabs: [
+      { id: 'suggestions', label: 'Category Ideas', icon: Sparkles, color: 'text-amber-400', glowColor: 'from-amber-500/20 via-amber-500/10 to-transparent', description: 'Brainstorm & votes' },
       { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', glowColor: 'from-amber-500/20 via-amber-500/10 to-transparent', description: 'Rules & winners' },
       { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-purple-400', glowColor: 'from-purple-500/20 via-purple-500/10 to-transparent', description: 'Lockdown & RSA keys' },
     ]
@@ -447,6 +449,10 @@ export default function AdminPanel(props: AdminPanelProps) {
                       categories={categories}
                     />
                   </div>
+                )}
+
+                {activeTab === 'suggestions' && (
+                  <AdminSuggestionsTab />
                 )}
 
                 {activeTab === 'contest' && (
