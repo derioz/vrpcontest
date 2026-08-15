@@ -336,13 +336,17 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // Deep-Link URL Search Parameters Inspector (e.g. ?photo=XYZ or ?archive=XYZ)
+  // Deep-Link URL Search Parameters Inspector (e.g. ?photo=XYZ, ?archive=XYZ, or ?suggestion=XYZ)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const photoId = params.get('photo');
     const archiveId = params.get('archive') || params.get('winner');
+    const tabParam = params.get('tab') || params.get('view');
+    const suggestionId = params.get('suggestion') || params.get('idea');
 
-    if (archiveId || photoId) {
+    if (tabParam === 'suggestions' || tabParam === 'ideas' || suggestionId) {
+      setShowCategorySuggestions(true);
+    } else if (archiveId || photoId) {
       if (archiveId) {
         setShowArchivedWinners(true);
       } else if (photoId) {

@@ -49,9 +49,13 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Front Page Markdown Typography Synchronization: Aligned the main landing page rules section (#rules) with the exact same typography, custom heading accents (#, ##, ###), bold/italic highlights, blockquote callouts, tables, and link styling as the admin live preview.
 • Standalone Platform Rules Editor: Added a standalone fallback rules management panel in Contest Setup so administrators can configure global platform rules even when no active contest round is currently deployed.
 • Category Suggestions Viewport Fix & Icon Import Resolution: Fixed an issue where opening Category Suggestions could render a blank screen by resolving an unimported History icon reference and upgrading CategorySuggestionsView to a fixed full-screen viewport overlay (fixed inset-0 z-[150]) with responsive overflow scrolling matching the Hall of Fame Vault.
-• Viewport-Level React Error Boundary: Implemented a robust ErrorBoundary wrapper around full-screen views (Category Suggestions, Hall of Fame, Analytics) to intercept any runtime exceptions gracefully, displaying actionable diagnostic cards with one-click retry and return actions instead of blank pages.`,
+• Viewport-Level React Error Boundary: Implemented a robust ErrorBoundary wrapper around full-screen views (Category Suggestions, Hall of Fame, Analytics) to intercept any runtime exceptions gracefully, displaying actionable diagnostic cards with one-click retry and return actions instead of blank pages.
+• Duplicate Submission Bug Resolution: Eliminated optimistic state collisions during proposal submission by relying exclusively on Firestore onSnapshot document deduplication, preventing ghost duplicate entries from flashing before first vote.
+• Spring-Animated Reordering Physics: Integrated GPU-accelerated Framer Motion layout physics (motion.div layout) on all category suggestion cards, smoothly gliding cards into their new ranking positions whenever votes change in real time.
+• Multi-Tiered Tie-Breaker Ranking Logic: Implemented Reddit-standard sorting where ties in net score are broken first by highest upvote count, then by fewest downvotes, and lastly by creation recency.
+• Direct Share Deep Linking & Highlight Animation: Upgraded suggestion share links to include &suggestion={id} or &idea={id}, automatically launching the suggestions view, smoothly scrolling the target card into view, and triggering a 3-second amber highlight ring.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 9:45 PM',
+    date: 'Aug 14, 2026 at 9:58 PM',
   },
   {
     id: 'release-20260813-2010',

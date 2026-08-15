@@ -34,7 +34,8 @@ import {
   subscribeCategorySuggestions,
   submitCategorySuggestion,
   castCategorySuggestionVote,
-  deleteCategorySuggestion
+  deleteCategorySuggestion,
+  sortSuggestions
 } from '../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
 import { MagicCard } from './ui/magic-card';
@@ -61,9 +62,10 @@ export function CategorySuggestionsView({
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [sortBy, setSortBy] = useState<SuggestionSortOption>('newest');
+  const [sortBy, setSortBy] = useState<SuggestionSortOption>('top');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [highlightedSuggestionId, setHighlightedSuggestionId] = useState<string | null>(null);
 
   // Form State
   const [categoryName, setCategoryName] = useState('');
@@ -80,7 +82,38 @@ export function CategorySuggestionsView({
 
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
 
-  // Real-time subscribe to category suggestions with safety fallback
+  // ── Deep Link Parameter Detection ──
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetId = params.get('suggestion') || params.get('idea');
+    if (targetId) {
+      setHighlightedSuggestionId(targetId);
+    }
+  }, []);
+
+  // ── Smooth Scroll & Temporary Highlight for Deep Link ──
+  useEffect(() => {
+    if (highlightedSuggestionId && suggestions.length > 0) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`suggestion-${highlightedSuggestionId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+
+      // Auto-clear highlight after 3 seconds
+      const fadeTimer = setTimeout(() => {
+        setHighlightedSuggestionId(null);
+      }, 3200);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(fadeTimer);
+      };
+    }
+  }, [highlightedSuggestionId, suggestions]);
+
+  // ── Real-time Subscribe to category suggestions with instant vote-state reflection ──
   useEffect(() => {
     setLoading(true);
 
@@ -93,7 +126,6 @@ export function CategorySuggestionsView({
       },
       (err) => {
         console.error('Error subscribing to category suggestions:', err);
-        // Fallback to fetch
         fetchCategorySuggestions(effectiveUserId, sortBy)
           .then((data) => setSuggestions(data))
           .catch((fetchErr) => console.error('Fallback fetch error:', fetchErr))
@@ -101,7 +133,7 @@ export function CategorySuggestionsView({
       }
     );
 
-    // Guaranteed safety timeout: never remain in blank/loading state indefinitely
+    // Safety timeout: never remain loading indefinitely
     const safetyTimer = setTimeout(() => {
       setLoading(false);
     }, 1500);
@@ -125,7 +157,7 @@ export function CategorySuggestionsView({
     }
   }, [effectiveUserId, sortBy]);
 
-  // Handle Submit New Suggestion
+  // Handle Submit New Suggestion (No manual duplicate prepend)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -157,10 +189,10 @@ export function CategorySuggestionsView({
 
     setIsSubmitting(true);
     try {
-      const newSuggestion = await submitCategorySuggestion({
+      await submitCategorySuggestion({
         category_name: trimmedName,
         description: trimmedDesc,
-        user_id: effectiveUserId!,
+        user_id: effectiveUserId || currentUser.uid,
         author_name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Community Member',
         discord_name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Discord User',
         discord_id: currentUser.discordId || null,
@@ -172,13 +204,12 @@ export function CategorySuggestionsView({
         status: 'active'
       });
 
-      // Optimistically add to top of list
-      setSuggestions((prev) => [newSuggestion, ...prev]);
+      // Reset form & modal. Firestore onSnapshot automatically receives and renders the new suggestion without duplication.
       setCategoryName('');
       setDescription('');
       setIsSubmitModalOpen(false);
       toast.success('Category suggestion submitted!', {
-        description: `"${newSuggestion.category_name}" has been posted for community voting.`
+        description: `"${trimmedName}" has been posted for community voting.`
       });
     } catch (err: any) {
       console.error('Submission failed:', err);
@@ -189,7 +220,7 @@ export function CategorySuggestionsView({
     }
   };
 
-  // Handle Reddit-style Voting
+  // ── Reddit-Style Voting Mechanics ──
   const handleVote = async (suggestionId: string, requestedVote: 1 | -1) => {
     if (!currentUser) {
       toast.info('Sign in required', {
@@ -205,42 +236,45 @@ export function CategorySuggestionsView({
     if (!target) return;
 
     const currentVote = target.user_vote || 0;
-    // Toggle: if clicking same vote, new vote is 0 (unvote)
+    // Reddit toggle: clicking the same active vote resets to 0 (unvote)
     const newVote: 1 | -1 | 0 = currentVote === requestedVote ? 0 : requestedVote;
 
-    // Calculate optimistic delta
-    const voteDelta = newVote - currentVote;
-    const oldScore = target.score;
-    const oldUserVote = target.user_vote;
-    const oldUpvotes = target.upvotes;
-    const oldDownvotes = target.downvotes;
+    // Calculate optimistic counts
+    let optUpvotes = target.upvotes;
+    let optDownvotes = target.downvotes;
 
-    const optimisticUpvotes =
-      currentVote === 1 ? oldUpvotes - 1 : newVote === 1 ? oldUpvotes + 1 : oldUpvotes;
-    const optimisticDownvotes =
-      currentVote === -1 ? oldDownvotes - 1 : newVote === -1 ? oldDownvotes + 1 : oldDownvotes;
+    // Remove old vote
+    if (currentVote === 1) optUpvotes = Math.max(0, optUpvotes - 1);
+    if (currentVote === -1) optDownvotes = Math.max(0, optDownvotes - 1);
 
-    // Apply Optimistic Update
-    setSuggestions((prev) =>
-      prev.map((s) => {
+    // Add new vote
+    if (newVote === 1) optUpvotes += 1;
+    if (newVote === -1) optDownvotes += 1;
+
+    const optScore = optUpvotes - optDownvotes;
+
+    // Apply Optimistic Update & Re-sort to trigger smooth layout animation
+    setSuggestions((prev) => {
+      const updated = prev.map((s) => {
         if (s.id !== suggestionId) return s;
         return {
           ...s,
-          score: oldScore + voteDelta,
+          score: optScore,
           user_vote: newVote,
-          upvotes: Math.max(0, optimisticUpvotes),
-          downvotes: Math.max(0, optimisticDownvotes)
+          upvotes: optUpvotes,
+          downvotes: optDownvotes
         };
-      })
-    );
+      });
+      return sortSuggestions(updated, sortBy);
+    });
 
     setVotingLocks((prev) => ({ ...prev, [suggestionId]: true }));
 
     try {
-      const res = await castCategorySuggestionVote(suggestionId, effectiveUserId!, newVote, currentUser?.discordId);
-      // Reconcile with server response
-      setSuggestions((prev) =>
-        prev.map((s) => {
+      const res = await castCategorySuggestionVote(suggestionId, effectiveUserId || currentUser.uid, newVote, currentUser?.discordId);
+      // Reconcile with server response & sort
+      setSuggestions((prev) => {
+        const updated = prev.map((s) => {
           if (s.id !== suggestionId) return s;
           return {
             ...s,
@@ -249,66 +283,73 @@ export function CategorySuggestionsView({
             upvotes: res.upvotes,
             downvotes: res.downvotes
           };
-        })
-      );
+        });
+        return sortSuggestions(updated, sortBy);
+      });
     } catch (err: any) {
       console.error('Vote failed:', err);
       // Rollback on error
-      setSuggestions((prev) =>
-        prev.map((s) => {
+      setSuggestions((prev) => {
+        const rolledBack = prev.map((s) => {
           if (s.id !== suggestionId) return s;
-          return {
-            ...s,
-            score: oldScore,
-            user_vote: oldUserVote,
-            upvotes: oldUpvotes,
-            downvotes: oldDownvotes
-          };
-        })
-      );
-      toast.error('Vote failed', {
-        description: err.message || 'Could not record your vote. Please try again.'
+          return target;
+        });
+        return sortSuggestions(rolledBack, sortBy);
       });
+      toast.error('Failed to register vote', { description: err.message });
     } finally {
       setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
     }
   };
 
-  // Handle Delete Suggestion (Admin or Creator)
+  // Handle Delete Suggestion
   const confirmDelete = async () => {
     if (!deletingSuggestionId) return;
-
     setIsDeleting(true);
     try {
       await deleteCategorySuggestion(deletingSuggestionId);
       setSuggestions((prev) => prev.filter((s) => s.id !== deletingSuggestionId));
-      toast.success('Category suggestion removed');
+      toast.success('Category suggestion deleted');
       setDeletingSuggestionId(null);
     } catch (err: any) {
-      console.error('Delete failed:', err);
       toast.error('Failed to delete suggestion', { description: err.message });
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Filtered suggestions by search
+  // Filter suggestions by search query
   const filteredSuggestions = useMemo(() => {
-    if (!searchQuery.trim()) return suggestions;
-    const q = searchQuery.toLowerCase();
-    return suggestions.filter(
-      (s) =>
-        s.category_name.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
-        s.author_name.toLowerCase().includes(q)
-    );
-  }, [suggestions, searchQuery]);
+    let result = [...suggestions];
 
-  // Format date nicely
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.category_name.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          (s.author_name && s.author_name.toLowerCase().includes(q)) ||
+          (s.discord_name && s.discord_name.toLowerCase().includes(q))
+      );
+    }
+
+    return sortSuggestions(result, sortBy);
+  }, [suggestions, searchQuery, sortBy]);
+
+  // Aggregate Metrics
+  const totalVotesCast = useMemo(() => {
+    return suggestions.reduce((acc, s) => acc + s.upvotes + s.downvotes, 0);
+  }, [suggestions]);
+
+  const topScoringSuggestion = useMemo(() => {
+    if (suggestions.length === 0) return null;
+    return [...suggestions].sort((a, b) => b.score - a.score)[0];
+  }, [suggestions]);
+
   const formatDate = (isoString: string) => {
     try {
-      const d = new Date(isoString);
-      return d.toLocaleDateString('en-US', {
+      const date = new Date(isoString);
+      return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
@@ -382,21 +423,21 @@ export function CategorySuggestionsView({
           {/* Quick Stats Pill */}
           <div className="grid grid-cols-2 gap-3 shrink-0 self-center sm:self-end">
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center min-w-[120px]">
-              <span className="text-2xl font-black font-display text-white">
+              <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Total Ideas</span>
+              <span className="text-xl font-black font-display text-white">
                 <NumberTicker value={suggestions.length} />
               </span>
-              <span className="block text-[9px] font-mono uppercase tracking-wider text-white/40 mt-0.5">Total Ideas</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-fivem-orange/[0.05] border border-fivem-orange/20 text-center min-w-[120px]">
-              <span className="text-2xl font-black font-display text-fivem-orange">
-                <NumberTicker value={suggestions.reduce((acc, s) => acc + s.upvotes + s.downvotes, 0)} />
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center min-w-[120px]">
+              <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Votes Cast</span>
+              <span className="text-xl font-black font-display text-fivem-orange">
+                <NumberTicker value={totalVotesCast} />
               </span>
-              <span className="block text-[9px] font-mono uppercase tracking-wider text-fivem-orange/70 mt-0.5">Votes Cast</span>
             </div>
           </div>
         </section>
 
-        {/* ── Toolbar: Search & Sorting ── */}
+        {/* ── Toolbar: Search & Sort ── */}
         <section className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           {/* Search Bar */}
           <div className="relative flex-1 max-w-md">
@@ -422,8 +463,8 @@ export function CategorySuggestionsView({
           <div className="flex items-center gap-2 self-end sm:self-auto overflow-x-auto pb-1 sm:pb-0 max-w-full">
             <div className="flex items-center p-1 rounded-xl bg-white/[0.03] border border-white/10 shrink-0">
               {[
-                { id: 'newest' as const, label: 'Newest', icon: Clock },
                 { id: 'top' as const, label: 'Top Score', icon: Flame },
+                { id: 'newest' as const, label: 'Newest', icon: Clock },
                 { id: 'lowest' as const, label: 'Lowest', icon: TrendingDown },
                 { id: 'oldest' as const, label: 'Oldest', icon: History }
               ].map((tab) => {
@@ -448,7 +489,7 @@ export function CategorySuggestionsView({
             </div>
 
             <button
-              onClick={() => loadSuggestions(false)}
+              onClick={() => loadSuggestions()}
               disabled={refreshing}
               title="Refresh suggestions feed"
               className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer shrink-0 disabled:opacity-50"
@@ -458,7 +499,7 @@ export function CategorySuggestionsView({
           </div>
         </section>
 
-        {/* ── Suggestions Feed ── */}
+        {/* ── Suggestions Feed with Layout Motion ── */}
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (
@@ -508,18 +549,28 @@ export function CategorySuggestionsView({
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <motion.div layout className="space-y-4">
             {filteredSuggestions.map((suggestion) => {
               const userVote = suggestion.user_vote || 0;
               const isUpvoted = userVote === 1;
               const isDownvoted = userVote === -1;
-              const isAuthor = currentUser && (effectiveUserId === suggestion.user_id);
+              const isAuthor = currentUser && (effectiveUserId === suggestion.user_id || currentUser.uid === suggestion.user_id);
               const canDelete = isAdmin || isAuthor;
+              const isHighlighted = highlightedSuggestionId === suggestion.id;
 
               return (
-                <div
+                <motion.div
+                  layout
+                  layoutId={suggestion.id}
+                  id={`suggestion-${suggestion.id}`}
                   key={suggestion.id}
-                  className="group relative rounded-3xl border border-white/10 bg-[#0a0a0d]/90 hover:border-white/20 transition-all duration-300 p-4 sm:p-6 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-stretch sm:items-start gap-4 sm:gap-6"
+                  transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                  className={cn(
+                    "group relative rounded-3xl border bg-[#0a0a0d]/90 transition-all duration-300 p-4 sm:p-6 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-stretch sm:items-start gap-4 sm:gap-6",
+                    isHighlighted
+                      ? "border-fivem-orange/90 ring-2 ring-fivem-orange/80 shadow-[0_0_40px_rgba(234,88,12,0.4)] bg-fivem-orange/[0.08]"
+                      : "border-white/10 hover:border-white/20"
+                  )}
                 >
                   {/* ── LEFT: Reddit-Style Vote Capsule ── */}
                   <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-1.5 p-2 rounded-2xl bg-black/40 border border-white/5 shrink-0 self-start sm:self-stretch min-w-[56px]">
@@ -527,7 +578,7 @@ export function CategorySuggestionsView({
                     <button
                       onClick={() => handleVote(suggestion.id, 1)}
                       disabled={votingLocks[suggestion.id]}
-                      title={isUpvoted ? 'Remove upvote' : 'Upvote this suggestion'}
+                      title={isUpvoted ? 'Remove upvote (reset)' : 'Upvote this suggestion'}
                       className={cn(
                         "p-2 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
                         isUpvoted
@@ -556,7 +607,7 @@ export function CategorySuggestionsView({
                     <button
                       onClick={() => handleVote(suggestion.id, -1)}
                       disabled={votingLocks[suggestion.id]}
-                      title={isDownvoted ? 'Remove downvote' : 'Downvote this suggestion'}
+                      title={isDownvoted ? 'Remove downvote (reset)' : 'Downvote this suggestion'}
                       className={cn(
                         "p-2 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
                         isDownvoted
@@ -629,8 +680,8 @@ export function CategorySuggestionsView({
                       </p>
                     </div>
 
-                    {/* Footer stats: Total upvotes / downvotes pill */}
-                    <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-3 text-[10px] font-mono text-white/40">
+                    {/* Footer stats: Total upvotes / downvotes pill & Share button */}
+                    <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-3 text-[10px] font-mono text-white/40 flex-wrap">
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1 text-emerald-400/80">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -644,21 +695,23 @@ export function CategorySuggestionsView({
 
                       <button
                         onClick={() => {
-                          const url = `${window.location.origin}${window.location.pathname}?tab=suggestions`;
+                          const url = `${window.location.origin}${window.location.pathname}?tab=suggestions&suggestion=${suggestion.id}`;
                           navigator.clipboard.writeText(url);
-                          toast.success('Suggestions link copied to clipboard!');
+                          toast.success('Direct link copied to clipboard!', {
+                            description: `Link to "${suggestion.category_name}" is ready to share.`
+                          });
                         }}
-                        className="flex items-center gap-1 text-white/40 hover:text-white transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/15 text-white/50 hover:text-white transition-all cursor-pointer active:scale-95 text-xs font-mono font-bold"
                       >
-                        <Share2 size={12} />
+                        <Share2 size={12} className="text-fivem-orange" />
                         <span>Share</span>
                       </button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </main>
 
@@ -700,70 +753,65 @@ export function CategorySuggestionsView({
             </div>
           )}
 
+          {formError && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 flex items-center gap-2">
+              <AlertCircle size={14} className="shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             {/* Category Name */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70">
-                  Category Name <span className="text-fivem-orange">*</span>
-                </label>
-                <span className="text-[10px] font-mono text-white/40">
-                  {categoryName.length}/100
-                </span>
-              </div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5 font-mono">
+                Category Title <span className="text-fivem-orange">*</span>
+              </label>
               <input
                 type="text"
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
-                placeholder="e.g. Neon Nights, Vintage Classics, Stunt Masters"
+                placeholder="e.g., Midnight Street Racing, Sunset Over Mount Chiliad..."
                 maxLength={100}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 text-white placeholder:text-white/30 text-xs font-bold"
+                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/15 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 transition-all font-semibold"
               />
+              <div className="flex justify-end mt-1">
+                <span className="text-[10px] font-mono text-white/30">{categoryName.length}/100</span>
+              </div>
             </div>
 
             {/* Description */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70">
-                  Description & Guidelines <span className="text-fivem-orange">*</span>
-                </label>
-                <span className="text-[10px] font-mono text-white/40">
-                  {description.length}/1000
-                </span>
-              </div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5 font-mono">
+                Description & Theme Guidelines <span className="text-fivem-orange">*</span>
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what kind of photos participants should capture, the atmosphere, scene requirements, or why this would make a great theme..."
+                placeholder="Describe what kind of photos participants should submit for this theme (e.g. lighting, subject matter, vehicles, locations)..."
                 rows={4}
                 maxLength={1000}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 text-white placeholder:text-white/30 text-xs leading-relaxed resize-none"
+                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/15 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 transition-all resize-none leading-relaxed"
               />
-            </div>
-
-            {formError && (
-              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-                <AlertCircle size={14} className="shrink-0" />
-                <span>{formError}</span>
+              <div className="flex justify-end mt-1">
+                <span className="text-[10px] font-mono text-white/30">{description.length}/1000</span>
               </div>
-            )}
+            </div>
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setIsSubmitModalOpen(false)}
-                disabled={isSubmitting}
-                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !categoryName.trim() || !description.trim()}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider shadow-md hover:shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-fivem-orange/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -771,7 +819,7 @@ export function CategorySuggestionsView({
                     <span>Submitting...</span>
                   </>
                 ) : (
-                  <span>Post Suggestion</span>
+                  <span>Post Proposal</span>
                 )}
               </button>
             </div>
@@ -781,13 +829,13 @@ export function CategorySuggestionsView({
 
       {/* ── Delete Confirmation Dialog ── */}
       <Dialog open={!!deletingSuggestionId} onOpenChange={(open) => !open && setDeletingSuggestionId(null)}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0e0e12] border-white/15 text-white p-6 rounded-3xl shadow-2xl">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0a0a0e] border-white/15 text-white p-6 rounded-3xl">
           <DialogHeader>
             <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 mb-2">
-              <Trash2 size={22} />
+              <Trash2 size={20} />
             </div>
-            <DialogTitle className="text-lg font-black font-display">
-              Delete Category Suggestion?
+            <DialogTitle className="font-display text-lg font-black text-white">
+              Delete Suggestion?
             </DialogTitle>
             <DialogDescription className="text-xs text-white/60">
               This action will permanently delete this suggestion and all its associated community votes.

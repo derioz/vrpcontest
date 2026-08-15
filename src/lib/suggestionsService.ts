@@ -10,14 +10,46 @@ import {
   where,
   onSnapshot,
   runTransaction,
-  writeBatch,
-  serverTimestamp
+  writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { CategorySuggestion, SuggestionSortOption, CreateSuggestionInput } from '../types';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
 const VOTES_COLLECTION = 'category_suggestion_votes';
+
+/**
+ * Helper to sort suggestions array according to selected criteria.
+ * Top Score: Primary = Net Score, Secondary = Upvotes, Tertiary = Least Downvotes, Tiebreak = Newest.
+ */
+export function sortSuggestions(
+  items: CategorySuggestion[],
+  sortBy: SuggestionSortOption
+): CategorySuggestion[] {
+  return [...items].sort((a, b) => {
+    if (sortBy === 'top') {
+      // 1. Primary: Net score (upvotes - downvotes)
+      if (b.score !== a.score) return b.score - a.score;
+      // 2. Secondary: If score is identical, compare upvote count
+      if (b.upvotes !== a.upvotes) return b.upvotes - a.upvotes;
+      // 3. Tertiary: If upvotes are identical, prefer the one with LEAST downvotes
+      if (a.downvotes !== b.downvotes) return a.downvotes - b.downvotes;
+      // 4. Tie-break: Newest created date
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    if (sortBy === 'lowest') {
+      if (a.score !== b.score) return a.score - b.score;
+      if (a.upvotes !== b.upvotes) return a.upvotes - b.upvotes;
+      if (b.downvotes !== a.downvotes) return b.downvotes - a.downvotes;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    if (sortBy === 'oldest') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    // 'newest' (default)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
 
 /**
  * Fetch all category suggestions with computed scores and the current user's personal vote.
@@ -28,7 +60,7 @@ export async function fetchCategorySuggestions(
 ): Promise<CategorySuggestion[]> {
   try {
     const suggestionsSnap = await getDocs(collection(db, SUGGESTIONS_COLLECTION));
-    const rawSuggestions: CategorySuggestion[] = [];
+    const itemsMap = new Map<string, CategorySuggestion>();
 
     // Map of user's votes if authenticated
     const userVotesMap = new Map<string, number>();
@@ -52,7 +84,7 @@ export async function fetchCategorySuggestions(
       const downvotes = Number(data.downvotes || 0);
       const score = Number(data.score !== undefined ? data.score : upvotes - downvotes);
 
-      rawSuggestions.push({
+      itemsMap.set(docSnap.id, {
         id: docSnap.id,
         category_name: data.category_name || '',
         description: data.description || '',
@@ -74,7 +106,7 @@ export async function fetchCategorySuggestions(
       });
     });
 
-    return sortSuggestions(rawSuggestions, sortBy);
+    return sortSuggestions(Array.from(itemsMap.values()), sortBy);
   } catch (error: any) {
     console.error('Error fetching category suggestions from Firestore:', error);
     throw new Error(error?.message || 'Failed to load category suggestions.');
@@ -82,7 +114,7 @@ export async function fetchCategorySuggestions(
 }
 
 /**
- * Subscribe to real-time updates for category suggestions.
+ * Subscribe to real-time updates for category suggestions with instant vote-state reflection.
  */
 export function subscribeCategorySuggestions(
   userId: string | null,
@@ -91,40 +123,52 @@ export function subscribeCategorySuggestions(
   onError?: (err: Error) => void
 ): () => void {
   const userVotesMap = new Map<string, number>();
+  let latestRawSuggestions: CategorySuggestion[] = [];
 
-  // Fetch initial user votes if userId provided
-  const loadUserVotes = async () => {
-    if (!userId) return;
-    try {
-      const userVotesQuery = query(
-        collection(db, VOTES_COLLECTION),
-        where('user_id', '==', String(userId))
-      );
-      const snap = await getDocs(userVotesQuery);
-      snap.forEach((docSnap) => {
-        const d = docSnap.data();
-        if (d.suggestion_id) {
-          userVotesMap.set(d.suggestion_id, Number(d.vote || 0));
-        }
-      });
-    } catch (e) {
-      console.warn('Error loading initial user votes map:', e);
-    }
+  const emitSorted = () => {
+    const combined = latestRawSuggestions.map((s) => ({
+      ...s,
+      user_vote: userVotesMap.get(s.id) || 0
+    }));
+    onUpdate(sortSuggestions(combined, sortBy));
   };
 
-  loadUserVotes();
+  // 1. Subscribe to user votes if userId provided
+  let unsubVotes: (() => void) | null = null;
+  if (userId) {
+    const userVotesQuery = query(
+      collection(db, VOTES_COLLECTION),
+      where('user_id', '==', String(userId))
+    );
+    unsubVotes = onSnapshot(
+      userVotesQuery,
+      (voteSnap) => {
+        userVotesMap.clear();
+        voteSnap.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.suggestion_id) {
+            userVotesMap.set(d.suggestion_id, Number(d.vote || 0));
+          }
+        });
+        emitSorted();
+      },
+      (voteErr) => console.warn('Vote listener notice:', voteErr)
+    );
+  }
 
-  const unsubscribe = onSnapshot(
+  // 2. Subscribe to suggestions collection
+  const unsubSuggestions = onSnapshot(
     collection(db, SUGGESTIONS_COLLECTION),
     (snapshot) => {
-      const items: CategorySuggestion[] = [];
+      const itemsMap = new Map<string, CategorySuggestion>();
+
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         const upvotes = Number(data.upvotes || 0);
         const downvotes = Number(data.downvotes || 0);
         const score = Number(data.score !== undefined ? data.score : upvotes - downvotes);
 
-        items.push({
+        itemsMap.set(docSnap.id, {
           id: docSnap.id,
           category_name: data.category_name || '',
           description: data.description || '',
@@ -146,7 +190,8 @@ export function subscribeCategorySuggestions(
         });
       });
 
-      onUpdate(sortSuggestions(items, sortBy));
+      latestRawSuggestions = Array.from(itemsMap.values());
+      emitSorted();
     },
     (err) => {
       console.error('Snapshot error for category suggestions:', err);
@@ -154,7 +199,10 @@ export function subscribeCategorySuggestions(
     }
   );
 
-  return unsubscribe;
+  return () => {
+    unsubSuggestions();
+    if (unsubVotes) unsubVotes();
+  };
 }
 
 /**
@@ -204,6 +252,13 @@ export async function submitCategorySuggestion(
 
 /**
  * Cast, toggle, or invert a vote on a category suggestion using Firestore atomic transactions.
+ * Exact Reddit Rules:
+ * - Upvote clicked when not voted: vote = 1, score +1, upvotes +1
+ * - Upvote clicked when already upvoted: vote = 0 (unvote), score -1, upvotes -1
+ * - Downvote clicked when not voted: vote = -1, score -1, downvotes +1
+ * - Downvote clicked when already downvoted: vote = 0 (unvote), score +1, downvotes -1
+ * - Upvote clicked when downvoted: vote = 1, downvotes -1, upvotes +1, score +2
+ * - Downvote clicked when upvoted: vote = -1, upvotes -1, downvotes +1, score -2
  */
 export async function castCategorySuggestionVote(
   suggestionId: string,
@@ -230,16 +285,17 @@ export async function castCategorySuggestionVote(
     }
 
     const suggestionData = suggestionDocSnap.data();
-    let currentUpvotes = Number(suggestionData.upvotes || 0);
-    let currentDownvotes = Number(suggestionData.downvotes || 0);
+    let currentUpvotes = Math.max(0, Number(suggestionData.upvotes || 0));
+    let currentDownvotes = Math.max(0, Number(suggestionData.downvotes || 0));
 
     const oldVote = voteDocSnap.exists() ? Number(voteDocSnap.data().vote || 0) : 0;
     const newVote = requestedVote;
 
-    // Adjust counts
+    // Adjust counts based on old vote removal
     if (oldVote === 1) currentUpvotes = Math.max(0, currentUpvotes - 1);
     if (oldVote === -1) currentDownvotes = Math.max(0, currentDownvotes - 1);
 
+    // Apply new vote addition
     if (newVote === 1) currentUpvotes += 1;
     if (newVote === -1) currentDownvotes += 1;
 
@@ -286,7 +342,6 @@ export async function castCategorySuggestionVote(
 export async function deleteCategorySuggestion(suggestionId: string): Promise<boolean> {
   const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
 
-  // Delete all votes associated with this suggestion
   try {
     const votesQuery = query(
       collection(db, VOTES_COLLECTION),
@@ -326,28 +381,4 @@ export async function updateCategorySuggestionStatus(
     console.error('Error updating suggestion status:', error);
     throw new Error(error?.message || 'Failed to update suggestion status.');
   }
-}
-
-/**
- * Helper to sort suggestions array according to selected criteria.
- */
-function sortSuggestions(
-  items: CategorySuggestion[],
-  sortBy: SuggestionSortOption
-): CategorySuggestion[] {
-  return items.sort((a, b) => {
-    if (sortBy === 'top') {
-      if (b.score !== a.score) return b.score - a.score;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    }
-    if (sortBy === 'lowest') {
-      if (a.score !== b.score) return a.score - b.score;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    }
-    if (sortBy === 'oldest') {
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-    }
-    // 'newest' (default)
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
 }
