@@ -73,9 +73,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Intuitive Admin Voting Phrasing & Dynamic Threshold Messaging: Simplified staff decision displays to dynamic countdown status ("Waiting for 1 more vote to move to Open for Voting" / "Waiting for 1 more vote to approve for contest") with explicit contest context ("Use in Upcoming Contest?").
 • Public Community User Vote Telemetry in Admin Cards: Admin suggestion cards prominently display public community scores, upvote/downvote totals, and hover voter popovers alongside staff decision metrics.
 • Multi-Strategy Live Discord Avatar Sync ("Pull Discord Photo"): Upgraded the avatar refresh flow to fetch the latest Discord photo directly from Discord API via OAuth bearer tokens, guild member lookups, and user CDN endpoints, resolving avatar cache staleness.
+• Global Discord Avatar Persistence & Retroactive Site-Wide Sync: Ensured pulled Discord photos persist in localStorage and Firestore user profiles across refreshes, automatically synchronizing retroactively across existing photo submissions, new entries, and category proposals.
 • Verified Feed Manual Refresh: Ensured the manual refresh button in the Admin Console re-fetches and synchronizes category proposals and staff decisions seamlessly.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 10:48 PM',
+    date: 'Aug 14, 2026 at 10:52 PM',
   },
   {
     id: 'release-20260813-2010',

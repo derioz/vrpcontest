@@ -550,7 +550,8 @@ export default function App() {
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.id;
 
-      // Check Firestore persistent profile for custom display name & DiceBear avatar preferences
+      // Check Firestore persistent profile for custom display name, DiceBear preferences, and pulled Discord photo
+      let persistentPhotoUrl = localStorage.getItem('user_photo_url_' + currentUser.id) || null;
       try {
         const userDocRef = doc(db, 'users', currentUser.id);
         const userDoc = await getDoc(userDocRef);
@@ -559,6 +560,11 @@ export default function App() {
           if (uData.custom_display_name) displayName = uData.custom_display_name;
           if (uData.avatar_style) avatarStyle = uData.avatar_style as DiceBearStyleName;
           if (uData.avatar_seed) avatarSeed = uData.avatar_seed;
+          if (uData.photo_url) persistentPhotoUrl = uData.photo_url;
+          else if (uData.avatar_url) persistentPhotoUrl = uData.avatar_url;
+          if (persistentPhotoUrl) {
+            localStorage.setItem('user_photo_url_' + currentUser.id, persistentPhotoUrl);
+          }
         } else {
           await setDoc(userDocRef, {
             uid: currentUser.id,
@@ -574,8 +580,10 @@ export default function App() {
         console.warn("User profile doc fetch error:", userErr);
       }
 
-      // Try Discord profile picture first; fall back to DiceBear SVG avatar if missing
-      const discordAvatar = meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
+      // Priority 1: Pulled Discord avatar saved in profile / localStorage
+      // Priority 2: Discord metadata avatar from OAuth session
+      // Priority 3: DiceBear SVG fallback
+      const discordAvatar = persistentPhotoUrl || meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
       const photoURL = discordAvatar || getDiceBearAvatarUrl(avatarSeed, avatarStyle);
       const hasCustomOAuthAvatar = !!discordAvatar;
 
@@ -1173,6 +1181,10 @@ export default function App() {
         discord_name: discordName,
         user_id: user?.uid || auth.currentUser?.uid || '',
         uploader_uid: auth.currentUser?.uid || user?.uid || '',
+        user_photo_url: user?.photoURL || null,
+        author_avatar_url: user?.photoURL || null,
+        avatar_seed: user?.avatarSeed || null,
+        avatar_style: user?.avatarStyle || null,
         image_url: publicKey ? censoredURL : downloadURL,
         censored_image_url: censoredURL,
         encrypted_image_url: encryptedURL,
@@ -1445,17 +1457,59 @@ export default function App() {
           hasCustomOAuthAvatar: true,
         } : null);
 
+        // Cache in localStorage for instant 0ms retrieval on page loads
+        localStorage.setItem('user_photo_url_' + user.uid, freshAvatarUrl);
+
         try {
+          // 1. Save in Firestore users collection
           const userDocRef = doc(db, 'users', user.uid);
           await setDoc(userDocRef, {
             photo_url: freshAvatarUrl,
+            avatar_url: freshAvatarUrl,
             updated_at: new Date().toISOString(),
           }, { merge: true });
+
+          // 2. Retroactively update all active photo submissions by this user
+          const photosQuery = query(collection(db, 'photos'), where('user_id', '==', user.uid));
+          const photosSnap = await getDocs(photosQuery);
+          if (!photosSnap.empty) {
+            const batch = writeBatch(db);
+            photosSnap.docs.forEach((photoDoc) => {
+              batch.update(photoDoc.ref, {
+                user_photo_url: freshAvatarUrl,
+                author_avatar_url: freshAvatarUrl,
+                submitter_avatar: freshAvatarUrl,
+              });
+            });
+            await batch.commit();
+          }
+
+          // 3. Retroactively update all category suggestions by this user
+          const suggestionsQuery = query(collection(db, 'category_suggestions'), where('user_id', '==', user.uid));
+          const suggestionsSnap = await getDocs(suggestionsQuery);
+          if (!suggestionsSnap.empty) {
+            const batch = writeBatch(db);
+            suggestionsSnap.docs.forEach((sDoc) => {
+              batch.update(sDoc.ref, {
+                author_avatar_url: freshAvatarUrl,
+              });
+            });
+            await batch.commit();
+          }
+
+          // 4. Optimistically update local gallery photos state so avatar displays instantly
+          setAllPhotos((prev) =>
+            prev.map((p) =>
+              p.user_id === user.uid || (p as any).uploader_uid === user.uid
+                ? { ...p, user_photo_url: freshAvatarUrl, author_avatar_url: freshAvatarUrl }
+                : p
+            )
+          );
         } catch (dbErr) {
-          console.warn('Failed to save photo_url in Firestore:', dbErr);
+          console.warn('Failed to sync photo_url across collections in Firestore:', dbErr);
         }
 
-        toast.success('Successfully updated Discord profile picture!', { id: toastId });
+        toast.success('Successfully updated Discord profile picture across the entire website!', { id: toastId });
       } else {
         toast.error('No Discord avatar found. Make sure your Discord account has an avatar uploaded.', { id: toastId });
       }
