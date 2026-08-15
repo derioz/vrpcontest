@@ -13,28 +13,44 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { CategorySuggestion, SuggestionSortOption, CreateSuggestionInput } from '../types';
+import {
+  CategorySuggestion,
+  SuggestionSortOption,
+  CreateSuggestionInput,
+  SuggestionVoterSummary
+} from '../types';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
 const VOTES_COLLECTION = 'category_suggestion_votes';
 
+export interface SuggestionVoter {
+  userId: string;
+  discordId?: string;
+  discordName?: string;
+  authorAvatarUrl?: string;
+  avatarSeed?: string;
+  avatarStyle?: string;
+  vote: 1 | -1;
+  updatedAt: string;
+}
+
+// In-memory LRU voter cache to prevent redundant Firestore queries
+const voterLookupMemoryCache = new Map<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[]; timestamp: number }>();
+const CACHE_TTL_MS = 60000; // 1 minute cache TTL
+
 /**
- * Helper to sort suggestions array according to selected criteria.
+ * High-performance in-memory sorting utility.
  * Top Score: Primary = Net Score, Secondary = Upvotes, Tertiary = Least Downvotes, Tiebreak = Newest.
  */
 export function sortSuggestions(
   items: CategorySuggestion[],
-  sortBy: SuggestionSortOption
+  sortBy: SuggestionSortOption = 'top'
 ): CategorySuggestion[] {
   return [...items].sort((a, b) => {
     if (sortBy === 'top') {
-      // 1. Primary: Net score (upvotes - downvotes)
       if (b.score !== a.score) return b.score - a.score;
-      // 2. Secondary: If score is identical, compare upvote count
       if (b.upvotes !== a.upvotes) return b.upvotes - a.upvotes;
-      // 3. Tertiary: If upvotes are identical, prefer the one with LEAST downvotes
       if (a.downvotes !== b.downvotes) return a.downvotes - b.downvotes;
-      // 4. Tie-break: Newest created date
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     }
     if (sortBy === 'lowest') {
@@ -46,7 +62,6 @@ export function sortSuggestions(
     if (sortBy === 'oldest') {
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     }
-    // 'newest' (default)
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 }
@@ -56,13 +71,13 @@ export function sortSuggestions(
  */
 export async function fetchCategorySuggestions(
   userId?: string | null,
-  sortBy: SuggestionSortOption = 'newest'
+  sortBy: SuggestionSortOption = 'top'
 ): Promise<CategorySuggestion[]> {
   try {
     const suggestionsSnap = await getDocs(collection(db, SUGGESTIONS_COLLECTION));
     const itemsMap = new Map<string, CategorySuggestion>();
 
-    // Map of user's votes if authenticated
+    // Map of user's personal votes if authenticated
     const userVotesMap = new Map<string, number>();
     if (userId) {
       const userVotesQuery = query(
@@ -101,6 +116,7 @@ export async function fetchCategorySuggestions(
         upvotes,
         downvotes,
         user_vote: userVotesMap.get(docSnap.id) || 0,
+        voters_sample: Array.isArray(data.voters_sample) ? data.voters_sample : [],
         created_at: data.created_at || new Date().toISOString(),
         updated_at: data.updated_at || new Date().toISOString()
       });
@@ -114,26 +130,46 @@ export async function fetchCategorySuggestions(
 }
 
 /**
- * Subscribe to real-time updates for category suggestions with instant vote-state reflection.
+ * Real-time subscription to category suggestions.
+ * Designed for maximum read efficiency: maintains in-memory document state and emits cleanly.
  */
 export function subscribeCategorySuggestions(
   userId: string | null,
-  sortBy: SuggestionSortOption,
   onUpdate: (suggestions: CategorySuggestion[]) => void,
   onError?: (err: Error) => void
+): () => void;
+export function subscribeCategorySuggestions(
+  userId: string | null,
+  sortByOrOnUpdate: SuggestionSortOption | ((suggestions: CategorySuggestion[]) => void),
+  onUpdateOrOnError?: ((suggestions: CategorySuggestion[]) => void) | ((err: Error) => void),
+  onError?: (err: Error) => void
 ): () => void {
+  // Handle overloaded signatures gracefully
+  let sortBy: SuggestionSortOption | null = null;
+  let onUpdate: (suggestions: CategorySuggestion[]) => void;
+  let actualOnError: ((err: Error) => void) | undefined;
+
+  if (typeof sortByOrOnUpdate === 'function') {
+    onUpdate = sortByOrOnUpdate;
+    actualOnError = onUpdateOrOnError as (err: Error) => void;
+  } else {
+    sortBy = sortByOrOnUpdate;
+    onUpdate = onUpdateOrOnError as (suggestions: CategorySuggestion[]) => void;
+    actualOnError = onError;
+  }
+
   const userVotesMap = new Map<string, number>();
   let latestRawSuggestions: CategorySuggestion[] = [];
 
-  const emitSorted = () => {
+  const emit = () => {
     const combined = latestRawSuggestions.map((s) => ({
       ...s,
       user_vote: userVotesMap.get(s.id) || 0
     }));
-    onUpdate(sortSuggestions(combined, sortBy));
+    onUpdate(sortBy ? sortSuggestions(combined, sortBy) : combined);
   };
 
-  // 1. Subscribe to user votes if userId provided
+  // 1. Subscribe to current user's votes if authenticated (1 single lightweight query)
   let unsubVotes: (() => void) | null = null;
   if (userId) {
     const userVotesQuery = query(
@@ -150,13 +186,13 @@ export function subscribeCategorySuggestions(
             userVotesMap.set(d.suggestion_id, Number(d.vote || 0));
           }
         });
-        emitSorted();
+        emit();
       },
       (voteErr) => console.warn('Vote listener notice:', voteErr)
     );
   }
 
-  // 2. Subscribe to suggestions collection
+  // 2. Subscribe to suggestions collection (1 single collection listener)
   const unsubSuggestions = onSnapshot(
     collection(db, SUGGESTIONS_COLLECTION),
     (snapshot) => {
@@ -185,17 +221,18 @@ export function subscribeCategorySuggestions(
           upvotes,
           downvotes,
           user_vote: userVotesMap.get(docSnap.id) || 0,
+          voters_sample: Array.isArray(data.voters_sample) ? data.voters_sample : [],
           created_at: data.created_at || new Date().toISOString(),
           updated_at: data.updated_at || new Date().toISOString()
         });
       });
 
       latestRawSuggestions = Array.from(itemsMap.values());
-      emitSorted();
+      emit();
     },
     (err) => {
       console.error('Snapshot error for category suggestions:', err);
-      if (onError) onError(err);
+      if (actualOnError) actualOnError(err);
     }
   );
 
@@ -207,6 +244,7 @@ export function subscribeCategorySuggestions(
 
 /**
  * Submit a new category suggestion attached to the user's Discord profile.
+ * Generates 1 single document write to Cloud Firestore.
  */
 export async function submitCategorySuggestion(
   input: CreateSuggestionInput
@@ -222,7 +260,7 @@ export async function submitCategorySuggestion(
   const suggestionRef = doc(collection(db, SUGGESTIONS_COLLECTION));
   const now = new Date().toISOString();
 
-  const payload = {
+  const payload: any = {
     id: suggestionRef.id,
     category_name: trimmedName,
     description: trimmedDesc,
@@ -238,6 +276,7 @@ export async function submitCategorySuggestion(
     score: 0,
     upvotes: 0,
     downvotes: 0,
+    voters_sample: [],
     created_at: now,
     updated_at: now
   };
@@ -250,26 +289,9 @@ export async function submitCategorySuggestion(
   };
 }
 
-export interface SuggestionVoter {
-  userId: string;
-  discordId?: string;
-  discordName?: string;
-  authorAvatarUrl?: string;
-  avatarSeed?: string;
-  avatarStyle?: string;
-  vote: 1 | -1;
-  updatedAt: string;
-}
-
 /**
  * Cast, toggle, or invert a vote on a category suggestion using Firestore atomic transactions.
- * Exact Reddit Rules:
- * - Upvote clicked when not voted: vote = 1, score +1, upvotes +1
- * - Upvote clicked when already upvoted: vote = 0 (unvote), score -1, upvotes -1
- * - Downvote clicked when not voted: vote = -1, score -1, downvotes +1
- * - Downvote clicked when already downvoted: vote = 0 (unvote), score +1, downvotes -1
- * - Upvote clicked when downvoted: vote = 1, downvotes -1, upvotes +1, score +2
- * - Downvote clicked when upvoted: vote = -1, upvotes -1, downvotes +1, score -2
+ * Maintains inlined `voters_sample` on the suggestion document to eliminate extra hover queries.
  */
 export async function castCategorySuggestionVote(
   suggestionId: string,
@@ -280,7 +302,7 @@ export async function castCategorySuggestionVote(
   avatarUrl?: string,
   avatarSeed?: string,
   avatarStyle?: string
-): Promise<{ score: number; user_vote: number; upvotes: number; downvotes: number }> {
+): Promise<{ score: number; user_vote: number; upvotes: number; downvotes: number; voters_sample?: SuggestionVoterSummary[] }> {
   if (!suggestionId || !userId) {
     throw new Error('Missing suggestion or user identifier for voting.');
   }
@@ -288,6 +310,9 @@ export async function castCategorySuggestionVote(
   const voteDocId = `${suggestionId}_${userId}`;
   const voteDocRef = doc(db, VOTES_COLLECTION, voteDocId);
   const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
+
+  // Invalidate memory cache for this suggestion
+  voterLookupMemoryCache.delete(suggestionId);
 
   return await runTransaction(db, async (transaction) => {
     const [voteDocSnap, suggestionDocSnap] = await Promise.all([
@@ -317,7 +342,28 @@ export async function castCategorySuggestionVote(
     const newScore = currentUpvotes - currentDownvotes;
     const now = new Date().toISOString();
 
-    // 1. Update Vote Document
+    // 1. Maintain inlined voters_sample (up to 40 most recent voters)
+    const existingSample: SuggestionVoterSummary[] = Array.isArray(suggestionData.voters_sample)
+      ? suggestionData.voters_sample
+      : [];
+    const filteredSample = existingSample.filter((v) => v.userId !== String(userId));
+
+    let updatedVotersSample: SuggestionVoterSummary[] = filteredSample;
+    if (newVote !== 0) {
+      const newVoterEntry: SuggestionVoterSummary = {
+        userId: String(userId),
+        discordId: discordId || null,
+        discordName: discordName || 'Discord User',
+        authorAvatarUrl: avatarUrl || null,
+        avatarSeed: avatarSeed || null,
+        avatarStyle: avatarStyle || 'botttsNeutral',
+        vote: newVote,
+        updatedAt: now
+      };
+      updatedVotersSample = [newVoterEntry, ...filteredSample].slice(0, 40);
+    }
+
+    // 2. Update Vote Document
     if (newVote === 0) {
       if (voteDocSnap.exists()) {
         transaction.delete(voteDocRef);
@@ -339,11 +385,12 @@ export async function castCategorySuggestionVote(
       });
     }
 
-    // 2. Update Suggestion Document Totals
+    // 3. Update Suggestion Document Totals & Inlined Voter Sample
     transaction.update(suggestionDocRef, {
       score: newScore,
       upvotes: currentUpvotes,
       downvotes: currentDownvotes,
+      voters_sample: updatedVotersSample,
       updated_at: now
     });
 
@@ -351,17 +398,50 @@ export async function castCategorySuggestionVote(
       score: newScore,
       user_vote: newVote,
       upvotes: currentUpvotes,
-      downvotes: currentDownvotes
+      downvotes: currentDownvotes,
+      voters_sample: updatedVotersSample
     };
   });
 }
 
 /**
  * Fetch all voters for a specific category suggestion (upvoters and downvoters).
+ * Uses in-memory cache and falls back to Firestore only when necessary.
  */
 export async function fetchSuggestionVoters(
-  suggestionId: string
+  suggestionId: string,
+  inlinedVoters?: SuggestionVoterSummary[]
 ): Promise<{ upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }> {
+  // 1. If suggestion already carries inlined voters_sample, parse instantly with ZERO Firestore reads!
+  if (Array.isArray(inlinedVoters) && inlinedVoters.length > 0) {
+    const upvoters: SuggestionVoter[] = [];
+    const downvoters: SuggestionVoter[] = [];
+
+    inlinedVoters.forEach((v) => {
+      const item: SuggestionVoter = {
+        userId: v.userId,
+        discordId: v.discordId,
+        discordName: v.discordName || 'Community Member',
+        authorAvatarUrl: v.authorAvatarUrl,
+        avatarSeed: v.avatarSeed || v.userId,
+        avatarStyle: v.avatarStyle || 'botttsNeutral',
+        vote: v.vote,
+        updatedAt: v.updatedAt
+      };
+      if (v.vote === 1) upvoters.push(item);
+      else if (v.vote === -1) downvoters.push(item);
+    });
+
+    return { upvoters, downvoters };
+  }
+
+  // 2. Check LRU memory cache
+  const cached = voterLookupMemoryCache.get(suggestionId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return { upvoters: cached.upvoters, downvoters: cached.downvoters };
+  }
+
+  // 3. Query Firestore category_suggestion_votes as a fallback
   try {
     const votesQuery = query(
       collection(db, VOTES_COLLECTION),
@@ -385,13 +465,12 @@ export async function fetchSuggestionVoters(
         updatedAt: data.updated_at || data.created_at || new Date().toISOString()
       };
 
-      if (voter.vote === 1) {
-        upvoters.push(voter);
-      } else if (voter.vote === -1) {
-        downvoters.push(voter);
-      }
+      if (voter.vote === 1) upvoters.push(voter);
+      else if (voter.vote === -1) downvoters.push(voter);
     });
 
+    const result = { upvoters, downvoters, timestamp: Date.now() };
+    voterLookupMemoryCache.set(suggestionId, result);
     return { upvoters, downvoters };
   } catch (error: any) {
     console.error('Error fetching suggestion voters:', error);
@@ -400,10 +479,11 @@ export async function fetchSuggestionVoters(
 }
 
 /**
- * Delete a category suggestion and all of its associated vote documents.
+ * Delete a category suggestion and all of its associated vote documents in a single atomic batch.
  */
 export async function deleteCategorySuggestion(suggestionId: string): Promise<boolean> {
   const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
+  voterLookupMemoryCache.delete(suggestionId);
 
   try {
     const votesQuery = query(
@@ -428,6 +508,7 @@ export async function deleteCategorySuggestion(suggestionId: string): Promise<bo
 
 /**
  * Update moderation status of a suggestion (e.g. 'active', 'shortlisted', 'archived').
+ * Generates 1 single document write to Cloud Firestore.
  */
 export async function updateCategorySuggestionStatus(
   suggestionId: string,

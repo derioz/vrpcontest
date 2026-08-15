@@ -28,8 +28,10 @@ import { cn } from '../../lib/utils';
 import { CategorySuggestion } from '../../types';
 import {
   fetchCategorySuggestions,
+  subscribeCategorySuggestions,
   deleteCategorySuggestion,
-  updateCategorySuggestionStatus
+  updateCategorySuggestionStatus,
+  sortSuggestions
 } from '../../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../../lib/dicebear';
 import { AdminHeader } from './AdminHeader';
@@ -52,25 +54,34 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
   const [deletingSuggestion, setDeletingSuggestion] = useState<CategorySuggestion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const loadData = async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    else setRefreshing(true);
+  useEffect(() => {
+    setLoading(true);
+    const unsub = subscribeCategorySuggestions(
+      null,
+      (data) => {
+        setSuggestions(data);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Admin suggestions subscription error:', err);
+        setLoading(false);
+      }
+    );
+    return () => unsub();
+  }, []);
 
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
     try {
       const data = await fetchCategorySuggestions(null, 'top');
       setSuggestions(data);
+      toast.success('Category suggestions refreshed');
     } catch (err: any) {
-      console.error('Error loading admin suggestions:', err);
-      toast.error('Failed to load category suggestions', { description: err.message });
+      toast.error('Failed to refresh', { description: err.message });
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   // Handle status toggle
   const handleStatusChange = async (suggestionId: string, newStatus: 'active' | 'shortlisted' | 'archived') => {
@@ -141,15 +152,7 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
       );
     }
 
-    if (sortBy === 'top') {
-      result.sort((a, b) => b.score - a.score);
-    } else if (sortBy === 'lowest') {
-      result.sort((a, b) => a.score - b.score);
-    } else if (sortBy === 'newest') {
-      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
-
-    return result;
+    return sortSuggestions(result, sortBy as any);
   }, [suggestions, statusFilter, searchQuery, sortBy]);
 
   return (
@@ -165,7 +168,7 @@ export function AdminSuggestionsTab({ onAddCategoryToContest }: AdminSuggestions
         actions={
           <div className="flex items-center gap-2">
             <button
-              onClick={() => loadData(false)}
+              onClick={() => handleManualRefresh()}
               disabled={refreshing}
               className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2"
             >

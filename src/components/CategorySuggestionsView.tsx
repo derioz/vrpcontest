@@ -87,7 +87,7 @@ export function CategorySuggestionsView({
   // Voting optimistic state locks
   const [votingLocks, setVotingLocks] = useState<Record<string, boolean>>({});
 
-  // Voter breakdown hover state & cache
+  // Voter breakdown hover state & memory cache
   const [hoveredVoters, setHoveredVoters] = useState<HoveredVotersState | null>(null);
   const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
 
@@ -138,7 +138,6 @@ export function CategorySuggestionsView({
         }
       }, 400);
 
-      // Auto-clear highlight after 3.2 seconds
       const fadeTimer = setTimeout(() => {
         setHighlightedSuggestionId(null);
       }, 3200);
@@ -150,20 +149,19 @@ export function CategorySuggestionsView({
     }
   }, [highlightedSuggestionId, suggestions]);
 
-  // ── Real-time Subscribe to category suggestions with instant vote-state reflection ──
+  // ── High-Efficiency Real-time Subscription: Runs ONLY on user auth change (Zero reads on sort/filter clicks!) ──
   useEffect(() => {
     setLoading(true);
 
     const unsubscribe = subscribeCategorySuggestions(
       effectiveUserId,
-      sortBy,
       (data) => {
         setSuggestions(data);
         setLoading(false);
       },
       (err) => {
         console.error('Error subscribing to category suggestions:', err);
-        fetchCategorySuggestions(effectiveUserId, sortBy)
+        fetchCategorySuggestions(effectiveUserId)
           .then((data) => setSuggestions(data))
           .catch((fetchErr) => console.error('Fallback fetch error:', fetchErr))
           .finally(() => setLoading(false));
@@ -178,12 +176,12 @@ export function CategorySuggestionsView({
       unsubscribe();
       clearTimeout(safetyTimer);
     };
-  }, [effectiveUserId, sortBy]);
+  }, [effectiveUserId]);
 
   const loadSuggestions = useCallback(async () => {
     setRefreshing(true);
     try {
-      const data = await fetchCategorySuggestions(effectiveUserId, sortBy);
+      const data = await fetchCategorySuggestions(effectiveUserId);
       setSuggestions(data);
     } catch (err: any) {
       console.error('Error refreshing suggestions:', err);
@@ -191,9 +189,9 @@ export function CategorySuggestionsView({
     } finally {
       setRefreshing(false);
     }
-  }, [effectiveUserId, sortBy]);
+  }, [effectiveUserId]);
 
-  // Handle Submit New Suggestion
+  // Handle Submit New Suggestion (1 Single Firestore Write)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -240,7 +238,6 @@ export function CategorySuggestionsView({
         status: 'active'
       });
 
-      // Reset form & modal. Real-time snapshot updates list without duplicate injection.
       setCategoryName('');
       setDescription('');
       setIsSubmitModalOpen(false);
@@ -256,7 +253,7 @@ export function CategorySuggestionsView({
     }
   };
 
-  // ── Reddit-Style Voting Mechanics ──
+  // ── Reddit-Style Voting Mechanics with Debounced Transaction ──
   const handleVote = async (suggestionId: string, requestedVote: 1 | -1) => {
     if (!currentUser) {
       toast.info('Sign in required', {
@@ -272,26 +269,23 @@ export function CategorySuggestionsView({
     if (!target) return;
 
     const currentVote = target.user_vote || 0;
-    // Reddit toggle: clicking the same active vote resets to 0 (unvote)
     const newVote: 1 | -1 | 0 = currentVote === requestedVote ? 0 : requestedVote;
 
     // Calculate optimistic counts
     let optUpvotes = target.upvotes;
     let optDownvotes = target.downvotes;
 
-    // Remove old vote
     if (currentVote === 1) optUpvotes = Math.max(0, optUpvotes - 1);
     if (currentVote === -1) optDownvotes = Math.max(0, optDownvotes - 1);
 
-    // Add new vote
     if (newVote === 1) optUpvotes += 1;
     if (newVote === -1) optDownvotes += 1;
 
     const optScore = optUpvotes - optDownvotes;
 
-    // Apply Optimistic Update & Re-sort to trigger smooth layout animation
-    setSuggestions((prev) => {
-      const updated = prev.map((s) => {
+    // Optimistically update state
+    setSuggestions((prev) =>
+      prev.map((s) => {
         if (s.id !== suggestionId) return s;
         return {
           ...s,
@@ -300,13 +294,12 @@ export function CategorySuggestionsView({
           upvotes: optUpvotes,
           downvotes: optDownvotes
         };
-      });
-      return sortSuggestions(updated, sortBy);
-    });
+      })
+    );
 
     setVotingLocks((prev) => ({ ...prev, [suggestionId]: true }));
 
-    // Invalidate voter cache for this suggestion so next hover is fresh
+    // Invalidate local voter cache for this suggestion
     setVotersCache((prev) => {
       const copy = { ...prev };
       delete copy[suggestionId];
@@ -325,38 +318,72 @@ export function CategorySuggestionsView({
         currentUser?.avatarStyle || 'botttsNeutral'
       );
 
-      // Reconcile with server response & sort
-      setSuggestions((prev) => {
-        const updated = prev.map((s) => {
+      // Reconcile with server response & updated inlined voters sample
+      setSuggestions((prev) =>
+        prev.map((s) => {
           if (s.id !== suggestionId) return s;
           return {
             ...s,
             score: res.score,
             user_vote: res.user_vote,
             upvotes: res.upvotes,
-            downvotes: res.downvotes
+            downvotes: res.downvotes,
+            voters_sample: res.voters_sample || s.voters_sample
           };
-        });
-        return sortSuggestions(updated, sortBy);
-      });
+        })
+      );
     } catch (err: any) {
       console.error('Vote failed:', err);
       // Rollback on error
-      setSuggestions((prev) => {
-        const rolledBack = prev.map((s) => {
+      setSuggestions((prev) =>
+        prev.map((s) => {
           if (s.id !== suggestionId) return s;
           return target;
-        });
-        return sortSuggestions(rolledBack, sortBy);
-      });
+        })
+      );
       toast.error('Failed to register vote', { description: err.message });
     } finally {
-      setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
+      setTimeout(() => {
+        setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
+      }, 300);
     }
   };
 
-  // ── Hover Voter Breakdown Handler ──
+  // ── Zero-Query In-Memory Hover Voter Breakdown ──
   const handleHoverVoters = useCallback(async (suggestionId: string, type: 'up' | 'down') => {
+    const target = suggestions.find((s) => s.id === suggestionId);
+    const inlined = target?.voters_sample;
+
+    // 1. If suggestion already carries inlined sample, parse in 0ms with zero network requests!
+    if (Array.isArray(inlined) && inlined.length > 0) {
+      const upvoters: SuggestionVoter[] = [];
+      const downvoters: SuggestionVoter[] = [];
+
+      inlined.forEach((v) => {
+        const item: SuggestionVoter = {
+          userId: v.userId,
+          discordId: v.discordId,
+          discordName: v.discordName || 'Community Member',
+          authorAvatarUrl: v.authorAvatarUrl,
+          avatarSeed: v.avatarSeed || v.userId,
+          avatarStyle: v.avatarStyle || 'botttsNeutral',
+          vote: v.vote,
+          updatedAt: v.updatedAt
+        };
+        if (v.vote === 1) upvoters.push(item);
+        else if (v.vote === -1) downvoters.push(item);
+      });
+
+      setHoveredVoters({
+        suggestionId,
+        type,
+        loading: false,
+        voters: type === 'up' ? upvoters : downvoters
+      });
+      return;
+    }
+
+    // 2. Otherwise check local session cache
     if (votersCache[suggestionId]) {
       setHoveredVoters({
         suggestionId,
@@ -375,7 +402,7 @@ export function CategorySuggestionsView({
     });
 
     try {
-      const result = await fetchSuggestionVoters(suggestionId);
+      const result = await fetchSuggestionVoters(suggestionId, inlined);
       setVotersCache((prev) => ({ ...prev, [suggestionId]: result }));
       setHoveredVoters((curr) => {
         if (curr && curr.suggestionId === suggestionId && curr.type === type) {
@@ -392,7 +419,7 @@ export function CategorySuggestionsView({
       console.error('Error fetching voters on hover:', err);
       setHoveredVoters((curr) => (curr && curr.suggestionId === suggestionId ? { ...curr, loading: false } : null));
     }
-  }, [votersCache]);
+  }, [suggestions, votersCache]);
 
   const handleLeaveVoters = useCallback(() => {
     setHoveredVoters(null);
@@ -414,7 +441,7 @@ export function CategorySuggestionsView({
     }
   };
 
-  // Filter suggestions by search query
+  // ── High-Performance In-Memory Filtering & Sorting (0 Firestore reads!) ──
   const filteredSuggestions = useMemo(() => {
     let result = [...suggestions];
 
@@ -774,7 +801,7 @@ export function CategorySuggestionsView({
                       </p>
                     </div>
 
-                    {/* Footer stats: Upvotes/Downvotes with Hover Voter Popovers & Multi-fallback Share button */}
+                    {/* Footer stats: Upvotes/Downvotes with Zero-Query Hover Popovers & Share button */}
                     <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-3 text-[10px] font-mono text-white/40 flex-wrap">
                       <div className="flex items-center gap-4">
                         {/* Upvotes Breakdown Hover Trigger */}

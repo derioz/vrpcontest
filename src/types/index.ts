@@ -61,6 +61,17 @@ export interface Theme {
     font: string;
 }
 
+export interface SuggestionVoterSummary {
+    userId: string;
+    discordName?: string;
+    authorAvatarUrl?: string;
+    avatarSeed?: string;
+    avatarStyle?: string;
+    discordId?: string;
+    vote: 1 | -1;
+    updatedAt: string;
+}
+
 export interface CategorySuggestion {
     id: string;
     category_name: string;
@@ -79,6 +90,7 @@ export interface CategorySuggestion {
     upvotes: number;
     downvotes: number;
     user_vote: number; // 1 (upvoted), -1 (downvoted), 0 (none)
+    voters_sample?: SuggestionVoterSummary[]; // Inlined voter breakdown to eliminate extra read queries
     created_at: string;
     updated_at?: string;
 }
@@ -88,6 +100,7 @@ export interface CategorySuggestionVote {
     suggestion_id: string;
     user_id: string;
     discord_id?: string;
+    discord_name?: string;
     vote: 1 | -1;
     created_at: string;
     updated_at?: string;

@@ -57,9 +57,13 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Multi-Fallback Share Button: Engineered clipboard copying with modern navigator.clipboard and legacy textarea execCommand fallbacks, automatically updating browser history and displaying immediate visual confirmation.
 • Admin-Only Profile Dropdown Relocation: Removed public navbar buttons and relocated Category Suggestions exclusively into the User Profile Dropdown, Mobile Drawer, and Sidebar Quick Actions, restricted by administrator privileges with ShieldCheck indicators.
 • Browser Refresh View & Section Persistence: Synchronized Category Suggestions view state and deep-link parameters with localStorage and browser search params, ensuring browser reloads keep the user on the suggestions view without resetting state.
-• Extended Gliding Motion Layout Physics: Tuned suggestion position reordering transition duration to 0.65s with cubic-bezier easing ([0.16, 1, 0.3, 1]), providing a visibly clear, smooth glide as proposals rise and fall in ranking.`,
+• Extended Gliding Motion Layout Physics: Tuned suggestion position reordering transition duration to 0.65s with cubic-bezier easing ([0.16, 1, 0.3, 1]), providing a visibly clear, smooth glide as proposals rise and fall in ranking.
+• Firestore Read & Write Optimization: Overhauled the entire Category Suggestions data layer to drastically minimize Firestore read and write costs across all user sessions.
+• Zero-Read Client Sorting & Search Filtering: Decoupled sorting and text search from Firestore queries—all sorting (Top, Newest, Lowest, Oldest) and multi-keyword filtering now execute 100% in-memory via useMemo, eliminating redundant collection re-reads on tab toggles.
+• Inlined Document Voter Summaries: Embedded lightweight voter sample payloads directly into category suggestion documents during vote transactions, allowing hover popovers to resolve instantaneously with zero extra Firestore queries.
+• Client-Side LRU Memory Cache & Vote Debounce: Added in-memory voter caching with a 60-second TTL and client-side vote locks to prevent transaction contention and rapid spam-click writes.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 10:08 PM',
+    date: 'Aug 14, 2026 at 10:15 PM',
   },
   {
     id: 'release-20260813-2010',
