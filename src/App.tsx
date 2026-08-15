@@ -95,11 +95,12 @@ import { Category, Photo, Rule, Theme, ArchivedWinner } from './types';
 
 const UploadForm = lazy(() => import('./components/UploadForm'));
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
-const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView').then(m => ({ default: m.CategorySuggestionsView })));
+const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView'));
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 import AdminPanel from './components/admin/AdminPanel';
 import { ContestClosedModal } from './components/ContestClosedModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 
 
@@ -3309,21 +3310,25 @@ export default function App() {
 
         {/* Archived Winners Fullscreen Render */}
         {showArchivedWinners && (
-          <Suspense fallback={null}>
-            <ArchivedWinnersView currentUser={user} onClose={() => setShowArchivedWinners(false)} />
-          </Suspense>
+          <ErrorBoundary fallbackTitle="Hall of Fame Error" onReset={() => setShowArchivedWinners(false)}>
+            <Suspense fallback={<div className="fixed inset-0 z-[150] bg-[#060608] flex items-center justify-center text-amber-400 font-mono text-xs">Loading Hall of Fame...</div>}>
+              <ArchivedWinnersView currentUser={user} onClose={() => setShowArchivedWinners(false)} />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* Category Suggestions Fullscreen Render */}
         {showCategorySuggestions && (
-          <Suspense fallback={<div className="min-h-screen bg-[#050507] flex items-center justify-center text-fivem-orange font-mono text-xs">Loading Category Suggestions...</div>}>
-            <CategorySuggestionsView
-              currentUser={user}
-              isAdmin={isAdmin}
-              onClose={() => setShowCategorySuggestions(false)}
-              onOpenSignIn={() => setShowSignInModal(true)}
-            />
-          </Suspense>
+          <ErrorBoundary fallbackTitle="Category Suggestions Error" onReset={() => setShowCategorySuggestions(false)}>
+            <Suspense fallback={<div className="fixed inset-0 z-[150] bg-[#050507] flex items-center justify-center text-fivem-orange font-mono text-xs">Loading Category Suggestions...</div>}>
+              <CategorySuggestionsView
+                currentUser={user}
+                isAdmin={isAdmin}
+                onClose={() => setShowCategorySuggestions(false)}
+                onOpenSignIn={() => setShowSignInModal(true)}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
       </AnimatePresence>
 

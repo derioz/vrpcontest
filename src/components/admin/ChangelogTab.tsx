@@ -47,9 +47,11 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • One-Click Starter Rules Templates: Integrated quick template presets ("Full Official Rules" and "Short & Compact") and quick formatting syntax chips into the Markdown toolbar for rapid contest rule authoring.
 • Dual-Mode Split Preview in Contest Creator: Upgraded the "Create New Contest Round" builder with the full split-view Markdown toolbar and real-time live preview panel matching the active contest editor.
 • Front Page Markdown Typography Synchronization: Aligned the main landing page rules section (#rules) with the exact same typography, custom heading accents (#, ##, ###), bold/italic highlights, blockquote callouts, tables, and link styling as the admin live preview.
-• Standalone Platform Rules Editor: Added a standalone fallback rules management panel in Contest Setup so administrators can configure global platform rules even when no active contest round is currently deployed.`,
+• Standalone Platform Rules Editor: Added a standalone fallback rules management panel in Contest Setup so administrators can configure global platform rules even when no active contest round is currently deployed.
+• Category Suggestions Viewport Fix & Icon Import Resolution: Fixed an issue where opening Category Suggestions could render a blank screen by resolving an unimported History icon reference and upgrading CategorySuggestionsView to a fixed full-screen viewport overlay (fixed inset-0 z-[150]) with responsive overflow scrolling matching the Hall of Fame Vault.
+• Viewport-Level React Error Boundary: Implemented a robust ErrorBoundary wrapper around full-screen views (Category Suggestions, Hall of Fame, Analytics) to intercept any runtime exceptions gracefully, displaying actionable diagnostic cards with one-click retry and return actions instead of blank pages.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 9:41 PM',
+    date: 'Aug 14, 2026 at 9:45 PM',
   },
   {
     id: 'release-20260813-2010',

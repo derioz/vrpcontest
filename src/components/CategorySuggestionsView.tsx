@@ -23,13 +23,15 @@ import {
   Layers,
   User,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { CategorySuggestion, SuggestionSortOption } from '../types';
 import {
   fetchCategorySuggestions,
+  subscribeCategorySuggestions,
   submitCategorySuggestion,
   castCategorySuggestionVote,
   deleteCategorySuggestion
@@ -78,28 +80,50 @@ export function CategorySuggestionsView({
 
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
 
-  // Load suggestions
-  const loadSuggestions = useCallback(async (showLoadingSpinner = true) => {
-    if (showLoadingSpinner) setLoading(true);
-    else setRefreshing(true);
+  // Real-time subscribe to category suggestions with safety fallback
+  useEffect(() => {
+    setLoading(true);
 
+    const unsubscribe = subscribeCategorySuggestions(
+      effectiveUserId,
+      sortBy,
+      (data) => {
+        setSuggestions(data);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error subscribing to category suggestions:', err);
+        // Fallback to fetch
+        fetchCategorySuggestions(effectiveUserId, sortBy)
+          .then((data) => setSuggestions(data))
+          .catch((fetchErr) => console.error('Fallback fetch error:', fetchErr))
+          .finally(() => setLoading(false));
+      }
+    );
+
+    // Guaranteed safety timeout: never remain in blank/loading state indefinitely
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(safetyTimer);
+    };
+  }, [effectiveUserId, sortBy]);
+
+  const loadSuggestions = useCallback(async () => {
+    setRefreshing(true);
     try {
       const data = await fetchCategorySuggestions(effectiveUserId, sortBy);
       setSuggestions(data);
     } catch (err: any) {
-      console.error('Error loading suggestions:', err);
-      toast.error('Failed to load category suggestions', {
-        description: err.message || 'Please check your connection and try again.'
-      });
+      console.error('Error refreshing suggestions:', err);
+      toast.error('Failed to refresh category suggestions');
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   }, [effectiveUserId, sortBy]);
-
-  useEffect(() => {
-    loadSuggestions();
-  }, [loadSuggestions]);
 
   // Handle Submit New Suggestion
   const handleSubmit = async (e: React.FormEvent) => {
@@ -295,7 +319,7 @@ export function CategorySuggestionsView({
   };
 
   return (
-    <div className="min-h-screen bg-[#050507] text-white flex flex-col relative overflow-x-hidden">
+    <div className="fixed inset-0 z-[150] bg-[#050507] text-white flex flex-col overflow-y-auto overflow-x-hidden w-full max-w-full transform-gpu scrollbar-gutter-stable">
       {/* ── Background Aesthetics ── */}
       <div className="absolute inset-0 bg-[#060608] pointer-events-none" />
       <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="rgba(234, 88, 12, 0.25)" />
@@ -798,3 +822,5 @@ export function CategorySuggestionsView({
     </div>
   );
 }
+
+export default CategorySuggestionsView;
