@@ -52,10 +52,14 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Viewport-Level React Error Boundary: Implemented a robust ErrorBoundary wrapper around full-screen views (Category Suggestions, Hall of Fame, Analytics) to intercept any runtime exceptions gracefully, displaying actionable diagnostic cards with one-click retry and return actions instead of blank pages.
 • Duplicate Submission Bug Resolution: Eliminated optimistic state collisions during proposal submission by relying exclusively on Firestore onSnapshot document deduplication, preventing ghost duplicate entries from flashing before first vote.
 • Spring-Animated Reordering Physics: Integrated GPU-accelerated Framer Motion layout physics (motion.div layout) on all category suggestion cards, smoothly gliding cards into their new ranking positions whenever votes change in real time.
-• Multi-Tiered Tie-Breaker Ranking Logic: Implemented Reddit-standard sorting where ties in net score are broken first by highest upvote count, then by fewest downvotes, and lastly by creation recency.
-• Direct Share Deep Linking & Highlight Animation: Upgraded suggestion share links to include &suggestion={id} or &idea={id}, automatically launching the suggestions view, smoothly scrolling the target card into view, and triggering a 3-second amber highlight ring.`,
+• Direct Share Deep Linking & Highlight Animation: Upgraded suggestion share links to include &suggestion={id} or &idea={id}, automatically launching the suggestions view, smoothly scrolling the target card into view, and triggering a 3-second amber highlight ring.
+• Voter Breakdown Hover Popovers: Hovering over the upvotes or downvotes pill on any suggestion card reveals a real-time list of members who voted, displaying Discord avatars, usernames, and member tags.
+• Multi-Fallback Share Button: Engineered clipboard copying with modern navigator.clipboard and legacy textarea execCommand fallbacks, automatically updating browser history and displaying immediate visual confirmation.
+• Admin-Only Profile Dropdown Relocation: Removed public navbar buttons and relocated Category Suggestions exclusively into the User Profile Dropdown, Mobile Drawer, and Sidebar Quick Actions, restricted by administrator privileges with ShieldCheck indicators.
+• Browser Refresh View & Section Persistence: Synchronized Category Suggestions view state and deep-link parameters with localStorage and browser search params, ensuring browser reloads keep the user on the suggestions view without resetting state.
+• Extended Gliding Motion Layout Physics: Tuned suggestion position reordering transition duration to 0.65s with cubic-bezier easing ([0.16, 1, 0.3, 1]), providing a visibly clear, smooth glide as proposals rise and fall in ranking.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 9:58 PM',
+    date: 'Aug 14, 2026 at 10:08 PM',
   },
   {
     id: 'release-20260813-2010',

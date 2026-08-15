@@ -24,7 +24,8 @@ import {
   User,
   SlidersHorizontal,
   ChevronDown,
-  History
+  History,
+  Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -35,14 +36,13 @@ import {
   submitCategorySuggestion,
   castCategorySuggestionVote,
   deleteCategorySuggestion,
-  sortSuggestions
+  sortSuggestions,
+  fetchSuggestionVoters,
+  SuggestionVoter
 } from '../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
-import { MagicCard } from './ui/magic-card';
-import { ShimmerButton } from './ui/shimmer-button';
 import { Spotlight } from './ui/spotlight';
 import { DotPattern } from './ui/dot-pattern';
-import { AnimatedShinyText } from './ui/animated-shiny-text';
 import { NumberTicker } from './ui/number-ticker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
@@ -51,6 +51,13 @@ interface CategorySuggestionsViewProps {
   isAdmin: boolean;
   onClose: () => void;
   onOpenSignIn: () => void;
+}
+
+interface HoveredVotersState {
+  suggestionId: string;
+  type: 'up' | 'down';
+  loading: boolean;
+  voters: SuggestionVoter[];
 }
 
 export function CategorySuggestionsView({
@@ -80,7 +87,37 @@ export function CategorySuggestionsView({
   // Voting optimistic state locks
   const [votingLocks, setVotingLocks] = useState<Record<string, boolean>>({});
 
+  // Voter breakdown hover state & cache
+  const [hoveredVoters, setHoveredVoters] = useState<HoveredVotersState | null>(null);
+  const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
+
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
+
+  // ── Multi-fallback Clipboard Copy Helper ──
+  const copyToClipboard = useCallback(async (text: string, title?: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
+      toast.success('Link Copied to Clipboard!', {
+        description: title ? `Direct link to "${title}" copied.` : 'You can share this suggestion with others.'
+      });
+    } catch (err) {
+      console.error('Copy to clipboard failed:', err);
+      window.prompt('Copy suggestion link:', text);
+    }
+  }, []);
 
   // ── Deep Link Parameter Detection ──
   useEffect(() => {
@@ -99,9 +136,9 @@ export function CategorySuggestionsView({
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 300);
+      }, 400);
 
-      // Auto-clear highlight after 3 seconds
+      // Auto-clear highlight after 3.2 seconds
       const fadeTimer = setTimeout(() => {
         setHighlightedSuggestionId(null);
       }, 3200);
@@ -133,7 +170,6 @@ export function CategorySuggestionsView({
       }
     );
 
-    // Safety timeout: never remain loading indefinitely
     const safetyTimer = setTimeout(() => {
       setLoading(false);
     }, 1500);
@@ -157,7 +193,7 @@ export function CategorySuggestionsView({
     }
   }, [effectiveUserId, sortBy]);
 
-  // Handle Submit New Suggestion (No manual duplicate prepend)
+  // Handle Submit New Suggestion
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -204,7 +240,7 @@ export function CategorySuggestionsView({
         status: 'active'
       });
 
-      // Reset form & modal. Firestore onSnapshot automatically receives and renders the new suggestion without duplication.
+      // Reset form & modal. Real-time snapshot updates list without duplicate injection.
       setCategoryName('');
       setDescription('');
       setIsSubmitModalOpen(false);
@@ -270,8 +306,25 @@ export function CategorySuggestionsView({
 
     setVotingLocks((prev) => ({ ...prev, [suggestionId]: true }));
 
+    // Invalidate voter cache for this suggestion so next hover is fresh
+    setVotersCache((prev) => {
+      const copy = { ...prev };
+      delete copy[suggestionId];
+      return copy;
+    });
+
     try {
-      const res = await castCategorySuggestionVote(suggestionId, effectiveUserId || currentUser.uid, newVote, currentUser?.discordId);
+      const res = await castCategorySuggestionVote(
+        suggestionId,
+        effectiveUserId || currentUser.uid,
+        newVote,
+        currentUser?.discordId,
+        currentUser?.displayName || currentUser?.email?.split('@')[0],
+        currentUser?.photoURL || null,
+        currentUser?.avatarSeed || currentUser?.uid,
+        currentUser?.avatarStyle || 'botttsNeutral'
+      );
+
       // Reconcile with server response & sort
       setSuggestions((prev) => {
         const updated = prev.map((s) => {
@@ -301,6 +354,49 @@ export function CategorySuggestionsView({
       setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
     }
   };
+
+  // ── Hover Voter Breakdown Handler ──
+  const handleHoverVoters = useCallback(async (suggestionId: string, type: 'up' | 'down') => {
+    if (votersCache[suggestionId]) {
+      setHoveredVoters({
+        suggestionId,
+        type,
+        loading: false,
+        voters: type === 'up' ? votersCache[suggestionId].upvoters : votersCache[suggestionId].downvoters
+      });
+      return;
+    }
+
+    setHoveredVoters({
+      suggestionId,
+      type,
+      loading: true,
+      voters: []
+    });
+
+    try {
+      const result = await fetchSuggestionVoters(suggestionId);
+      setVotersCache((prev) => ({ ...prev, [suggestionId]: result }));
+      setHoveredVoters((curr) => {
+        if (curr && curr.suggestionId === suggestionId && curr.type === type) {
+          return {
+            suggestionId,
+            type,
+            loading: false,
+            voters: type === 'up' ? result.upvoters : result.downvoters
+          };
+        }
+        return curr;
+      });
+    } catch (err) {
+      console.error('Error fetching voters on hover:', err);
+      setHoveredVoters((curr) => (curr && curr.suggestionId === suggestionId ? { ...curr, loading: false } : null));
+    }
+  }, [votersCache]);
+
+  const handleLeaveVoters = useCallback(() => {
+    setHoveredVoters(null);
+  }, []);
 
   // Handle Delete Suggestion
   const confirmDelete = async () => {
@@ -339,11 +435,6 @@ export function CategorySuggestionsView({
   // Aggregate Metrics
   const totalVotesCast = useMemo(() => {
     return suggestions.reduce((acc, s) => acc + s.upvotes + s.downvotes, 0);
-  }, [suggestions]);
-
-  const topScoringSuggestion = useMemo(() => {
-    if (suggestions.length === 0) return null;
-    return [...suggestions].sort((a, b) => b.score - a.score)[0];
   }, [suggestions]);
 
   const formatDate = (isoString: string) => {
@@ -499,7 +590,7 @@ export function CategorySuggestionsView({
           </div>
         </section>
 
-        {/* ── Suggestions Feed with Layout Motion ── */}
+        {/* ── Suggestions Feed with Slower, Highly Visible Layout Motion ── */}
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (
@@ -564,9 +655,12 @@ export function CategorySuggestionsView({
                   layoutId={suggestion.id}
                   id={`suggestion-${suggestion.id}`}
                   key={suggestion.id}
-                  transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                  transition={{
+                    layout: { duration: 0.65, ease: [0.16, 1, 0.3, 1] },
+                    opacity: { duration: 0.25 }
+                  }}
                   className={cn(
-                    "group relative rounded-3xl border bg-[#0a0a0d]/90 transition-all duration-300 p-4 sm:p-6 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-stretch sm:items-start gap-4 sm:gap-6",
+                    "group relative rounded-3xl border bg-[#0a0a0d]/90 transition-colors duration-300 p-4 sm:p-6 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-stretch sm:items-start gap-4 sm:gap-6",
                     isHighlighted
                       ? "border-fivem-orange/90 ring-2 ring-fivem-orange/80 shadow-[0_0_40px_rgba(234,88,12,0.4)] bg-fivem-orange/[0.08]"
                       : "border-white/10 hover:border-white/20"
@@ -680,31 +774,144 @@ export function CategorySuggestionsView({
                       </p>
                     </div>
 
-                    {/* Footer stats: Total upvotes / downvotes pill & Share button */}
+                    {/* Footer stats: Upvotes/Downvotes with Hover Voter Popovers & Multi-fallback Share button */}
                     <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-3 text-[10px] font-mono text-white/40 flex-wrap">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1 text-emerald-400/80">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          {suggestion.upvotes} {suggestion.upvotes === 1 ? 'Upvote' : 'Upvotes'}
-                        </span>
-                        <span className="flex items-center gap-1 text-rose-400/80">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                          {suggestion.downvotes} {suggestion.downvotes === 1 ? 'Downvote' : 'Downvotes'}
-                        </span>
+                      <div className="flex items-center gap-4">
+                        {/* Upvotes Breakdown Hover Trigger */}
+                        <div
+                          className="relative"
+                          onMouseEnter={() => handleHoverVoters(suggestion.id, 'up')}
+                          onMouseLeave={handleLeaveVoters}
+                        >
+                          <span className="flex items-center gap-1.5 text-emerald-400/90 font-bold hover:text-emerald-300 transition-colors cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-emerald-500/10">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>{suggestion.upvotes} {suggestion.upvotes === 1 ? 'Upvote' : 'Upvotes'}</span>
+                          </span>
+
+                          {/* Upvoter Popover */}
+                          <AnimatePresence>
+                            {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.type === 'up' && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute bottom-full left-0 mb-2 z-50 w-64 p-3 rounded-2xl bg-[#0e0e13]/98 border border-emerald-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none"
+                              >
+                                <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-white/10">
+                                  <div className="flex items-center gap-1.5 text-xs font-black font-display text-emerald-400">
+                                    <ArrowBigUp size={14} className="fill-current" />
+                                    <span>Upvoted by</span>
+                                  </div>
+                                  <span className="text-[10px] font-mono text-white/40 font-bold">{suggestion.upvotes}</span>
+                                </div>
+
+                                {hoveredVoters.loading ? (
+                                  <div className="flex items-center justify-center py-3 text-[11px] font-mono text-white/40 gap-1.5">
+                                    <RefreshCw size={12} className="animate-spin text-emerald-400" />
+                                    <span>Loading upvoters...</span>
+                                  </div>
+                                ) : hoveredVoters.voters.length === 0 ? (
+                                  <p className="text-[11px] text-white/40 font-mono py-1">No upvotes recorded yet.</p>
+                                ) : (
+                                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                                    {hoveredVoters.voters.map((voter) => (
+                                      <div key={voter.userId} className="flex items-center gap-2 text-xs py-0.5">
+                                        <img
+                                          src={getProfileAvatar(voter.authorAvatarUrl, voter.discordId || voter.userId, voter.avatarStyle)}
+                                          alt=""
+                                          className="w-4 h-4 rounded-full object-cover border border-white/10 shrink-0"
+                                        />
+                                        <span className="font-bold text-white/90 truncate flex-1">{voter.discordName}</span>
+                                        {voter.discordId && (
+                                          <span className="text-[9px] font-mono text-white/30 truncate max-w-[60px]">
+                                            #{voter.discordId.slice(-4)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Downvotes Breakdown Hover Trigger */}
+                        <div
+                          className="relative"
+                          onMouseEnter={() => handleHoverVoters(suggestion.id, 'down')}
+                          onMouseLeave={handleLeaveVoters}
+                        >
+                          <span className="flex items-center gap-1.5 text-rose-400/90 font-bold hover:text-rose-300 transition-colors cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-rose-500/10">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                            <span>{suggestion.downvotes} {suggestion.downvotes === 1 ? 'Downvote' : 'Downvotes'}</span>
+                          </span>
+
+                          {/* Downvoter Popover */}
+                          <AnimatePresence>
+                            {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.type === 'down' && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute bottom-full left-0 mb-2 z-50 w-64 p-3 rounded-2xl bg-[#0e0e13]/98 border border-rose-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none"
+                              >
+                                <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-white/10">
+                                  <div className="flex items-center gap-1.5 text-xs font-black font-display text-rose-400">
+                                    <ArrowBigDown size={14} className="fill-current" />
+                                    <span>Downvoted by</span>
+                                  </div>
+                                  <span className="text-[10px] font-mono text-white/40 font-bold">{suggestion.downvotes}</span>
+                                </div>
+
+                                {hoveredVoters.loading ? (
+                                  <div className="flex items-center justify-center py-3 text-[11px] font-mono text-white/40 gap-1.5">
+                                    <RefreshCw size={12} className="animate-spin text-rose-400" />
+                                    <span>Loading downvoters...</span>
+                                  </div>
+                                ) : hoveredVoters.voters.length === 0 ? (
+                                  <p className="text-[11px] text-white/40 font-mono py-1">No downvotes recorded yet.</p>
+                                ) : (
+                                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                                    {hoveredVoters.voters.map((voter) => (
+                                      <div key={voter.userId} className="flex items-center gap-2 text-xs py-0.5">
+                                        <img
+                                          src={getProfileAvatar(voter.authorAvatarUrl, voter.discordId || voter.userId, voter.avatarStyle)}
+                                          alt=""
+                                          className="w-4 h-4 rounded-full object-cover border border-white/10 shrink-0"
+                                        />
+                                        <span className="font-bold text-white/90 truncate flex-1">{voter.discordName}</span>
+                                        {voter.discordId && (
+                                          <span className="text-[9px] font-mono text-white/30 truncate max-w-[60px]">
+                                            #{voter.discordId.slice(-4)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       </div>
 
+                      {/* Share Button with Direct Link Generation & Fallback Copy */}
                       <button
-                        onClick={() => {
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           const url = `${window.location.origin}${window.location.pathname}?tab=suggestions&suggestion=${suggestion.id}`;
-                          navigator.clipboard.writeText(url);
-                          toast.success('Direct link copied to clipboard!', {
-                            description: `Link to "${suggestion.category_name}" is ready to share.`
-                          });
+                          copyToClipboard(url, suggestion.category_name);
+                          window.history.replaceState(null, '', url);
                         }}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/15 text-white/50 hover:text-white transition-all cursor-pointer active:scale-95 text-xs font-mono font-bold"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.10] border border-white/10 hover:border-white/20 text-white/60 hover:text-white transition-all cursor-pointer active:scale-95 text-xs font-mono font-bold"
+                        title="Copy direct share link to this suggestion"
                       >
-                        <Share2 size={12} className="text-fivem-orange" />
-                        <span>Share</span>
+                        <Share2 size={13} className="text-fivem-orange" />
+                        <span>Share Idea</span>
                       </button>
                     </div>
                   </div>

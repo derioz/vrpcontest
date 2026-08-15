@@ -250,6 +250,17 @@ export async function submitCategorySuggestion(
   };
 }
 
+export interface SuggestionVoter {
+  userId: string;
+  discordId?: string;
+  discordName?: string;
+  authorAvatarUrl?: string;
+  avatarSeed?: string;
+  avatarStyle?: string;
+  vote: 1 | -1;
+  updatedAt: string;
+}
+
 /**
  * Cast, toggle, or invert a vote on a category suggestion using Firestore atomic transactions.
  * Exact Reddit Rules:
@@ -264,7 +275,11 @@ export async function castCategorySuggestionVote(
   suggestionId: string,
   userId: string,
   requestedVote: 1 | -1 | 0,
-  discordId?: string
+  discordId?: string,
+  discordName?: string,
+  avatarUrl?: string,
+  avatarSeed?: string,
+  avatarStyle?: string
 ): Promise<{ score: number; user_vote: number; upvotes: number; downvotes: number }> {
   if (!suggestionId || !userId) {
     throw new Error('Missing suggestion or user identifier for voting.');
@@ -313,6 +328,11 @@ export async function castCategorySuggestionVote(
         suggestion_id: suggestionId,
         user_id: String(userId),
         discord_id: discordId || null,
+        discord_name: discordName || 'Discord User',
+        author_name: discordName || 'Discord User',
+        author_avatar_url: avatarUrl || null,
+        avatar_seed: avatarSeed || null,
+        avatar_style: avatarStyle || 'botttsNeutral',
         vote: newVote,
         updated_at: now,
         created_at: voteDocSnap.exists() ? voteDocSnap.data().created_at || now : now
@@ -334,6 +354,49 @@ export async function castCategorySuggestionVote(
       downvotes: currentDownvotes
     };
   });
+}
+
+/**
+ * Fetch all voters for a specific category suggestion (upvoters and downvoters).
+ */
+export async function fetchSuggestionVoters(
+  suggestionId: string
+): Promise<{ upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }> {
+  try {
+    const votesQuery = query(
+      collection(db, VOTES_COLLECTION),
+      where('suggestion_id', '==', suggestionId)
+    );
+    const votesSnap = await getDocs(votesQuery);
+
+    const upvoters: SuggestionVoter[] = [];
+    const downvoters: SuggestionVoter[] = [];
+
+    votesSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const voter: SuggestionVoter = {
+        userId: data.user_id || docSnap.id,
+        discordId: data.discord_id || null,
+        discordName: data.discord_name || data.author_name || (data.discord_id ? `User ${data.discord_id.slice(-4)}` : 'Community Member'),
+        authorAvatarUrl: data.author_avatar_url || null,
+        avatarSeed: data.avatar_seed || data.user_id,
+        avatarStyle: data.avatar_style || 'botttsNeutral',
+        vote: Number(data.vote) as 1 | -1,
+        updatedAt: data.updated_at || data.created_at || new Date().toISOString()
+      };
+
+      if (voter.vote === 1) {
+        upvoters.push(voter);
+      } else if (voter.vote === -1) {
+        downvoters.push(voter);
+      }
+    });
+
+    return { upvoters, downvoters };
+  } catch (error: any) {
+    console.error('Error fetching suggestion voters:', error);
+    return { upvoters: [], downvoters: [] };
+  }
 }
 
 /**

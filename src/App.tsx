@@ -45,7 +45,8 @@ import {
   Edit3,
   Bug,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
@@ -172,8 +173,9 @@ export default function App() {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab') || params.get('view');
+    const suggestionId = params.get('suggestion') || params.get('idea');
     const storedView = localStorage.getItem('active_view');
-    return tab === 'suggestions' || tab === 'suggest' || storedView === 'suggestions';
+    return tab === 'suggestions' || tab === 'suggest' || !!suggestionId || storedView === 'suggestions';
   });
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -361,6 +363,31 @@ export default function App() {
       }
     }
   }, [allPhotos]);
+
+  // Sync Category Suggestions state to localStorage and URL for seamless browser refresh persistence
+  useEffect(() => {
+    if (showCategorySuggestions) {
+      localStorage.setItem('active_view', 'suggestions');
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') !== 'suggestions' && !params.get('suggestion')) {
+        params.set('tab', 'suggestions');
+        window.history.replaceState(null, '', `?${params.toString()}`);
+      }
+    } else {
+      if (localStorage.getItem('active_view') === 'suggestions') {
+        localStorage.removeItem('active_view');
+      }
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'suggestions' || params.get('view') === 'suggestions') {
+        params.delete('tab');
+        params.delete('view');
+        params.delete('suggestion');
+        params.delete('idea');
+        const newSearch = params.toString();
+        window.history.replaceState(null, '', newSearch ? `?${newSearch}` : window.location.pathname);
+      }
+    }
+  }, [showCategorySuggestions]);
 
   const winnerCountsMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -1676,22 +1703,6 @@ export default function App() {
             <Sparkles size={10} className="text-amber-400/60 group-hover:text-amber-300 transition-colors relative z-10" />
           </button>
 
-          {/* ── Category Suggestions Button ── */}
-          <button
-            onClick={() => setShowCategorySuggestions(true)}
-            className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black font-display uppercase tracking-wider cursor-pointer select-none transition-all duration-300 relative group
-              bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 hover:from-orange-500/20 hover:via-amber-500/15 hover:to-orange-500/20
-              border border-orange-400/25 hover:border-orange-400/40
-              text-orange-300 hover:text-orange-200
-              shadow-[0_0_12px_rgba(234,88,12,0.1)] hover:shadow-[0_0_20px_rgba(234,88,12,0.25)]"
-          >
-            <Sparkles size={13} className="text-fivem-orange drop-shadow-[0_0_4px_rgba(234,88,12,0.6)] relative z-10 group-hover:rotate-12 transition-transform" />
-            <span className="relative z-10">Suggestions</span>
-            {isAdmin && (
-              <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_6px_rgba(234,88,12,1)]" title="Admin Moderator" />
-            )}
-          </button>
-
           {/* ── RIGHT: Mobile Menu Toggle ── */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -1816,6 +1827,29 @@ export default function App() {
                             <span className="text-[10px] font-normal text-white/50">Re-sync Discord profile picture</span>
                           </div>
                         </button>
+
+                        {/* Option 3: Admin Only - Category Suggestions */}
+                        {isAdmin && (
+                          <button
+                            onClick={() => {
+                              setShowCategorySuggestions(true);
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center justify-start gap-3 px-3.5 py-3 rounded-2xl bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-orange-500/10 hover:from-orange-500/30 hover:to-amber-500/25 text-orange-400 hover:text-white border border-orange-400/40 transition-all cursor-pointer active:scale-95 shadow-md group/sug"
+                            title="Manage & view category proposals (Admin Only)"
+                          >
+                            <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-400/40 flex items-center justify-center shrink-0">
+                              <ShieldCheck size={16} className="text-fivem-orange group-hover/sug:scale-110 transition-transform" />
+                            </div>
+                            <div className="flex flex-col items-start leading-tight min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 w-full justify-between">
+                                <span className="text-xs font-black font-display text-white">Category Suggestions</span>
+                                <span className="px-1.5 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono text-fivem-orange uppercase font-bold">Admin</span>
+                              </div>
+                              <span className="text-[10px] font-normal text-white/50">Community brainstorm & voting</span>
+                            </div>
+                          </button>
+                        )}
 
 
                         {/* Option 3: Fallback Avatar Style Selector & Randomizer */}
@@ -1971,22 +2005,20 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Category Suggestions – Mobile Item */}
-                <div className="flex flex-col gap-2">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-orange-400/50 mb-1">💡 Community Ideas</span>
-                  <button
-                    onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
-                    className="w-full text-left py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 border border-orange-400/20 text-sm font-black uppercase tracking-wider text-orange-300 active:text-orange-200 cursor-pointer active:bg-orange-500/15 transition-all flex items-center gap-2.5 shadow-[0_0_15px_rgba(234,88,12,0.08)]"
-                  >
-                    <Sparkles size={16} className="text-fivem-orange drop-shadow-[0_0_4px_rgba(234,88,12,0.6)]" />
-                    <span>Category Suggestions</span>
-                    {isAdmin ? (
-                      <span className="ml-auto px-2 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange uppercase">Mod</span>
-                    ) : (
-                      <Sparkles size={12} className="text-orange-400/50 ml-auto" />
-                    )}
-                  </button>
-                </div>
+                {/* Category Suggestions – Mobile Item (Admin Only) */}
+                {isAdmin && (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-orange-400/50 mb-1">💡 Admin Tools</span>
+                    <button
+                      onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
+                      className="w-full text-left py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-400/30 text-sm font-black uppercase tracking-wider text-orange-300 active:text-orange-200 cursor-pointer active:bg-orange-500/20 transition-all flex items-center gap-2.5 shadow-[0_0_15px_rgba(234,88,12,0.1)]"
+                    >
+                      <ShieldCheck size={16} className="text-fivem-orange drop-shadow-[0_0_4px_rgba(234,88,12,0.6)]" />
+                      <span>Category Suggestions</span>
+                      <span className="ml-auto px-2 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange uppercase">Admin</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Account Section */}
                 <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
@@ -2862,13 +2894,16 @@ export default function App() {
                     <span>View Hall of Fame Archives</span>
                   </button>
 
-                  <button
-                    onClick={() => setShowCategorySuggestions(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/25 text-orange-300 hover:text-white transition-all text-xs font-bold font-display uppercase tracking-wider cursor-pointer shadow-sm"
-                  >
-                    <Sparkles size={14} className="text-fivem-orange" />
-                    <span>Category Suggestions</span>
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowCategorySuggestions(true)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/35 text-orange-300 hover:text-white transition-all text-xs font-bold font-display uppercase tracking-wider cursor-pointer shadow-sm"
+                    >
+                      <ShieldCheck size={14} className="text-fivem-orange" />
+                      <span>Category Suggestions</span>
+                      <span className="ml-auto px-1.5 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange uppercase">Admin</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => handleSignOut()}
