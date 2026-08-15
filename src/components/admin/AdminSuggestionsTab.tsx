@@ -279,20 +279,25 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
       if (voteResult.autoTransitioned) {
         if (voteResult.transitionType === 'opened_for_voting') {
-          toast.success(`🎉 Quorum Reached (2/3 Admin Votes)!`, {
-            description: `"${target.category_name}" has automatically transitioned to Open for Voting!`
+          toast.success(`🎉 2/2 Admin Votes Reached!`, {
+            description: `"${target.category_name}" has moved to Open for Voting!`
           });
         } else if (voteResult.transitionType === 'approved_for_contest') {
-          toast.success(`🏆 Quorum Reached (2/3 Admin Votes)!`, {
+          toast.success(`🏆 2/2 Admin Votes Reached!`, {
             description: `"${target.category_name}" has been Approved for Contest!`
           });
         }
       } else {
         if (hasVoted) {
-          toast.info(`Removed staff vote for "${target.category_name}"`);
+          toast.info(`Removed vote for "${target.category_name}"`);
         } else {
-          const reqTarget = target.status === 'under_review' ? 'to Open for Voting' : 'to Approve for Contest';
-          toast.success(`Staff vote recorded (${voteResult.admin_votes.length}/2 ${reqTarget})`);
+          const reqTarget = target.status === 'under_review' ? 'move to Open for Voting' : 'approve for contest';
+          const remaining = 2 - voteResult.admin_votes.length;
+          toast.success(
+            remaining === 1
+              ? `Vote recorded! Waiting for 1 more vote to ${reqTarget}.`
+              : `Vote recorded!`
+          );
         }
       }
     } catch (err: any) {
@@ -937,61 +942,69 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                       </div>
                     </div>
 
-                    {/* ── Staff Contest Decision Section (Shows when Open for Voting or Under Review) ── */}
+                    {/* ── Staff Vote Section (Under Review or Open for Voting) ── */}
                     {isDecisionVotingEligible && (
-                      <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap bg-white/[0.015] p-2 rounded-xl border">
-                        <div className="flex items-center gap-2 min-w-0">
+                      <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <ShieldCheck size={14} className="text-purple-400 shrink-0" />
                           <span className="text-xs font-bold text-white/90">
-                            {suggestion.status === 'under_review' ? 'Review Quorum (2/3):' : 'Contest Selection (2/3):'}
+                            {suggestion.status === 'under_review' ? 'Review Decision:' : 'Use in Upcoming Contest?'}
                           </span>
                           <span className="text-xs font-mono font-bold text-purple-300">
-                            {adminVotes.length}/2 {suggestion.status === 'under_review' ? 'to Open for Voting' : 'to Approve for Contest'}
+                            {suggestion.status === 'under_review'
+                              ? adminVotes.length === 0
+                                ? 'Waiting for 2 admin votes to move to Open for Voting'
+                                : adminVotes.length === 1
+                                ? 'Waiting for 1 more vote to move to Open for Voting'
+                                : 'Quorum reached'
+                              : adminVotes.length === 0
+                              ? 'Waiting for 2 admin votes to approve for contest'
+                              : adminVotes.length === 1
+                              ? 'Waiting for 1 more vote to approve for contest'
+                              : 'Approved for contest'}
                           </span>
 
                           {/* Mini admin voter avatars */}
                           {adminVotes.length > 0 && (
                             <div className="flex items-center -space-x-1.5 ml-1">
-                              {adminVotes.slice(0, 5).map((av, idx) => (
+                              {adminVotes.map((av, idx) => (
                                 <img
                                   key={av.adminId || idx}
                                   src={getProfileAvatar(av.adminAvatarUrl, av.adminId, 'botttsNeutral')}
-                                  title={`Admin: ${av.adminName}`}
+                                  title={`Voted Yes: ${av.adminName}`}
                                   alt=""
-                                  className="w-4 h-4 rounded-full object-cover border border-purple-400/50"
+                                  className="w-4 h-4 rounded-full object-cover border border-purple-400/60 shadow-sm"
                                 />
                               ))}
                             </div>
                           )}
                         </div>
 
-                        {/* Admin Decision Vote Toggle Button */}
+                        {/* Admin Vote Toggle Button */}
                         <button
                           onClick={() => handleAdminContestVote(suggestion.id)}
                           disabled={votingLocks[suggestion.id]}
                           className={cn(
-                            "flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer active:scale-95 shadow-sm border",
+                            "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer active:scale-95 shadow-sm border",
                             currentAdminHasVoted
                               ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40"
                               : "bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/25 hover:text-white"
                           )}
                           title={
                             currentAdminHasVoted
-                              ? "Click to withdraw your staff vote"
+                              ? "Click to remove your vote"
                               : suggestion.status === 'under_review'
-                              ? "Vote to approve this theme to be open for community voting (2/3 quorum)"
-                              : "Vote to select and approve this theme for the contest round (2/3 quorum)"
+                              ? "Vote to move this category to Open for Voting"
+                              : "Vote to approve this category for an upcoming contest round"
                           }
                         >
-                          <ThumbsUp size={12} className={cn(currentAdminHasVoted && "fill-current")} />
+                          <ThumbsUp size={13} className={cn(currentAdminHasVoted && "fill-current")} />
                           <span>
                             {currentAdminHasVoted
-                              ? suggestion.status === 'under_review'
-                                ? `✓ You Voted to Open (${adminVotes.length}/2) - Undo`
-                                : `✓ You Voted to Use (${adminVotes.length}/2) - Undo`
+                              ? "✓ You Voted Yes (Undo)"
                               : suggestion.status === 'under_review'
-                              ? `+ Vote to Open for Voting (${adminVotes.length}/2)`
-                              : `+ Vote to Use for Contest (${adminVotes.length}/2)`}
+                              ? "+ Vote to Open for Voting"
+                              : "+ Vote to Use for Contest"}
                           </span>
                         </button>
                       </div>
