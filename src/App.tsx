@@ -1484,17 +1484,43 @@ export default function App() {
             await batch.commit();
           }
 
-          // 3. Retroactively update all category suggestions by this user
-          const suggestionsQuery = query(collection(db, 'category_suggestions'), where('user_id', '==', user.uid));
-          const suggestionsSnap = await getDocs(suggestionsQuery);
+          // 3. Retroactively update all category suggestions & staff votes by this user
+          const suggestionsSnap = await getDocs(collection(db, 'category_suggestions'));
           if (!suggestionsSnap.empty) {
             const batch = writeBatch(db);
+            let hasChanges = false;
             suggestionsSnap.docs.forEach((sDoc) => {
-              batch.update(sDoc.ref, {
-                author_avatar_url: freshAvatarUrl,
-              });
+              const sData = sDoc.data();
+              const isAuthor = sData.user_id === user.uid || (user.discordId && sData.discord_id === user.discordId);
+              const votes = Array.isArray(sData.admin_votes) ? sData.admin_votes : [];
+              const hasMyAdminVote = votes.some((v: any) =>
+                v.adminId === user.uid ||
+                (user.discordId && v.adminId === user.discordId) ||
+                (v.adminName && user.displayName && v.adminName.toLowerCase() === user.displayName.toLowerCase())
+              );
+
+              if (isAuthor || hasMyAdminVote) {
+                hasChanges = true;
+                const updatedVotes = votes.map((v: any) => {
+                  if (
+                    v.adminId === user.uid ||
+                    (user.discordId && v.adminId === user.discordId) ||
+                    (v.adminName && user.displayName && v.adminName.toLowerCase() === user.displayName.toLowerCase())
+                  ) {
+                    return { ...v, adminAvatarUrl: freshAvatarUrl };
+                  }
+                  return v;
+                });
+
+                batch.update(sDoc.ref, {
+                  ...(isAuthor ? { author_avatar_url: freshAvatarUrl } : {}),
+                  ...(hasMyAdminVote ? { admin_votes: updatedVotes } : {})
+                });
+              }
             });
-            await batch.commit();
+            if (hasChanges) {
+              await batch.commit();
+            }
           }
 
           // 4. Optimistically update local gallery photos state so avatar displays instantly

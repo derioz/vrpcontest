@@ -74,9 +74,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Public Community User Vote Telemetry in Admin Cards: Admin suggestion cards prominently display public community scores, upvote/downvote totals, and hover voter popovers alongside staff decision metrics.
 • Multi-Strategy Live Discord Avatar Sync ("Pull Discord Photo"): Upgraded the avatar refresh flow to fetch the latest Discord photo directly from Discord API via OAuth bearer tokens, guild member lookups, and user CDN endpoints, resolving avatar cache staleness.
 • Global Discord Avatar Persistence & Retroactive Site-Wide Sync: Ensured pulled Discord photos persist in localStorage and Firestore user profiles across refreshes, automatically synchronizing retroactively across existing photo submissions, new entries, and category proposals.
+• Resilient Admin Quorum Voting & Live Avatar Reconciliation: Resolved Firestore transaction value serialization and added dynamic avatar reconciliation to ensure all staff votes and updated avatars display instantly across all administrators.
 • Verified Feed Manual Refresh: Ensured the manual refresh button in the Admin Console re-fetches and synchronizes category proposals and staff decisions seamlessly.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 10:52 PM',
+    date: 'Aug 14, 2026 at 10:56 PM',
   },
   {
     id: 'release-20260813-2010',

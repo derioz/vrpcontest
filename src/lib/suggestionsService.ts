@@ -563,18 +563,20 @@ export async function toggleAdminSuggestionVote(
       const currentStatus: string = data.status || 'open';
       const currentVotes: SuggestionAdminVote[] = Array.isArray(data.admin_votes) ? data.admin_votes : [];
 
-      const existingIndex = currentVotes.findIndex((v) => v.adminId === adminId);
+      const existingIndex = currentVotes.findIndex(
+        (v) => v.adminId === adminId || (adminName && v.adminName && v.adminName.toLowerCase() === adminName.toLowerCase())
+      );
       let updatedVotes: SuggestionAdminVote[] = [];
 
       if (existingIndex >= 0) {
         // Toggle off (remove admin vote)
-        updatedVotes = currentVotes.filter((v) => v.adminId !== adminId);
+        updatedVotes = currentVotes.filter((_, idx) => idx !== existingIndex);
       } else {
         // Toggle on (add admin vote)
         const newVote: SuggestionAdminVote = {
-          adminId,
-          adminName,
-          adminAvatarUrl: adminAvatarUrl || undefined,
+          adminId: String(adminId),
+          adminName: adminName || 'Admin',
+          adminAvatarUrl: adminAvatarUrl || null,
           vote: 'yes',
           votedAt: new Date().toISOString()
         };

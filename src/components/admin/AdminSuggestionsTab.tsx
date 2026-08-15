@@ -232,14 +232,24 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
     const adminId = effectiveUserId || currentUser.uid;
     const adminName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin';
-    const adminAvatarUrl = currentUser.photoURL || null;
+    const adminAvatarUrl = currentUser.photoURL || localStorage.getItem('user_photo_url_' + currentUser.uid) || null;
 
     const currentAdminVotes: SuggestionAdminVote[] = target.admin_votes || [];
-    const hasVoted = currentAdminVotes.some((v) => v.adminId === adminId);
+    const hasVoted = currentAdminVotes.some((v) =>
+      v.adminId === adminId ||
+      (currentUser.uid && v.adminId === currentUser.uid) ||
+      (currentUser.discordId && v.adminId === currentUser.discordId) ||
+      (v.adminName && currentUser.displayName && v.adminName.toLowerCase() === currentUser.displayName.toLowerCase())
+    );
 
     // Optimistic toggle
     const optimisticVotes: SuggestionAdminVote[] = hasVoted
-      ? currentAdminVotes.filter((v) => v.adminId !== adminId)
+      ? currentAdminVotes.filter((v) =>
+          v.adminId !== adminId &&
+          v.adminId !== currentUser.uid &&
+          v.adminId !== currentUser.discordId &&
+          !(v.adminName && currentUser.displayName && v.adminName.toLowerCase() === currentUser.displayName.toLowerCase())
+        )
       : [
           ...currentAdminVotes,
           {
@@ -762,7 +772,12 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
             const adminVotes: SuggestionAdminVote[] = suggestion.admin_votes || [];
             const currentAdminId = effectiveUserId || currentUser?.uid;
-            const currentAdminHasVoted = adminVotes.some((v) => v.adminId === currentAdminId);
+            const currentAdminHasVoted = adminVotes.some((v) =>
+              v.adminId === currentAdminId ||
+              (currentUser?.uid && v.adminId === currentUser.uid) ||
+              (currentUser?.discordId && v.adminId === currentUser.discordId) ||
+              (v.adminName && currentUser?.displayName && v.adminName.toLowerCase() === currentUser.displayName.toLowerCase())
+            );
 
             return (
               <motion.div
@@ -967,15 +982,23 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                           {/* Mini admin voter avatars */}
                           {adminVotes.length > 0 && (
                             <div className="flex items-center -space-x-1.5 ml-1">
-                              {adminVotes.map((av, idx) => (
-                                <img
-                                  key={av.adminId || idx}
-                                  src={getProfileAvatar(av.adminAvatarUrl, av.adminId, 'botttsNeutral')}
-                                  title={`Voted Yes: ${av.adminName}`}
-                                  alt=""
-                                  className="w-4 h-4 rounded-full object-cover border border-purple-400/60 shadow-sm"
-                                />
-                              ))}
+                              {adminVotes.map((av, idx) => {
+                                const isMe =
+                                  av.adminId === currentAdminId ||
+                                  av.adminId === currentUser?.uid ||
+                                  av.adminId === currentUser?.discordId ||
+                                  (av.adminName && currentUser?.displayName && av.adminName.toLowerCase() === currentUser.displayName.toLowerCase());
+                                const resolvedAvatar = isMe ? (currentUser?.photoURL || av.adminAvatarUrl) : av.adminAvatarUrl;
+                                return (
+                                  <img
+                                    key={av.adminId || idx}
+                                    src={getProfileAvatar(resolvedAvatar, av.adminId || av.adminName, 'botttsNeutral')}
+                                    title={`Voted Yes: ${av.adminName}${isMe ? ' (You)' : ''}`}
+                                    alt=""
+                                    className="w-5 h-5 rounded-full object-cover border border-purple-400/60 shadow-sm"
+                                  />
+                                );
+                              })}
                             </div>
                           )}
                         </div>
