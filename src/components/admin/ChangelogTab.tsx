@@ -26,6 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260815-1556',
+    version: 'v1.9.6',
+    title: 'Admin Suggestion Voting Persistence, On-Demand Sync & Animated Refresh Controls',
+    category: 'Feature',
+    description: `• On-Demand Admin Suggestion Voting Sync: Decoupled the Admin Console suggestions hub from real-time subscriptions so that administrator decision votes persist atomically to Cloud Firestore without triggering unsolicited screen reflows or jumping cards for other reviewing admins.
+• Multi-Admin Refresh Synchronization: When an administrator visits the Category Ideas hub or taps the refresh control, the latest scores, community votes, and staff decision tallies are fetched directly from Cloud Firestore.
+• Animated Refresh Button Micro-Interactions: Re-engineered the header refresh trigger with smooth Framer Motion spring physics, a continuous 360-degree rotation animation during active sync, glowing orange aura states, and 180-degree hover transitions.
+• Zero-Jitter Staff Review Experience: Admins can review proposals and cast votes with optimistic state feedback while preserving layout stability for all other active staff sessions.
+• Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
+• Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
+    author: 'Damon',
+    date: 'Aug 15, 2026 at 3:56 PM',
+  },
+  {
     id: 'release-20260814-1635',
     version: 'v1.9.5',
     title: 'Category Suggestions System, Reddit-Style Voting, Firebase Backend & Admin Console Hub',
@@ -381,7 +395,16 @@ export function ChangelogTab() {
             id: docSnap.id,
             ...(docSnap.data() as Omit<ChangelogEntry, 'id'>),
           }));
-          setEntries(dbEntries);
+          const seen = new Set<string>();
+          const merged: ChangelogEntry[] = [];
+          [...INITIAL_CHANGELOGS, ...dbEntries].forEach((entry) => {
+            const key = (entry.version || '') + '_' + (entry.title || '');
+            if (!seen.has(key)) {
+              seen.add(key);
+              merged.push(entry);
+            }
+          });
+          setEntries(merged);
         }
       } catch (err) {
         console.warn('Using local fallback changelog history:', err);

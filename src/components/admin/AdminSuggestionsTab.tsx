@@ -36,7 +36,6 @@ import { cn } from '../../lib/utils';
 import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote } from '../../types';
 import {
   fetchCategorySuggestions,
-  subscribeCategorySuggestions,
   deleteCategorySuggestion,
   updateCategorySuggestionStatus,
   toggleAdminSuggestionVote,
@@ -146,22 +145,26 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
 
-  // Real-time subscription to suggestions with zero repeated polling
+  // On-demand load from Cloud Firestore (no continuous realtime listener across admin sessions)
+  const loadData = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    try {
+      const data = await fetchCategorySuggestions(effectiveUserId, sortBy);
+      setSuggestions(data);
+      const sorted = sortSuggestions(data, sortBy);
+      setOrderedIds(sorted.map((s) => s.id));
+    } catch (err: any) {
+      console.error('Admin suggestions load error:', err);
+      toast.error('Failed to load category proposals', { description: err.message });
+    } finally {
+      if (isInitial) setLoading(false);
+    }
+  }, [effectiveUserId, sortBy]);
+
+  // Initial fetch on mount or when user/sort option changes
   useEffect(() => {
-    setLoading(true);
-    const unsub = subscribeCategorySuggestions(
-      effectiveUserId,
-      (data) => {
-        setSuggestions(data);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Admin suggestions subscription error:', err);
-        setLoading(false);
-      }
-    );
-    return () => unsub();
-  }, [effectiveUserId]);
+    loadData(true);
+  }, [loadData]);
 
   // Synchronize ordered IDs on sort tab switch or initial data arrival
   useEffect(() => {
@@ -212,7 +215,9 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
       console.error('Refresh error:', err);
       toast.error('Failed to refresh category proposals', { description: err.message });
     } finally {
-      setRefreshing(false);
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 500);
     }
   };
 
@@ -560,14 +565,55 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         iconBg="bg-orange-500/15 border-orange-500/30"
         actions={
           <div className="flex items-center gap-2">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleManualRefresh()}
               disabled={refreshing}
-              className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 active:scale-95"
+              className={cn(
+                "group relative px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all duration-300 cursor-pointer flex items-center gap-2.5 overflow-hidden select-none border",
+                refreshing
+                  ? "bg-orange-500/20 text-orange-300 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.35)]"
+                  : "bg-white/[0.05] hover:bg-orange-500/10 text-white/80 hover:text-white border-white/10 hover:border-orange-500/40 hover:shadow-[0_0_15px_rgba(249,115,22,0.2)]"
+              )}
             >
-              <RefreshCw size={13} className={cn(refreshing && "animate-spin text-orange-400")} />
-              <span>Refresh Feed</span>
-            </button>
+              {/* Animated subtle sheen on hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+              {/* Animated Refresh Icon */}
+              <motion.div
+                animate={refreshing ? { rotate: 360 } : {}}
+                transition={refreshing ? { repeat: Infinity, duration: 0.8, ease: "linear" } : {}}
+                className={cn(
+                  "flex items-center justify-center transition-transform duration-500",
+                  !refreshing && "group-hover:rotate-180"
+                )}
+              >
+                <RefreshCw
+                  size={14}
+                  className={cn(
+                    "transition-colors duration-300",
+                    refreshing
+                      ? "text-orange-400 drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]"
+                      : "text-white/60 group-hover:text-orange-400"
+                  )}
+                />
+              </motion.div>
+
+              <span className="relative z-10 font-bold">
+                {refreshing ? 'Refreshing...' : 'Refresh Feed'}
+              </span>
+
+              {/* Status indicator dot */}
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                  refreshing
+                    ? "bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.9)] animate-ping"
+                    : "bg-white/20 group-hover:bg-orange-400 group-hover:shadow-[0_0_6px_rgba(249,115,22,0.8)]"
+                )}
+              />
+            </motion.button>
           </div>
         }
       />

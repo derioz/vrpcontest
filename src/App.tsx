@@ -46,6 +46,7 @@ import {
   Bug,
   RefreshCw,
   Sparkles,
+  Shield,
   ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
@@ -88,7 +89,7 @@ import { StickyCategoryNav } from './components/StickyCategoryNav';
 
 // Integrations
 import { auth, discordProvider, db } from './lib/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User as FirebaseUser } from 'firebase/auth';
+import { signInWithPopup, signInAnonymously, onAuthStateChanged, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User as FirebaseUser } from 'firebase/auth';
 import { supabase } from './lib/supabase';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch, deleteField } from 'firebase/firestore';
 
@@ -180,6 +181,7 @@ export default function App() {
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -534,6 +536,7 @@ export default function App() {
       if (!currentUser) {
         setUser(null);
         setIsAdmin(false);
+        setIsAuthLoading(false);
         return;
       }
 
@@ -678,6 +681,8 @@ export default function App() {
       } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
+      } finally {
+        setIsAuthLoading(false);
       }
     };
 
@@ -706,11 +711,11 @@ export default function App() {
         setShowDiscordReqModal(true);
         await supabase.auth.signOut();
         localStorage.removeItem('discord_provider_token');
-        handleSessionUser(null);
+        await handleSessionUser(null);
         return;
       }
 
-      handleSessionUser(session.user);
+      await handleSessionUser(session.user);
     };
 
     // Fetch initial session
@@ -3215,7 +3220,17 @@ export default function App() {
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
 
                   <Suspense fallback={<div className="p-10 text-center text-fivem-orange/50 animate-pulse font-mono flex items-center justify-center min-h-[500px]">Loading Admin Modules...</div>}>
-                    {!isAdmin ? (
+                    {isAuthLoading ? (
+                      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4 min-h-[400px]">
+                        <div className="w-14 h-14 rounded-2xl bg-fivem-orange/10 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange">
+                          <ShieldCheck size={28} className="animate-pulse" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-display font-bold text-white text-base">Authenticating Staff Access...</p>
+                          <p className="text-xs font-mono text-white/40">Verifying administrator credentials and permissions</p>
+                        </div>
+                      </div>
+                    ) : !isAdmin ? (
                       <div className="flex-1 flex items-center justify-center p-10">
                         {user ? (
                           <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
@@ -3224,12 +3239,31 @@ export default function App() {
                             </div>
                             <p className="font-bold text-red-400">Access Denied</p>
                             <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
-                            <button onClick={() => signOut(auth)} className="text-xs text-white/30 hover:text-white underline">
+                            <button onClick={() => supabase.auth.signOut()} className="text-xs text-white/30 hover:text-white underline cursor-pointer">
                               Logout to switch accounts
                             </button>
                           </div>
                         ) : (
-                          <LoginForm onDiscordLogin={handleDiscordLogin} />
+                          <div className="p-8 bg-[#0e0e13] border border-white/10 rounded-2xl text-center space-y-4 max-w-sm">
+                            <div className="w-14 h-14 mx-auto rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange">
+                              <Shield size={28} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-display font-bold text-white text-base">Administrator Login Required</p>
+                              <p className="text-xs text-white/50">Please sign in with your verified Discord administrator account to access the control console.</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDiscordLogin()}
+                              className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all text-sm active:scale-95 shadow-md cursor-pointer"
+                            >
+                              <svg role="img" viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                <title>Discord</title>
+                                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.014.043.031.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+                              </svg>
+                              <span>Sign in with Discord</span>
+                            </button>
+                          </div>
                         )}
                       </div>
                     ) : (
@@ -3908,90 +3942,6 @@ export default function App() {
       </Dialog>
 
     </ShaderBackground>
-  );
-}
-
-
-
-
-function LoginForm({ onDiscordLogin }: { onDiscordLogin: () => Promise<boolean> }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Admin Email</label>
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="bg-white/5 border-white/10 pl-10 h-12"
-            placeholder="admin@vitalrp.com"
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <label className="text-xs font-mono text-white/40 uppercase tracking-wider">Admin Password</label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="bg-white/5 border-white/10 pl-10 h-12"
-            placeholder="Enter password..."
-          />
-        </div>
-      </div>
-      {error && <p className="text-red-400 text-xs">{error}</p>}
-      <Button
-        type="submit"
-        disabled={loading || !password || !email}
-        className="w-full h-12 bg-fivem-orange hover:bg-fivem-orange/90 text-white rounded-xl"
-      >
-        {loading ? 'Authenticating...' : 'Secure Login'}
-      </Button>
-
-      <div className="relative py-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-white/10"></span>
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-fivem-card px-2 text-white/20 font-mono">Or Admin via OAuth</span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onDiscordLogin()}
-        className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
-      >
-        <svg role="img" viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0" xmlns="http://www.w3.org/2000/svg">
-          <title>Discord</title>
-          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.014.043.031.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-        </svg>
-        Login with Discord
-      </button>
-    </form>
   );
 }
 
