@@ -57,13 +57,17 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Multi-Fallback Share Button: Engineered clipboard copying with modern navigator.clipboard and legacy textarea execCommand fallbacks, automatically updating browser history and displaying immediate visual confirmation.
 • Admin-Only Profile Dropdown Relocation: Removed public navbar buttons and relocated Category Suggestions exclusively into the User Profile Dropdown, Mobile Drawer, and Sidebar Quick Actions, restricted by administrator privileges with ShieldCheck indicators.
 • Browser Refresh View & Section Persistence: Synchronized Category Suggestions view state and deep-link parameters with localStorage and browser search params, ensuring browser reloads keep the user on the suggestions view without resetting state.
-• Extended Gliding Motion Layout Physics: Tuned suggestion position reordering transition duration to 0.65s with cubic-bezier easing ([0.16, 1, 0.3, 1]), providing a visibly clear, smooth glide as proposals rise and fall in ranking.
 • Firestore Read & Write Optimization: Overhauled the entire Category Suggestions data layer to drastically minimize Firestore read and write costs across all user sessions.
 • Zero-Read Client Sorting & Search Filtering: Decoupled sorting and text search from Firestore queries—all sorting (Top, Newest, Lowest, Oldest) and multi-keyword filtering now execute 100% in-memory via useMemo, eliminating redundant collection re-reads on tab toggles.
 • Inlined Document Voter Summaries: Embedded lightweight voter sample payloads directly into category suggestion documents during vote transactions, allowing hover popovers to resolve instantaneously with zero extra Firestore queries.
-• Client-Side LRU Memory Cache & Vote Debounce: Added in-memory voter caching with a 60-second TTL and client-side vote locks to prevent transaction contention and rapid spam-click writes.`,
+• Client-Side LRU Memory Cache & Vote Debounce: Added in-memory voter caching with a 60-second TTL and client-side vote locks to prevent transaction contention and rapid spam-click writes.
+• Profile Dropdown Click-Outside & Escape Dismissal: Implemented a robust outside-click boundary listener and Escape key handler on the user profile dropdown, ensuring the menu closes reliably when clicking anywhere outside.
+• Dedicated Admin Console Category for Suggestions: Created an independent top-level category group in the Admin Console sidebar and navigation specifically for Category Suggestions with custom theme styling, live telemetry metrics, and dedicated navigation.
+• Functional Suggestion Workflow Statuses: Replaced static moderation tags with 6 functional workflow statuses (Open for Voting, Under Review, Approved for Contest, Implemented / Used, Declined, and Archived) with instant dropdown selectors and glowing indicators.
+• Admin Status Filtering Tabs with Count Badges: Added dedicated horizontal status filter tabs with dynamic live counters, allowing administrators to filter proposals by workflow state with 0 Firestore read costs.
+• One-Click Category Promotion to Contest: Added an instant "Promote Category" button to proposal cards, enabling administrators to push approved suggestions directly into active contest categories.`,
     author: 'Damon',
-    date: 'Aug 14, 2026 at 10:15 PM',
+    date: 'Aug 14, 2026 at 10:22 PM',
   },
   {
     id: 'release-20260813-2010',

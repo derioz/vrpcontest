@@ -72,6 +72,15 @@ export interface SuggestionVoterSummary {
     updatedAt: string;
 }
 
+export type SuggestionStatus =
+    | 'open'
+    | 'active'
+    | 'under_review'
+    | 'approved'
+    | 'implemented'
+    | 'declined'
+    | 'archived';
+
 export interface CategorySuggestion {
     id: string;
     category_name: string;
@@ -85,7 +94,7 @@ export interface CategorySuggestion {
     avatar_seed?: string;
     avatar_style?: string;
     is_admin_author?: boolean;
-    status?: 'active' | 'shortlisted' | 'archived';
+    status?: SuggestionStatus | string;
     score: number;
     upvotes: number;
     downvotes: number;
@@ -120,6 +129,6 @@ export interface CreateSuggestionInput {
     avatar_seed?: string;
     avatar_style?: string;
     is_admin_author?: boolean;
-    status?: 'active' | 'shortlisted' | 'archived';
+    status?: SuggestionStatus | string;
 }
 

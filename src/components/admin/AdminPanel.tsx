@@ -83,9 +83,14 @@ const TAB_GROUPS: {
     ]
   },
   {
+    section: "Category Suggestions",
+    tabs: [
+      { id: 'suggestions', label: 'Category Ideas', icon: Sparkles, color: 'text-orange-400', glowColor: 'from-orange-500/25 via-amber-500/15 to-transparent', description: 'Proposals, votes & curation' },
+    ]
+  },
+  {
     section: "Contest Control",
     tabs: [
-      { id: 'suggestions', label: 'Category Ideas', icon: Sparkles, color: 'text-amber-400', glowColor: 'from-amber-500/20 via-amber-500/10 to-transparent', description: 'Brainstorm & votes' },
       { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', glowColor: 'from-amber-500/20 via-amber-500/10 to-transparent', description: 'Rules & winners' },
       { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-purple-400', glowColor: 'from-purple-500/20 via-purple-500/10 to-transparent', description: 'Lockdown & RSA keys' },
     ]

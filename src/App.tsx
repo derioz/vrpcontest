@@ -268,6 +268,35 @@ export default function App() {
   const isVotingOpen = votingOpen;
   const isSubmissionsOpen = submissionsOpen;
 
+  const profileDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Close user profile dropdown on outside click or Escape key
+  useEffect(() => {
+    if (!isProfileDropdownOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown, true);
+    document.addEventListener('touchstart', handlePointerDown, true);
+    document.addEventListener('keydown', handleKey);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown, true);
+      document.removeEventListener('touchstart', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [isProfileDropdownOpen]);
+
   // Disable background page scrolling when Admin Console overlay is open and not minimized
   useEffect(() => {
     if (showAdminModal && !isAdminMinimized) {
@@ -1724,7 +1753,7 @@ export default function App() {
           >
             {/* Profile Capsule */}
             {user && !user.isAnonymous ? (
-              <div className="relative">
+              <div ref={profileDropdownRef} className="relative">
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                   className={cn(

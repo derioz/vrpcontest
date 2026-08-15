@@ -17,7 +17,8 @@ import {
   CategorySuggestion,
   SuggestionSortOption,
   CreateSuggestionInput,
-  SuggestionVoterSummary
+  SuggestionVoterSummary,
+  SuggestionStatus
 } from '../types';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
@@ -507,12 +508,12 @@ export async function deleteCategorySuggestion(suggestionId: string): Promise<bo
 }
 
 /**
- * Update moderation status of a suggestion (e.g. 'active', 'shortlisted', 'archived').
+ * Update moderation status of a suggestion (e.g. 'open', 'under_review', 'approved', 'implemented', 'declined', 'archived').
  * Generates 1 single document write to Cloud Firestore.
  */
 export async function updateCategorySuggestionStatus(
   suggestionId: string,
-  status: 'active' | 'shortlisted' | 'archived'
+  status: SuggestionStatus | string
 ): Promise<boolean> {
   try {
     const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
