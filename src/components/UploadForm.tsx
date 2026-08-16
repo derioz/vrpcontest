@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import {
@@ -50,6 +50,12 @@ export default function UploadForm({
   const [formPlayerName, setFormPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (initialCategoryId) {
+      setSelectedCategoryId(initialCategoryId);
+    }
+  }, [initialCategoryId]);
   
   // Image Metadata & Validation States
   const [imageMeta, setImageMeta] = useState<{
@@ -488,7 +494,7 @@ export default function UploadForm({
                 <span className="text-[10px] font-mono text-white/40 flex items-center gap-1 mr-1">
                   <Tag size={10} /> Quick tags:
                 </span>
-                {['🌅 Sunset', '🏎️ Vehicle', '<ctrl42> Cityscape', '⚡ Cinematic', '🎭 Action'].map(tag => (
+                {['🌅 Sunset', '🏎️ Vehicle', '🌃 Cityscape', '⚡ Cinematic', '🎭 Action'].map(tag => (
                   <button
                     key={tag}
                     type="button"

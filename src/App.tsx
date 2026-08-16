@@ -95,7 +95,8 @@ import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setD
 
 import { Category, Photo, Rule, Theme, ArchivedWinner } from './types';
 
-const UploadForm = lazy(() => import('./components/UploadForm'));
+import UploadForm from './components/UploadForm';
+import { ContestSidebar } from './components/ContestSidebar';
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView'));
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
@@ -2903,252 +2904,33 @@ export default function App() {
         </div>
 
         {/* Right Sidebar – 1 col */}
-        <aside className="lg:col-span-1 space-y-4 sm:space-y-6 lg:sticky lg:top-28 self-start order-first lg:order-last">
-
-          {/* Profile */}
-          <section>
-            <h2 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em] mb-4">Your Profile</h2>
-            {user && !user.isAnonymous ? (
-              <div className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-md overflow-hidden">
-                <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-fivem-orange/10 blur-[50px] pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col gap-5">
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div
-                      className="relative shrink-0 group/avatar cursor-pointer"
-                      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                      title="Click to open profile options in navbar"
-                    >
-                      <div className="w-14 h-14 rounded-full border-2 border-fivem-orange/30 p-1 relative overflow-hidden bg-black/40">
-                        <img
-                          src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
-                          alt=""
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
-                            if (target.src !== fallback) target.src = fallback;
-                          }}
-                          className="w-full h-full rounded-full object-cover group-hover/avatar:scale-110 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                          <Settings size={16} className="text-fivem-orange" />
-                        </div>
-                      </div>
-                      <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#ea580c]/20 bg-emerald-500" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      {isEditingDisplayName ? (
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <input
-                            type="text"
-                            value={editedDisplayName}
-                            onChange={(e) => setEditedDisplayName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveDisplayName();
-                              if (e.key === 'Escape') setIsEditingDisplayName(false);
-                            }}
-                            className="px-2.5 py-1 text-xs font-bold text-white bg-black/60 border border-fivem-orange/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-fivem-orange w-full"
-                            placeholder="Enter new name"
-                            autoFocus
-                          />
-                          <button
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              handleSaveDisplayName();
-                            }}
-                            onClick={handleSaveDisplayName}
-                            className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors shrink-0 cursor-pointer"
-                            title="Save name"
-                          >
-                            <CheckCircle size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setIsEditingDisplayName(false);
-                            }}
-                            onClick={() => setIsEditingDisplayName(false)}
-                            className="p-1 rounded-lg bg-white/10 text-white/50 border border-white/10 hover:bg-white/20 hover:text-white transition-colors shrink-0 cursor-pointer"
-                            title="Cancel"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base font-bold text-white truncate">{user.displayName || 'Anonymous Explorer'}</h3>
-                            <ChampionBadge winCount={getUserWinCount(user.displayName, user.uid)} size="sm" />
-                          </div>
-                          <p className="text-[11px] text-fivem-orange/80 font-mono uppercase tracking-wider mt-0.5">
-                            {isAdmin ? 'System Admin' : 'Verified Member'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 pb-1">
-                    <div className="rounded-xl bg-black/20 p-2.5 border border-white/5 flex flex-col items-center justify-center text-center">
-                      <span className="text-xl font-display font-bold text-white"><NumberTicker value={userSubmissionCount} /></span>
-                      <span className="text-[9px] text-white/40 uppercase tracking-wider mt-0.5">Submissions</span>
-                    </div>
-                    <div className="rounded-xl bg-blue-500/10 p-2.5 border border-blue-500/20 flex flex-col items-center justify-center text-center">
-                      <span className="text-xl font-display font-bold text-blue-400"><NumberTicker value={votedPhotoIds.size} /></span>
-                      <span className="text-[9px] text-blue-400/70 uppercase tracking-wider mt-0.5">Votes Cast</span>
-                    </div>
-                    <div className="rounded-xl bg-fivem-orange/10 p-2.5 border border-fivem-orange/20 flex flex-col items-center justify-center text-center">
-                      <span className="text-xl font-display font-bold text-fivem-orange"><NumberTicker value={userTotalVotes} /></span>
-                      <span className="text-[9px] text-fivem-orange/70 uppercase tracking-wider mt-0.5">Votes Recv'd</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setShowArchivedWinners(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white transition-all text-xs font-bold font-display uppercase tracking-wider cursor-pointer shadow-md"
-                  >
-                    <Trophy size={14} className="text-amber-400" />
-                    <span>View Hall of Fame Archives</span>
-                  </button>
-
-                  {isAdmin && (
-                    <button
-                      onClick={() => setShowCategorySuggestions(true)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/35 text-orange-300 hover:text-white transition-all text-xs font-bold font-display uppercase tracking-wider cursor-pointer shadow-sm"
-                    >
-                      <ShieldCheck size={14} className="text-fivem-orange" />
-                      <span>Category Suggestions</span>
-                      <span className="ml-auto px-1.5 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange uppercase">Admin</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => handleSignOut()}
-                    className="w-full group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:shadow-[0_0_20px_rgba(239,68,68,0.15)] cursor-pointer"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/10 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                    <LogOut size={15} className="text-white/50 group-hover:text-red-400 transition-colors" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-white/70 group-hover:text-red-400 transition-colors">Disconnect</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-white/5 overflow-hidden bg-gradient-to-br from-[#5865F2]/15 via-fivem-card to-fivem-card">
-                {/* Top graphic strip */}
-                <div className="h-1.5 bg-gradient-to-r from-[#5865F2] via-[#7289da] to-[#5865F2]" />
-                <div className="p-6 space-y-4 text-center">
-                  <div className="w-14 h-14 mx-auto rounded-2xl bg-[#5865F2]/15 border border-[#5865F2]/30 flex items-center justify-center">
-                    <svg role="img" viewBox="0 0 24 24" className="w-7 h-7 fill-[#7289da]" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.014.043.031.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white mb-1">Sign In to Participate</h3>
-                    <p className="text-xs text-white/40 leading-relaxed">Submit entries, cast votes, and track your community standing.</p>
-                  </div>
-                  <button
-                    onClick={() => setShowSignInModal(true)}
-                    className="group w-full relative overflow-hidden bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2.5 transition-all hover:shadow-[0_0_28px_rgba(234,88,12,0.4)] hover:-translate-y-0.5 text-sm"
-                  >
-                    <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
-                    <svg role="img" viewBox="0 0 24 24" className="w-4 h-4 fill-white shrink-0" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.014.043.031.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-                    </svg>
-                    Sign In
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Contest Status + Submit CTA */}
-          <section className="p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold">Contest Status</h3>
-              <div className="flex flex-col items-end gap-1">
-                {votingOpen ? (
-                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                    <Unlock size={10} /> Voting Open
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                    <Lock size={10} /> Voting Closed
-                  </span>
-                )}
-                {submissionsOpen ? (
-                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                    <Unlock size={10} /> Submissions Open
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                    <Lock size={10} /> Submissions Closed
-                  </span>
-                )}
-              </div>
-            </div>
-            <p className="text-xs text-white/50 leading-relaxed">
-              {submissionsOpen
-                ? votingOpen
-                  ? "Browse the entries and cast your votes for your favorites!"
-                  : "Submit your best shots now. Voting will open soon."
-                : "Submissions are closed. Stay tuned for voting!"}
-            </p>
-            <button
-              onClick={handleUploadClick}
-              disabled={!submissionsOpen}
-              className={cn(
-                "w-full font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors",
-                submissionsOpen
-                  ? "bg-white text-black hover:bg-fivem-orange hover:text-white"
-                  : "bg-white/10 text-white/30 cursor-not-allowed"
-              )}
-            >
-              {submissionsOpen ? <Upload size={18} /> : <Lock size={18} />}
-              {submissionsOpen ? 'Upload Photo' : 'Submissions Closed'}
-            </button>
-          </section>
-
-          {/* Contest Quick Facts with RetroGrid */}
-          {activeContest && (
-            <section className="relative overflow-hidden p-6 bg-fivem-card rounded-2xl border border-white/5 space-y-3">
-              <RetroGrid angle={65} className="z-0 opacity-25" />
-              <div className="relative z-10 space-y-3">
-                <h3 className="text-xs font-mono text-white/40 uppercase tracking-[0.2em]">Contest Info</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <Trophy size={14} className="text-fivem-orange shrink-0" />
-                    <p className="text-xs text-white/70 font-medium truncate">{activeContest.name}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Calendar size={14} className="text-white/30 shrink-0" />
-                    <p className="text-xs text-white/40">{categories.length} categories active</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <ImageIcon size={14} className="text-white/30 shrink-0" />
-                    <p className="text-xs text-white/40">{allPhotos.length} total entries</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Archived Winners Button — always visible */}
-          <section className="p-4">
-            <button
-              onClick={() => setShowArchivedWinners(true)}
-              className="w-full relative px-4 py-3 rounded-xl font-bold transition-all duration-300 overflow-hidden bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white"
-            >
-              <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
-                <Trophy size={16} className="text-fivem-orange/70" />
-                Previous Winners
-              </span>
-            </button>
-          </section>
-
-        </aside>
+        <ContestSidebar
+          user={user}
+          isAdmin={isAdmin}
+          isEditingDisplayName={isEditingDisplayName}
+          setIsEditingDisplayName={setIsEditingDisplayName}
+          editedDisplayName={editedDisplayName}
+          setEditedDisplayName={setEditedDisplayName}
+          handleSaveDisplayName={handleSaveDisplayName}
+          userSubmissionCount={userSubmissionCount}
+          votedPhotoIds={votedPhotoIds}
+          userTotalVotes={userTotalVotes}
+          allPhotos={allPhotos}
+          categories={categories}
+          activeContest={activeContest}
+          votingOpen={votingOpen}
+          submissionsOpen={submissionsOpen}
+          currentUserPhoto={currentUserPhoto}
+          onePhotoPerUser={onePhotoPerUser}
+          archivedWinners={archivedWinners}
+          onUploadClick={handleUploadClick}
+          onSignInClick={() => setShowSignInModal(true)}
+          onSignOutClick={() => handleSignOut()}
+          onOpenHallOfFame={() => setShowArchivedWinners(true)}
+          onOpenCategorySuggestions={() => setShowCategorySuggestions(true)}
+          onOpenProfileOptions={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+          getUserWinCount={getUserWinCount}
+        />
       </main>
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
@@ -3159,7 +2941,7 @@ export default function App() {
               Submit Contest Entry
             </DialogTitle>
           </DialogHeader>
-          <Suspense fallback={<div className="p-8 text-center text-white/50 animate-pulse font-mono text-xs">Loading submission module...</div>}>
+          <ErrorBoundary fallbackTitle="Submission Form Error" onReset={() => setShowUploadModal(false)}>
             <UploadForm
               categories={categories}
               initialCategoryId={selectedCategory?.id || ''}
@@ -3175,7 +2957,7 @@ export default function App() {
                 await handleUpload(imageData, caption, discordName, formPlayerName, categoryId);
               }}
             />
-          </Suspense>
+          </ErrorBoundary>
         </DialogContent>
       </Dialog>
 
