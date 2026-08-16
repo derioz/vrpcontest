@@ -28,11 +28,12 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260815-1556',
     version: 'v1.9.6',
-    title: 'Full-Width Immersive Photography Feed, Live Contest Action Hub & Clutter-Free UI',
+    title: 'SeraUI-Inspired Contest Info Sidebar, Interactive Event Stepper & Telemetry Matrix',
     category: 'UI/UX',
-    description: `• Full-Width Immersive Photography Showcase: Removed the 1-column right sidebar to expand the entire community photo submission gallery into a full-width 3-column responsive canvas, providing 33% more visual space for entries with hero presentation for top-ranked submissions.
-• Integrated Live Contest Action Hub: Replaced cluttered vertical sidebar widgets with an ultra-sleek, glassmorphic contest control strip above the gallery featuring live dual-phase indicators (Submissions & Voting statuses), active round telemetry (Categories, Entries, and Personal Submission Tracker), quick Rules jump, and high-impact glowing CTA actions.
-• Streamlined User Profile & Hall of Fame Access: Consolidated contestant identity, stats, win badges, and settings directly into the top navbar profile capsule, dropdown, and Hall of Fame gold action, eliminating redundant widget stacks across the page.
+    description: `• SeraUI-Inspired Contest Info Sidebar: Architected a dedicated, ultra-minimalist contest information rail utilizing SeraUI design patterns, including ambient carbon glass surfaces, animated BorderBeam accents, and refined micro-typography.
+• Interactive Phase Stepper Timeline: Replaced cluttered multi-box widgets with a clean 2-step event timeline tracking Submissions and Community Voting states with live phase indicators, scheduled status tags, and real-time activity indicators.
+• Unified Telemetry Matrix: Integrated a 3-tile metrics strip showcasing Categories, Community Entries, and Votes Cast with animated NumberTicker counters and glowing icons.
+• Direct Action Controls & Contestant Tracker: Features personal submission status chips, a high-impact glowing "Submit Contest Entry" action button, and streamlined quick-actions for Contest Rules and the Hall of Fame Vault.
 • Category Submission Modal Resolution & Error Guard: Fixed the category empty state "Submit Entry" action to reliably trigger the submission modal with the active category pre-selected, resolving raw control character artifacts, lazy loading chunk glitches, and adding error boundary protection.
 • On-Demand Admin Suggestion Voting Sync: Decoupled the Admin Console suggestions hub from real-time subscriptions so that administrator decision votes persist atomically to Cloud Firestore without triggering unsolicited screen reflows or jumping cards for other reviewing admins.
 • Multi-Admin Refresh Synchronization: When an administrator visits the Category Ideas hub or taps the refresh control, the latest scores, community votes, and staff decision tallies are fetched directly from Cloud Firestore.
@@ -41,7 +42,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
 • Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
     author: 'Damon',
-    date: 'Aug 15, 2026 at 9:20 PM',
+    date: 'Aug 15, 2026 at 9:46 PM',
   },
   {
     id: 'release-20260814-1635',
