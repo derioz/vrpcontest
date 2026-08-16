@@ -968,7 +968,16 @@ export default function App() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        setFlaggedVoterIds(new Set(snap.docs.map((d) => d.id)));
+        const ids = new Set<string>();
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          if (d.id) ids.add(d.id.toLowerCase());
+          if (data.voterUid) ids.add(String(data.voterUid).toLowerCase());
+          if (data.uid) ids.add(String(data.uid).toLowerCase());
+          if (data.id) ids.add(String(data.id).toLowerCase());
+          if (data.voterName) ids.add(String(data.voterName).toLowerCase());
+        });
+        setFlaggedVoterIds(ids);
       },
       (err) => {
         console.error('Flagged voters listener error:', err);

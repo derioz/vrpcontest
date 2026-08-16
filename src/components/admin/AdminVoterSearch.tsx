@@ -126,6 +126,36 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
       } catch (statErr) {
         console.warn('user_stats query info:', statErr);
       }
+
+      // 4. Robust fallback fetch for flagged_voters & aliases
+      try {
+        const flaggedMap = new Map<string, FlaggedVoter>();
+        for (const collName of ['flagged_voters', 'flagged_accounts', 'banned_voters']) {
+          try {
+            const snap = await getDocs(collection(db, collName));
+            snap.docs.forEach((doc) => {
+              const data = doc.data();
+              const voterUid = String(data.voterUid || data.uid || data.id || doc.id);
+              const voterName = (data.voterName as string) || (data.name as string) || (data.displayName as string) || (data.username as string) || doc.id;
+              if (voterUid) {
+                flaggedMap.set(voterUid, {
+                  voterUid,
+                  voterName,
+                  flaggedAt: (data.flaggedAt as string) || (data.timestamp as string) || new Date().toISOString(),
+                  reason: data.reason as string | undefined,
+                });
+              }
+            });
+          } catch {
+            // ignore non-existent collections
+          }
+        }
+        if (flaggedMap.size > 0) {
+          setFlaggedVoters((prev) => new Map([...prev, ...flaggedMap]));
+        }
+      } catch (fErr) {
+        console.warn('Flagged voters fallback fetch error:', fErr);
+      }
     } catch (err) {
       console.error('Failed to load voter database:', err);
       toast.error('Failed to load voter database');
@@ -147,17 +177,21 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
         const map = new Map<string, FlaggedVoter>();
         snap.docs.forEach((doc) => {
           const data = doc.data();
-          map.set(doc.id, {
-            voterUid: doc.id,
-            voterName: (data.voterName as string) || 'Alt Account',
-            flaggedAt: (data.flaggedAt as string) || new Date().toISOString(),
-            reason: data.reason as string | undefined,
-          });
+          const voterUid = String(data.voterUid || data.uid || data.id || doc.id);
+          const voterName = (data.voterName as string) || (data.name as string) || (data.displayName as string) || (data.username as string) || doc.id;
+          if (voterUid) {
+            map.set(voterUid, {
+              voterUid,
+              voterName,
+              flaggedAt: (data.flaggedAt as string) || (data.timestamp as string) || new Date().toISOString(),
+              reason: data.reason as string | undefined,
+            });
+          }
         });
         setFlaggedVoters(map);
       },
       (err) => {
-        console.error('Failed to load flagged voters:', err);
+        console.error('Failed to load flagged voters realtime:', err);
       }
     );
 
