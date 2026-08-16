@@ -4,6 +4,7 @@ import { Category, Photo } from '../../types';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { DocTabs } from '../ui/doctabs';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, writeBatch, setDoc, increment } from 'firebase/firestore';
 import {
@@ -450,34 +451,19 @@ export function EditContestManager({
   return (
     <div className="space-y-6 relative">
       
-      {/* ── SEGMENTED WORKSPACE TABS ── */}
-      <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar p-1.5 rounded-2xl bg-black/40 border border-white/10 shadow-inner">
-        {[
-          { id: 'general', label: '1. Title & Status', emoji: '📜' },
-          { id: 'categories', label: `2. Categories (${categories.length})`, emoji: '🏷️' },
-          { id: 'rules', label: '3. Rules & Live Preview', emoji: '📝' },
-        ].map((tab) => {
-          const isActive = setupTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setSetupTab(tab.id as any)}
-              className={cn(
-                "px-4 py-2.5 rounded-xl text-xs font-bold font-display transition-all cursor-pointer flex items-center gap-2 shrink-0 select-none flex-1 justify-center",
-                isActive
-                  ? "bg-gradient-to-r from-fivem-orange to-amber-600 text-white shadow-lg border border-amber-400/30"
-                  : "text-white/50 hover:text-white hover:bg-white/5"
-              )}
-            >
-              <span>{tab.emoji}</span>
-              <span>{tab.label}</span>
-              {tab.id === 'rules' && isRulesModified && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="Unsaved rules changes" />
-              )}
-            </button>
-          );
-        })}
+      {/* ── SeraUI DOC TABS ── */}
+      <div className="flex justify-center">
+        <DocTabs
+          tabs={[
+            { id: 'general', title: '1. Title & Status', emoji: '📜' },
+            { id: 'categories', title: `2. Categories (${categories.length})`, emoji: '🏷️' },
+            { id: 'rules', title: isRulesModified ? '3. Rules & Preview (Unsaved)' : '3. Rules & Live Preview', emoji: '📝', badge: isRulesModified ? '●' : undefined },
+          ]}
+          activeTab={setupTab}
+          onChange={(id) => setSetupTab(id as any)}
+          variant="pills"
+          layoutId="contest-setup-doctab"
+        />
       </div>
 
       {/* ── TAB 1: TITLE & STATUS ── */}

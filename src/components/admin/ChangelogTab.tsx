@@ -30,7 +30,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.6',
     title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
     category: 'UI/UX',
-    description: `• Voter Preview Popover Interaction Resolution: Fixed vote button interception by introducing an intentional 350ms hover delay, enabling direct click-to-vote on the popover banner and surface, and adding spacing offsets so rapid voting is 100% unobstructed.
+    description: `• SeraUI DocTabs Component Integration: Built and deployed the official SeraUI DocTabs component suite (https://seraui.com/docs/doctabs) featuring dock-style expandable tab animations, spring layout pills, badge telemetry, and clean separators across Contest Setup and Admin Console navigation.
+• Separated Voting & Voter Audit Architecture: Decoupled the voting control into a standalone SeraUI radio voting button and a dedicated SeraUI Voters Badge button, completely eliminating hover popovers while allowing viewers to inspect voter lists via the full-screen modal with zero voting friction.
+• Voter Preview Popover Interaction Resolution: Fixed vote button interception by introducing an intentional 350ms hover delay, enabling direct click-to-vote on the popover banner and surface, and adding spacing offsets so rapid voting is 100% unobstructed.
 • SeraUI Progress Bar Component: Integrated high-fidelity animated progress bars with smooth Framer Motion spring fill, glowing accents, and striped variants across category cards and file upload previews.
 • SeraUI Blurred Backdrop Modals: Re-engineered all platform modal dialogs with deep frosted glassmorphism, 80% darkened backdrop blur, spring entry physics, and refined close controls.
 • SeraUI Tactile Radio-Choice Voting Button: Overhauled the community voting control into an interactive SeraUI radio-choice button featuring animated inner dot indicators, category share bars, and tactile hover feedback.
@@ -47,7 +49,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
 • Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
     author: 'Damon',
-    date: 'Aug 15, 2026 at 10:01 PM',
+    date: 'Aug 15, 2026 at 10:08 PM',
   },
   {
     id: 'release-20260814-1635',

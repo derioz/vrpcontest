@@ -70,7 +70,7 @@ import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
-import { VoteButton } from './components/VoteButton';
+import { VoteButton, VotersButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 import { NumberTicker } from './components/ui/number-ticker';
 import { Marquee } from './components/ui/marquee';
@@ -2840,7 +2840,12 @@ export default function App() {
                             </button>
                           </div>
 
-                          <div className="absolute bottom-3 right-3 z-20">
+                          <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5">
+                            <VotersButton
+                              photoId={photo.id}
+                              photoCaption={photo.caption}
+                              voteCount={photo.vote_count || 0}
+                            />
                             <VoteButton
                               photoId={photo.id}
                               photoCaption={photo.caption}
