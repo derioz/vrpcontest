@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, History, Plus, Tag, Calendar, User, Code, CheckCircle,
   FileCode, ShieldCheck, Zap, Wrench, Bug, ExternalLink, Trash2, Search,
-  Terminal, Share2, Layers
+  Terminal, Share2, Layers, ChevronDown, ChevronUp, ChevronsUpDown
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -47,36 +47,11 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.6',
     title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
     category: 'UI/UX',
-    description: `• Alt Blacklist Multi-Key Resolution & Security Rules: Resolved an issue where flagged alt accounts could fail to populate on desktop browsers by updating Firestore security rules to explicitly grant permissions on flagged_voters, archived_votes, bug_reports, and changelogs collections. Added multi-key identifier extraction and fallback query cascades so accounts flagged via UID, Discord handle, or auto-generated document keys load consistently across both mobile and desktop.
-• Minimalist Profile Pop-up Menu Overhaul: Re-engineered the user profile menu to be ultra-compact and minimal, eliminating bulky 2-line cards and oversized icon containers in favor of crisp, high-density single-line interactive rows with sleek icons, refined user header, inline style controls, and hairline dividers.
-• Settings & Bug Report Menu Integration: Relocated the standalone Settings/Admin Console and Bug Report triggers from the desktop navbar into the unified Profile Pop-up Menu, keeping the main navigation header ultra-clean and modern while preserving instant one-click access across desktop and mobile menus.
-• Voter Selection & Historical Audit Resolution: Resolved an issue where voters in the directory were not clickable by normalizing voter identifiers across UIDs, usernames, and composite summary keys. Added dedicated Historical Contest Voter telemetry cards so voters with concluded round activity render their total verified votes seamlessly.
-• Voter Directory Cross-Contest Aggregation & Admin Cleanup: Excluded placeholder "Discord User" administrator records from the Voter Search directory while integrating historic votes from archived contests (archived_votes and user_stats) so the full historical and active voter base is audited accurately.
-• Persistent Flagged Alt Accounts Registry: Enhanced the Voter Search & Alt Account Manager so that all flagged accounts stored in Firestore flagged_voters are permanently visible in a dedicated Blacklist Management panel across new contests, even when they have 0 active votes in the new round.
-• Manual Alt Account Blacklist Tool: Added a direct "Blacklist UID" modal allowing administrators to immediately blacklist any suspicious Discord user or UID and purge any residual votes.
-• Atomic Vote Concurrency & Double-Count Prevention: Resolved an issue where clicking the radio vote button could trigger duplicate synthetic events and double-increment photo tallies (+2). Replaced the HTML label container with an explicit motion.button and upgraded the voting engine in App.tsx with Firestore runTransaction atomic operations and in-flight debouncing locks.
-• Admin Vote Count Reconciler: Added a one-click "Reconcile Counts" utility to the Voter Search admin tab that audits the raw votes collection against photo vote_count tallies and automatically heals any historical count skew.
-• SeraUI Fancy Tabs Integration: Built and deployed the official SeraUI Tabs View: Fancy component (https://seraui.com/docs/tabs-fancy) across Admin Console category suggestions management, featuring animated gradient active pills, status dot indicators, and count telemetry.
-• SeraUI 3D Carousel & Dynamic Hero Architecture: Overhauled the landing page hero section with the official SeraUI 3D Carousel (https://seraui.com/docs/3d-carousel). When contest photos exist, an interactive 3D rotating cylinder renders with drag rotation, mouse tilt sensitivity, inertia, and click-to-view support; when empty, the carousel is cleanly hidden in favor of a focused, non-redundant contest telemetry matrix.
-• Official SeraUI Radio Button Voting Engine: Refined the voting control to match the official SeraUI Radio Buttons specification (https://seraui.com/docs/radio-buttons) with peer-checked states, tactile scale transitions, and glowing indicator dots.
-• SeraUI DocTabs Component Integration: Built and deployed the official SeraUI DocTabs component suite (https://seraui.com/docs/doctabs) featuring dock-style expandable tab animations, spring layout pills, badge telemetry, and clean separators across Contest Setup and Admin Console navigation.
-• Separated Voting & Voter Audit Architecture: Decoupled the voting control into a standalone SeraUI radio voting button and a dedicated SeraUI Voters Badge button, completely eliminating hover popovers while allowing viewers to inspect voter lists via the full-screen modal with zero voting friction.
-• Voter Preview Popover Interaction Resolution: Fixed vote button interception by introducing an intentional 350ms hover delay, enabling direct click-to-vote on the popover banner and surface, and adding spacing offsets so rapid voting is 100% unobstructed.
-• SeraUI Progress Bar Component: Integrated high-fidelity animated progress bars with smooth Framer Motion spring fill, glowing accents, and striped variants across category cards and file upload previews.
-• SeraUI Blurred Backdrop Modals: Re-engineered all platform modal dialogs with deep frosted glassmorphism, 80% darkened backdrop blur, spring entry physics, and refined close controls.
-• SeraUI Tactile Radio-Choice Voting Button: Overhauled the community voting control into an interactive SeraUI radio-choice button featuring animated inner dot indicators, category share bars, and tactile hover feedback.
-• SeraUI Animated Dropdown System: Built reusable glassmorphic dropdown components with spring animations, auto-rotating chevrons, and outside-click dismiss.
-• Native SeraUI Floating Toast Notifications: Introduced a centralized, dark-mode floating toast notification stack supporting success, error, warning, info, and loading states with auto-dismiss timers.
-• Sidebar Border Polish: Removed the animated border beam from the Contest Info Rail for a sleeker, distraction-free carbon glass finish.
-• Interactive Phase Stepper Timeline: Replaced cluttered multi-box widgets with a clean 2-step event timeline tracking Submissions and Community Voting states with live phase indicators, scheduled status tags, and real-time activity indicators.
-• Unified Telemetry Matrix: Integrated a 3-tile metrics strip showcasing Categories, Community Entries, and Votes Cast with animated NumberTicker counters and glowing icons.
-• Category Submission Modal Resolution & Error Guard: Fixed the category empty state "Submit Entry" action to reliably trigger the submission modal with the active category pre-selected, resolving raw control character artifacts, lazy loading chunk glitches, and adding error boundary protection.
-• On-Demand Admin Suggestion Voting Sync: Decoupled the Admin Console suggestions hub from real-time subscriptions so that administrator decision votes persist atomically to Cloud Firestore without triggering unsolicited screen reflows or jumping cards for other reviewing admins.
-• Multi-Admin Refresh Synchronization: When an administrator visits the Category Ideas hub or taps the refresh control, the latest scores, community votes, and staff decision tallies are fetched directly from Cloud Firestore.
-• Animated Refresh Button Micro-Interactions: Re-engineered the header refresh trigger with smooth Framer Motion spring physics, a continuous 360-degree rotation animation during active sync, glowing orange aura states, and 180-degree hover transitions.
-• Zero-Jitter Staff Review Experience: Admins can review proposals and cast votes with optimistic state feedback while preserving layout stability for all other active staff sessions.
-• Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
-• Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
+    description: `• Official SeraUI Component Suite Deployment: Integrated the official SeraUI 3D Carousel, Fancy Tabs, DocTabs, Progress Bars, Glassmorphic Modal Dialogs, and native Floating Toast notifications across landing hero, contest setups, and voting flows.
+• Atomic Voting Concurrency & Fraud Prevention: Upgraded the voting engine in App.tsx with Firestore runTransaction atomic locking, synthetic double-increment prevention, and a one-click Admin Vote Count Reconciler utility.
+• Alt Account Blacklist Manager & Multi-Key Resolution: Enhanced the Voter Search directory with permanent Blacklist registries, direct UID ban modals, cross-contest historical vote aggregation, and normalized multi-key identifier cascade queries.
+• Separated Voting & Voter Audit Architecture: Decoupled community voting into standalone SeraUI radio voting buttons and dedicated non-obstructive Voter Badge modal inspection triggers.
+• Real-time Admin Suggestion Voting Sync: Decoupled category suggestion decision votes from client screen reflows with optimistic state sync, 360-degree rotating refresh physics, and eliminated page auth flicker states.`,
     author: 'Damon',
     date: 'Aug 15, 2026 at 10:39 PM',
   },
@@ -85,53 +60,12 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.5',
     title: 'Category Suggestions System, Reddit-Style Voting, Firebase Backend & Admin Console Hub',
     category: 'Feature',
-    description: `• Reddit-Style Category Suggestions Portal: Introduced a dedicated community brainstorm platform where verified community members and administrators can submit theme concepts for upcoming Vital RP Photo Contest rounds.
-• Firebase Cloud Firestore Backend: Permanently stores and synchronizes category proposals and community votes directly via Cloud Firestore, utilizing atomic transactions (runTransaction) for race-condition-free score and vote calculations.
-• Discord OAuth Profile Attribution: Automatically links each proposal and vote to the user's official Discord login profile, preserving Discord handle, Discord ID, and profile avatars across suggestions feeds and moderation screens.
-• Dedicated Admin Console Management Hub: Built a full-featured "Category Ideas" management tab in the Admin Console (Contest Control group), complete with summary telemetry metrics (total proposals, total votes cast, curated concepts, leader scores), status toggles (Active, Shortlisted, Archived), and one-click deletion moderation.
-• Dual-Axis Voting Engine (▲ / ▼): Engineered an interactive Reddit-style voting mechanism allowing members to cast upvotes (+1) or downvotes (-1), toggle their vote off, or seamlessly reverse their vote (shifting scores by 2) with instant optimistic UI feedback and live database score recalculations.
-• Single Vote Document Constraint: Enforced an atomic composite document ID (\${suggestionId}_\${userId}) in Cloud Firestore, strictly guarding against duplicate votes across multiple browser tabs, client reloads, or direct API triggers.
-• Real-Time Suggestions Filtering & Sorting: Implemented dynamic sorting controls across 4 distinct modes (Newest, Top Score / Most Upvoted, Lowest Score, and Oldest) alongside instant real-time keyword search across titles, descriptions, and creator handles.
-• Direct Navbar & Mobile Sheet Navigation: Added dedicated "Suggestions" navigation pills in both the desktop signal bar and mobile navigation drawer, equipped with active administrator badges and seamless full-page view transitions.
-• Adaptive Horizontal Category Navigation: Built a responsive StickyCategoryNav component with dynamic chevron navigation controls (‹ and ›), smooth horizontal mouse wheel translation, auto-centering for active categories, dynamic gradient edge indicators, and responsive max-width truncation with title tooltips so long category titles never cut off or overflow awkwardly.
-• Image Censor & Pixelation Gate: Re-introduced the submission image censorship switch in the Admin Console (Controls & Security tab). When activated, all submitted photos are pixelated and obscured to the public throughout the submission phase to eliminate early bias and duplicate concepts. As soon as voting is unlocked (or censorship is toggled off), high-resolution unpixelated images are immediately revealed in real time across photo feeds, category tabs, and the full-screen lightbox.
-• Censor Badge Component Reference Fix: Resolved a missing icon component reference in App.tsx that caused a blank page render crash when the image censor toggle was enabled.
-• ReactMarkdown & GFM Rendering Engine: Replaced the legacy plain-text line-splitting preview with a high-fidelity Markdown engine powered by ReactMarkdown and remark-gfm, delivering 100% accurate rendering for headings (#, ##, ###), bold (**text**), italics (*text*), blockquotes (> note), bullet & numbered lists, tables, links, code snippets, and custom callouts.
-• Instant "Save Rules Now" Action: Added a dedicated instant-save button right inside the Rules & Live Preview tab in Contest Setup, allowing administrators to persist global rules directly to Firestore in one click without needing to re-validate category fields or round metadata.
-• Real-Time Typing State Protection: Refactored internal state synchronization in EditContestManager to guard against background Firestore listener updates wiping out unsaved text in the rules editor while administrators are typing.
-• One-Click Starter Rules Templates: Integrated quick template presets ("Full Official Rules" and "Short & Compact") and quick formatting syntax chips into the Markdown toolbar for rapid contest rule authoring.
-• Dual-Mode Split Preview in Contest Creator: Upgraded the "Create New Contest Round" builder with the full split-view Markdown toolbar and real-time live preview panel matching the active contest editor.
-• Front Page Markdown Typography Synchronization: Aligned the main landing page rules section (#rules) with the exact same typography, custom heading accents (#, ##, ###), bold/italic highlights, blockquote callouts, tables, and link styling as the admin live preview.
-• Standalone Platform Rules Editor: Added a standalone fallback rules management panel in Contest Setup so administrators can configure global platform rules even when no active contest round is currently deployed.
-• Category Suggestions Viewport Fix & Icon Import Resolution: Fixed an issue where opening Category Suggestions could render a blank screen by resolving an unimported History icon reference and upgrading CategorySuggestionsView to a fixed full-screen viewport overlay (fixed inset-0 z-[150]) with responsive overflow scrolling matching the Hall of Fame Vault.
-• Viewport-Level React Error Boundary: Implemented a robust ErrorBoundary wrapper around full-screen views (Category Suggestions, Hall of Fame, Analytics) to intercept any runtime exceptions gracefully, displaying actionable diagnostic cards with one-click retry and return actions instead of blank pages.
-• Duplicate Submission Bug Resolution: Eliminated optimistic state collisions during proposal submission by relying exclusively on Firestore onSnapshot document deduplication, preventing ghost duplicate entries from flashing before first vote.
-• Spring-Animated Reordering Physics: Integrated GPU-accelerated Framer Motion layout physics (motion.div layout) on all category suggestion cards, smoothly gliding cards into their new ranking positions whenever votes change in real time.
-• Direct Share Deep Linking & Highlight Animation: Upgraded suggestion share links to include &suggestion={id} or &idea={id}, automatically launching the suggestions view, smoothly scrolling the target card into view, and triggering a 3-second amber highlight ring.
-• Voter Breakdown Hover Popovers: Hovering over the upvotes or downvotes pill on any suggestion card reveals a real-time list of members who voted, displaying Discord avatars, usernames, and member tags.
-• Multi-Fallback Share Button: Engineered clipboard copying with modern navigator.clipboard and legacy textarea execCommand fallbacks, automatically updating browser history and displaying immediate visual confirmation.
-• Admin-Only Profile Dropdown Relocation: Removed public navbar buttons and relocated Category Suggestions exclusively into the User Profile Dropdown, Mobile Drawer, and Sidebar Quick Actions, restricted by administrator privileges with ShieldCheck indicators.
-• Browser Refresh View & Section Persistence: Synchronized Category Suggestions view state and deep-link parameters with localStorage and browser search params, ensuring browser reloads keep the user on the suggestions view without resetting state.
-• Firestore Read & Write Optimization: Overhauled the entire Category Suggestions data layer to drastically minimize Firestore read and write costs across all user sessions.
-• Zero-Read Client Sorting & Search Filtering: Decoupled sorting and text search from Firestore queries—all sorting (Top, Newest, Lowest, Oldest) and multi-keyword filtering now execute 100% in-memory via useMemo, eliminating redundant collection re-reads on tab toggles.
-• Inlined Document Voter Summaries: Embedded lightweight voter sample payloads directly into category suggestion documents during vote transactions, allowing hover popovers to resolve instantaneously with zero extra Firestore queries.
-• Client-Side LRU Memory Cache & Vote Debounce: Added in-memory voter caching with a 60-second TTL and client-side vote locks to prevent transaction contention and rapid spam-click writes.
-• Profile Dropdown Click-Outside & Escape Dismissal: Implemented a robust outside-click boundary listener and Escape key handler on the user profile dropdown, ensuring the menu closes reliably when clicking anywhere outside.
-• Dedicated Admin Console Category for Suggestions: Created an independent top-level category group in the Admin Console sidebar and navigation specifically for Category Suggestions with custom theme styling, live telemetry metrics, and dedicated navigation.
-• Functional Suggestion Workflow Statuses: Replaced static moderation tags with 6 functional workflow statuses (Open for Voting, Under Review, Approved for Contest, Implemented / Used, Declined, and Archived) with instant dropdown selectors and glowing indicators.
-• Admin Status Filtering Tabs with Count Badges: Added dedicated horizontal status filter tabs with dynamic live counters, allowing administrators to filter proposals by workflow state with 0 Firestore read costs.
-• Anti-Jitter Layout Stabilization Engine: Engineered a frozen display order architecture across both community and admin suggestion views to prevent cards from constantly shifting and jumping on screen during peak voting traffic.
-• Live Vote Inbound Banners & "Update Ranking" Action: Added non-intrusive live activity banners indicating how many proposals have moved rank in the background, with one-click ranking alignment on user demand.
-• Stable View vs Live Stream Mode Toggle: Integrated a toolbar toggle allowing users and administrators to switch between Stable Reading mode (frozen positions) and Live Stream mode (continuous auto-gliding animations).
-• Staff Contest Decision Voting Suite & Multi-Status Support: Engineered a dedicated staff contest decision voting system in the Admin Console specifically for admins to vote on whether proposals will be used for upcoming contest rounds, active across both "Open for Voting" and "Under Review" statuses with atomic real-time persistence.
-• Automated 2/3 Admin Quorum Consensus Pipeline: Engineered a 2-stage automated progression workflow where 2 out of 3 admin "yes" votes on an "Under Review" suggestion automatically promotes it to "Open for Voting", and 2 out of 3 admin "yes" votes on an "Open for Voting" suggestion automatically approves it for the contest.
-• Intuitive Admin Voting Phrasing & Dynamic Threshold Messaging: Simplified staff decision displays to dynamic countdown status ("Waiting for 1 more vote to move to Open for Voting" / "Waiting for 1 more vote to approve for contest") with explicit contest context ("Use in Upcoming Contest?").
-• Public Community User Vote Telemetry in Admin Cards: Admin suggestion cards prominently display public community scores, upvote/downvote totals, and hover voter popovers alongside staff decision metrics.
-• Multi-Strategy Live Discord Avatar Sync ("Pull Discord Photo"): Upgraded the avatar refresh flow to fetch the latest Discord photo directly from Discord API via OAuth bearer tokens, guild member lookups, and user CDN endpoints, resolving avatar cache staleness.
-• Global Discord Avatar Persistence & Retroactive Site-Wide Sync: Ensured pulled Discord photos persist in localStorage and Firestore user profiles across refreshes, automatically synchronizing retroactively across existing photo submissions, new entries, and category proposals.
-• Resilient Admin Quorum Voting & Live Avatar Reconciliation: Resolved Firestore transaction value serialization and added dynamic avatar reconciliation to ensure all staff votes and updated avatars display instantly across all administrators.
-• Real-time Multi-Admin State Synchronization: Standardized status normalization and live Firestore subscriptions ensuring workflow statuses, vote tallies, and quorum progressions sync instantaneously across all active admin consoles.
-• Verified Feed Manual Refresh: Ensured the manual refresh button in the Admin Console re-fetches and synchronizes category proposals and staff decisions seamlessly.`,
+    description: `• Community Category Suggestions Brainstorm Portal: Built a dedicated community theme suggestion hub powered by atomic Firestore transactions, Discord OAuth attribution, and real-time keyword search and sorting.
+• Dual-Axis Voting Engine & Score Sync: Implemented interactive Reddit-style upvoting/downvoting (▲ / ▼) with single-vote document constraints, live score recalculation, and hover voter popovers.
+• Admin Category Ideas Hub & 2/3 Quorum Progression: Built an admin management center with 6 functional workflow statuses, real-time live activity banners, and an automated 2/3 staff quorum consensus pipeline.
+• Real-Time Markdown & GFM Rules Engine: Upgraded contest rules authoring and landing page displays with full ReactMarkdown and remark-gfm rendering, split-view previews, and instant-save actions.
+• Adaptive Category Navigation & Image Censor Gate: Introduced StickyCategoryNav with chevron controls alongside an Admin image censorship gate to prevent early bias during submission phases.
+• Performance & Zero-Read Optimization: Optimized suggestions data layers with in-memory memoized sorting, voter sample embeddings, and LRU cache debounce.`,
     author: 'Damon',
     date: 'Aug 14, 2026 at 10:59 PM',
   },
@@ -140,21 +74,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.4',
     title: 'Admin Console Redesign, Unified Headers, Collapsible Contest Editors & Site Lockdown',
     category: 'Feature',
-    description: `• Collapsible Active Contest Editor Accordion: Added a collapsible accordion section for "Edit Current Contest" in Contest Setup matching the "Create New Contest Round" accordion, featuring active round indicator pills, ID badges, and smooth collapse/expand triggers.
-• Unified Admin Page Header Architecture: Implemented a standardized AdminHeader component across all 8 Admin Console categories (Dashboard, Analytics, Submissions, Voter Audit, Contest Setup, Controls & Security, Changelog, and Danger Zone) delivering complete visual consistency with high-contrast themed badges, pulsating status lights, stylized icons, and action controls.
-• In-Place Editable Categories in Contest Setup: After adding categories in the Contest Setup builder, each category item remains fully editable in place (allowing instant adjustments to category names, descriptions, and custom emojis without needing to delete and recreate).
-• Expanded High-Fidelity Admin Console: Enlarged modal stage to an expansive responsive viewport (up to 1600px width with 88vh height), providing spacious layouts for data tables, telemetry graphs, and photo previews.
-• Enhanced Categorized Sidebar Dock: Upgraded the Admin Side Menu with organized category sections (Core Operations, Contest Control, Platform), interactive spring physics, layout pills, micro-zoom hover states, and live indicator counters.
-• Fluid Category Switching Motion: Added motion transitions with spring easing, subtle blur reveals, and layout animations across all admin tabs.
-• Full-Width Inline Analytics Dashboard: Refactored the Analytics category view into a native full-width inline dashboard layout, eliminating nested scrollbars and cramped frames.
-• Rebuilt Contest Setup Manager: Streamlined contest creation and management workflows with enhanced category emoji selectors, live markdown split-preview rules editor, and removed obsolete schedule dates in favor of real-time gates.
-• Official Vital RP Branded Lock Screen: Enhanced the "Contest is Closed" modal with the official high-resolution Vital RP logo centerpiece, ambient neon glow, and reassuring next round notice.
-• Streamlined Platform Changelog Header: Redesigned the Changelog tab header into a clean, modern version history portal and resolved rendering crashes.
-• Site Closed Lockdown Mode: Added a global toggle switch in the Admin Console (Controls & Security tab) allowing administrators to restrict access to the contest portal when a contest round is concluded or undergoing scheduled maintenance.
-• Interactive Creator Easter Egg: Styled a clean "Created by Damon" footer badge featuring Damon's custom avatar that triggers an animated playful wiggle when clicked.
-• Seamless Hall of Fame Shortcut: Built-in high-contrast button allowing visitors to immediately explore all past champions and winning entries in the Hall of Fame without requiring login.
-• Intuitive Minimize Window Controls: Updated the console minimize button to a standard window-style minus control with bottom dock restoration.
-• Administrator Sign-In & Live Bypass: Integrated instant login for administrators directly from the closed modal, accompanied by an admin bypass toggle and quick shortcut to launch the Admin Console.`,
+    description: `• Unified Admin Page Header Architecture: Standardized AdminHeader across all 8 Admin Console categories with themed badges, pulsating status indicators, and action triggers.
+• Collapsible Contest Setup Editors: Added collapsible accordions for active contest editing and new round creation with in-place editable category items and emoji pickers.
+• High-Fidelity Responsive Admin Viewport: Enlarged console modal stage (up to 1600px width), categorized dock navigation, and full-width inline analytics dashboards.
+• Site Closed Lockdown Gate: Built a global maintenance lockdown toggle in Controls & Security with official Vital RP logo artwork and administrator live bypass.`,
     author: 'Damon',
     date: 'Aug 13, 2026 at 8:59 PM',
   },
@@ -163,9 +86,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.3',
     title: 'Rename Display Name Modal & Profile Menu Cleanup',
     category: 'UI/UX',
-    description: `• Rename Display Name Modal Overlay: Rebuilt the "Rename Display Name" feature to launch a dedicated glassmorphic modal overlay when clicked from any profile button (navbar dropdown, mobile menu, or profile card), allowing users to update their handle instantly without having to locate an inline edit field.
-• Profile Dropdown Cleanup: Removed the Hall of Fame Vault option from the navbar user profile dropdown to eliminate redundant navigation options, keeping the account menu focused strictly on account management.
-• Mobile Menu Rename Shortcut: Added an edit display name icon button inside the mobile menu account card for direct access to profile handle editing on mobile devices.`,
+    description: `• Dedicated Rename Display Name Modal: Rebuilt handle editing into an interactive glassmorphic modal overlay accessible across navbar dropdowns, mobile menus, and profile cards.
+• Mobile Menu & Navigation Cleanup: Streamlined profile menu options and mobile action cards for high-density account management.`,
     author: 'Damon',
     date: 'Aug 12, 2026 at 10:08 PM',
   },
@@ -174,12 +96,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.2',
     title: 'Mobile Vault Menu, Admin Panel Width & Scroll Indicator Fixes',
     category: 'UI/UX',
-    description: `• Mobile Vault Buttons Compacted: Previous contest (vault) selector pills on mobile now have a max-width of 140px with truncated text and smaller font size, preventing super-long buttons that push content off-screen.
-• Vault Scroll Fade Indicators: Added left/right gradient fade overlays on the mobile vault pill bar so users can visually tell the list is horizontally scrollable.
-• Vault Title Overflow Fix: The selected vault title in the content header now properly truncates on mobile with a smaller font size (text-lg) and stacks vertically so it doesn't go off-page.
-• Admin Panel Full Width on Mobile: The admin console modal now fills the entire screen on mobile — no padding, no rounded corners, no max-width constraint — for maximum usable space.
-• Admin Tab Scroll Indicators: The mobile admin tab bar now has gradient fade edges and a pulsing chevron arrow on the right to clearly indicate horizontal scrollability.
-• Touch Scrolling Improvements: Added touch-pan-x and end spacers on both the vault and admin tab scroll bars for smoother iOS scrolling and preventing the last item from being hidden under the fade.`,
+    description: `• Mobile Vault Optimization: Compacted previous contest selector pills with gradient edge fades, text truncation, and smooth touch scrolling.
+• Full-Width Mobile Admin Console: Expanded admin overlays to full-width mobile viewports with scrollable tab bars and visual overflow indicators.`,
     author: 'Damon',
     date: 'Aug 12, 2026 at 9:14 PM',
   },
@@ -188,50 +106,20 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.1',
     title: 'Hall of Fame Navbar Separation & Submissions Closed Button Cleanup',
     category: 'UI/UX',
-    description: `• Hall of Fame Special Standalone Button: Separated Hall of Fame from the regular navigation capsule into its own visually distinct standalone button with amber/gold gradient background, glowing shadow, Trophy icon, and Sparkles accent — making it feel premium and immediately eye-catching.
-• Submissions Closed Button Hidden: The "Submissions Closed" navbar button is now completely hidden when submissions are not open, instead of showing a disabled/locked state. The "Submit Entry" button only appears when submissions are actively open.
-• Mobile Hall of Fame Section: Added a dedicated Hall of Fame section in the mobile navigation menu with its own "✦ Hall of Fame" header label, amber gradient styling, Trophy icon, and Sparkles to match the desktop treatment.
-• Mobile Submissions Cleanup: Mobile menu also hides the Submit Entry option entirely when submissions are closed, keeping the navigation clean and uncluttered.
-• Hall of Fame Refresh Persistence: Page refreshes while viewing the Hall of Fame Vault automatically reopen the Hall of Fame view via synced localStorage and URL parameters.
-• Admin Console Refresh Persistence: Page refreshes while in the Admin Console overlay keep the Admin Console open seamlessly after browser reloads.`,
+    description: `• Standalone Hall of Fame Vault Pill: Separated Hall of Fame into an eye-catching gold-accented standalone button with persistent URL/localStorage state sync.
+• Dynamic CTA Visibility: Submissions Closed buttons are now cleanly hidden when submissions are locked, rendering Submit Entry only when rounds are open.`,
     author: 'Damon',
     date: 'Aug 12, 2026 at 8:46 PM',
   },
   {
     id: 'release-20260811-2115',
     version: 'v1.9.0',
-    title: 'Premium Dual-Layer Glass Navbar & Category Bar Redesign',
+    title: 'Premium Dual-Layer Glass Navbar, Hall of Fame Vault & Strict Resolution Inspector',
     category: 'UI/UX',
-    description: `• Dual-Layer Glass Architecture: Redesigned navbar with an outer chrome shell featuring animated shimmer gradient border that travels along the top edge, and a frosted glass interior panel with inset shadows and noise texture overlay for premium depth.
-• Animated Shimmer Border: Added a continuously travelling orange-to-gold gradient highlight along the navbar top edge using a custom CSS shimmer keyframe animation, with subtle vertical gradient accents on side edges.
-• Profile Capsule Button: Redesigned profile button as a compact rounded-full capsule with circular avatar, green online dot, truncated name, and chevron — fits cleanly within the navbar without any overflow.
-• Category Bar Glass Matching: Rebuilt the sticky category menu with the same dual-layer glass architecture as the navbar — noise texture overlay, gradient side accents, frosted interior, and rounded-full pill buttons for visual consistency.
-• Navigation Capsule Refinement: Removed obsolete Gallery button and added high-utility nav tabs ("Categories", "Submit Entry" CTA with glowing orange badge, "Rules", and "Hall of Fame") with Lucide icons for quick access.
-• Mini Category Bar Spacing: Added 6px top offset under navbar and increased internal track padding (pt-4 pb-3.5) so category buttons are comfortably spaced and easy to read/tap.
-• Closed Submissions Guard: Navbar "Submit Entry" button checks contest status and blocks modal launch with a clear toast message when submissions are closed by admins.
-• Strict 1920x1080 Resolution Inspector: Image selection inspects dimensions and immediately alerts the user if resolution is under 1920x1080 Full HD, displaying current dimensions vs requirement with explicit error banners and button lock.
-• High-Utility Upload Modal: Enhanced upload form with live image metadata badges (resolution, aspect ratio, file size), category description preview, quick caption tags, and verified Discord badge.
-• 1 Photo Per User Limit Enforcement: Strictly enforced the single submission per user rule across modal and upload handler logic.
-• Existing Submission Preview & Delete CTA: When a participant with an existing entry opens the upload modal while the 1-photo limit is active, the modal displays an intuitive preview card of their current entry (thumbnail, category, votes, caption) with an immediate "Delete Current Submission & Upload New Photo" button to easily swap entries.
-• Permanent Flagged Voters Retention: Verified and documented that the flagged_voters collection is strictly retained across contest archives and resets, ensuring alt account bans persist across all future contests.
-• Multi-Tier Champion Badges: Implemented dynamic badges for contest winners: Gold Champion (1x Winner), Platinum Crown (2x Champion), and Legendary Flame/Diamond (3+ Wins Grand Champion).
-• Universal Winner Badge Display: Displayed Champion Badges across navbar profile capsule, account dropdown header, sidebar profile, gallery photo cards, lightbox viewer, and Hall of Fame vault.
-• Hall of Fame Scrollbar Stabilization: Fixed scrollbar layout flicker by applying CSS scrollbar-gutter: stable and removing popLayout height collapses.
-• Unconditional Navbar Hall of Fame Link: Prominently added "Hall of Fame" directly to the navbar center capsule and mobile menu so it is easily accessible at all times.
-• High-Fidelity Hall of Fame Vault Redesign: Enhanced the Hall of Fame with a glassmorphic hero stats bar, MagicCard spotlight effects, search filters, and interactive winning photo inspection lightbox.
-• Universal Profile Picture Display: Integrated user profile avatars across gallery photo cards, lightbox viewer, sidebar profile section, and Hall of Fame winner cards.
-• "My Victories" Personal Vault Filter: Added an intuitive filter tab and profile dropdown shortcut allowing users to immediately view all past winning photo entries submitted by their account.
-• Multi-Identifier User Victory Resolution: Enhanced user victory matching logic to resolve wins across uid, displayName, discord_name, player_name, email, and local storage handles so past archived victories are reliably detected and counted.
-• Consistent Winner Card Layout Baseline: Added a fixed 2-line caption container height (min-h-[2.5rem] flex items-center) so the divider line and user profile footer line up at the exact same vertical baseline across every card regardless of caption length.
-• Official Discord Profile Avatar Resolution: Updated resolveAvatarUrl on the Hall of Fame view to prioritize official Discord profile pictures (user.photoURL) for all winning entries, backed by automatic fallback error handling.
-• High-Performance Memoized Winner Cards: Isolated winner cards into a memoized WinnerCard component with GPU hardware acceleration (transform-gpu, lazy decoding, optimized particle background count) for ultra-smooth 60fps scrolling and filtering.
-• Interactive Photographer Portfolio Filter: Clicking any winner's username or avatar in the Hall of Fame now immediately filters the gallery view to show all past winning entries from that specific photographer, complete with an active filter pill and 1-click clear option.
-• Enhanced Share Entry Modal: Rebuilt the Share action to present a dedicated dialog with 1-click "Copy Link to Clipboard", a visible selectable text box for manual copying, and Twitter/X social share shortcuts.
-• Custom Display Name Filter Resolution: Updated resolveDisplayName in ArchivedWinnersView.tsx so user filters and winner card headers respect customized display names when a user renames their account.
-• Direct Shared Link Deep-Linking: Added URL search parameter listener on page mount (?photo=..., ?archive=..., ?winner=...) in App.tsx and ArchivedWinnersView.tsx so visiting or clicking any shared entry URL automatically launches the winning photo in full detail.
-• Accurate Win Count Deduplication: Fixed double-counting bug where a single winning entry document with matching discord_name and player_name double-incremented the winner map. Win count badges and photographer filter counts now precisely reflect the exact number of winning photo documents in the vault.
-• Compact Mobile Vault Selector: Replaced vertical sidebar block on mobile viewports with a sleek horizontal scrollable capsule pill bar to prevent the vault menu from taking over the screen.
-• Mobile Navbar Overflow & Side-Scroll Elimination: Enforced strict w-full max-w-full overflow-x-hidden constraints, text truncations, and responsive flex-wrap logic across the Hall of Fame navbar header to eliminate horizontal side-scrolling.`,
+    description: `• Dual-Layer Glass Navbar & Category Rail: Engineered animated shimmer gradient borders and frosted glass panels across headers and category navigation.
+• Strict 1080p Resolution Inspector & 1-Photo Limit: Enforced strict 1920x1080 upload validation with dimension error alerts and 1-photo per user swap management.
+• Hall of Fame Vault & Multi-Tier Victory Badges: Built the archived champions gallery with interactive photo lightboxes, photographer portfolio filters, and multi-tier victory badge attribution.
+• Permanent Alt Blacklist Persistence: Ensured flagged account registries persist permanently across round resets and database archives.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 9:15 PM',
   },
@@ -240,13 +128,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.8.0',
     title: 'High-Fidelity 3D Category Redesign & Prominent Emoji Visual Polish',
     category: 'UI/UX',
-    description: `• 3D Glassmorphic Card Physics: Added spring-loaded 3D cursor tilt physics and specular glare reflection on hover.
-• MagicUI Neon Border Beams: Integrated active-state BorderBeam glow effects and ambient DotPattern background overlay.
-• Large Floating Emojis: Removed emoji border boxes and enlarged emojis to text-5xl floating graphics with smooth drop-shadow glow effects.
-• Cleaned Badge Header: Updated section header badge to clean "Interactive Filters".
-• ClipPath Slide-Down Category Menu: Replaced fade-in with a true CSS clipPath reveal animation so the sticky category bar visually peels out from under the navbar; brightened background to #16161e with larger text, generous spacing, and high-contrast pill buttons for readability.
-• Premium Profile Button: Redesigned navbar account pill with generous padding (px-5 py-3), ring-offset avatar with online dot indicator, and frosted glass background.
-• Real-time Submission Percentage Ring: Displayed animated live submission stats and progress bars using MagicUI NumberTicker.`,
+    description: `• 3D Glassmorphic Category Physics: Added spring-loaded cursor tilt physics, specular glare reflections, and MagicUI Neon Border Beams.
+• Large Floating Category Emojis: Replaced emoji border boxes with text-5xl floating graphics with smooth drop-shadow glow effects.
+• ClipPath Category Peeling Animation: Replaced simple fade-in with a CSS clipPath reveal sliding smoothly from beneath the navbar.`,
     author: 'Damon',
     date: 'Aug 11, 2026 at 8:32 PM',
   },
@@ -255,12 +139,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.7.0',
     title: 'DiceBear Dynamic Default Avatars & Discord Fallback Integration',
     category: 'Feature',
-    description: `• Discord Photo Priority: Attempts to load user Discord OAuth profile photo first.
-• DiceBear SVG Fallback: Automatically falls back to unique, deterministic DiceBear SVG avatars if Discord photo is missing or fails to load.
-• Automatic Image onError Fallback: Added automatic image error handlers so broken Discord URLs seamlessly switch to DiceBear.
-• Avatar Style Selector: Added interactive style chooser supporting Robots, Adventurers, Avataaars, Lorelei, Thumbs, Fun Emoji, and Identicons.
-• Avatar Randomizer: Added one-click "Randomize" avatar seed button to instantly generate fresh profile pictures.
-• Voter Search Avatars: Enhanced Admin Voter Search with real-time DiceBear avatar SVGs for all voters.`,
+    description: `• Discord & DiceBear Avatar Pipeline: Prioritizes Discord OAuth photos with automatic deterministic DiceBear SVG fallback on load errors.
+• Interactive Avatar Customization: Added avatar style choosers (Robots, Adventurers, Avataaars, Lorelei, Fun Emoji) and seed randomizers across platform cards.`,
     author: 'Damon',
     date: 'Aug 10, 2026 at 9:51 PM',
   },
@@ -269,15 +149,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.6.0',
     title: 'Contest Setup Polish, DUSTFILE Scroll Animations & Minimal Notes',
     category: 'Feature',
-    description: `• Minimal Changelogs: Simplified release notes into clean, concise 1-line bullet points.
-• DUSTFILE Framer Animations: Added scroll reveals, hover tilt elevation, and sticky left timeline column.
-• Background Scroll Lock: Main page scrolling is now locked while the Admin Console is open.
-• Title Emoji Selector: Added an emoji picker next to the Contest Title input.
-• High-Contrast Emoji Buttons: Upgraded emoji buttons across all forms to be bright and easy to see.
-• Red Danger Zone: Made the Danger Zone tab button bright glowing red.
-• Vital RP Loading Screen Showcase: Featured all 5 winner photos on the server loading screen.
-• Sleek Action Buttons: Replaced animated shimmer buttons with high-contrast download buttons.
-• Minimizable Admin Dock: Added minimize control to pin Admin Console to bottom dock without resetting state.`,
+    description: `• DUSTFILE Timeline & Scroll Animations: Added scroll reveals, hover tilt elevation, and sticky left timeline navigation.
+• Form Polish & Minimizable Admin Dock: Added contest title emoji selectors, danger zone styling, and minimizable bottom dock controls.`,
     author: 'Damon',
     date: 'Aug 9, 2026 at 8:20 PM',
   },
@@ -286,12 +159,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.5.0',
     title: 'Aceternity Admin Sidebar, WebGL Shader Background & Contest Setup Polish',
     category: 'Feature',
-    description: `• Aceternity Admin Sidebar: Added collapsible dark glass navigation sidebar.
-• WebGL Background: Added FiveM Orange fluid canvas background.
-• Photo Lightbox Showcase: Added dark cinematic lightbox stage for viewing photos.
-• Category Dock: Added smooth sliding category switcher.
-• Multiline Category Descriptions: Auto-resizing textareas for category descriptions.
-• Creator Profile Banner: Added "Website Created & Designed by Damon" credit header.`,
+    description: `• Aceternity Admin Sidebar & WebGL Background: Integrated collapsible dark glass navigation sidebar and FiveM Orange fluid canvas background.
+• Cinematic Lightbox & Creator Credit: Added photo inspection lightbox stage and prominent creator credit banner.`,
     author: 'Damon',
     date: 'Aug 8, 2026 at 6:55 PM',
   },
@@ -300,7 +169,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.3.0',
     title: 'Sticky Category Bar & Header Dock',
     category: 'UI/UX',
-    description: '• Sticky Category Bar: Added smooth sliding category switcher pill track.\n• Header Dock: Morphed top bar into floating glass dock on scroll.',
+    description: `• Sticky Category Bar: Added smooth sliding category switcher pill track.\n• Header Dock: Morphed top bar into floating glass dock on scroll.`,
     author: 'Damon',
     date: 'Aug 8, 2026',
   },
@@ -309,7 +178,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.2.0',
     title: 'RSA Key Encryption & Discord Role Security',
     category: 'Security',
-    description: '• RSA Encryption: Client-side RSA keypair encryption for submission privacy.\n• Discord Verification: Discord guild membership and role verification.',
+    description: `• RSA Encryption: Client-side RSA keypair encryption for submission privacy.\n• Discord Verification: Discord guild membership and role verification.`,
     author: 'Damon',
     date: 'Aug 5, 2026',
   },
@@ -318,7 +187,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.1.0',
     title: 'Voter Audit Inspector & Fraud Protection',
     category: 'Feature',
-    description: '• Voter Audit Inspector: Admin tools to inspect vote activity and disqualify invalid votes.\n• Analytics Dashboard: Live voting velocity charts.',
+    description: `• Voter Audit Inspector: Admin tools to inspect vote activity and disqualify invalid votes.\n• Analytics Dashboard: Live voting velocity charts.`,
     author: 'Damon',
     date: 'Aug 2, 2026',
   },
@@ -327,7 +196,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.0.0',
     title: 'Official Platform Launch',
     category: 'Feature',
-    description: '• Official Release: Creation and launch of the Vital RP Photo Contest platform designed and built by Damon.',
+    description: `• Official Release: Creation and launch of the Vital RP Photo Contest platform designed and built by Damon.`,
     author: 'Damon',
     date: 'Jul 28, 2026',
   },
@@ -368,7 +237,21 @@ function renderTextWithCodePills(text: string) {
   });
 }
 
-function renderFormattedDescription(description: string) {
+interface ChangelogBulletListProps {
+  description: string;
+  entryId: string;
+  isExpanded: boolean;
+  onToggle: (id: string) => void;
+  maxCollapsedItems?: number;
+}
+
+const ChangelogBulletList: React.FC<ChangelogBulletListProps> = ({
+  description,
+  entryId,
+  isExpanded,
+  onToggle,
+  maxCollapsedItems = 3,
+}) => {
   const lines = description.split('\n').filter((l) => l.trim().length > 0);
   const isBulleted = lines.some((l) => l.trim().startsWith('•') || l.trim().startsWith('-') || /^\d+\.\s/.test(l.trim()));
 
@@ -380,35 +263,59 @@ function renderFormattedDescription(description: string) {
     );
   }
 
+  const shouldTruncate = lines.length > maxCollapsedItems;
+  const visibleLines = isExpanded || !shouldTruncate ? lines : lines.slice(0, maxCollapsedItems);
+  const hiddenCount = lines.length - maxCollapsedItems;
+
   return (
     <div className="space-y-2 mt-3 text-xs sm:text-sm font-sans leading-relaxed">
-      {lines.map((line, idx) => {
-        const cleanLine = line.replace(/^([•\-]|^\d+\.)\s*/, '').trim();
-        const parts = cleanLine.split(':');
-        const hasTitle = parts.length > 1;
-        const title = hasTitle ? parts[0].trim() : '';
-        const body = hasTitle ? parts.slice(1).join(':').trim() : cleanLine;
+      <div className="space-y-2">
+        {visibleLines.map((line, idx) => {
+          const cleanLine = line.replace(/^([•\-]|^\d+\.)\s*/, '').trim();
+          const parts = cleanLine.split(':');
+          const hasTitle = parts.length > 1;
+          const title = hasTitle ? parts[0].trim() : '';
+          const body = hasTitle ? parts.slice(1).join(':').trim() : cleanLine;
 
-        return (
-          <div
-            key={idx}
-            className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
-          >
-            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_8px_rgba(234,88,12,0.8)] group-hover/bullet:scale-125 transition-transform" />
-            <div className="flex-1 min-w-0">
-              {hasTitle && (
-                <strong className="font-bold text-white font-display text-xs sm:text-sm tracking-wide mr-1.5 inline-block">
-                  {renderTextWithCodePills(title)}:
-                </strong>
-              )}
-              <span className="text-white/75">{renderTextWithCodePills(body)}</span>
-            </div>
-          </div>
-        );
-      })}
+          return (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
+            >
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_8px_rgba(234,88,12,0.8)] group-hover/bullet:scale-125 transition-transform" />
+              <div className="flex-1 min-w-0">
+                {hasTitle && (
+                  <strong className="font-bold text-white font-display text-xs sm:text-sm tracking-wide mr-1.5 inline-block">
+                    {renderTextWithCodePills(title)}:
+                  </strong>
+                )}
+                <span className="text-white/75">{renderTextWithCodePills(body)}</span>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {shouldTruncate && (
+        <button
+          type="button"
+          onClick={() => onToggle(entryId)}
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 mt-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs font-bold text-white/70 hover:text-white transition-all cursor-pointer select-none group/expand active:scale-[0.99]"
+        >
+          <span>{isExpanded ? 'Show less highlights' : `Show ${hiddenCount} more highlights`}</span>
+          {isExpanded ? (
+            <ChevronUp size={14} className="text-fivem-orange transition-transform duration-200" />
+          ) : (
+            <ChevronDown size={14} className="text-fivem-orange transition-transform duration-200 group-hover/expand:translate-y-0.5" />
+          )}
+        </button>
+      )}
     </div>
   );
-}
+};
 
 export function ChangelogTab() {
   const [entries, setEntries] = useState<ChangelogEntry[]>(INITIAL_CHANGELOGS);
@@ -416,6 +323,8 @@ export function ChangelogTab() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   // Form State
   const [version, setVersion] = useState('v1.6.0');
@@ -456,6 +365,29 @@ export function ChangelogTab() {
 
     fetchChangelogs();
   }, []);
+
+  const handleToggleEntry = (entryId: string) => {
+    setExpandedEntries((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryId)) {
+        next.delete(entryId);
+      } else {
+        next.add(entryId);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleAll = () => {
+    if (isAllExpanded) {
+      setExpandedEntries(new Set());
+      setIsAllExpanded(false);
+    } else {
+      const allIds = new Set(entries.map((e) => e.id || e.version));
+      setExpandedEntries(allIds);
+      setIsAllExpanded(true);
+    }
+  };
 
   const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -558,20 +490,32 @@ export function ChangelogTab() {
           ))}
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full sm:w-64">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-          <input
-            type="text"
-            placeholder="Search changelogs..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-fivem-orange/50 transition-colors font-mono"
-          />
+        {/* Search & Expand All Controls */}
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={handleToggleAll}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white transition-all cursor-pointer shrink-0"
+            title={isAllExpanded ? "Collapse all release details" : "Expand all release details"}
+          >
+            <ChevronsUpDown size={13} className="text-fivem-orange" />
+            <span className="hidden sm:inline">{isAllExpanded ? 'Collapse All' : 'Expand All'}</span>
+          </button>
+
+          <div className="relative w-full sm:w-60">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+            <input
+              type="text"
+              placeholder="Search changelogs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-fivem-orange/50 transition-colors font-mono"
+            />
+          </div>
         </div>
       </div>
 
-      {/* ── CHANGELOG TIMELINE LIST (DUSTFILE LAYOUT) ── */}
+      {/* ── CHANGELOG TIMELINE LIST ── */}
       <div className="relative space-y-8">
         {/* Continuous Left Vertical Timeline Axis Line */}
         <div className="absolute left-[3.25rem] sm:left-[4.5rem] md:left-[9.5rem] top-6 bottom-6 w-px bg-gradient-to-b from-fivem-orange/40 via-white/15 to-transparent pointer-events-none hidden md:block" />
@@ -579,24 +523,28 @@ export function ChangelogTab() {
         {filteredEntries.map((entry, idx) => {
           const CategoryInfo = CATEGORY_STYLES[entry.category] || CATEGORY_STYLES['Feature'];
           const CategoryIcon = CategoryInfo.icon;
+          const entryKey = entry.id || entry.version;
+          const isExpanded = expandedEntries.has(entryKey) || isAllExpanded;
 
           return (
             <motion.div
               key={entry.id || idx}
-              initial={{ opacity: 0, y: 30, scale: 0.98 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98], delay: idx * 0.05 }}
-              className="relative flex flex-col md:flex-row items-start gap-4 md:gap-8 group cursor-default"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05, duration: 0.3 }}
+              className="relative flex flex-col md:flex-row items-start gap-4 sm:gap-6 md:gap-8 group"
             >
-              {/* Left Column: Version, Date, Category Badge Tag & Sticky Timeline Node Indicator */}
-              <div className="w-full md:w-36 shrink-0 flex md:flex-col items-center md:items-end justify-between md:justify-start gap-2 pt-2 md:text-right relative md:sticky md:top-24 self-start">
-                {/* Timeline Square Node Indicator */}
-                <div className="hidden md:block absolute top-3.5 -right-[17px] w-3 h-3 rounded-xs bg-fivem-orange border-2 border-[#060609] shadow-[0_0_10px_rgba(234,88,12,0.8)] z-20 group-hover:scale-125 group-hover:shadow-[0_0_16px_rgba(234,88,12,1)] transition-all" />
+              {/* Left Column: Sticky Version Anchor & Timeline Node */}
+              <div className="md:w-36 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-2 shrink-0 md:sticky md:top-24 z-10 w-full">
+                
+                {/* Glowing Node Dot (Desktop) */}
+                <div className="hidden md:flex absolute right-[-2.25rem] top-2.5 w-4 h-4 rounded-full bg-[#09090b] border-2 border-fivem-orange items-center justify-center shadow-[0_0_12px_rgba(234,88,12,0.8)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-fivem-orange" />
+                </div>
 
-                {/* Version & Date */}
-                <div className="flex flex-row md:flex-col items-center md:items-end gap-2 md:gap-0.5">
-                  <span className="text-sm font-black font-mono text-white bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-lg group-hover:border-fivem-orange/50 group-hover:text-fivem-orange transition-colors">
+                {/* Version Code Pill */}
+                <div className="flex flex-col items-start md:items-end leading-none gap-1">
+                  <span className="px-3 py-1 rounded-xl bg-white/[0.06] border border-white/15 text-white font-mono font-bold text-xs tracking-wider shadow-inner group-hover:border-fivem-orange/50 group-hover:text-fivem-orange transition-all">
                     {entry.version}
                   </span>
                   <span className="text-[11px] font-mono text-white/50 whitespace-nowrap">
@@ -611,10 +559,10 @@ export function ChangelogTab() {
                 </div>
               </div>
 
-              {/* Right Column: Elevated Glass Content Card with Motion Hover Tilt */}
+              {/* Right Column: Elevated Glass Content Card */}
               <div className="flex-1 w-full min-w-0">
                 <motion.div
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                  whileHover={{ y: -2, transition: { duration: 0.15 } }}
                   className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#09090d]/95 p-6 sm:p-8 transition-all hover:border-fivem-orange/40 shadow-xl group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
                 >
                   {/* Card Header Row */}
@@ -655,8 +603,14 @@ export function ChangelogTab() {
                     <span>WHAT'S NEW & IMPROVEMENTS</span>
                   </div>
 
-                  {/* Formatted Description Items */}
-                  {renderFormattedDescription(entry.description)}
+                  {/* Formatted Description Items with Expandable Truncation */}
+                  <ChangelogBulletList
+                    description={entry.description}
+                    entryId={entryKey}
+                    isExpanded={isExpanded}
+                    onToggle={handleToggleEntry}
+                    maxCollapsedItems={3}
+                  />
                 </motion.div>
               </div>
             </motion.div>
@@ -763,6 +717,14 @@ export function ChangelogTab() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── FOOTER: Website Created & Designed by Damon Banner ── */}
+      <div className="pt-8 border-t border-white/10 text-center flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center gap-2 text-xs text-white/50">
+          <Terminal size={14} className="text-fivem-orange" />
+          <span>Website Created and Designed by <strong className="text-white">Damon</strong></span>
+        </div>
+      </div>
     </div>
   );
 }
