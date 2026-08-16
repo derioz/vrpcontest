@@ -1911,7 +1911,7 @@ export default function App() {
                   <ChevronDown size={12} className={cn("text-white/40 group-hover/user:text-white/70 transition-all duration-300", isProfileDropdownOpen && "rotate-180 text-fivem-orange")} />
                 </button>
 
-                {/* Account Options Dropdown */}
+                {/* Account Options Dropdown (Sera UI Component Style) */}
                 <AnimatePresence>
                   {isProfileDropdownOpen && (
                     <>
@@ -1921,132 +1921,234 @@ export default function App() {
                       />
 
                       <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.96 }}
                         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                        className="fixed top-20 right-4 sm:right-8 md:right-12 z-[99999] w-80 rounded-2xl border border-white/15 bg-[#0c0c10]/98 shadow-[0_24px_60px_rgba(0,0,0,0.95)] p-5 backdrop-blur-2xl flex flex-col gap-4"
+                        className="fixed top-20 right-4 sm:right-8 md:right-12 z-[99999] w-84 rounded-3xl border border-white/15 bg-[#090910]/95 shadow-[0_25px_70px_rgba(0,0,0,0.95)] p-4 backdrop-blur-3xl flex flex-col gap-3 text-white select-none"
                       >
-                        {/* User Summary Header */}
-                        <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
-                          <img
-                            src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
-                            alt=""
-                            className="w-12 h-12 rounded-2xl object-cover border-2 border-fivem-orange/40 shadow-md shrink-0"
-                          />
-                          <div className="flex flex-col min-w-0 gap-1">
+                        {/* User Identity Header Card */}
+                        <div className="relative overflow-hidden p-3.5 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 flex items-center gap-3.5">
+                          <div className="relative shrink-0">
+                            <img
+                              src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                              alt=""
+                              className="w-12 h-12 rounded-2xl object-cover border-2 border-fivem-orange/50 shadow-md"
+                            />
+                            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#090910] shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+                          </div>
+                          <div className="flex flex-col min-w-0 gap-0.5 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-sm font-black font-display text-white truncate">{user.displayName || 'Verified Member'}</span>
-                              <ChampionBadge winCount={getUserWinCount(user.displayName, user.uid)} size="sm" />
+                              <span className="text-sm font-black font-display text-white truncate">
+                                {user.displayName || 'Verified Member'}
+                              </span>
+                              {getUserWinCount(user.displayName, user.uid) > 0 && (
+                                <ChampionBadge winCount={getUserWinCount(user.displayName, user.uid)} size="sm" />
+                              )}
                             </div>
-                            <span className="text-[10px] font-mono text-fivem-orange/90 font-bold uppercase tracking-wider">{isAdmin ? 'System Admin' : 'Verified Member'}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider border",
+                                isAdmin
+                                  ? "bg-fivem-orange/20 border-fivem-orange/40 text-fivem-orange shadow-[0_0_10px_rgba(234,88,12,0.3)]"
+                                  : "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                              )}>
+                                {isAdmin ? '⚡ System Admin' : '✓ Verified Member'}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Option 1: Rename Display Name */}
-                        <button
-                          onClick={() => {
-                            setEditedDisplayName(user.displayName || '');
-                            setIsEditingDisplayName(true);
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center justify-start gap-3 px-3.5 py-3 rounded-2xl bg-gradient-to-r from-fivem-orange/20 to-amber-500/15 hover:from-fivem-orange/30 hover:to-amber-500/25 text-fivem-orange hover:text-white border border-fivem-orange/40 transition-all cursor-pointer active:scale-95 shadow-md group/rename"
-                          title="Change your public display name"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-fivem-orange/20 border border-fivem-orange/40 flex items-center justify-center shrink-0">
-                            <Edit3 size={16} className="text-fivem-orange group-hover/rename:scale-110 transition-transform" />
-                          </div>
-                          <div className="flex flex-col items-start leading-tight">
-                            <span className="text-xs font-black font-display text-white">Rename Display Name</span>
-                            <span className="text-[10px] font-normal text-white/50">Edit your public contest handle</span>
-                          </div>
-                        </button>
+                        {/* Navigation & Controls Section */}
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-white/40 px-1">
+                            Platform Controls
+                          </span>
 
-                        {/* Option 2: Pull Latest Discord Profile Picture */}
-                        <button
-                          onClick={() => {
-                            handleRetryDiscordAvatar();
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center justify-start gap-3 px-3.5 py-3 rounded-2xl bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7983f5] hover:text-white border border-[#5865F2]/30 transition-all cursor-pointer active:scale-95 shadow-md group/dbtn"
-                          title="Pull and update your latest Discord profile picture"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/40 flex items-center justify-center shrink-0">
-                            <RefreshCw size={15} className="group-hover/dbtn:rotate-180 transition-transform duration-500 text-[#7983f5]" />
-                          </div>
-                          <div className="flex flex-col items-start leading-tight">
-                            <span className="text-xs font-black font-display text-white">Pull Discord Photo</span>
-                            <span className="text-[10px] font-normal text-white/50">Update & fetch latest Discord avatar</span>
-                          </div>
-                        </button>
-
-                        {/* Option 3: Admin Only - Category Suggestions */}
-                        {isAdmin && (
+                          {/* Settings / Admin Console */}
                           <button
+                            type="button"
                             onClick={() => {
-                              setShowCategorySuggestions(true);
+                              setIsProfileDropdownOpen(false);
+                              if (isAdmin) {
+                                setShowAdminModal(true);
+                                setIsAdminMinimized(false);
+                              } else {
+                                setShowNotAdminModal(true);
+                                setNotAdminClickCount((c) => c + 1);
+                              }
+                            }}
+                            className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 transition-all cursor-pointer group/setting active:scale-[0.98]"
+                            title={isAdmin ? "Open Admin Console & Settings" : "View Platform Settings"}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={cn(
+                                "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-all",
+                                isAdmin
+                                  ? "bg-fivem-orange/20 border-fivem-orange/40 text-fivem-orange group-hover/setting:shadow-[0_0_12px_rgba(234,88,12,0.4)]"
+                                  : "bg-white/10 border-white/15 text-white/70"
+                              )}>
+                                <Settings size={15} className="group-hover/setting:rotate-90 transition-transform duration-500" />
+                              </div>
+                              <div className="flex flex-col items-start leading-tight min-w-0 text-left">
+                                <span className="text-xs font-bold text-white">
+                                  {isAdmin ? 'Admin Console & Settings' : 'Platform Settings'}
+                                </span>
+                                <span className="text-[10px] text-white/40 truncate">
+                                  {isAdmin ? 'Setup, moderation & platform rules' : 'Contest rules & configuration'}
+                                </span>
+                              </div>
+                            </div>
+                            {isAdmin && (
+                              <span className="px-1.5 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange border border-fivem-orange/30 shrink-0">
+                                Admin
+                              </span>
+                            )}
+                          </button>
+
+                          {/* Bug Report & Feedback */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowBugModal(true);
                               setIsProfileDropdownOpen(false);
                             }}
-                            className="w-full flex items-center justify-start gap-3 px-3.5 py-3 rounded-2xl bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-orange-500/10 hover:from-orange-500/30 hover:to-amber-500/25 text-orange-400 hover:text-white border border-orange-400/40 transition-all cursor-pointer active:scale-95 shadow-md group/sug"
-                            title="Manage & view category proposals (Admin Only)"
+                            className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 transition-all cursor-pointer group/bug active:scale-[0.98]"
+                            title="Report Bug / Contact Creator Damon (@mcspace)"
                           >
-                            <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-400/40 flex items-center justify-center shrink-0">
-                              <ShieldCheck size={16} className="text-fivem-orange group-hover/sug:scale-110 transition-transform" />
-                            </div>
-                            <div className="flex flex-col items-start leading-tight min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 w-full justify-between">
-                                <span className="text-xs font-black font-display text-white">Category Suggestions</span>
-                                <span className="px-1.5 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono text-fivem-orange uppercase font-bold">Admin</span>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 group-hover/bug:shadow-[0_0_12px_rgba(244,63,94,0.4)] flex items-center justify-center shrink-0 transition-all">
+                                <Bug size={15} className="group-hover/bug:scale-110 transition-transform" />
                               </div>
-                              <span className="text-[10px] font-normal text-white/50">Community brainstorm & voting</span>
+                              <div className="flex flex-col items-start leading-tight min-w-0 text-left">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-white">Report Bug & Feedback</span>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                                </div>
+                                <span className="text-[10px] text-white/40 truncate">
+                                  Direct line to Damon (@mcspace)
+                                </span>
+                              </div>
                             </div>
                           </button>
-                        )}
 
-
-                        {/* Option 3: Fallback Avatar Style Selector & Randomizer */}
-                        <div className="pt-3 border-t border-white/10 flex flex-col gap-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-mono font-bold text-white/70 uppercase tracking-wider flex items-center gap-1.5">
-                              <Sparkles size={12} className="text-fivem-orange" />
-                              Fallback Avatar Style
-                            </span>
+                          {/* Admin Only: Category Suggestions */}
+                          {isAdmin && (
                             <button
-                              onClick={() => handleShuffleAvatarSeed()}
-                              className="text-[10px] font-mono font-bold text-fivem-orange hover:text-orange-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors"
-                              title="Randomize avatar seed"
+                              type="button"
+                              onClick={() => {
+                                setShowCategorySuggestions(true);
+                                setIsProfileDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 hover:border-orange-500/50 transition-all cursor-pointer group/sug active:scale-[0.98]"
+                              title="Manage & view category proposals (Admin Only)"
                             >
-                              <RefreshCw size={10} />
-                              Randomize
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-400/40 text-orange-400 flex items-center justify-center shrink-0">
+                                  <ShieldCheck size={15} className="group-hover/sug:scale-110 transition-transform" />
+                                </div>
+                                <div className="flex flex-col items-start leading-tight min-w-0 text-left">
+                                  <span className="text-xs font-bold text-white">Category Suggestions</span>
+                                  <span className="text-[10px] text-white/40 truncate">Community brainstorm & decision voting</span>
+                                </div>
+                              </div>
+                              <span className="px-1.5 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange border border-fivem-orange/30 shrink-0">
+                                Admin
+                              </span>
                             </button>
-                          </div>
-                          <select
-                            value={user.avatarStyle || 'botttsNeutral'}
-                            onChange={(e) => handleChangeAvatarStyle(e.target.value as DiceBearStyleName)}
-                            className="w-full px-3 py-2 text-xs font-semibold bg-black/60 border border-white/20 text-white rounded-xl focus:outline-none focus:border-fivem-orange cursor-pointer"
-                          >
-                            {AVAILABLE_DICEBEAR_STYLES.map((st) => (
-                              <option key={st.id} value={st.id} className="bg-neutral-900 text-white">
-                                {st.label}
-                              </option>
-                            ))}
-                          </select>
+                          )}
                         </div>
 
-                        {/* Option 4: Sign Out */}
-                        <div className="pt-2.5 border-t border-white/10">
+                        {/* Account Customization Section */}
+                        <div className="flex flex-col gap-1.5 pt-2 border-t border-white/10">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-white/40 px-1">
+                            Account Customization
+                          </span>
+
+                          {/* Rename Display Name */}
                           <button
+                            type="button"
+                            onClick={() => {
+                              setEditedDisplayName(user.displayName || '');
+                              setIsEditingDisplayName(true);
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center justify-start gap-3 px-3.5 py-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 transition-all cursor-pointer group/rename active:scale-[0.98]"
+                            title="Change your public display name"
+                          >
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                              <Edit3 size={15} className="group-hover/rename:scale-110 transition-transform" />
+                            </div>
+                            <div className="flex flex-col items-start leading-tight min-w-0 text-left">
+                              <span className="text-xs font-bold text-white">Rename Display Name</span>
+                              <span className="text-[10px] text-white/40 truncate">Edit your public contest handle</span>
+                            </div>
+                          </button>
+
+                          {/* Pull Latest Discord Profile Picture */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleRetryDiscordAvatar();
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center justify-start gap-3 px-3.5 py-2.5 rounded-2xl bg-[#5865F2]/10 hover:bg-[#5865F2]/20 border border-[#5865F2]/30 hover:border-[#5865F2]/50 transition-all cursor-pointer group/dbtn active:scale-[0.98]"
+                            title="Pull and update your latest Discord profile picture"
+                          >
+                            <div className="w-8 h-8 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/40 text-[#7983f5] flex items-center justify-center shrink-0">
+                              <RefreshCw size={14} className="group-hover/dbtn:rotate-180 transition-transform duration-500" />
+                            </div>
+                            <div className="flex flex-col items-start leading-tight min-w-0 text-left">
+                              <span className="text-xs font-bold text-white">Pull Discord Photo</span>
+                              <span className="text-[10px] text-white/40 truncate">Update & fetch latest Discord avatar</span>
+                            </div>
+                          </button>
+
+                          {/* Fallback Avatar Style Selector & Randomizer */}
+                          <div className="p-3 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-2 mt-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono font-bold text-white/60 uppercase tracking-wider flex items-center gap-1.5">
+                                <Sparkles size={11} className="text-fivem-orange" />
+                                Fallback Avatar Style
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleShuffleAvatarSeed()}
+                                className="text-[10px] font-mono font-bold text-fivem-orange hover:text-orange-300 flex items-center gap-1 hover:underline cursor-pointer transition-colors"
+                                title="Randomize avatar seed"
+                              >
+                                <RefreshCw size={9} />
+                                Randomize
+                              </button>
+                            </div>
+                            <select
+                              value={user.avatarStyle || 'botttsNeutral'}
+                              onChange={(e) => handleChangeAvatarStyle(e.target.value as DiceBearStyleName)}
+                              className="w-full px-3 py-1.5 text-xs font-semibold bg-white/[0.05] border border-white/15 text-white rounded-xl focus:outline-none focus:border-fivem-orange cursor-pointer"
+                            >
+                              {AVAILABLE_DICEBEAR_STYLES.map((st) => (
+                                <option key={st.id} value={st.id} className="bg-neutral-900 text-white">
+                                  {st.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Sign Out Action */}
+                        <div className="pt-2 border-t border-white/10">
+                          <button
+                            type="button"
                             onClick={() => {
                               handleSignOut();
                               setIsProfileDropdownOpen(false);
                             }}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 transition-all text-xs font-black uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 hover:border-red-500/50 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer active:scale-95 shadow-sm"
                           >
-                            <LogOut size={15} />
+                            <LogOut size={14} />
                             <span>Sign Out</span>
                           </button>
                         </div>
-
                       </motion.div>
                     </>
                   )}
@@ -2064,43 +2166,6 @@ export default function App() {
                 </span>
               </button>
             )}
-
-            {/* Separator dot */}
-            <div className="w-1 h-1 rounded-full bg-white/20" />
-
-            {/* Admin / Settings */}
-            <button
-              onClick={() => isAdmin ? (setShowAdminModal(true), setIsAdminMinimized(false)) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })()}
-              className={cn(
-                'group/setting relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 cursor-pointer border',
-                isAdmin
-                  ? 'bg-fivem-orange/15 border-fivem-orange/30 hover:border-fivem-orange/60 shadow-[0_0_12px_rgba(234,88,12,0.15)]'
-                  : 'bg-white/[0.04] border-white/10 hover:border-white/25 hover:bg-white/[0.08]'
-              )}
-            >
-              <Settings
-                size={14}
-                className={cn(
-                  'transition-all duration-500',
-                  isAdmin
-                    ? 'text-fivem-orange group-hover/setting:rotate-90'
-                    : 'text-white/50 group-hover/setting:text-white group-hover/setting:rotate-45'
-                )}
-              />
-              {isAdmin && (
-                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)]" />
-              )}
-            </button>
-
-            {/* Bug Report */}
-            <button
-              onClick={() => setShowBugModal(true)}
-              title="Report Bug / Contact Creator Damon (@mcspace)"
-              className="group/bug relative flex items-center justify-center w-8 h-8 rounded-full border border-white/10 bg-white/[0.04] hover:bg-fivem-orange/15 hover:border-fivem-orange/40 text-white/50 hover:text-fivem-orange transition-all duration-300 cursor-pointer active:scale-95"
-            >
-              <Bug size={14} className="group-hover/bug:scale-110 transition-transform" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,1)] animate-pulse" />
-            </button>
           </motion.div>
         </div>
       </motion.header>
@@ -2219,22 +2284,40 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Dashboard Panel Section */}
-                <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                  <span className="text-xs font-bold text-white/40">Contest Admin Dashboard</span>
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      isAdmin ? (setShowAdminModal(true), setIsAdminMinimized(false)) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })();
-                    }}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer',
-                      isAdmin ? 'bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange shadow-[0_4px_12px_rgba(234,88,12,0.1)]' : 'bg-white/5 border border-white/10 text-white/50'
-                    )}
-                  >
-                    <Settings size={13} className={isAdmin ? 'animate-spin-slow' : ''} />
-                    <span>Open Panel</span>
-                  </button>
+                {/* Dashboard & Tools Section */}
+                <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white/40">Contest Admin Dashboard</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        isAdmin ? (setShowAdminModal(true), setIsAdminMinimized(false)) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })();
+                      }}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer',
+                        isAdmin ? 'bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange shadow-[0_4px_12px_rgba(234,88,12,0.1)]' : 'bg-white/5 border border-white/10 text-white/50'
+                      )}
+                    >
+                      <Settings size={13} className={isAdmin ? 'animate-spin-slow' : ''} />
+                      <span>{isAdmin ? 'Admin Console' : 'Settings'}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-xs font-bold text-white/40">Support & Feedback</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setShowBugModal(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Bug size={13} />
+                      <span>Report Bug</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
