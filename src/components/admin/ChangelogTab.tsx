@@ -26,6 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260816-1837',
+    version: 'v1.9.7',
+    title: 'SeraUI Official User Profile Dropdown Suite Overhaul',
+    category: 'UI/UX',
+    description: `• Official SeraUI Profile Dropdown Architecture: Re-engineered the platform profile dropdown to match the official Sera UI Dropdown specification (https://seraui.com/docs/dropdown), featuring a dedicated modular UserProfileDropdown component with deep frosted glassmorphism, responsive spring animations, and refined micro-interactions.
+• SeraUI Comprehensive User Header: Integrated a rich profile header displaying high-definition avatar with glowing emerald online status beacon, verified display name, user handle/Discord identifier, and dynamic SeraUI status tags (System Admin, Contest Champion, or Verified Voter).
+• SeraUI Primitive Component System: Upgraded the reusable dropdown primitives in dropdown-menu.tsx with DropdownMenu, DropdownTrigger, DropdownContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, and DropdownMenuBadge supporting full ARIA accessibility, focus management, and outside-click/Escape key dismissal.
+• Categorized Action & Customization Hubs: Organized menu items into dedicated logical sections with crisp iconography—including instant Admin Console navigation, Category Ideas hub, real-time Bug Report with pulsating indicator, Rename Display Name modal trigger, and Discord Avatar synchronization.
+• Interactive Inline Avatar Customization: Embedded an elegant inline DiceBear style selector and randomize seed button directly within the SeraUI profile menu for seamless avatar adjustments without leaving the navigation bar.
+• Tactile Danger-Accented Session Exit: Styled the Sign Out action with smooth rose danger hover accents, spring layout physics, and seamless modal cleanup.`,
+    author: 'Damon',
+    date: 'Aug 16, 2026 at 6:38 PM',
+  },
+  {
     id: 'release-20260815-1556',
     version: 'v1.9.6',
     title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
