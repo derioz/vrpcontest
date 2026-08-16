@@ -50,7 +50,7 @@ interface RegisteredUser {
 
 export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProps) {
   const [votes, setVotes] = useState<VoteRecord[]>([]);
-  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [archivedUserStats, setArchivedUserStats] = useState<Map<string, number>>(new Map());
   const [flaggedVoters, setFlaggedVoters] = useState<Map<string, FlaggedVoter>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -65,42 +65,66 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const [manualName, setManualName] = useState('');
   const [manualReason, setManualReason] = useState('Verified Alt Discord Account');
 
-  // Fetch votes and registered users on demand
+  // Fetch all votes (active + historic) and user_stats across contests
   const fetchVotesAndUsers = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch votes
+      const allFetchedVotes: VoteRecord[] = [];
+
+      // 1. Fetch active votes for current contest
       const votesQuery = query(collection(db, 'votes'));
       const votesSnap = await getDocs(votesQuery);
-      const fetchedVotes: VoteRecord[] = votesSnap.docs.map((d) => {
+      votesSnap.docs.forEach((d) => {
         const data = d.data();
-        const voterDiscord = (data.voterDiscord as string) || (data.voterName as string) || 'Anonymous';
+        const voterDiscord = (data.voterDiscord as string) || (data.voterName as string) || '';
         const voterName = (data.voterName as string) || voterDiscord;
-        return {
+        allFetchedVotes.push({
           id: d.id,
           photoId: String(data.photoId || ''),
           voterUid: String(data.voterUid || d.id),
           voterName,
           voterDiscord,
           timestamp: data.timestamp as string | undefined,
-        };
+        });
       });
-      setVotes(fetchedVotes);
 
-      // 2. Fetch registered users
-      const usersQuery = query(collection(db, 'users'));
-      const usersSnap = await getDocs(usersQuery);
-      const fetchedUsers: RegisteredUser[] = usersSnap.docs.map((d) => {
-        const data = d.data();
-        return {
-          uid: d.id,
-          displayName: data.custom_display_name || data.default_discord_name || 'Discord User',
-          discordName: data.default_discord_name || data.custom_display_name,
-          discordId: data.discord_id,
-          avatarUrl: data.photo_url || data.avatar_url,
-        };
-      });
-      setRegisteredUsers(fetchedUsers);
+      // 2. Fetch archived historical votes (if available from past rounds)
+      try {
+        const archVotesSnap = await getDocs(collection(db, 'archived_votes'));
+        archVotesSnap.docs.forEach((d) => {
+          const data = d.data();
+          const voterDiscord = (data.voterDiscord as string) || (data.voterName as string) || '';
+          const voterName = (data.voterName as string) || voterDiscord;
+          allFetchedVotes.push({
+            id: d.id,
+            photoId: String(data.photoId || ''),
+            voterUid: String(data.voterUid || d.id),
+            voterName,
+            voterDiscord,
+            timestamp: (data.timestamp || data.archived_at) as string | undefined,
+          });
+        });
+      } catch (archErr) {
+        console.warn('archived_votes query info:', archErr);
+      }
+
+      setVotes(allFetchedVotes);
+
+      // 3. Fetch cumulative user_stats from all previous contests
+      try {
+        const statsSnap = await getDocs(collection(db, 'user_stats'));
+        const statsMap = new Map<string, number>();
+        statsSnap.docs.forEach((d) => {
+          const data = d.data();
+          const archivedVotes = Number(data.archived_votes || 0);
+          if (archivedVotes > 0 && d.id && d.id.toLowerCase() !== 'discord user') {
+            statsMap.set(d.id.trim(), archivedVotes);
+          }
+        });
+        setArchivedUserStats(statsMap);
+      } catch (statErr) {
+        console.warn('user_stats query info:', statErr);
+      }
     } catch (err) {
       console.error('Failed to load voter database:', err);
       toast.error('Failed to load voter database');
@@ -329,27 +353,20 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   // Aggregate votes by voter UID
   const voterSummariesMap = new Map<string, VoterSummary>();
 
-  // 1. Add all registered platform users so they are always visible across contests
-  registeredUsers.forEach((u) => {
-    if (!voterSummariesMap.has(u.uid)) {
-      voterSummariesMap.set(u.uid, {
-        voterUid: u.uid,
-        displayName: u.displayName || u.discordName || 'Discord User',
-        voterDiscord: u.discordName || u.displayName || 'Discord User',
-        voteCount: 0,
-        votes: [],
-      });
-    }
-  });
-
-  // 2. Overlay all votes cast in this contest
+  // 1. Process all actual votes (current contest + archived rounds)
   votes.forEach((vote) => {
-    const key = vote.voterUid || vote.voterDiscord;
+    // Exclude generic placeholder "Discord User" with no real name/UID
+    if (vote.voterDiscord === 'Discord User' && vote.voterName === 'Discord User') return;
+
+    const rawName = (vote.voterDiscord || vote.voterName || vote.voterUid || '').trim();
+    if (!rawName || rawName.toLowerCase() === 'discord user') return;
+
+    const key = rawName.toLowerCase();
     if (!voterSummariesMap.has(key)) {
       voterSummariesMap.set(key, {
-        voterUid: vote.voterUid,
-        displayName: vote.voterDiscord || vote.voterName || 'Anonymous',
-        voterDiscord: vote.voterDiscord,
+        voterUid: vote.voterUid || key,
+        displayName: vote.voterDiscord || vote.voterName || rawName,
+        voterDiscord: vote.voterDiscord || vote.voterName || rawName,
         voteCount: 0,
         votes: [],
       });
@@ -359,32 +376,62 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
     summary.votes.push(vote);
   });
 
+  // 2. Overlay cumulative archived stats from previous contests
+  archivedUserStats.forEach((pastVotes, discordKey) => {
+    const rawKey = discordKey.trim();
+    if (!rawKey || rawKey.toLowerCase() === 'discord user') return;
+    const key = rawKey.toLowerCase();
+
+    if (!voterSummariesMap.has(key)) {
+      voterSummariesMap.set(key, {
+        voterUid: rawKey,
+        displayName: rawKey,
+        voterDiscord: rawKey,
+        voteCount: pastVotes,
+        votes: [],
+      });
+    } else {
+      const summary = voterSummariesMap.get(key)!;
+      summary.voteCount = Math.max(summary.voteCount, summary.votes.length, pastVotes);
+    }
+  });
+
   // 3. Overlay all flagged alt accounts from Firestore (guaranteed persistent)
   flaggedVoters.forEach((fv, uid) => {
-    if (!voterSummariesMap.has(uid)) {
-      voterSummariesMap.set(uid, {
+    const key = (fv.voterName || uid).toLowerCase().trim();
+    if (!voterSummariesMap.has(key) && !voterSummariesMap.has(uid.toLowerCase())) {
+      voterSummariesMap.set(uid.toLowerCase(), {
         voterUid: uid,
-        displayName: fv.voterName,
-        voterDiscord: fv.voterName,
+        displayName: fv.voterName || uid,
+        voterDiscord: fv.voterName || uid,
         voteCount: 0,
         votes: [],
       });
     } else {
-      const summary = voterSummariesMap.get(uid)!;
-      if (fv.voterName && (!summary.displayName || summary.displayName === 'Discord User')) {
+      const targetKey = voterSummariesMap.has(key) ? key : uid.toLowerCase();
+      const summary = voterSummariesMap.get(targetKey)!;
+      if (fv.voterName && (!summary.displayName || summary.displayName.toLowerCase() === 'discord user')) {
         summary.displayName = fv.voterName;
         summary.voterDiscord = fv.voterName;
       }
     }
   });
 
-  const allVotersList = Array.from(voterSummariesMap.values()).sort((a, b) => {
-    const aAlt = flaggedVoters.has(a.voterUid);
-    const bAlt = flaggedVoters.has(b.voterUid);
-    if (aAlt && !bAlt) return -1;
-    if (!aAlt && bAlt) return 1;
-    return b.voteCount - a.voteCount;
-  });
+  // Filter out any entries that are empty/placeholder "Discord User" with 0 votes and not flagged
+  const allVotersList = Array.from(voterSummariesMap.values())
+    .filter((v) => {
+      const isAlt = flaggedVoters.has(v.voterUid) || (Array.from(flaggedVoters.values()) as FlaggedVoter[]).some((f) => f.voterName.toLowerCase() === v.displayName.toLowerCase());
+      const isPlaceholder = v.displayName.toLowerCase() === 'discord user' || v.voterDiscord.toLowerCase() === 'discord user';
+      if (isPlaceholder && !isAlt) return false;
+      return v.voteCount > 0 || isAlt;
+    })
+    .sort((a, b) => {
+      const aAlt = flaggedVoters.has(a.voterUid);
+      const bAlt = flaggedVoters.has(b.voterUid);
+      if (aAlt && !bAlt) return -1;
+      if (!aAlt && bAlt) return 1;
+      return b.voteCount - a.voteCount;
+    });
 
   // Filter voters by search query and flagged filter
   const searchTrimmed = searchQuery.toLowerCase().trim();

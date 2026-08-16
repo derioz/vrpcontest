@@ -850,12 +850,23 @@ export function ArchiveContest({
         }, { merge: true }));
       }
 
+      // Archive all votes permanently to archived_votes collection for long-term auditing
+      const activeContestId = activeSnaps.docs[0]?.id || 'past_contest';
+      votesSnap.docs.forEach(vSnap => {
+        const archivedVoteRef = doc(db, 'archived_votes', `${activeContestId}_${vSnap.id}`);
+        writeOps.push(batch => batch.set(archivedVoteRef, {
+          ...vSnap.data(),
+          contest_id: activeContestId,
+          archived_at: nowString
+        }));
+      });
+
       // Delete all photos
       photosSnap.docs.forEach(pSnap => {
         writeOps.push(batch => batch.delete(pSnap.ref));
       });
 
-      // Delete all votes
+      // Delete all votes from active collection
       votesSnap.docs.forEach(vSnap => {
         writeOps.push(batch => batch.delete(vSnap.ref));
       });

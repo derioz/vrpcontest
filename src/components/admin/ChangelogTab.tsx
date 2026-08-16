@@ -30,8 +30,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.6',
     title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
     category: 'UI/UX',
-    description: `• Persistent Flagged Alt Accounts Registry: Enhanced the Voter Search & Alt Account Manager so that all flagged accounts stored in Firestore flagged_voters are permanently visible in a dedicated Blacklist Management panel across new contests, even when they have 0 active votes in the new round.
-• Cross-Contest User Directory Sync: Connected the voter directory to registered Discord users from Firestore users collection so admins can inspect, search, and manage account flag statuses at any time.
+    description: `• Voter Directory Cross-Contest Aggregation & Admin Cleanup: Excluded placeholder "Discord User" administrator records from the Voter Search directory while integrating historic votes from archived contests (archived_votes and user_stats) so the full historical and active voter base is audited accurately.
+• Persistent Flagged Alt Accounts Registry: Enhanced the Voter Search & Alt Account Manager so that all flagged accounts stored in Firestore flagged_voters are permanently visible in a dedicated Blacklist Management panel across new contests, even when they have 0 active votes in the new round.
 • Manual Alt Account Blacklist Tool: Added a direct "Blacklist UID" modal allowing administrators to immediately blacklist any suspicious Discord user or UID and purge any residual votes.
 • Atomic Vote Concurrency & Double-Count Prevention: Resolved an issue where clicking the radio vote button could trigger duplicate synthetic events and double-increment photo tallies (+2). Replaced the HTML label container with an explicit motion.button and upgraded the voting engine in App.tsx with Firestore runTransaction atomic operations and in-flight debouncing locks.
 • Admin Vote Count Reconciler: Added a one-click "Reconcile Counts" utility to the Voter Search admin tab that audits the raw votes collection against photo vote_count tallies and automatically heals any historical count skew.
@@ -57,7 +57,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
 • Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
     author: 'Damon',
-    date: 'Aug 15, 2026 at 10:32 PM',
+    date: 'Aug 15, 2026 at 10:35 PM',
   },
   {
     id: 'release-20260814-1635',
