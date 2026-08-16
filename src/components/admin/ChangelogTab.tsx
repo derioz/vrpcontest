@@ -30,7 +30,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.6',
     title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
     category: 'UI/UX',
-    description: `• SeraUI Fancy Tabs Integration: Built and deployed the official SeraUI Tabs View: Fancy component (https://seraui.com/docs/tabs-fancy) across Admin Console category suggestions management, featuring animated gradient active pills, status dot indicators, and count telemetry.
+    description: `• Atomic Vote Concurrency & Double-Count Prevention: Resolved an issue where clicking the radio vote button could trigger duplicate synthetic events and double-increment photo tallies (+2). Replaced the HTML label container with an explicit motion.button and upgraded the voting engine in App.tsx with Firestore runTransaction atomic operations and in-flight debouncing locks.
+• Admin Vote Count Reconciler: Added a one-click "Reconcile Counts" utility to the Voter Search admin tab that audits the raw votes collection against photo vote_count tallies and automatically heals any historical count skew.
+• SeraUI Fancy Tabs Integration: Built and deployed the official SeraUI Tabs View: Fancy component (https://seraui.com/docs/tabs-fancy) across Admin Console category suggestions management, featuring animated gradient active pills, status dot indicators, and count telemetry.
 • SeraUI 3D Carousel & Dynamic Hero Architecture: Overhauled the landing page hero section with the official SeraUI 3D Carousel (https://seraui.com/docs/3d-carousel). When contest photos exist, an interactive 3D rotating cylinder renders with drag rotation, mouse tilt sensitivity, inertia, and click-to-view support; when empty, the carousel is cleanly hidden in favor of a focused, non-redundant contest telemetry matrix.
 • Official SeraUI Radio Button Voting Engine: Refined the voting control to match the official SeraUI Radio Buttons specification (https://seraui.com/docs/radio-buttons) with peer-checked states, tactile scale transitions, and glowing indicator dots.
 • SeraUI DocTabs Component Integration: Built and deployed the official SeraUI DocTabs component suite (https://seraui.com/docs/doctabs) featuring dock-style expandable tab animations, spring layout pills, badge telemetry, and clean separators across Contest Setup and Admin Console navigation.
@@ -52,7 +54,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
 • Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
     author: 'Damon',
-    date: 'Aug 15, 2026 at 10:21 PM',
+    date: 'Aug 15, 2026 at 10:27 PM',
   },
   {
     id: 'release-20260814-1635',

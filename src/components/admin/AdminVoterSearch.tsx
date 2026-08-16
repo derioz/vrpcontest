@@ -4,7 +4,7 @@ import {
   Search, UserCheck, Heart, Image as ImageIcon, Sparkles, ExternalLink, Calendar,
   User, Tag, ShieldAlert, ShieldCheck, UserX, AlertTriangle, RefreshCw
 } from 'lucide-react';
-import { collection, onSnapshot, query, doc, setDoc, deleteDoc, updateDoc, increment, getDocs, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, setDoc, deleteDoc, updateDoc, increment, getDocs, where, writeBatch } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
@@ -179,6 +179,68 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
     }
   };
 
+  // Reconcile and fix any desynchronized photo vote_counts from raw votes collection
+  const handleRecalculateAllVoteCounts = async () => {
+    const confirmSync = window.confirm(
+      "Re-sync all photo vote counts?\n\nThis will scan all verified votes in the database and reconcile each photo's vote tally to match 100% accurately."
+    );
+    if (!confirmSync) return;
+
+    const toastId = toast.loading('Re-syncing and reconciling all photo vote counts...');
+    setIsProcessing(true);
+    try {
+      // 1. Fetch all active votes from 'votes' collection
+      const votesSnap = await getDocs(collection(db, 'votes'));
+      const voteCountMap = new Map<string, number>();
+
+      votesSnap.docs.forEach((d) => {
+        const photoId = String(d.data().photoId || '');
+        if (photoId) {
+          voteCountMap.set(photoId, (voteCountMap.get(photoId) || 0) + 1);
+        }
+      });
+
+      // 2. Fetch all photos from 'photos' collection
+      const photosSnap = await getDocs(collection(db, 'photos'));
+      const batchSize = 450;
+      let batch = writeBatch(db);
+      let count = 0;
+      let repairedCount = 0;
+
+      for (const photoDoc of photosSnap.docs) {
+        const actualCount = voteCountMap.get(photoDoc.id) || 0;
+        const currentCount = photoDoc.data().vote_count || 0;
+
+        if (currentCount !== actualCount) {
+          batch.update(photoDoc.ref, { vote_count: actualCount });
+          repairedCount++;
+          count++;
+          if (count % batchSize === 0) {
+            await batch.commit();
+            batch = writeBatch(db);
+          }
+        }
+      }
+
+      if (count % batchSize !== 0 && count > 0) {
+        await batch.commit();
+      }
+
+      await fetchVotes();
+      toast.success(
+        repairedCount > 0
+          ? `Successfully reconciled ${repairedCount} photo(s) to match exact database votes!`
+          : 'All photo vote counts are already 100% accurate and in sync!',
+        { id: toastId }
+      );
+    } catch (err: any) {
+      console.error('Failed to recalculate vote counts:', err);
+      toast.error('Failed to recalculate vote counts: ' + (err?.message || 'Unknown error'), { id: toastId });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // Map photos by ID
   const photosById = new Map<string, Photo>();
   allPhotos.forEach((p) => photosById.set(String(p.id), p));
@@ -267,12 +329,23 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           <button
             type="button"
             onClick={fetchVotes}
-            disabled={isLoading}
+            disabled={isLoading || isProcessing}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer"
             title="Re-fetch latest vote records from Firestore"
           >
             <RefreshCw size={13} className={isLoading ? "animate-spin text-cyan-400" : "text-white/60"} />
             <span>Refresh Data</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRecalculateAllVoteCounts}
+            disabled={isProcessing || isLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-xs font-mono font-bold text-cyan-300 transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+            title="Reconcile and ensure all photo vote counts exactly equal verified database votes"
+          >
+            <ShieldCheck size={13} className="text-cyan-400" />
+            <span>Reconcile Counts</span>
           </button>
 
           {/* Flagged Alt Count Badge */}

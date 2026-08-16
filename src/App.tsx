@@ -92,7 +92,7 @@ import ThreeDCarousel from './components/ui/three-d-carousel';
 import { auth, discordProvider, db } from './lib/firebase';
 import { signInWithPopup, signInAnonymously, onAuthStateChanged, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User as FirebaseUser } from 'firebase/auth';
 import { supabase } from './lib/supabase';
-import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch, deleteField } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch, deleteField, runTransaction } from 'firebase/firestore';
 
 import { Category, Photo, Rule, Theme, ArchivedWinner } from './types';
 
@@ -214,6 +214,7 @@ export default function App() {
   const [activeContest, setActiveContest] = useState<{ id: string; name: string; submissions_close_date?: string; voting_end_date?: string } | null>(null);
   const [votedPhotoIds, setVotedPhotoIds] = useState<Set<string>>(new Set());
   const [votingPhotoId, setVotingPhotoId] = useState<string | null>(null);
+  const isVotingInProgress = useRef<Set<string>>(new Set());
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
@@ -1023,36 +1024,65 @@ export default function App() {
       return;
     }
 
+    // Debounce / lock duplicate in-flight calls on the exact same photo
+    const lockKey = `${photoId}_${voterUid}`;
+    if (isVotingInProgress.current.has(lockKey)) {
+      return;
+    }
+    isVotingInProgress.current.add(lockKey);
+
     let currentName = playerName;
     if (!currentName) {
       currentName = user.displayName || 'Discord User';
     }
 
     try {
-      const voteRef = doc(db, 'votes', `${photoId}_${voterUid}`);
-      const voteSnap = await getDoc(voteRef);
-      const photoRef = doc(db, 'photos', photoId);
+      let actionResult: 'voted' | 'unvoted' = 'voted';
 
-      if (voteSnap.exists()) {
-        // Already voted — remove the vote
-        await deleteDoc(voteRef);
-        await updateDoc(photoRef, { vote_count: increment(-1) });
-        toast.success('Vote removed!');
-      } else {
-        // Cast a new vote
-        await setDoc(voteRef, {
-          photoId,
-          voterName: currentName,
-          voterUid: voterUid,
-          voterDiscord: user?.displayName || currentName,
-          timestamp: new Date().toISOString()
-        });
-        await updateDoc(photoRef, { vote_count: increment(1) });
+      await runTransaction(db, async (transaction) => {
+        const voteRef = doc(db, 'votes', `${photoId}_${voterUid}`);
+        const photoRef = doc(db, 'photos', photoId);
+
+        const voteSnap = await transaction.get(voteRef);
+        const photoSnap = await transaction.get(photoRef);
+
+        if (voteSnap.exists()) {
+          // Already voted — atomically remove vote doc and decrement photo count
+          transaction.delete(voteRef);
+          if (photoSnap.exists()) {
+            const currentVotes = photoSnap.data().vote_count || 0;
+            transaction.update(photoRef, { vote_count: Math.max(0, currentVotes - 1) });
+          }
+          actionResult = 'unvoted';
+        } else {
+          // Cast new vote — atomically write vote doc and increment photo count
+          transaction.set(voteRef, {
+            photoId,
+            voterName: currentName,
+            voterUid: voterUid,
+            voterDiscord: user?.displayName || currentName,
+            timestamp: new Date().toISOString()
+          });
+          if (photoSnap.exists()) {
+            const currentVotes = photoSnap.data().vote_count || 0;
+            transaction.update(photoRef, { vote_count: currentVotes + 1 });
+          }
+          actionResult = 'voted';
+        }
+      });
+
+      if (actionResult === 'voted') {
         toast.success('Vote recorded!');
+      } else {
+        toast.success('Vote removed!');
       }
     } catch (error: any) {
       console.error("Vote Error:", error);
       toast.error(error?.message || 'Network error or vote failed');
+    } finally {
+      setTimeout(() => {
+        isVotingInProgress.current.delete(lockKey);
+      }, 350);
     }
   };
 

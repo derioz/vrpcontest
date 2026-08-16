@@ -102,7 +102,10 @@ export function VoteButton({
             </AnimatePresence>
 
             {/* SeraUI Radio Button Container */}
-            <motion.label
+            <motion.button
+                type="button"
+                role="radio"
+                aria-checked={hasVoted}
                 whileTap={votingOpen ? { scale: 0.94 } : {}}
                 className={cn(
                     "relative flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl font-display text-xs font-black uppercase tracking-wider transition-all duration-300 select-none overflow-hidden cursor-pointer shadow-lg border",
@@ -114,14 +117,6 @@ export function VoteButton({
                 )}
                 onClick={handleClick}
             >
-                <input
-                    type="radio"
-                    className="sr-only peer"
-                    name={`vote-choice-${_photoId}`}
-                    checked={hasVoted}
-                    readOnly
-                />
-
                 {/* SeraUI Radio Circle with Animated Inner Dot */}
                 {votingOpen && (
                     <div
@@ -168,7 +163,7 @@ export function VoteButton({
                         {clampedPct}%
                     </span>
                 )}
-            </motion.label>
+            </motion.button>
         </div>
     );
 }
