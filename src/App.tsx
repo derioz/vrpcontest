@@ -85,6 +85,7 @@ import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
 import { UITripledCategoryCard } from './components/UITripledCategoryCard';
 import { StickyCategoryNav } from './components/StickyCategoryNav';
+import ThreeDCarousel from './components/ui/three-d-carousel';
 
 
 // Integrations
@@ -2253,39 +2254,43 @@ export default function App() {
             {/* Main Interactive Category Section */}
             <div id="categories-section" className="relative z-30 max-w-7xl mx-auto px-4 sm:px-6" />
 
-            {/* ── Main 2-col layout ── */}
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center" style={{ paddingTop: '2.5rem', paddingBottom: '3.5rem' }}>
+            {/* ── Main Hero Layout ── */}
+            <div className={cn(
+              "relative z-10 max-w-7xl mx-auto px-4 sm:px-6 items-center",
+              photos.length > 0 ? "grid grid-cols-1 lg:grid-cols-2 gap-12" : "flex flex-col items-center text-center max-w-3xl"
+            )} style={{ paddingTop: '2.5rem', paddingBottom: '3.5rem' }}>
 
-              {/* LEFT — text content */}
+              {/* LEFT — Text, CTAs & Telemetry */}
               <motion.div
                 variants={heroContainerVariants}
                 initial="hidden"
                 animate="visible"
-                className="flex flex-col"
+                className={cn("flex flex-col", photos.length === 0 && "items-center")}
               >
-                {/* Badge pill */}
+                {/* Live Competition Badge Pill */}
                 <motion.div variants={heroItemVariants} className="mb-6">
-                  <div className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-md px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
-                    <div className="p-1 bg-fivem-orange/20 rounded-lg">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                        <circle cx="12" cy="13" r="4" />
-                      </svg>
-                    </div>
+                  <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-[#0c0c14]/90 backdrop-blur-xl px-4 py-1.5 text-xs font-mono select-none shadow-lg">
+                    <span className="w-2 h-2 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.8)] animate-pulse" />
                     <AnimatedShinyText shimmerWidth={80}>
-                      <span className="text-white/60">Photo Contest</span>
+                      <span className="text-white/80 font-bold uppercase tracking-wider">Vital RP Photo Contest</span>
                     </AnimatedShinyText>
-                    <span className="flex items-center gap-1.5 ml-1 pl-3 border-l border-white/10">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                      <span className="text-[9px] tracking-widest text-emerald-400 font-mono font-bold">LIVE</span>
+                    <span className="text-white/20">•</span>
+                    <span className={cn(
+                      "font-bold uppercase tracking-wider text-[10px]",
+                      isVotingOpen ? "text-emerald-400" : isSubmissionsOpen ? "text-amber-400" : "text-white/60"
+                    )}>
+                      {isVotingOpen ? 'Voting Live' : isSubmissionsOpen ? 'Submissions Open' : 'Active'}
                     </span>
                   </div>
                 </motion.div>
 
-                {/* Title — Text Generate Effect: each word staggers in from blur */}
+                {/* Main Headline */}
                 <motion.h2
                   variants={heroItemVariants}
-                  className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5"
+                  className={cn(
+                    "text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5",
+                    photos.length === 0 && "text-center"
+                  )}
                   style={{ textWrap: 'balance' }}
                 >
                   {titleWords.map((word, idx) => (
@@ -2314,205 +2319,131 @@ export default function App() {
                   ))}
                 </motion.h2>
 
-                {/* Tagline — FlipWords cycling phrases */}
-                <motion.div variants={heroItemVariants} className="text-white/60 text-base leading-relaxed mb-8 max-w-md font-medium h-[3em]">
+                {/* Animated Tagline */}
+                <motion.div variants={heroItemVariants} className={cn(
+                  "text-white/65 text-base leading-relaxed mb-8 max-w-md font-medium h-[3em]",
+                  photos.length === 0 && "text-center mx-auto"
+                )}>
                   <FlipWords
                     words={[
-                      "Capture the spirit of the city through your lens.",
-                      "Share your finest in-game screenshot.",
-                      "Let the community choose the winners.",
+                      "Capture the spirit of Los Santos through your lens.",
+                      "Submit your finest in-game photography.",
+                      "Community votes decide the champions.",
                     ]}
                     duration={3500}
-                    className="text-white/60"
+                    className="text-white/65"
                   />
                 </motion.div>
 
-                {/* CTAs */}
-                <motion.div variants={heroItemVariants} className="flex flex-wrap gap-3.5 mb-10">
+                {/* High Impact Actions */}
+                <motion.div variants={heroItemVariants} className={cn(
+                  "flex flex-wrap gap-3.5 mb-10",
+                  photos.length === 0 && "justify-center"
+                )}>
                   {isSubmissionsOpen ? (
                     <ShimmerButton
                       onClick={handleUploadClick}
                       shimmerColor="#fb923c"
                       shimmerDuration="3s"
                       background="rgba(234,88,12,0.95)"
-                      borderRadius="0.75rem"
-                      className="px-8 py-4 text-xs uppercase tracking-wider cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(234,88,12,0.4)] transition-all duration-300"
+                      borderRadius="0.85rem"
+                      className="px-7 py-3.5 text-xs font-black uppercase tracking-wider cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(234,88,12,0.4)] transition-all duration-300 shadow-lg"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
-                      Submit Your Shot
+                      Submit Photo Entry
                     </ShimmerButton>
                   ) : (
                     <button
                       disabled
-                      className="group relative flex items-center gap-2.5 font-bold px-8 py-4 rounded-xl text-xs uppercase tracking-wider bg-white/10 text-white/30 cursor-not-allowed border border-white/10"
+                      className="group relative flex items-center gap-2.5 font-bold px-7 py-3.5 rounded-2xl text-xs uppercase tracking-wider bg-white/10 text-white/30 cursor-not-allowed border border-white/10 shadow-sm"
                     >
                       <Lock size={15} className="relative z-10" />
                       <span className="relative z-10">Submissions Closed</span>
                     </button>
                   )}
+
                   <a
                     href="#rules"
                     onClick={(e) => {
                       e.preventDefault();
                       document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="flex items-center gap-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 text-white/70 hover:text-white font-bold px-7 py-4 rounded-xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-sm cursor-pointer"
+                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-white/[0.08] border border-white/15 hover:border-white/25 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md"
                   >
-                    <FileText size={14} />
-                    Contest Rules
+                    <FileText size={14} className="text-fivem-orange" />
+                    Rules & Guidelines
                   </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCategorySuggestions(true)}
+                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-fivem-orange/15 border border-white/15 hover:border-fivem-orange/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md"
+                  >
+                    <Sparkles size={14} className="text-amber-400" />
+                    Suggest Category
+                  </button>
                 </motion.div>
 
-                {/* Stats row */}
-                <motion.div variants={heroItemVariants} className="relative grid grid-cols-4 gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[#0c0c0e]/40 backdrop-blur-sm max-w-md overflow-hidden">
-                  {[
-                    { value: categories.length, label: 'Topics', isNum: true },
-                    { value: allPhotos.length, label: 'Submissions', isNum: true },
-                    { value: allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0), label: 'Total Votes', isNum: true },
-                    { value: isVotingOpen ? 'Open' : 'Closed', label: 'Voting Status', status: true, isNum: false }
-                  ].map((stat) => (
-                    <div key={stat.label} className="flex flex-col leading-none">
-                      <span className={cn(
-                        "text-base font-black font-display mb-1",
-                        stat.status ? (isVotingOpen ? "text-emerald-400" : "text-amber-400") : "text-white"
-                      )}>
-                        {stat.isNum ? (
-                          <NumberTicker value={stat.value as number} delay={0.3} />
-                        ) : (
-                          stat.value
-                        )}
-                      </span>
-                      <span className="text-[8px] font-mono uppercase tracking-wider text-white/30">{stat.label}</span>
-                    </div>
-                  ))}
-                </motion.div>
-              </motion.div>
-
-              {/* RIGHT — Bento Grid with Lens-enhanced hero photo */}
-              <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
-                className="hidden lg:block relative"
-              >
-                <div className="grid grid-cols-6 grid-rows-6 gap-3.5 h-[440px] max-w-[520px] mx-auto relative z-10">
-                  
-                  {/* Bento Box 1: Large Main Image with Lens magnifier */}
-                  <div className="col-span-4 row-span-4 rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden shadow-lg">
-                    {photos[0] ? (
-                      <Lens zoomFactor={1.6} lensSize={150} className="w-full h-full">
-                        <img src={photos[0].image_url} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
-                          <span className="text-xs font-bold text-white truncate max-w-[150px] drop-shadow-lg">{photos[0].player_name}</span>
-                          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
-                            <span className="text-[10px]">❤️</span>
-                            <span className="text-[10px] font-bold text-white">{photos[0].vote_count || 0}</span>
-                          </div>
-                        </div>
-                      </Lens>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-fivem-orange/10 to-transparent p-6 text-center">
-                        <span className="text-4xl mb-2">📸</span>
-                        <span className="text-sm font-bold text-white/80">Be the first to submit!</span>
-                        <span className="text-[10px] text-white/30 font-mono mt-1">NO ENTRIES YET</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bento Box 2: Featured Shot info card (simplified from viewfinder) */}
-                  <div className="col-span-2 row-span-4 rounded-3xl border border-white/10 bg-[#0c0c0e]/90 p-4 flex flex-col justify-between overflow-hidden relative group shadow-lg">
-                    {/* Corner brackets */}
-                    <div className="absolute inset-2 border border-white/[0.03] rounded-2xl pointer-events-none">
-                      <div className="w-3 h-3 border-l border-t border-fivem-orange/20 absolute top-0 left-0" />
-                      <div className="w-3 h-3 border-r border-t border-fivem-orange/20 absolute top-0 right-0" />
-                      <div className="w-3 h-3 border-l border-b border-fivem-orange/20 absolute bottom-0 left-0" />
-                      <div className="w-3 h-3 border-r border-b border-fivem-orange/20 absolute bottom-0 right-0" />
-                    </div>
-
-                    <div className="relative z-10 flex flex-col gap-1.5">
-                      <span className="text-[9px] font-mono uppercase tracking-widest text-fivem-orange/60">Featured</span>
-                      <span className="text-sm font-bold text-white/90 leading-tight">
-                        {photos[0]?.player_name || 'Awaiting Entries'}
-                      </span>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[8px] font-mono text-white/40 uppercase tracking-wider">Gallery Live</span>
-                      </div>
-                    </div>
-
-                    <div className="relative z-10 flex flex-col items-center justify-center my-auto py-4 text-center">
-                      <span className="text-3xl group-hover:scale-110 transition-transform duration-300">📷</span>
-                      <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase mt-2">
-                        {allPhotos.length} Shot{allPhotos.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-
-                    <div className="relative z-10 flex flex-col gap-1 font-mono text-[9px] text-white/30 border-t border-white/5 pt-2">
-                      <span>Hover photo to inspect</span>
-                      <span className="text-fivem-orange/50">🔍 Lens active</span>
-                    </div>
-                  </div>
-
-                  {/* Bento Box 3: Voting Status */}
-                  <div className="col-span-2 row-span-2 rounded-3xl border border-white/10 bg-white/[0.015] hover:bg-white/[0.04] p-4 flex flex-col justify-between transition-colors group shadow-lg">
-                    <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Voting Phase</span>
-                    <div className="flex items-baseline gap-1 mt-1.5">
-                      <span className={cn("text-xl font-black font-display leading-none", isVotingOpen ? "text-emerald-400" : "text-amber-400")}>
-                        {isVotingOpen ? 'Active' : 'Closed'}
-                      </span>
-                    </div>
-                    <span className="text-[8px] font-mono text-white/20 uppercase tracking-wider leading-none">
-                      {isVotingOpen ? 'VOTE NOW' : 'VOTES LOCKED'}
+                {/* Non-Redundant Telemetry Matrix */}
+                <motion.div
+                  variants={heroItemVariants}
+                  className="relative grid grid-cols-3 gap-3 p-3.5 rounded-2xl border border-white/10 bg-[#0c0c14]/90 backdrop-blur-xl max-w-md shadow-xl"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-lg font-black font-display text-white">
+                      <NumberTicker value={categories.length} delay={0.3} />
                     </span>
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Categories</span>
                   </div>
 
-                  {/* Bento Box 4: Secondary Image */}
-                  <div className="col-span-4 row-span-2 rounded-3xl border border-white/10 bg-white/[0.015] overflow-hidden group relative shadow-lg">
-                    {photos[1] ? (
-                      <>
-                        <img src={photos[1].image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-350" />
-                        <div className="absolute bottom-3.5 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-350 z-10">
-                          <span className="text-xs font-bold text-white truncate max-w-[150px]">{photos[1].player_name}</span>
-                          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
-                            <span className="text-[10px]">❤️</span>
-                            <span className="text-[10px] font-bold text-white">{photos[1].vote_count || 0}</span>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-between p-5 bg-gradient-to-r from-fivem-orange/10 to-transparent">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest leading-none">Contest Rules</span>
-                          <span className="text-sm font-bold text-white mt-1">Read guidelines</span>
-                        </div>
-                        <span className="text-2xl text-fivem-orange/60">✨</span>
-                      </div>
-                    )}
+                  <div className="flex flex-col border-l border-white/10 pl-3">
+                    <span className="text-lg font-black font-display text-white">
+                      <NumberTicker value={allPhotos.length} delay={0.3} />
+                    </span>
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Submissions</span>
                   </div>
-                </div>
 
-                {/* Aperture watermark */}
-                <div className="absolute -bottom-10 -right-10 w-44 h-44 opacity-[0.025] pointer-events-none z-0">
-                  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="100" cy="100" r="98" stroke="white" strokeWidth="2" />
-                    <circle cx="100" cy="100" r="65" stroke="white" strokeWidth="1.5" />
-                    <circle cx="100" cy="100" r="32" stroke="white" strokeWidth="1" />
-                    {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-                      <line key={i}
-                        x1={100 + 68 * Math.cos((deg * Math.PI) / 180)}
-                        y1={100 + 68 * Math.sin((deg * Math.PI) / 180)}
-                        x2={100 + 96 * Math.cos(((deg + 55) * Math.PI) / 180)}
-                        y2={100 + 96 * Math.sin(((deg + 55) * Math.PI) / 180)}
-                        stroke="white" strokeWidth="1.5"
-                      />
-                    ))}
-                  </svg>
-                </div>
+                  <div className="flex flex-col border-l border-white/10 pl-3">
+                    <span className="text-lg font-black font-display text-fivem-orange">
+                      <NumberTicker value={allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0)} delay={0.3} />
+                    </span>
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Votes Cast</span>
+                  </div>
+                </motion.div>
               </motion.div>
+
+              {/* RIGHT — SeraUI 3D Carousel (Rendered ONLY when photos exist) */}
+              {photos.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.25, ease: 'easeOut' }}
+                  className="hidden lg:flex flex-col items-center justify-center relative w-full h-[400px]"
+                >
+                  <ThreeDCarousel
+                    items={photos.slice(0, 8).map((p) => ({
+                      id: p.id,
+                      src: p.image_url,
+                      title: p.player_name || 'Vital RP Entry',
+                      badge: p.vote_count || 0,
+                      onClick: () => {
+                        setLightboxPhoto(p);
+                      },
+                    }))}
+                    radius={220}
+                    cardW={170}
+                    cardH={230}
+                    className="h-[360px]"
+                  />
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/40 tracking-wider mt-1 select-none">
+                    <Sparkles size={11} className="text-fivem-orange animate-pulse" />
+                    <span>Drag or hover to rotate · Click photo to inspect</span>
+                  </div>
+                </motion.div>
+              )}
 
             </div>
           </section>

@@ -47,6 +47,7 @@ import { getProfileAvatar, getDiceBearAvatarUrl } from '../../lib/dicebear';
 import { AdminHeader } from './AdminHeader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { NumberTicker } from '../ui/number-ticker';
+import { TabsFancy } from '../ui/tabs-fancy';
 
 interface AdminSuggestionsTabProps {
   currentUser?: any | null;
@@ -663,48 +664,30 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         </div>
       </div>
 
-      {/* ── Status Filter Tab Bar with Live Count Pills ── */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-black/50 border border-white/10 overflow-x-auto no-scrollbar touch-pan-x">
-        <button
-          onClick={() => setStatusFilter('all')}
-          className={cn(
-            "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 select-none",
-            statusFilter === 'all'
-              ? "bg-white/15 text-white border border-white/20 shadow-sm"
-              : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
-          )}
-        >
-          <span>All Ideas</span>
-          <span className={cn("px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold", statusFilter === 'all' ? "bg-white/20 text-white" : "bg-white/5 text-white/40")}>
-            {statusCounts.all}
-          </span>
-        </button>
-
-        {FUNCTIONAL_STATUSES.map((st) => {
-          const Icon = st.icon;
-          const isActive = statusFilter === st.id;
-          const count = statusCounts[st.id] || 0;
-
-          return (
-            <button
-              key={st.id}
-              onClick={() => setStatusFilter(st.id)}
-              className={cn(
-                "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 select-none",
-                isActive
-                  ? `${st.badge} shadow-sm border`
-                  : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
-              )}
-            >
-              <span className={cn("w-1.5 h-1.5 rounded-full", st.dot)} />
-              <span>{st.label}</span>
-              <span className={cn("px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold", isActive ? "bg-white/20" : "bg-white/5 text-white/40")}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* ── Status Filter Tab Bar (SeraUI Tabs View: Fancy) ── */}
+      <TabsFancy
+        tabs={[
+          {
+            id: 'all',
+            name: 'All Ideas',
+            icon: '✨',
+            badge: statusCounts.all,
+          },
+          ...FUNCTIONAL_STATUSES.map((st) => {
+            const Icon = st.icon;
+            return {
+              id: st.id,
+              name: st.label,
+              icon: <Icon size={14} className="shrink-0 text-white/90" />,
+              badge: statusCounts[st.id] || 0,
+            };
+          }),
+        ]}
+        activeTab={statusFilter}
+        onChange={(id) => setStatusFilter(id)}
+        variant="horizontal"
+        layoutId="admin-category-fancy-tab"
+      />
 
       {/* ── Search & Sort Toolbar + Anti-Jitter Stability Toggle ── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 p-3 rounded-2xl bg-black/40 border border-white/10">

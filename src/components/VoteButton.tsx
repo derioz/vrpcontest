@@ -1,12 +1,9 @@
 /**
- * VoteButton & VotersButton – SeraUI Clean Separated Architecture
- * 
- * • VoteButton: Dedicated SeraUI radio-button choice control for casting/withdrawing votes.
- *   Zero hover popovers or click interference.
- * • VotersButton: Dedicated SeraUI glass pill trigger that opens the VotersModal on click.
+ * VoteButton & VotersButton – Official SeraUI Radio Buttons Specification
+ * Reference: https://seraui.com/docs/radio-buttons
  */
 import { AnimatePresence, motion } from 'motion/react';
-import { Users, Ban } from 'lucide-react';
+import { Users, Ban, Check } from 'lucide-react';
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
 import { VotersModal } from './VotersModal';
@@ -34,7 +31,8 @@ const BURST_PARTICLES_VOTE = ['✨', '⭐', '⚡', '✨'] as const;
 const BURST_PARTICLES_UNVOTE = ['▫️', '▫️', '▫️', '▫️'] as const;
 
 /**
- * Dedicated SeraUI Radio Voting Button
+ * Official SeraUI Radio Voting Button
+ * Reference: https://seraui.com/docs/radio-buttons
  */
 export function VoteButton({
     photoId: _photoId,
@@ -84,7 +82,7 @@ export function VoteButton({
     }
 
     return (
-        <div className={cn('relative inline-block', className)}>
+        <div className={cn('relative inline-block select-none', className)}>
             {/* Burst particles */}
             <AnimatePresence>
                 {isBursting &&
@@ -103,49 +101,53 @@ export function VoteButton({
                     ))}
             </AnimatePresence>
 
-            {/* SeraUI Tactile Radio-Choice Voting Button */}
-            <motion.button
-                type="button"
-                onClick={handleClick}
-                disabled={!votingOpen}
-                whileTap={votingOpen ? { scale: 0.93 } : {}}
-                animate={isBursting ? { scale: [1, 1.15, 0.95, 1.05, 1] } : { scale: 1 }}
-                transition={{ type: 'spring', stiffness: 450, damping: 18 }}
+            {/* SeraUI Radio Button Container */}
+            <motion.label
+                whileTap={votingOpen ? { scale: 0.94 } : {}}
                 className={cn(
-                    'group relative z-10 flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl font-display text-xs font-black uppercase tracking-wider transition-all duration-300 select-none overflow-hidden cursor-pointer shadow-lg',
+                    "relative flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl font-display text-xs font-black uppercase tracking-wider transition-all duration-300 select-none overflow-hidden cursor-pointer shadow-lg border",
                     !votingOpen
-                        ? 'bg-black/60 border border-white/10 text-white/40 cursor-not-allowed backdrop-blur-md'
+                        ? 'bg-black/60 border-white/10 text-white/40 cursor-not-allowed backdrop-blur-md'
                         : hasVoted
-                            ? 'bg-gradient-to-r from-emerald-500/25 via-emerald-500/20 to-teal-500/25 text-emerald-300 border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:border-rose-500/50 hover:text-rose-300 hover:bg-rose-500/20'
-                            : 'bg-[#0e0e14]/90 hover:bg-gradient-to-r hover:from-fivem-orange hover:to-amber-500 text-white border border-white/15 hover:border-fivem-orange/60 hover:shadow-[0_0_25px_rgba(234,88,12,0.45)] backdrop-blur-md'
+                            ? 'bg-gradient-to-br from-emerald-500/25 to-teal-600/25 text-emerald-300 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:border-rose-500/50 hover:text-rose-300 hover:bg-rose-500/20'
+                            : 'bg-[#0e0e14]/90 hover:bg-gradient-to-br hover:from-fivem-orange/30 hover:to-amber-500/20 text-white border-white/15 hover:border-fivem-orange/60 hover:shadow-[0_0_25px_rgba(234,88,12,0.45)] backdrop-blur-md'
                 )}
+                onClick={handleClick}
             >
-                {/* Radio Button Circle Indicator */}
+                <input
+                    type="radio"
+                    className="sr-only peer"
+                    name={`vote-choice-${_photoId}`}
+                    checked={hasVoted}
+                    readOnly
+                />
+
+                {/* SeraUI Radio Circle with Animated Inner Dot */}
                 {votingOpen && (
                     <div
                         className={cn(
-                            'relative w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all duration-200',
+                            'relative w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200',
                             hasVoted
-                                ? 'border-emerald-400 bg-emerald-500/30 group-hover:border-rose-400 group-hover:bg-rose-500/30'
-                                : 'border-white/40 group-hover:border-white bg-black/40'
+                                ? 'border-emerald-400 bg-emerald-500/20'
+                                : 'border-white/40 bg-black/40 hover:border-fivem-orange/80'
                         )}
                     >
                         <AnimatePresence>
                             {hasVoted && (
                                 <motion.div
-                                    key="radio-inner-dot"
+                                    key="seraui-radio-dot"
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     exit={{ scale: 0 }}
                                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                    className="w-2 h-2 rounded-full bg-emerald-400 group-hover:bg-rose-400 shadow-[0_0_8px_currentColor]"
+                                    className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"
                                 />
                             )}
                         </AnimatePresence>
                     </div>
                 )}
 
-                {/* Button Label & Count */}
+                {/* Label & Vote Count */}
                 <div className="flex items-center gap-1.5 z-10 leading-none">
                     <span>{votingOpen ? (hasVoted ? 'Voted' : 'Vote') : 'Votes'}</span>
                     <span className="font-mono text-[11px] font-bold opacity-90">
@@ -155,23 +157,25 @@ export function VoteButton({
 
                 {/* Percentage Share Pill */}
                 {votingOpen && clampedPct > 0 && (
-                    <span className={cn(
-                        "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full z-10 transition-colors",
-                        hasVoted
-                            ? "bg-emerald-500/30 text-emerald-200"
-                            : "bg-white/10 group-hover:bg-white/20 text-white/80"
-                    )}>
+                    <span
+                        className={cn(
+                            "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full z-10 transition-colors",
+                            hasVoted
+                                ? "bg-emerald-500/30 text-emerald-200"
+                                : "bg-white/10 text-white/80"
+                        )}
+                    >
                         {clampedPct}%
                     </span>
                 )}
-            </motion.button>
+            </motion.label>
         </div>
     );
 }
 
 /**
  * Dedicated SeraUI Voters Trigger Button / Badge
- * Allows viewers to see the full list of all votes without cluttering the voting button.
+ * Allows viewers to see the full list of all votes cleanly without cluttering the voting button.
  */
 export function VotersButton({
     photoId,
