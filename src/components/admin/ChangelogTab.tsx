@@ -28,13 +28,12 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260815-1556',
     version: 'v1.9.6',
-    title: 'Platform Sidebar Complete Redesign, Unified Contest Hub & Submission Flow Fixes',
+    title: 'Full-Width Immersive Photography Feed, Live Contest Action Hub & Clutter-Free UI',
     category: 'UI/UX',
-    description: `• Complete Platform Sidebar Redesign: Overhauled the right platform sidebar into a cohesive 3-tier esports dashboard featuring a Contestant Profile Hub, a unified Live Contest Center, and a single luxury golden Hall of Fame Vault showcase.
-• Redundancy Elimination & Archive Consolidation: Excised duplicate "View Hall of Fame Archives" and "Previous Winners" buttons across the sidebar, funneling past champions browsing into a dedicated, interactive trophy showcase card.
-• Unified Live Contest Action Center: Merged previously fragmented Contest Status and Contest Info cards into a single real-time telemetry card with pulsing phase indicators (Submissions & Voting statuses), active round counters, a high-impact glowing CTA, and a smooth rules jump link.
+    description: `• Full-Width Immersive Photography Showcase: Removed the 1-column right sidebar to expand the entire community photo submission gallery into a full-width 3-column responsive canvas, providing 33% more visual space for entries with hero presentation for top-ranked submissions.
+• Integrated Live Contest Action Hub: Replaced cluttered vertical sidebar widgets with an ultra-sleek, glassmorphic contest control strip above the gallery featuring live dual-phase indicators (Submissions & Voting statuses), active round telemetry (Categories, Entries, and Personal Submission Tracker), quick Rules jump, and high-impact glowing CTA actions.
+• Streamlined User Profile & Hall of Fame Access: Consolidated contestant identity, stats, win badges, and settings directly into the top navbar profile capsule, dropdown, and Hall of Fame gold action, eliminating redundant widget stacks across the page.
 • Category Submission Modal Resolution & Error Guard: Fixed the category empty state "Submit Entry" action to reliably trigger the submission modal with the active category pre-selected, resolving raw control character artifacts, lazy loading chunk glitches, and adding error boundary protection.
-• Contestant Telemetry Matrix & Role Identification: Enhanced the user profile card with animated NumberTicker statistics (Submissions, Votes Cast, Score), verified member and system admin role badges, inline name editing, and low-profile disconnect controls.
 • On-Demand Admin Suggestion Voting Sync: Decoupled the Admin Console suggestions hub from real-time subscriptions so that administrator decision votes persist atomically to Cloud Firestore without triggering unsolicited screen reflows or jumping cards for other reviewing admins.
 • Multi-Admin Refresh Synchronization: When an administrator visits the Category Ideas hub or taps the refresh control, the latest scores, community votes, and staff decision tallies are fetched directly from Cloud Firestore.
 • Animated Refresh Button Micro-Interactions: Re-engineered the header refresh trigger with smooth Framer Motion spring physics, a continuous 360-degree rotation animation during active sync, glowing orange aura states, and 180-degree hover transitions.
@@ -42,7 +41,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
 • Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
     author: 'Damon',
-    date: 'Aug 15, 2026 at 9:10 PM',
+    date: 'Aug 15, 2026 at 9:20 PM',
   },
   {
     id: 'release-20260814-1635',
