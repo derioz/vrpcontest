@@ -40,8 +40,17 @@ interface FlaggedVoter {
   reason?: string;
 }
 
+interface RegisteredUser {
+  uid: string;
+  displayName: string;
+  discordName?: string;
+  discordId?: string;
+  avatarUrl?: string;
+}
+
 export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProps) {
   const [votes, setVotes] = useState<VoteRecord[]>([]);
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [flaggedVoters, setFlaggedVoters] = useState<Map<string, FlaggedVoter>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -50,13 +59,20 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
 
-  // Fetch votes on demand (using getDocs instead of live onSnapshot to prevent read quota exhaustion)
-  const fetchVotes = async () => {
+  // Manual Flag Modal State
+  const [showManualFlagModal, setShowManualFlagModal] = useState(false);
+  const [manualUid, setManualUid] = useState('');
+  const [manualName, setManualName] = useState('');
+  const [manualReason, setManualReason] = useState('Verified Alt Discord Account');
+
+  // Fetch votes and registered users on demand
+  const fetchVotesAndUsers = async () => {
     setIsLoading(true);
     try {
-      const q = query(collection(db, 'votes'));
-      const snap = await getDocs(q);
-      const fetched: VoteRecord[] = snap.docs.map((d) => {
+      // 1. Fetch votes
+      const votesQuery = query(collection(db, 'votes'));
+      const votesSnap = await getDocs(votesQuery);
+      const fetchedVotes: VoteRecord[] = votesSnap.docs.map((d) => {
         const data = d.data();
         const voterDiscord = (data.voterDiscord as string) || (data.voterName as string) || 'Anonymous';
         const voterName = (data.voterName as string) || voterDiscord;
@@ -69,19 +85,35 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           timestamp: data.timestamp as string | undefined,
         };
       });
-      setVotes(fetched);
+      setVotes(fetchedVotes);
+
+      // 2. Fetch registered users
+      const usersQuery = query(collection(db, 'users'));
+      const usersSnap = await getDocs(usersQuery);
+      const fetchedUsers: RegisteredUser[] = usersSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          uid: d.id,
+          displayName: data.custom_display_name || data.default_discord_name || 'Discord User',
+          discordName: data.default_discord_name || data.custom_display_name,
+          discordId: data.discord_id,
+          avatarUrl: data.photo_url || data.avatar_url,
+        };
+      });
+      setRegisteredUsers(fetchedUsers);
     } catch (err) {
-      console.error('Failed to load votes for admin search:', err);
+      console.error('Failed to load voter database:', err);
+      toast.error('Failed to load voter database');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVotes();
+    fetchVotesAndUsers();
   }, []);
 
-  // Subscribe to flagged_voters collection
+  // Subscribe to flagged_voters collection in real time
   useEffect(() => {
     const q = query(collection(db, 'flagged_voters'));
     const unsub = onSnapshot(
@@ -169,13 +201,58 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           `Flagged ${voterName} as alt account. Removed ${votesRemovedCount} vote(s) and updated photo tallies!`,
           { id: toastId }
         );
-        await fetchVotes();
+        await fetchVotesAndUsers();
       } catch (err: any) {
         console.error('Failed to flag alt account:', err);
         toast.error('Error flagging alt account: ' + (err?.message || 'Unknown error'), { id: toastId });
       } finally {
         setIsProcessing(false);
       }
+    }
+  };
+
+  // Handler to manually flag an account by UID / Name
+  const handleManualFlagSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const uid = manualUid.trim();
+    const name = manualName.trim() || uid;
+    if (!uid) {
+      toast.error('Please enter a User ID (UID)');
+      return;
+    }
+
+    setIsProcessing(true);
+    const toastId = toast.loading(`Adding ${name} to Flagged Alts...`);
+    try {
+      await setDoc(doc(db, 'flagged_voters', uid), {
+        voterUid: uid,
+        voterName: name,
+        flaggedAt: new Date().toISOString(),
+        reason: manualReason.trim() || 'Verified Alt Discord Account',
+      });
+
+      // Purge any active votes by this UID
+      const votesQuery = query(collection(db, 'votes'), where('voterUid', '==', uid));
+      const votesSnap = await getDocs(votesQuery);
+      for (const voteDoc of votesSnap.docs) {
+        const photoId = String(voteDoc.data().photoId || '');
+        if (photoId) {
+          try {
+            await updateDoc(doc(db, 'photos', photoId), { vote_count: increment(-1) });
+          } catch (_) {}
+        }
+        await deleteDoc(doc(db, 'votes', voteDoc.id));
+      }
+
+      toast.success(`Successfully flagged ${name} as Alt Account!`, { id: toastId });
+      setShowManualFlagModal(false);
+      setManualUid('');
+      setManualName('');
+      await fetchVotesAndUsers();
+    } catch (err: any) {
+      toast.error('Failed to flag account: ' + (err?.message || 'Unknown error'), { id: toastId });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -226,7 +303,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
         await batch.commit();
       }
 
-      await fetchVotes();
+      await fetchVotesAndUsers();
       toast.success(
         repairedCount > 0
           ? `Successfully reconciled ${repairedCount} photo(s) to match exact database votes!`
@@ -252,7 +329,20 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   // Aggregate votes by voter UID
   const voterSummariesMap = new Map<string, VoterSummary>();
 
-  // Add all voters with votes
+  // 1. Add all registered platform users so they are always visible across contests
+  registeredUsers.forEach((u) => {
+    if (!voterSummariesMap.has(u.uid)) {
+      voterSummariesMap.set(u.uid, {
+        voterUid: u.uid,
+        displayName: u.displayName || u.discordName || 'Discord User',
+        voterDiscord: u.discordName || u.displayName || 'Discord User',
+        voteCount: 0,
+        votes: [],
+      });
+    }
+  });
+
+  // 2. Overlay all votes cast in this contest
   votes.forEach((vote) => {
     const key = vote.voterUid || vote.voterDiscord;
     if (!voterSummariesMap.has(key)) {
@@ -269,7 +359,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
     summary.votes.push(vote);
   });
 
-  // Also include flagged voters with 0 votes remaining
+  // 3. Overlay all flagged alt accounts from Firestore (guaranteed persistent)
   flaggedVoters.forEach((fv, uid) => {
     if (!voterSummariesMap.has(uid)) {
       voterSummariesMap.set(uid, {
@@ -279,10 +369,22 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
         voteCount: 0,
         votes: [],
       });
+    } else {
+      const summary = voterSummariesMap.get(uid)!;
+      if (fv.voterName && (!summary.displayName || summary.displayName === 'Discord User')) {
+        summary.displayName = fv.voterName;
+        summary.voterDiscord = fv.voterName;
+      }
     }
   });
 
-  const allVotersList = Array.from(voterSummariesMap.values()).sort((a, b) => b.voteCount - a.voteCount);
+  const allVotersList = Array.from(voterSummariesMap.values()).sort((a, b) => {
+    const aAlt = flaggedVoters.has(a.voterUid);
+    const bAlt = flaggedVoters.has(b.voterUid);
+    if (aAlt && !bAlt) return -1;
+    if (!aAlt && bAlt) return 1;
+    return b.voteCount - a.voteCount;
+  });
 
   // Filter voters by search query and flagged filter
   const searchTrimmed = searchQuery.toLowerCase().trim();
@@ -321,17 +423,17 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             <h3 className="text-xl font-black font-display text-white">Voter Search & Alt Account Manager</h3>
           </div>
           <p className="text-sm text-white/40">
-            Search for voters, view voted photos, and flag verified alt Discord accounts to purge invalid votes.
+            Search for voters, view voted photos, and flag verified alt Discord accounts to purge invalid votes across all contests.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={fetchVotes}
+            onClick={fetchVotesAndUsers}
             disabled={isLoading || isProcessing}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer"
-            title="Re-fetch latest vote records from Firestore"
+            title="Re-fetch latest vote and user records from Firestore"
           >
             <RefreshCw size={13} className={isLoading ? "animate-spin text-cyan-400" : "text-white/60"} />
             <span>Refresh Data</span>
@@ -348,6 +450,16 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             <span>Reconcile Counts</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => setShowManualFlagModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-xs font-mono font-bold text-red-300 transition-all cursor-pointer shadow-sm"
+            title="Manually blacklist an alt Discord account by UID"
+          >
+            <UserX size={13} className="text-red-400" />
+            <span>Blacklist UID</span>
+          </button>
+
           {/* Flagged Alt Count Badge */}
           {flaggedVoters.size > 0 && (
             <button
@@ -355,7 +467,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
               onClick={() => setShowFlaggedOnly(!showFlaggedOnly)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer ${
                 showFlaggedOnly
-                  ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                  ? 'bg-red-500/25 border-red-500/60 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.35)]'
                   : 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
               }`}
             >
@@ -364,6 +476,75 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             </button>
           )}
         </div>
+      </div>
+
+      {/* Persistent Active Alt Blacklist Banner */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-red-500/10 via-[#181014] to-[#0c0c14] border border-red-500/30 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert size={20} className="text-red-400 shrink-0" />
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Active Alt Blacklist ({flaggedVoters.size} Account{flaggedVoters.size !== 1 ? 's' : ''})</span>
+                <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-mono text-[10px] uppercase tracking-wider border border-red-500/30">Permanent</span>
+              </h4>
+              <p className="text-xs text-white/50">
+                Flagged accounts are permanently blocked from voting across all contest rounds.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Flagged Accounts Grid List */}
+        {flaggedVoters.size > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+            {(Array.from(flaggedVoters.values()) as FlaggedVoter[]).map((fv) => (
+              <div
+                key={fv.voterUid}
+                className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-black/40 border border-red-500/25 hover:border-red-500/50 transition-all"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <img
+                    src={getDiceBearAvatarUrl(fv.voterUid || fv.voterName)}
+                    alt=""
+                    className="w-7 h-7 rounded-lg border border-red-500/40 object-cover shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{fv.voterName}</p>
+                    <p className="text-[10px] font-mono text-red-400/80 truncate">UID: {fv.voterUid}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedVoterUid(fv.voterUid);
+                      setShowFlaggedOnly(false);
+                    }}
+                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-mono text-white/70 hover:text-white border border-white/10 transition-colors cursor-pointer"
+                    title="Inspect votes"
+                  >
+                    Inspect
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleToggleAltFlag(fv.voterUid, fv.voterName)}
+                    className="p-1.5 rounded-lg bg-red-500/20 hover:bg-emerald-500/20 text-red-400 hover:text-emerald-300 border border-red-500/30 hover:border-emerald-500/40 transition-colors cursor-pointer"
+                    title="Unflag alt account"
+                  >
+                    <ShieldCheck size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-black/30 border border-white/5 text-center">
+            <p className="text-xs text-white/40">No alt accounts currently flagged in database.</p>
+          </div>
+        )}
       </div>
 
       {/* Search Input & Directory */}
@@ -639,6 +820,80 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
 
       {/* Lightbox Modal for Image Inspection */}
       <LightboxModal photo={previewPhoto} privateKey={null} onClose={() => setPreviewPhoto(null)} />
+
+      {/* Manual Flag Account Modal */}
+      {showManualFlagModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#0e0e14] border border-red-500/40 rounded-3xl p-6 shadow-[0_20px_70px_rgba(0,0,0,0.9)] space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="text-red-400" size={20} />
+                <h4 className="text-base font-bold text-white">Manual Flag Alt Account</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowManualFlagModal(false)}
+                className="text-white/40 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleManualFlagSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-mono text-white/60 mb-1">User ID / Discord UID (Required)</label>
+                <input
+                  type="text"
+                  required
+                  value={manualUid}
+                  onChange={(e) => setManualUid(e.target.value)}
+                  placeholder="e.g. 104829104810294819"
+                  className="w-full bg-white/[0.06] text-white text-sm rounded-xl px-3.5 py-2.5 border border-white/10 focus:border-red-500/50 outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-white/60 mb-1">Discord Name / Display Name (Optional)</label>
+                <input
+                  type="text"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  placeholder="e.g. PlayerAlt123"
+                  className="w-full bg-white/[0.06] text-white text-sm rounded-xl px-3.5 py-2.5 border border-white/10 focus:border-red-500/50 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-white/60 mb-1">Reason (Optional)</label>
+                <input
+                  type="text"
+                  value={manualReason}
+                  onChange={(e) => setManualReason(e.target.value)}
+                  placeholder="Verified Alt Discord Account"
+                  className="w-full bg-white/[0.06] text-white text-sm rounded-xl px-3.5 py-2.5 border border-white/10 focus:border-red-500/50 outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowManualFlagModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-mono bg-white/5 hover:bg-white/10 text-white/70 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="px-5 py-2 rounded-xl text-xs font-mono font-bold bg-red-500/80 hover:bg-red-500 text-white shadow-lg cursor-pointer"
+                >
+                  {isProcessing ? 'Flagging...' : 'Add to Blacklist'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
