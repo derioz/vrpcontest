@@ -30,7 +30,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.6',
     title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
     category: 'UI/UX',
-    description: `• SeraUI Progress Bar Component: Integrated high-fidelity animated progress bars with smooth Framer Motion spring fill, glowing accents, and striped variants across category cards and file upload previews.
+    description: `• Voter Preview Popover Interaction Resolution: Fixed vote button interception by introducing an intentional 350ms hover delay, enabling direct click-to-vote on the popover banner and surface, and adding spacing offsets so rapid voting is 100% unobstructed.
+• SeraUI Progress Bar Component: Integrated high-fidelity animated progress bars with smooth Framer Motion spring fill, glowing accents, and striped variants across category cards and file upload previews.
 • SeraUI Blurred Backdrop Modals: Re-engineered all platform modal dialogs with deep frosted glassmorphism, 80% darkened backdrop blur, spring entry physics, and refined close controls.
 • SeraUI Tactile Radio-Choice Voting Button: Overhauled the community voting control into an interactive SeraUI radio-choice button featuring animated inner dot indicators, category share bars, and tactile hover feedback.
 • SeraUI Animated Dropdown System: Built reusable glassmorphic dropdown components with spring animations, auto-rotating chevrons, and outside-click dismiss.
@@ -46,7 +47,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
 • Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
     author: 'Damon',
-    date: 'Aug 15, 2026 at 9:56 PM',
+    date: 'Aug 15, 2026 at 10:01 PM',
   },
   {
     id: 'release-20260814-1635',

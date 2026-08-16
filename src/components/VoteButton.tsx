@@ -3,7 +3,8 @@
  * Features:
  *   • SeraUI tactile radio indicator with animated inner pulse dot
  *   • Smooth rolling vote counter & percentage share bar
- *   • Glassmorphic hover popup showing voter names (SeraUI popup pattern)
+ *   • Unobtrusive voter preview popover with 350ms hover delay
+ *   • Direct click-to-vote on both the button AND the popover banner
  *   • Particle bursts on vote/unvote
  */
 import { AnimatePresence, motion } from 'motion/react';
@@ -60,10 +61,10 @@ export function VoteButton({
     const updateCoords = useCallback(() => {
         if (!buttonRef.current) return;
         const rect = buttonRef.current.getBoundingClientRect();
-        const placeAbove = rect.top >= 220;
+        const placeAbove = rect.top >= 230;
         setPopoverCoords({
-            top: placeAbove ? rect.top - 8 : rect.bottom + 8,
-            right: Math.max(8, window.innerWidth - rect.right),
+            top: placeAbove ? rect.top - 14 : rect.bottom + 14,
+            right: Math.max(12, window.innerWidth - rect.right),
             placeAbove,
         });
     }, []);
@@ -136,29 +137,36 @@ export function VoteButton({
 
     const handleMouseEnter = useCallback(() => {
         if (hoverTimer.current) clearTimeout(hoverTimer.current);
-        updateCoords();
-        setIsHovered(true);
+        // Delay popover by 350ms so swift clicks on the vote button are completely instant and unobstructed
+        hoverTimer.current = setTimeout(() => {
+            updateCoords();
+            setIsHovered(true);
+        }, 350);
     }, [updateCoords]);
 
     const handleMouseLeave = useCallback(() => {
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
         hoverTimer.current = setTimeout(() => {
             setIsHovered(false);
-        }, 220);
+        }, 150);
     }, []);
 
     const handleOpenVotersModal = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
         setIsHovered(false);
         setIsVotersModalOpen(true);
     }, []);
 
-    const handleClick = (e: React.MouseEvent) => {
+    const handleClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        setIsHovered(false);
         if (!votingOpen || isDisqualified) return;
         setIsBursting(true);
         setTimeout(() => setIsBursting(false), 750);
         onVote();
-    };
+    }, [votingOpen, isDisqualified, onVote]);
 
     const burstParticles = hasVoted ? BURST_PARTICLES_UNVOTE : BURST_PARTICLES_VOTE;
     const particleOffsets = [
@@ -173,21 +181,32 @@ export function VoteButton({
     const popoverContent = isHovered && popoverCoords ? (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0, y: popoverCoords.placeAbove ? 6 : -6, scale: 0.96 }}
+                initial={{ opacity: 0, y: popoverCoords.placeAbove ? 8 : -8, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: popoverCoords.placeAbove ? 6 : -6, scale: 0.96 }}
+                exit={{ opacity: 0, y: popoverCoords.placeAbove ? 8 : -8, scale: 0.95 }}
                 transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-                onMouseEnter={handleMouseEnter}
+                onMouseEnter={() => {
+                    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+                    setIsHovered(true);
+                }}
                 onMouseLeave={handleMouseLeave}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (votingOpen && !isDisqualified) {
+                        handleClick(e);
+                    }
+                }}
                 style={{
                     position: 'fixed',
                     top: `${popoverCoords.top}px`,
                     right: `${popoverCoords.right}px`,
                     transform: popoverCoords.placeAbove ? 'translateY(-100%)' : 'translateY(0%)',
-                    zIndex: 9990,
+                    zIndex: 9999,
                 }}
-                className="w-56 rounded-2xl border border-white/15 bg-[#0a0a0f]/98 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-3.5 flex flex-col pointer-events-auto select-none"
+                className={cn(
+                    "w-60 rounded-2xl border border-white/15 bg-[#0a0a0f]/98 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-3.5 flex flex-col pointer-events-auto select-none transition-colors",
+                    votingOpen && !isDisqualified && "cursor-pointer hover:border-fivem-orange/40"
+                )}
             >
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-2 px-0.5 shrink-0">
@@ -254,18 +273,27 @@ export function VoteButton({
                     </div>
                 </div>
 
-                {/* Vote status hint */}
+                {/* Interactive Clickable Vote Status / Action Banner */}
                 {votingOpen && (
-                    <div className={cn(
-                        'flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider pt-2 border-t border-white/[0.06] mt-2 shrink-0',
-                        hasVoted ? 'text-emerald-400' : 'text-white/40'
-                    )}>
-                        {hasVoted ? (
-                            <><Check size={10} className="stroke-[3]" /> Selected · click to withdraw</>
-                        ) : (
-                            <span className="text-fivem-orange">● Click to cast ballot</span>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleClick(e);
+                        }}
+                        className={cn(
+                            'w-full flex items-center justify-center gap-1.5 text-[10px] font-bold font-display uppercase tracking-wider py-1.5 px-2 rounded-xl transition-all border mt-2 shrink-0 cursor-pointer shadow-sm',
+                            hasVoted
+                                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300'
+                                : 'bg-fivem-orange/20 border-fivem-orange/40 text-fivem-orange hover:bg-fivem-orange hover:text-white shadow-[0_0_15px_rgba(234,88,12,0.3)]'
                         )}
-                    </div>
+                    >
+                        {hasVoted ? (
+                            <><Check size={11} className="stroke-[3]" /> Selected · Click to withdraw</>
+                        ) : (
+                            <span>● Click to cast ballot</span>
+                        )}
+                    </button>
                 )}
 
                 {/* Pointer Arrow */}
@@ -323,7 +351,7 @@ export function VoteButton({
                         animate={isBursting ? { scale: [1, 1.15, 0.95, 1.05, 1] } : { scale: 1 }}
                         transition={{ type: 'spring', stiffness: 450, damping: 18 }}
                         className={cn(
-                            'group relative flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl font-display text-xs font-black uppercase tracking-wider transition-all duration-300 select-none overflow-hidden cursor-pointer shadow-lg',
+                            'group relative z-10 flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl font-display text-xs font-black uppercase tracking-wider transition-all duration-300 select-none overflow-hidden cursor-pointer shadow-lg',
                             !votingOpen
                                 ? 'bg-black/60 border border-white/10 text-white/40 cursor-not-allowed backdrop-blur-md'
                                 : hasVoted
