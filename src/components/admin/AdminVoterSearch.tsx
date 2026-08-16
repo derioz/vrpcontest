@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search, UserCheck, Heart, Image as ImageIcon, Sparkles, ExternalLink, Calendar,
-  User, Tag, ShieldAlert, ShieldCheck, UserX, AlertTriangle, RefreshCw
+  User, Tag, ShieldAlert, ShieldCheck, UserX, AlertTriangle, RefreshCw, CheckCircle2
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc, setDoc, deleteDoc, updateDoc, increment, getDocs, where, writeBatch } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -26,6 +26,7 @@ interface VoteRecord {
 }
 
 interface VoterSummary {
+  id: string;
   voterUid: string;
   displayName: string;
   voterDiscord: string;
@@ -55,7 +56,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedVoterUid, setSelectedVoterUid] = useState<string | null>(null);
+  const [selectedVoterId, setSelectedVoterId] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
 
@@ -364,6 +365,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
     const key = rawName.toLowerCase();
     if (!voterSummariesMap.has(key)) {
       voterSummariesMap.set(key, {
+        id: key,
         voterUid: vote.voterUid || key,
         displayName: vote.voterDiscord || vote.voterName || rawName,
         voterDiscord: vote.voterDiscord || vote.voterName || rawName,
@@ -384,6 +386,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
 
     if (!voterSummariesMap.has(key)) {
       voterSummariesMap.set(key, {
+        id: key,
         voterUid: rawKey,
         displayName: rawKey,
         voterDiscord: rawKey,
@@ -400,7 +403,9 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   flaggedVoters.forEach((fv, uid) => {
     const key = (fv.voterName || uid).toLowerCase().trim();
     if (!voterSummariesMap.has(key) && !voterSummariesMap.has(uid.toLowerCase())) {
-      voterSummariesMap.set(uid.toLowerCase(), {
+      const targetKey = uid.toLowerCase();
+      voterSummariesMap.set(targetKey, {
+        id: targetKey,
         voterUid: uid,
         displayName: fv.voterName || uid,
         voterDiscord: fv.voterName || uid,
@@ -445,10 +450,16 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
     );
   });
 
-  // Determine active voter selection
-  const activeVoter = selectedVoterUid
-    ? voterSummariesMap.get(selectedVoterUid) || null
-    : matchingVoters.length === 1
+  // Determine active voter selection flexibly by ID, UID, or Display Name
+  const activeVoter = selectedVoterId
+    ? allVotersList.find(
+        (v) =>
+          v.id === selectedVoterId ||
+          v.voterUid === selectedVoterId ||
+          v.displayName.toLowerCase() === selectedVoterId.toLowerCase() ||
+          v.voterDiscord.toLowerCase() === selectedVoterId.toLowerCase()
+      ) || null
+    : matchingVoters.length === 1 && searchTrimmed.length > 0
     ? matchingVoters[0]
     : null;
 
@@ -566,7 +577,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedVoterUid(fv.voterUid);
+                      setSelectedVoterId(fv.voterUid);
                       setShowFlaggedOnly(false);
                     }}
                     className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-mono text-white/70 hover:text-white border border-white/10 transition-colors cursor-pointer"
@@ -603,7 +614,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setSelectedVoterUid(null);
+              setSelectedVoterId(null);
             }}
             placeholder="Search voter by Discord name, display name, or UID..."
             className="w-full bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] text-white text-sm rounded-xl pl-11 pr-4 py-3 border border-white/10 focus:border-cyan-500/50 outline-none transition-all placeholder:text-white/30"
@@ -629,13 +640,13 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             </div>
             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
               {matchingVoters.map((voter) => {
-                const isSelected = activeVoter?.voterUid === voter.voterUid;
+                const isSelected = activeVoter?.id === voter.id || activeVoter?.voterUid === voter.voterUid || activeVoter?.displayName.toLowerCase() === voter.displayName.toLowerCase();
                 const isAlt = flaggedVoters.has(voter.voterUid);
                 return (
                   <button
-                    key={voter.voterUid}
+                    key={voter.id}
                     type="button"
-                    onClick={() => setSelectedVoterUid(voter.voterUid)}
+                    onClick={() => setSelectedVoterId(voter.id)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
                       isSelected
                         ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.25)]'
@@ -668,15 +679,15 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
 
       {/* Main Results Display */}
       {isLoading ? (
-        <div className="py-16 flex flex-col items-center justify-center text-white/40 gap-3 border border-white/5 rounded-2xl">
-          <div className="w-7 h-7 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-mono uppercase tracking-wider">Loading vote database...</span>
+        <div className="py-16 flex flex-col items-center justify-center text-white/40 text-center border border-white/5 rounded-2xl">
+          <RefreshCw size={28} className="animate-spin text-cyan-400 mb-3" />
+          <p className="text-sm font-mono text-white/60">Loading voter database...</p>
         </div>
       ) : activeVoter ? (
         <div className="space-y-4">
-          {/* Active Voter Overview Banner */}
+          {/* Active Voter Info Banner */}
           <div
-            className={`p-5 rounded-2xl border flex flex-wrap items-center justify-between gap-4 transition-all ${
+            className={`p-4 sm:p-5 rounded-2xl border flex flex-wrap items-center justify-between gap-4 backdrop-blur-md ${
               flaggedVoters.has(activeVoter.voterUid)
                 ? 'bg-gradient-to-r from-red-500/15 via-rose-500/5 to-transparent border-red-500/30'
                 : 'bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent border-cyan-500/20'
@@ -702,7 +713,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                     </span>
                   ) : (
                     <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold">
-                      Voted for {activeVoter.voteCount} {activeVoter.voteCount === 1 ? 'photo' : 'photos'}
+                      {activeVoter.voteCount} Total {activeVoter.voteCount === 1 ? 'Vote' : 'Votes'} Recorded
                     </span>
                   )}
                 </div>
@@ -739,7 +750,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
 
               <button
                 type="button"
-                onClick={() => setSelectedVoterUid(null)}
+                onClick={() => setSelectedVoterId(null)}
                 className="text-xs font-mono text-white/40 hover:text-white px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
               >
                 Clear
@@ -747,7 +758,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             </div>
           </div>
 
-          {/* Voted Photos Grid */}
+          {/* Voted Photos Grid or Historical Notice */}
           {activeVoterPhotos.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeVoterPhotos.map(({ vote, photo }, idx) => (
@@ -771,7 +782,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-white/20">
                         <ImageIcon size={32} />
-                        <span className="text-xs font-mono mt-1">Photo unavailable</span>
+                        <span className="text-xs font-mono mt-1">Photo archived</span>
                       </div>
                     )}
 
@@ -838,6 +849,16 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                   </div>
                 </motion.div>
               ))}
+            </div>
+          ) : activeVoter.voteCount > 0 ? (
+            <div className="py-12 px-6 flex flex-col items-center justify-center text-white/50 text-center border border-white/5 rounded-2xl bg-white/[0.01]">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-3 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                <CheckCircle2 size={24} />
+              </div>
+              <p className="text-base font-bold text-white">Historical Contest Voter</p>
+              <p className="text-xs text-white/50 mt-1 max-w-md">
+                This voter has cast <strong>{activeVoter.voteCount}</strong> verified vote{activeVoter.voteCount !== 1 ? 's' : ''} in previous contest rounds. Individual submission image records from concluded contests have been archived.
+              </p>
             </div>
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-white/40 text-center border border-white/5 rounded-2xl">
