@@ -31,7 +31,7 @@ import {
   ThumbsUp,
   UserCheck
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
 import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote } from '../../types';
 import {

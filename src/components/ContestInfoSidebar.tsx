@@ -20,7 +20,6 @@ import {
 import { cn } from '../lib/utils';
 import { Category, Photo, ArchivedWinner } from '../types';
 import { NumberTicker } from './ui/number-ticker';
-import { BorderBeam } from './ui/border-beam';
 import { DotPattern } from './ui/dot-pattern';
 
 interface ContestInfoSidebarProps {
@@ -84,9 +83,6 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
         <DotPattern width={20} height={20} cr={1} className="opacity-15 pointer-events-none" />
         <div className="absolute -top-16 -right-16 w-44 h-44 bg-fivem-orange/15 blur-[70px] rounded-full pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-44 h-44 bg-amber-500/10 blur-[70px] rounded-full pointer-events-none" />
-        
-        {/* Dynamic Glowing Border Beam */}
-        <BorderBeam size={220} duration={10} colorFrom="#ea580c" colorTo="#f59e0b" borderWidth={1.5} />
 
         <div className="relative z-10 space-y-5">
           {/* Header Row: Live Badge & Round Identifier */}

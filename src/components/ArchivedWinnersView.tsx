@@ -27,7 +27,7 @@ import { MagicCard } from './ui/magic-card';
 import { NumberTicker } from './ui/number-ticker';
 import { SparklesText } from './ui/sparkles-text';
 import { Particles } from './ui/particles';
-import { toast } from 'sonner';
+import { toast } from './ui/toast';
 import { downloadPhoto } from '../lib/download';
 import { ChampionBadge } from './ChampionBadge';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';

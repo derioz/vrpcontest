@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../ui/toast';
 import { Category, Photo } from '../../types';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';

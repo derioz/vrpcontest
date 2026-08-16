@@ -4,7 +4,7 @@ import { X, User, Vote, Calendar, Users, Ban, Download, ChevronLeft, ChevronRigh
 import { Photo } from '../types';
 import { VotersModal } from './VotersModal';
 import { downloadPhoto } from '../lib/download';
-import { toast } from 'sonner';
+import { toast } from './ui/toast';
 import { cn } from '../lib/utils';
 import { ChampionBadge } from './ChampionBadge';
 

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
 import { AnimatedShinyText } from '../ui/animated-shiny-text';

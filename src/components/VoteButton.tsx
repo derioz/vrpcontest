@@ -1,13 +1,13 @@
 /**
- * VoteButton – ported & adapted from uitripled NativeLikesCounterBaseUI.
- * Combines:
- *   • Animated rolling number counter (NativeLikesCounter pattern)
- *   • Liquid fill progress bar on the button (NativeLiquidButton pattern)
- *   • Hover popup showing voter names (NativeLikesCounter popup pattern)
- *   • Particle burst on click (custom)
+ * VoteButton – SeraUI Radio-Button Choice Pattern
+ * Features:
+ *   • SeraUI tactile radio indicator with animated inner pulse dot
+ *   • Smooth rolling vote counter & percentage share bar
+ *   • Glassmorphic hover popup showing voter names (SeraUI popup pattern)
+ *   • Particle bursts on vote/unvote
  */
 import { AnimatePresence, motion } from 'motion/react';
-import { Heart, Users, Ban } from 'lucide-react';
+import { Users, Ban, Check } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { collection, limit, getDocs, query, where } from 'firebase/firestore';
@@ -33,8 +33,8 @@ interface VoteButtonProps {
     className?: string;
 }
 
-const BURST_PARTICLES_VOTE = ['❤️', '✨', '✨', '⭐'] as const;
-const BURST_PARTICLES_UNVOTE = ['💔', '💔', '💔', '💔'] as const;
+const BURST_PARTICLES_VOTE = ['✨', '⭐', '⚡', '✨'] as const;
+const BURST_PARTICLES_UNVOTE = ['▫️', '▫️', '▫️', '▫️'] as const;
 
 export function VoteButton({
     photoId,
@@ -68,9 +68,9 @@ export function VoteButton({
         });
     }, []);
 
-// Module-level cache for top hover voters to prevent repeated Firestore reads
-const voterHoverCache = new Map<string, { voters: Voter[]; timestamp: number }>();
-const CACHE_TTL_MS = 60000; // 60 seconds
+    // Module-level cache for top hover voters
+    const voterHoverCache = useRef(new Map<string, { voters: Voter[]; timestamp: number }>()).current;
+    const CACHE_TTL_MS = 60000; // 60 seconds
 
     // Fetch top 5 voter names for quick hover preview
     useEffect(() => {
@@ -123,7 +123,6 @@ const CACHE_TTL_MS = 60000; // 60 seconds
             voterHoverCache.set(photoIdStr, { voters: topVoters, timestamp: Date.now() });
         }).catch(err => console.error("Vote hover fetch error:", err));
 
-        // Recalculate position on resize/scroll
         const handleScroll = () => updateCoords();
         window.addEventListener('scroll', handleScroll, { passive: true });
         window.addEventListener('resize', handleScroll, { passive: true });
@@ -133,7 +132,7 @@ const CACHE_TTL_MS = 60000; // 60 seconds
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleScroll);
         };
-    }, [isHovered, photoId, updateCoords]);
+    }, [isHovered, photoId, updateCoords, voterHoverCache]);
 
     const handleMouseEnter = useCallback(() => {
         if (hoverTimer.current) clearTimeout(hoverTimer.current);
@@ -188,7 +187,7 @@ const CACHE_TTL_MS = 60000; // 60 seconds
                     transform: popoverCoords.placeAbove ? 'translateY(-100%)' : 'translateY(0%)',
                     zIndex: 9990,
                 }}
-                className="w-56 rounded-2xl border border-white/15 bg-[#0a0a0a]/98 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,0.9)] p-3 flex flex-col pointer-events-auto select-none"
+                className="w-56 rounded-2xl border border-white/15 bg-[#0a0a0f]/98 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-3.5 flex flex-col pointer-events-auto select-none"
             >
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-2 px-0.5 shrink-0">
@@ -205,7 +204,7 @@ const CACHE_TTL_MS = 60000; // 60 seconds
 
                 {/* Voter list — compact preview */}
                 {voters.length > 0 ? (
-                    <div className="space-y-1 mb-2 shrink-0">
+                    <div className="space-y-1.5 mb-2.5 shrink-0">
                         {voters.map((v, i) => (
                             <motion.div
                                 key={v.id}
@@ -214,8 +213,8 @@ const CACHE_TTL_MS = 60000; // 60 seconds
                                 transition={{ delay: i * 0.02, duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                                 className="flex items-center gap-2 py-0.5"
                             >
-                                <div className="w-4.5 h-4.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center shrink-0">
-                                    <span className="text-[8px] font-bold text-fivem-orange uppercase leading-none">
+                                <div className="w-5 h-5 rounded-full bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center shrink-0">
+                                    <span className="text-[9px] font-bold text-fivem-orange uppercase leading-none">
                                         {v.displayName.charAt(0)}
                                     </span>
                                 </div>
@@ -240,14 +239,14 @@ const CACHE_TTL_MS = 60000; // 60 seconds
                 )}
 
                 {/* Category share bar */}
-                <div className="border-t border-white/[0.06] pt-1.5 shrink-0">
+                <div className="border-t border-white/[0.06] pt-2 shrink-0">
                     <div className="flex items-center justify-between mb-1">
                         <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest">Category share</span>
                         <span className="text-[9px] font-bold text-fivem-orange">{clampedPct}%</span>
                     </div>
-                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                         <motion.div
-                            className="h-full bg-fivem-orange rounded-full"
+                            className="h-full bg-gradient-to-r from-fivem-orange to-amber-400 rounded-full"
                             initial={{ width: 0 }}
                             animate={{ width: `${clampedPct}%` }}
                             transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -258,22 +257,22 @@ const CACHE_TTL_MS = 60000; // 60 seconds
                 {/* Vote status hint */}
                 {votingOpen && (
                     <div className={cn(
-                        'flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider pt-1.5 border-t border-white/[0.06] mt-1.5 shrink-0',
-                        hasVoted ? 'text-emerald-400' : 'text-white/30'
+                        'flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider pt-2 border-t border-white/[0.06] mt-2 shrink-0',
+                        hasVoted ? 'text-emerald-400' : 'text-white/40'
                     )}>
                         {hasVoted ? (
-                            <><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>You voted · click to undo</>
+                            <><Check size={10} className="stroke-[3]" /> Selected · click to withdraw</>
                         ) : (
-                            <><Heart size={8} />Click to vote</>
+                            <span className="text-fivem-orange">● Click to cast ballot</span>
                         )}
                     </div>
                 )}
 
                 {/* Pointer Arrow */}
                 {popoverCoords.placeAbove ? (
-                    <div className="absolute bottom-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0a]/98 border-r border-b border-white/15 rotate-45 pointer-events-none" />
+                    <div className="absolute bottom-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0f] border-r border-b border-white/15 rotate-45 pointer-events-none" />
                 ) : (
-                    <div className="absolute top-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0a]/98 border-l border-t border-white/15 rotate-45 pointer-events-none" />
+                    <div className="absolute top-[-5px] right-5 w-2.5 h-2.5 bg-[#0a0a0f] border-l border-t border-white/15 rotate-45 pointer-events-none" />
                 )}
             </motion.div>
         </AnimatePresence>
@@ -305,97 +304,82 @@ const CACHE_TTL_MS = 60000; // 60 seconds
                         ))}
                 </AnimatePresence>
 
-                {/* ── The button ── */}
+                {/* ── SeraUI Radio-Button Choice Pattern ── */}
                 {isDisqualified ? (
                     <button
                         type="button"
                         disabled
-                        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs bg-red-500/20 text-red-400 border border-red-500/40 cursor-not-allowed uppercase tracking-wider select-none shadow-[0_0_12px_rgba(239,68,68,0.25)]"
+                        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-2xl font-bold text-xs bg-red-500/20 text-red-400 border border-red-500/40 cursor-not-allowed uppercase tracking-wider select-none shadow-[0_0_12px_rgba(239,68,68,0.25)]"
                     >
                         <Ban size={13} className="shrink-0 text-red-400" />
                         <span>Disqualified</span>
                     </button>
                 ) : (
                     <motion.button
+                        type="button"
                         onClick={handleClick}
                         disabled={!votingOpen}
-                        whileTap={votingOpen ? { scale: 0.78 } : {}}
-                        animate={isBursting ? { scale: [1, 1.28, 0.9, 1.1, 1] } : { scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 480, damping: 16 }}
+                        whileTap={votingOpen ? { scale: 0.94 } : {}}
+                        animate={isBursting ? { scale: [1, 1.15, 0.95, 1.05, 1] } : { scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 450, damping: 18 }}
                         className={cn(
-                            'relative flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm overflow-hidden cursor-pointer',
+                            'group relative flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl font-display text-xs font-black uppercase tracking-wider transition-all duration-300 select-none overflow-hidden cursor-pointer shadow-lg',
                             !votingOpen
-                                ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                                ? 'bg-black/60 border border-white/10 text-white/40 cursor-not-allowed backdrop-blur-md'
                                 : hasVoted
-                                    ? 'bg-white text-fivem-orange border border-fivem-orange/40 shadow-[0_0_12px_rgba(234,88,12,0.35)] hover:bg-red-50/10 hover:text-red-400 hover:border-red-400/40'
-                                    : 'bg-fivem-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.5)] hover:shadow-[0_0_28px_rgba(234,88,12,0.8)]'
+                                    ? 'bg-gradient-to-r from-emerald-500/25 via-emerald-500/20 to-teal-500/25 text-emerald-300 border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:border-rose-500/50 hover:text-rose-300 hover:bg-rose-500/20'
+                                    : 'bg-[#0e0e14]/90 hover:bg-gradient-to-r hover:from-fivem-orange hover:to-amber-500 text-white border border-white/15 hover:border-fivem-orange/60 hover:shadow-[0_0_25px_rgba(234,88,12,0.45)] backdrop-blur-md'
                         )}
                     >
-                    {/* Liquid fill background — shows category share */}
-                    {votingOpen && (
-                        <motion.div
-                            className={cn(
-                                'absolute inset-0 origin-left opacity-20',
-                                hasVoted ? 'bg-red-400' : 'bg-white'
-                            )}
-                            initial={{ scaleX: 0 }}
-                            animate={{ scaleX: clampedPct / 100 }}
-                            transition={{ type: 'spring', stiffness: 80, damping: 20 }}
-                        />
-                    )}
-
-                    {/* Heart icon with fill animation */}
-                    <motion.div
-                        animate={isBursting && !hasVoted ? { scale: [1, 1.4, 1] } : { scale: 1 }}
-                        transition={{ duration: 0.25 }}
-                        className="relative z-10"
-                    >
-                        <Heart
-                            size={14}
-                            className={cn(
-                                'transition-all duration-200',
-                                hasVoted ? 'fill-fivem-orange text-fivem-orange' : 'fill-none'
-                            )}
-                        />
-                    </motion.div>
-
-                    {/* Rolling counter */}
-                    <AnimatePresence mode="popLayout">
-                        <motion.span
-                            key={voteCount}
-                            initial={{ y: hasVoted ? 8 : -8, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: hasVoted ? -8 : 8, opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="relative z-10 tabular-nums"
-                        >
-                            {voteCount.toLocaleString()}
-                        </motion.span>
-                    </AnimatePresence>
-
-                    {/* Voted checkmark */}
-                    <AnimatePresence>
-                        {hasVoted && (
-                            <motion.svg
-                                key="check"
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0, opacity: 0 }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                                width="11" height="11" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" strokeWidth="3"
-                                strokeLinecap="round" strokeLinejoin="round"
-                                className="relative z-10 text-fivem-orange"
+                        {/* SeraUI Radio Button Circle Indicator */}
+                        {votingOpen && (
+                            <div
+                                className={cn(
+                                    'relative w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all duration-200',
+                                    hasVoted
+                                        ? 'border-emerald-400 bg-emerald-500/30 group-hover:border-rose-400 group-hover:bg-rose-500/30'
+                                        : 'border-white/40 group-hover:border-white bg-black/40'
+                                )}
                             >
-                                <polyline points="20 6 9 17 4 12" />
-                            </motion.svg>
+                                <AnimatePresence>
+                                    {hasVoted && (
+                                        <motion.div
+                                            key="radio-inner-dot"
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            exit={{ scale: 0 }}
+                                            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                            className="w-2 h-2 rounded-full bg-emerald-400 group-hover:bg-rose-400 shadow-[0_0_8px_currentColor]"
+                                        />
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         )}
-                    </AnimatePresence>
-                </motion.button>
+
+                        {/* Button Label & Count */}
+                        <div className="flex items-center gap-1.5 z-10 leading-none">
+                            <span>{votingOpen ? (hasVoted ? 'Voted' : 'Vote') : 'Votes'}</span>
+                            <span className="font-mono text-[11px] font-bold opacity-90">
+                                {voteCount.toLocaleString()}
+                            </span>
+                        </div>
+
+                        {/* Subtle Percentage Share Pill */}
+                        {votingOpen && clampedPct > 0 && (
+                            <span className={cn(
+                                "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full z-10 transition-colors",
+                                hasVoted
+                                    ? "bg-emerald-500/30 text-emerald-200"
+                                    : "bg-white/10 group-hover:bg-white/20 text-white/80"
+                            )}>
+                                {clampedPct}%
+                            </span>
+                        )}
+                    </motion.button>
                 )}
             </div>
 
-            {/* ── Hover popover rendered via Portal to prevent overflow clipping ── */}
+            {/* ── Hover popover rendered via Portal ── */}
             {popoverContent && createPortal(popoverContent, document.body)}
 
             {/* ── Full Voters Modal ── */}

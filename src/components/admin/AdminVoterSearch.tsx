@@ -8,7 +8,7 @@ import { collection, onSnapshot, query, doc, setDoc, deleteDoc, updateDoc, incre
 import { db } from '../../lib/firebase';
 import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
-import { toast } from 'sonner';
+import { toast } from '../ui/toast';
 import { getDiceBearAvatarUrl } from '../../lib/dicebear';
 
 interface AdminVoterSearchProps {

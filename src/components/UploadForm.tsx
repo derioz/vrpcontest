@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { toast } from 'sonner';
+import { toast } from './ui/toast';
+import { ProgressBar } from './ui/progress';
 import {
   Info,
   AlertCircle,
@@ -512,43 +513,56 @@ export default function UploadForm({
       )}
 
       {/* ── Actions / Submit Button ── */}
-      <div className="flex gap-3 pt-3 border-t border-white/10">
-        <Button
-          variant="secondary"
-          onClick={onClose}
-          className="flex-1 h-11 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/80"
-        >
-          Cancel
-        </Button>
-
-        {(!onePhotoPerUser || !existingPhoto) && (
-          <Button
-            onClick={handleSubmit}
-            disabled={!isFormValid || isUploading}
-            className={cn(
-              "flex-1 h-11 rounded-xl font-bold font-display transition-all cursor-pointer shadow-lg",
-              isFormValid
-                ? "bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white shadow-fivem-orange/30"
-                : "bg-white/10 text-white/30 border border-white/10 cursor-not-allowed"
-            )}
-          >
-            {isUploading ? (
-              <span className="flex items-center gap-2">
-                <RefreshCw size={15} className="animate-spin" /> Uploading Entry...
-              </span>
-            ) : !submissionsOpen ? (
-              "Submissions Closed"
-            ) : !image ? (
-              "Upload Photo First"
-            ) : !isResolutionValid ? (
-              "Resolution Too Low (Min 1920x1080)"
-            ) : !formPlayerName.trim() ? (
-              "Enter Character Name"
-            ) : (
-              "Submit Contest Entry"
-            )}
-          </Button>
+      <div className="space-y-3 pt-3 border-t border-white/10">
+        {isUploading && (
+          <ProgressBar
+            value={85}
+            size="sm"
+            variant="default"
+            animated
+            glow
+            label="Uploading & Optimizing High-Resolution Photo..."
+            showValue
+          />
         )}
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            className="flex-1 h-11 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/80"
+          >
+            Cancel
+          </Button>
+
+          {(!onePhotoPerUser || !existingPhoto) && (
+            <Button
+              onClick={handleSubmit}
+              disabled={!isFormValid || isUploading}
+              className={cn(
+                "flex-1 h-11 rounded-xl font-bold font-display transition-all cursor-pointer shadow-lg",
+                isFormValid
+                  ? "bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white shadow-fivem-orange/30"
+                  : "bg-white/10 text-white/30 border border-white/10 cursor-not-allowed"
+              )}
+            >
+              {isUploading ? (
+                <span className="flex items-center gap-2">
+                  <RefreshCw size={15} className="animate-spin" /> Uploading Entry...
+                </span>
+              ) : !submissionsOpen ? (
+                "Submissions Closed"
+              ) : !image ? (
+                "Upload Photo First"
+              ) : !isResolutionValid ? (
+                "Resolution Too Low (Min 1920x1080)"
+              ) : !formPlayerName.trim() ? (
+                "Enter Character Name"
+              ) : (
+                "Submit Contest Entry"
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category } from '../types';
 import { NumberTicker } from './ui/number-ticker';
+import { ProgressBar } from './ui/progress';
 
 interface UITripledCategoryCardProps {
   category: Category;
@@ -199,18 +200,13 @@ export const UITripledCategoryCard: React.FC<UITripledCategoryCardProps> = ({
             </div>
           </div>
 
-          {/* Progress Bar Container */}
-          <div className="relative w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden p-0.5 border border-white/5">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${percentage}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className={cn(
-                "h-full rounded-full bg-gradient-to-r shadow-sm transition-all duration-500",
-                theme.progressGradient
-              )}
-            />
-          </div>
+          {/* Progress Bar Component */}
+          <ProgressBar
+            value={percentage}
+            size="xs"
+            glow={isActive || isHovered}
+            className="mt-1"
+          />
         </div>
 
       </motion.div>

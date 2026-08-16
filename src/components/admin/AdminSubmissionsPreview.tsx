@@ -7,7 +7,7 @@ import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { downloadPhoto } from '../../lib/download';
-import { toast } from 'sonner';
+import { toast } from '../ui/toast';
 
 interface AdminSubmissionsPreviewProps {
   allPhotos: Photo[];

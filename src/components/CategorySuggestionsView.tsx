@@ -27,7 +27,7 @@ import {
   History,
   Check
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from './ui/toast';
 import { cn } from '../lib/utils';
 import { CategorySuggestion, SuggestionSortOption } from '../types';
 import {

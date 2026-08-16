@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
 import { AnimatedShinyText } from '../ui/animated-shiny-text';
 import { BorderBeam } from '../ui/border-beam';
@@ -28,12 +28,16 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260815-1556',
     version: 'v1.9.6',
-    title: 'SeraUI-Inspired Contest Info Sidebar, Interactive Event Stepper & Telemetry Matrix',
+    title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
     category: 'UI/UX',
-    description: `• SeraUI-Inspired Contest Info Sidebar: Architected a dedicated, ultra-minimalist contest information rail utilizing SeraUI design patterns, including ambient carbon glass surfaces, animated BorderBeam accents, and refined micro-typography.
+    description: `• SeraUI Progress Bar Component: Integrated high-fidelity animated progress bars with smooth Framer Motion spring fill, glowing accents, and striped variants across category cards and file upload previews.
+• SeraUI Blurred Backdrop Modals: Re-engineered all platform modal dialogs with deep frosted glassmorphism, 80% darkened backdrop blur, spring entry physics, and refined close controls.
+• SeraUI Tactile Radio-Choice Voting Button: Overhauled the community voting control into an interactive SeraUI radio-choice button featuring animated inner dot indicators, category share bars, and tactile hover feedback.
+• SeraUI Animated Dropdown System: Built reusable glassmorphic dropdown components with spring animations, auto-rotating chevrons, and outside-click dismiss.
+• Native SeraUI Floating Toast Notifications: Introduced a centralized, dark-mode floating toast notification stack supporting success, error, warning, info, and loading states with auto-dismiss timers.
+• Sidebar Border Polish: Removed the animated border beam from the Contest Info Rail for a sleeker, distraction-free carbon glass finish.
 • Interactive Phase Stepper Timeline: Replaced cluttered multi-box widgets with a clean 2-step event timeline tracking Submissions and Community Voting states with live phase indicators, scheduled status tags, and real-time activity indicators.
 • Unified Telemetry Matrix: Integrated a 3-tile metrics strip showcasing Categories, Community Entries, and Votes Cast with animated NumberTicker counters and glowing icons.
-• Direct Action Controls & Contestant Tracker: Features personal submission status chips, a high-impact glowing "Submit Contest Entry" action button, and streamlined quick-actions for Contest Rules and the Hall of Fame Vault.
 • Category Submission Modal Resolution & Error Guard: Fixed the category empty state "Submit Entry" action to reliably trigger the submission modal with the active category pre-selected, resolving raw control character artifacts, lazy loading chunk glitches, and adding error boundary protection.
 • On-Demand Admin Suggestion Voting Sync: Decoupled the Admin Console suggestions hub from real-time subscriptions so that administrator decision votes persist atomically to Cloud Firestore without triggering unsolicited screen reflows or jumping cards for other reviewing admins.
 • Multi-Admin Refresh Synchronization: When an administrator visits the Category Ideas hub or taps the refresh control, the latest scores, community votes, and staff decision tallies are fetched directly from Cloud Firestore.
@@ -42,7 +46,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Eliminated Page Refresh Auth Screen Flash: Added dedicated authentication verification lifecycle states in the root application layer, preventing temporary "Admin Email / Admin Password" login forms from flashing while restoring existing administrator sessions.
 • Legacy Email/Password Form Removal: Completely excised obsolete Firebase email/password login modules in favor of unified, verified Discord OAuth administration.`,
     author: 'Damon',
-    date: 'Aug 15, 2026 at 9:46 PM',
+    date: 'Aug 15, 2026 at 9:56 PM',
   },
   {
     id: 'release-20260814-1635',

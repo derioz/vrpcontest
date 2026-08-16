@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Bug, X, Copy, ExternalLink, Send, Check, ShieldCheck, MessageSquare, Sparkles } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from './ui/toast';
 import { cn } from '../lib/utils';
 
 interface BugReportModalProps {
