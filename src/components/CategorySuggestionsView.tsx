@@ -44,7 +44,6 @@ import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
 import { Spotlight } from './ui/spotlight';
 import { DotPattern } from './ui/dot-pattern';
 import { NumberTicker } from './ui/number-ticker';
-import { VelocityScroll } from './ui/scroll-based-velocity';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 interface CategorySuggestionsViewProps {
@@ -631,17 +630,6 @@ export function CategorySuggestionsView({
             </div>
           </div>
         </section>
-
-        {/* ── Magic UI Scroll-Based Velocity Suggestions Hero Banner ── */}
-        <div className="w-full -mt-4 mb-8 overflow-hidden select-none py-2 border-b border-white/[0.06] [mask-image:linear-gradient(to_right,transparent,white_10%,white_90%,transparent)]">
-          <VelocityScroll
-            defaultVelocity={2.2}
-            numRows={1}
-            className="font-display text-sm sm:text-base font-bold uppercase tracking-widest bg-gradient-to-r from-white/40 via-fivem-orange/60 to-amber-300/40 bg-clip-text text-transparent"
-          >
-            COMMUNITY THEME BRAINSTORM • SUBMIT CATEGORY IDEAS • UPVOTE COMMUNITY FAVORITES • SHAPE FUTURE CONTESTS •
-          </VelocityScroll>
-        </div>
 
         {/* ── Toolbar: Search, Sort & Real-time Stability Controls ── */}
         <section className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">

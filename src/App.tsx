@@ -2313,17 +2313,6 @@ export default function App() {
               )}
 
             </div>
-
-            {/* ── Magic UI Scroll-Based Velocity Kinetic Hero Text Strip ── */}
-            <div className="relative z-20 w-full mt-10 sm:mt-14 pt-4 pb-2 border-t border-white/[0.08] bg-black/40 backdrop-blur-md overflow-hidden select-none [mask-image:linear-gradient(to_right,transparent,white_10%,white_90%,transparent)]">
-              <VelocityScroll
-                defaultVelocity={2.6}
-                numRows={2}
-                className="font-display text-lg sm:text-2xl lg:text-3xl font-black uppercase tracking-wider bg-gradient-to-r from-amber-400/80 via-fivem-orange to-amber-200/80 bg-clip-text text-transparent"
-              >
-                {`${primaryTitle}${themeSubtitle ? ` • ${themeSubtitle}` : ''} • VITAL RP PHOTO CONTEST • CAPTURE LOS SANTOS • VOTE FOR GLORY • `}
-              </VelocityScroll>
-            </div>
           </section>
         );
       })() : (
@@ -2336,18 +2325,7 @@ export default function App() {
             <img src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
           </motion.div>
           <h2 className="text-3xl font-display font-black text-white/30 mb-3 relative z-10">No Active Contest</h2>
-          <p className="text-white/20 max-w-sm relative z-10 mb-6">Check back soon — the next contest is being prepared by the admins.</p>
-          
-          {/* ── Magic UI Scroll-Based Velocity for Inactive/Intermission Stage ── */}
-          <div className="w-full max-w-5xl mx-auto overflow-hidden select-none [mask-image:linear-gradient(to_right,transparent,white_15%,white_85%,transparent)] relative z-10">
-            <VelocityScroll
-              defaultVelocity={2}
-              numRows={2}
-              className="font-display text-lg sm:text-2xl font-black uppercase tracking-widest text-white/10"
-            >
-              VITAL RP PHOTO CONTEST • NEXT ROUND PREPARING • STAY TUNED FOR NEW THEMES •
-            </VelocityScroll>
-          </div>
+          <p className="text-white/20 max-w-sm relative z-10">Check back soon — the next contest is being prepared by the admins.</p>
         </section>
       )}
 
