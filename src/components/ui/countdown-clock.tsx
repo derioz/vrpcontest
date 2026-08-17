@@ -22,124 +22,100 @@ interface CountdownClockProps {
   onComplete?: () => void;
 }
 
-/* ── Individual Flip Digit ── */
-function FlipDigit({ value, prevValue }: { value: string; prevValue: string }) {
-  const changed = value !== prevValue;
-
+/* ── Single animated digit ── */
+function AnimatedDigit({ digit }: { digit: string }) {
   return (
-    <div className="relative w-[1.6rem] sm:w-[2rem] h-[2.2rem] sm:h-[2.8rem] overflow-hidden">
-      <AnimatePresence mode="popLayout">
+    <div className="relative w-[1.1rem] sm:w-[1.35rem] h-[1.7rem] sm:h-[2.1rem] overflow-hidden">
+      <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={value}
-          initial={changed ? { y: -36, opacity: 0, rotateX: -80 } : false}
-          animate={{ y: 0, opacity: 1, rotateX: 0 }}
-          exit={{ y: 36, opacity: 0, rotateX: 80 }}
-          transition={{
-            type: 'spring',
-            stiffness: 300,
-            damping: 30,
-            mass: 0.8,
-          }}
-          className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl font-black font-display tabular-nums text-white"
-          style={{ perspective: '200px' }}
+          key={digit}
+          initial={{ y: -28, opacity: 0, filter: 'blur(4px)' }}
+          animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+          exit={{ y: 28, opacity: 0, filter: 'blur(4px)' }}
+          transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+          className="absolute inset-0 flex items-center justify-center text-[1.35rem] sm:text-[1.7rem] font-black font-display tabular-nums text-white leading-none select-none"
         >
-          {value}
+          {digit}
         </motion.span>
       </AnimatePresence>
     </div>
   );
 }
 
-/* ── Time Unit Card (e.g. "12" Days) ── */
-function TimeUnitCard({ value, label, accentColor = 'orange' }: {
+/* ── Time unit segment ── */
+function TimeSegment({ value, label, color }: {
   value: number;
   label: string;
-  accentColor?: 'orange' | 'amber' | 'blue' | 'emerald';
+  color: 'orange' | 'amber' | 'sky' | 'emerald';
 }) {
   const padded = String(value).padStart(2, '0');
-  const prevRef = useRef(padded);
-  const prev = prevRef.current;
 
-  useEffect(() => {
-    prevRef.current = padded;
-  }, [padded]);
-
-  const accentMap = {
+  const colorMap = {
     orange: {
-      border: 'border-orange-500/20',
-      glow: 'shadow-[0_0_20px_rgba(234,88,12,0.15)]',
-      dot: 'bg-orange-500',
-      text: 'text-orange-400/80',
-      topLine: 'from-orange-500/40 via-orange-500/10 to-transparent',
+      glow: 'rgba(234,88,12,0.08)',
+      border: 'border-orange-500/15 hover:border-orange-500/30',
+      label: 'text-orange-400/70',
+      topBar: 'bg-gradient-to-r from-transparent via-orange-500/50 to-transparent',
     },
     amber: {
-      border: 'border-amber-500/20',
-      glow: 'shadow-[0_0_20px_rgba(245,158,11,0.15)]',
-      dot: 'bg-amber-500',
-      text: 'text-amber-400/80',
-      topLine: 'from-amber-500/40 via-amber-500/10 to-transparent',
+      glow: 'rgba(245,158,11,0.08)',
+      border: 'border-amber-500/15 hover:border-amber-500/30',
+      label: 'text-amber-400/70',
+      topBar: 'bg-gradient-to-r from-transparent via-amber-500/50 to-transparent',
     },
-    blue: {
-      border: 'border-blue-500/20',
-      glow: 'shadow-[0_0_20px_rgba(59,130,246,0.15)]',
-      dot: 'bg-blue-500',
-      text: 'text-blue-400/80',
-      topLine: 'from-blue-500/40 via-blue-500/10 to-transparent',
+    sky: {
+      glow: 'rgba(56,189,248,0.08)',
+      border: 'border-sky-500/15 hover:border-sky-500/30',
+      label: 'text-sky-400/70',
+      topBar: 'bg-gradient-to-r from-transparent via-sky-500/50 to-transparent',
     },
     emerald: {
-      border: 'border-emerald-500/20',
-      glow: 'shadow-[0_0_20px_rgba(16,185,129,0.15)]',
-      dot: 'bg-emerald-500',
-      text: 'text-emerald-400/80',
-      topLine: 'from-emerald-500/40 via-emerald-500/10 to-transparent',
+      glow: 'rgba(16,185,129,0.08)',
+      border: 'border-emerald-500/15 hover:border-emerald-500/30',
+      label: 'text-emerald-400/70',
+      topBar: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent',
     },
   };
 
-  const accent = accentMap[accentColor];
+  const c = colorMap[color];
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div
         className={cn(
-          'relative flex items-center justify-center gap-0.5 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl',
-          'bg-white/[0.03] backdrop-blur-xl border',
-          accent.border,
-          accent.glow,
-          'transition-shadow duration-500'
+          'relative flex items-center justify-center gap-[2px] rounded-lg sm:rounded-xl',
+          'px-2.5 sm:px-3 py-2 sm:py-2.5',
+          'bg-white/[0.025] border transition-all duration-300',
+          c.border,
         )}
+        style={{ boxShadow: `0 0 24px ${c.glow}, inset 0 1px 0 rgba(255,255,255,0.04)` }}
       >
-        {/* Top accent line */}
-        <div className={cn('absolute top-0 left-3 right-3 h-px bg-gradient-to-r', accent.topLine)} />
+        {/* Top accent bar */}
+        <div className={cn('absolute -top-px left-4 right-4 h-px', c.topBar)} />
 
-        {/* Digit cards */}
-        <FlipDigit value={padded[0]} prevValue={prev[0]} />
-        <FlipDigit value={padded[1]} prevValue={prev[1]} />
-
-        {/* Subtle inner reflection */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+        {/* Digits */}
+        <AnimatedDigit digit={padded[0]} />
+        <AnimatedDigit digit={padded[1]} />
       </div>
 
-      {/* Label */}
-      <span className={cn('text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-[0.18em]', accent.text)}>
+      <span className={cn('text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-[0.2em]', c.label)}>
         {label}
       </span>
     </div>
   );
 }
 
-/* ── Colon Separator ── */
-function ColonSeparator() {
+/* ── Blinking colon ── */
+function Colon() {
   return (
-    <div className="flex flex-col items-center gap-1.5 pb-5 sm:pb-6">
-      <motion.div
-        animate={{ opacity: [1, 0.3, 1] }}
-        transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
-        className="flex flex-col gap-1"
-      >
-        <div className="w-1 h-1 rounded-full bg-white/40" />
-        <div className="w-1 h-1 rounded-full bg-white/40" />
-      </motion.div>
-    </div>
+    <motion.div
+      animate={{ opacity: [0.8, 0.2, 0.8] }}
+      transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+      className="flex flex-col gap-1.5 pb-5 sm:pb-6 mx-0.5 sm:mx-1"
+    >
+      <div className="w-[3px] h-[3px] rounded-full bg-white/50" />
+      <div className="w-[3px] h-[3px] rounded-full bg-white/50" />
+    </motion.div>
   );
 }
 
@@ -148,18 +124,16 @@ export function CountdownClock({ targetDate, label, className, onComplete }: Cou
   const calculateTimeLeft = useCallback((): TimeLeft => {
     const now = new Date().getTime();
     const target = targetDate.getTime();
-    const difference = target - now;
+    const diff = target - now;
 
-    if (difference <= 0) {
-      return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
-    }
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
 
     return {
-      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-      minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-      seconds: Math.floor((difference % (1000 * 60)) / 1000),
-      total: difference,
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+      minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+      seconds: Math.floor((diff % (1000 * 60)) / 1000),
+      total: diff,
     };
   }, [targetDate]);
 
@@ -176,7 +150,6 @@ export function CountdownClock({ targetDate, label, className, onComplete }: Cou
         clearInterval(timer);
       }
     }, 1000);
-
     return () => clearInterval(timer);
   }, [calculateTimeLeft, onComplete]);
 
@@ -184,35 +157,34 @@ export function CountdownClock({ targetDate, label, className, onComplete }: Cou
   const isUrgent = timeLeft.total > 0 && timeLeft.days <= 1;
 
   return (
-    <div className={cn('flex flex-col items-start gap-3', className)}>
-      {/* Label row */}
+    <div className={cn('flex flex-col items-start gap-2.5', className)}>
+      {/* Label */}
       {label && (
         <div className="flex items-center gap-2">
-          {/* Pulsing dot */}
           <motion.div
-            animate={isExpired ? {} : { scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+            animate={isExpired ? {} : { scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             className={cn(
               'w-1.5 h-1.5 rounded-full',
               isExpired ? 'bg-red-500' : isUrgent ? 'bg-red-500' : 'bg-emerald-500'
             )}
           />
-          <span className="text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-[0.15em] text-white/50">
+          <span className="text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-[0.15em] text-white/45">
             {isExpired ? 'Submissions Closed' : label}
           </span>
         </div>
       )}
 
-      {/* Timer cards */}
+      {/* Timer */}
       {!isExpired ? (
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
-          <TimeUnitCard value={timeLeft.days} label="Days" accentColor="orange" />
-          <ColonSeparator />
-          <TimeUnitCard value={timeLeft.hours} label="Hours" accentColor="amber" />
-          <ColonSeparator />
-          <TimeUnitCard value={timeLeft.minutes} label="Mins" accentColor="blue" />
-          <ColonSeparator />
-          <TimeUnitCard value={timeLeft.seconds} label="Secs" accentColor="emerald" />
+        <div className="flex items-center">
+          <TimeSegment value={timeLeft.days} label="Days" color="orange" />
+          <Colon />
+          <TimeSegment value={timeLeft.hours} label="Hours" color="amber" />
+          <Colon />
+          <TimeSegment value={timeLeft.minutes} label="Mins" color="sky" />
+          <Colon />
+          <TimeSegment value={timeLeft.seconds} label="Secs" color="emerald" />
         </div>
       ) : (
         <motion.div
