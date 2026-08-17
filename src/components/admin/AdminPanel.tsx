@@ -25,6 +25,7 @@ import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 import { AdminSuggestionsTab } from './AdminSuggestionsTab';
 import { DocTabs } from '../ui/doctabs';
 import { Skeleton } from '../ui/skeleton';
+import { AnimatedControlCard, AnimatedSwitch } from '../ui/animated-switch';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 
@@ -1097,125 +1098,214 @@ function ControlsAndSecurityTab({
   onGenerateKeys: () => void; onToggleReveal: (reveal: boolean) => void;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <AdminHeader
-        badge="SYSTEM CONTROL"
+        badge="SYSTEM PROTOCOL"
         badgeColor="bg-purple-500/15 text-purple-400 border-purple-500/30"
         title="Controls & Security"
-        subtitle="Real-time switches, access lockdown, and RSA end-to-end encryption keys."
+        subtitle="Real-time animated switches, community access gates, anti-fraud enforcement, and cryptographic RSA keys."
         icon={<Zap size={20} className="text-purple-400" />}
         iconBg="bg-purple-500/15 border-purple-500/30"
       />
 
-      {/* Real-time Switches Section */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
-        <div className="px-6 pt-5 pb-4 border-b border-white/10 flex items-center gap-2">
-          <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-          <h4 className="text-[11px] font-mono text-white/60 uppercase tracking-[0.2em]">Contest Real-Time Switches</h4>
+      {/* ── Live Telemetry Telemetry Strip ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-3.5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl">
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
+          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", submissionsOpen ? "bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse" : "bg-zinc-600")} />
+          <div className="min-w-0">
+            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Submissions</p>
+            <p className="text-xs font-bold font-display text-white truncate">{submissionsOpen ? "OPEN" : "CLOSED"}</p>
+          </div>
         </div>
 
-        <div className="p-6 space-y-4">
-          <AdminToggle
-            label="Submissions Gate"
-            description="Allow participants to upload new photos to the contest."
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
+          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", votingOpen ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" : "bg-zinc-600")} />
+          <div className="min-w-0">
+            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Voting Gate</p>
+            <p className="text-xs font-bold font-display text-white truncate">{votingOpen ? "ACTIVE" : "PAUSED"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
+          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", onePhotoPerUser ? "bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]" : "bg-zinc-600")} />
+          <div className="min-w-0">
+            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">1-Photo Limit</p>
+            <p className="text-xs font-bold font-display text-white truncate">{onePhotoPerUser ? "STRICT" : "OFF"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
+          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", publicKey ? "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-zinc-600")} />
+          <div className="min-w-0">
+            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">RSA Encryption</p>
+            <p className="text-xs font-bold font-display text-white truncate">{publicKey ? "ACTIVE (2048b)" : "MISSING"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] col-span-2 sm:col-span-1">
+          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", siteClosed ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,1)] animate-ping" : "bg-emerald-500")} />
+          <div className="min-w-0">
+            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Lockdown Mode</p>
+            <p className="text-xs font-bold font-display text-white truncate">{siteClosed ? "LOCKED DOWN" : "NORMAL OPS"}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section 1: Contest Lifecycle & Public Gates ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-4 bg-cyan-400 rounded-full" />
+            <h3 className="text-xs font-mono text-cyan-300 uppercase tracking-[0.2em] font-bold">
+              Contest Lifecycle & Visibility Gates
+            </h3>
+          </div>
+          <span className="text-[10px] font-mono text-white/40">Real-time state sync</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AnimatedControlCard
+            title="Submissions Gate"
+            description="Allow participants to upload and submit high-resolution contest entries."
             checked={submissionsOpen}
             onToggle={(checked) => onToggleSubmissions(checked)}
-            activeColor="bg-cyan-500"
-            activeGlow="shadow-[0_0_12px_rgba(6,182,212,0.5)]"
-            icon={<ImageIcon size={16} />}
+            icon={<ImageIcon size={18} />}
+            variant="cyan"
+            badgeActiveText="OPEN"
+            badgeInactiveText="CLOSED"
           />
 
-          <AdminToggle
-            label="Voting Gate"
-            description="Enable community members to cast votes on submissions."
+          <AnimatedControlCard
+            title="Voting Gate"
+            description="Enable verified community members to cast official votes across categories."
             checked={votingOpen}
             onToggle={(checked) => onToggleVoting(checked)}
-            activeColor="bg-amber-500"
-            activeGlow="shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-            icon={<Trophy size={16} />}
+            icon={<Trophy size={18} />}
+            variant="warning"
+            badgeActiveText="VOTING LIVE"
+            badgeInactiveText="PAUSED"
           />
 
           {onToggleCensorSubmissions && (
-            <AdminToggle
-              label="Censor Submissions Until Voting Starts"
-              description="Pixelates all entry photos publicly during the submission phase. Once voting opens, all images automatically unpixelate and reveal full resolution."
+            <AnimatedControlCard
+              title="Censor Submissions Until Voting"
+              description="Pixelates all entry photos publicly during the upload phase. Unpixelates automatically when voting opens."
               checked={censorSubmissions}
               onToggle={(checked) => onToggleCensorSubmissions(checked)}
-              activeColor="bg-amber-500"
-              activeGlow="shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-              icon={<EyeOff size={16} />}
+              icon={<EyeOff size={18} />}
+              variant="warning"
+              badgeActiveText="CENSORED"
+              badgeInactiveText="VISIBLE"
             />
           )}
 
-          <AdminToggle
-            label="1 Photo Per User Enforcement"
-            description="Strictly limit each Discord user to 1 active photo entry total."
-            checked={onePhotoPerUser}
-            onToggle={(checked) => onToggleOnePhotoPerUser(checked)}
-            activeColor="bg-purple-500"
-            activeGlow="shadow-[0_0_12px_rgba(168,85,247,0.5)]"
-            icon={<Shield size={16} />}
-          />
-
-          <AdminToggle
-            label="Show Winners Celebration View"
-            description="Display the winners podium and confetti celebration banner to users."
+          <AnimatedControlCard
+            title="Winners Celebration Podium"
+            description="Display the celebratory winner announcement banner, champion awards, and confetti."
             checked={showWinnersToggle}
             onToggle={(checked) => onToggleShowWinners(checked)}
-            activeColor="bg-fivem-orange"
-            activeGlow="shadow-[0_0_12px_rgba(234,88,12,0.5)]"
-            icon={<Trophy size={16} />}
+            icon={<Sparkles size={18} />}
+            variant="default"
+            badgeActiveText="BROADCASTING"
+            badgeInactiveText="HIDDEN"
+          />
+        </div>
+      </div>
+
+      {/* ── Section 2: Security & Platform Access ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-4 bg-purple-400 rounded-full" />
+            <h3 className="text-xs font-mono text-purple-300 uppercase tracking-[0.2em] font-bold">
+              Access Governance & Fraud Controls
+            </h3>
+          </div>
+          <span className="text-[10px] font-mono text-white/40">Anti-fraud protocols</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AnimatedControlCard
+            title="1 Photo Per User Enforcement"
+            description="Strictly limit each Discord account to exactly 1 active submission across active categories."
+            checked={onePhotoPerUser}
+            onToggle={(checked) => onToggleOnePhotoPerUser(checked)}
+            icon={<ShieldCheck size={18} />}
+            variant="purple"
+            badgeActiveText="STRICT LIMIT"
+            badgeInactiveText="UNRESTRICTED"
           />
 
           {onToggleSiteClosed && (
-            <AdminToggle
-              label="Site Closed / Lockdown Mode"
-              description="Restrict access with a 'Contest is Closed' overlay for non-admins."
+            <AnimatedControlCard
+              title="Emergency Site Lockdown"
+              description="Restrict general public access with an impassable 'Contest is Closed' overlay. Only verified administrators may browse."
               checked={siteClosed}
               onToggle={(checked) => onToggleSiteClosed(checked)}
-              activeColor="bg-red-500"
-              activeGlow="shadow-[0_0_12px_rgba(239,68,68,0.5)]"
-              icon={<Lock size={16} />}
+              icon={<Lock size={18} />}
+              variant="danger"
+              badgeActiveText="LOCKED DOWN"
+              badgeInactiveText="OPEN ACCESS"
             />
           )}
         </div>
       </div>
 
-      {/* RSA Encryption Section */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
-        <div className="px-6 pt-5 pb-4 border-b border-white/10 flex items-center justify-between">
+      {/* ── Section 3: Cryptographic RSA 2048-Bit Vault ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <div className="w-1 h-4 bg-emerald-500 rounded-full" />
-            <h4 className="text-[11px] font-mono text-white/60 uppercase tracking-[0.2em]">RSA Encryption Keys</h4>
+            <div className="w-1.5 h-4 bg-emerald-400 rounded-full" />
+            <h3 className="text-xs font-mono text-emerald-300 uppercase tracking-[0.2em] font-bold">
+              Cryptographic End-to-End Encryption
+            </h3>
           </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-            {publicKey ? 'Keys Configured' : 'Keys Missing'}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-400">
+            {publicKey ? "RSA-2048 ACTIVE" : "KEYS UNCONFIGURED"}
           </span>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-            <div>
-              <p className="text-sm font-bold text-white mb-0.5">Generate New RSA Keypair</p>
-              <p className="text-xs text-white/40">Creates fresh 2048-bit RSA keys for encrypting submissions before reveal.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Key Generation Card */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#09090d]/80 border border-white/[0.08] hover:border-emerald-500/30 transition-all flex flex-col justify-between space-y-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+                <Shield size={20} />
+              </div>
+              <div>
+                <h4 className="text-base font-bold font-display text-white mb-1">Generate 2048-Bit RSA Keys</h4>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  Generates an asymmetric cryptographic keypair to encrypt contestant submissions locally before storage.
+                </p>
+              </div>
             </div>
-            <button
-              onClick={onGenerateKeys}
-              className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-2 cursor-pointer"
-            >
-              <Shield size={14} />
-              Generate Keys
-            </button>
+
+            <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between gap-3">
+              <span className="text-[10px] font-mono text-white/40">
+                {publicKey ? "Public key installed" : "No key generated"}
+              </span>
+              <button
+                type="button"
+                onClick={onGenerateKeys}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs font-display rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center gap-2 shrink-0"
+              >
+                <Shield size={13} />
+                <span>Generate Keys</span>
+              </button>
+            </div>
           </div>
 
-          <AdminToggle
-            label="Instant Submission Decryption (Reveal)"
-            description="Automatically decrypt all encrypted submissions for public viewing."
+          {/* Instant Reveal Switch */}
+          <AnimatedControlCard
+            title="Instant Submission Decryption"
+            description="Decrypt all encrypted entries automatically to reveal photographer identities and full resolution assets."
             checked={!!privateKey}
             onToggle={(checked) => onToggleReveal(checked)}
-            activeColor="bg-emerald-500"
-            activeGlow="shadow-[0_0_12px_rgba(34,197,94,0.5)]"
-            icon={<Eye size={16} />}
+            icon={<Eye size={18} />}
+            variant="emerald"
+            badgeActiveText="DECRYPTED"
+            badgeInactiveText="ENCRYPTED"
             disabled={!publicKey}
           />
         </div>
