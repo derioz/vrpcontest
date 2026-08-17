@@ -1,165 +1,295 @@
 /**
- * ContestRulesSection — Redesigned Full-Width Premium Rules & Guidelines
+ * ContestRulesSection — Premium Rules & Guidelines
  *
- * Spans the full stage with high-impact key rule highlight pillars,
- * glassmorphic card architecture, BorderBeam accents, and comprehensive
- * Markdown rendering for contest rules.
+ * Clean, unique design with numbered rule cards featuring interactive
+ * MagicCard hover effects, a markdown rules canvas with BorderBeam,
+ * and an animated "scroll to top" action.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   FileText,
   ShieldCheck,
   Camera,
   Flame,
-  CheckCircle2,
-  Sparkles,
   Trophy,
-  ArrowUp
+  Sparkles,
+  ArrowUp,
+  ChevronDown,
+  ChevronUp,
+  Scale,
 } from 'lucide-react';
 import { BorderBeam } from './ui/border-beam';
-import { GlowLine } from './ui/glowline';
+import { MagicCard } from './ui/magic-card';
+import { cn } from '../lib/utils';
 
 interface ContestRulesSectionProps {
   rulesMarkdown: string;
 }
 
+/* ── Quick rule data ── */
+const QUICK_RULES = [
+  {
+    icon: Camera,
+    number: '01',
+    title: '1080p+ Resolution',
+    desc: 'All entries must meet or exceed 1920×1080. Clear, uncompressed in-game screenshots only.',
+    color: 'orange' as const,
+  },
+  {
+    icon: Flame,
+    number: '02',
+    title: 'In-Game Authenticity',
+    desc: 'Pure GTA V / FiveM captures only. No real-life photos, external watermarks, or AI-generated images.',
+    color: 'amber' as const,
+  },
+  {
+    icon: Scale,
+    number: '03',
+    title: 'Fair Play & Integrity',
+    desc: 'One submission per category per user. Discord-verified authentication ensures anti-fraud vote integrity.',
+    color: 'emerald' as const,
+  },
+  {
+    icon: Trophy,
+    number: '04',
+    title: '5 Round Champions',
+    desc: 'The highest-voted photo per category wins Champion status, custom badges, and server loading screen fame.',
+    color: 'violet' as const,
+  },
+];
+
+const COLOR_MAP = {
+  orange: {
+    iconBg: 'bg-orange-500/10',
+    iconBorder: 'border-orange-500/25',
+    iconText: 'text-orange-400',
+    numText: 'text-orange-500/50',
+    gradient: 'rgba(234,88,12,0.12)',
+    hoverBorder: 'hover:border-orange-500/30',
+  },
+  amber: {
+    iconBg: 'bg-amber-500/10',
+    iconBorder: 'border-amber-500/25',
+    iconText: 'text-amber-400',
+    numText: 'text-amber-500/50',
+    gradient: 'rgba(245,158,11,0.12)',
+    hoverBorder: 'hover:border-amber-500/30',
+  },
+  emerald: {
+    iconBg: 'bg-emerald-500/10',
+    iconBorder: 'border-emerald-500/25',
+    iconText: 'text-emerald-400',
+    numText: 'text-emerald-500/50',
+    gradient: 'rgba(16,185,129,0.12)',
+    hoverBorder: 'hover:border-emerald-500/30',
+  },
+  violet: {
+    iconBg: 'bg-violet-500/10',
+    iconBorder: 'border-violet-500/25',
+    iconText: 'text-violet-400',
+    numText: 'text-violet-500/50',
+    gradient: 'rgba(139,92,246,0.12)',
+    hoverBorder: 'hover:border-violet-500/30',
+  },
+};
+
 export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps) {
+  const [isRulesExpanded, setIsRulesExpanded] = useState(false);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <section id="rules" className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-20 sm:pb-28">
+
       {/* ── Section Header ── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pb-6 border-b border-white/10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md mb-3 text-xs font-mono font-bold text-fivem-orange uppercase tracking-widest">
-            <ShieldCheck size={13} className="text-fivem-orange animate-pulse" />
-            <span>Official Competition Protocol</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-2">
-            Contest Rules & <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">Guidelines</span>
-          </h2>
-          <p className="text-white/60 text-sm sm:text-base leading-relaxed">
-            Please read the official competition standards carefully before submitting your entries. High-resolution captures, strict fair play, and community verification are strictly enforced.
-          </p>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-fivem-orange/25 bg-fivem-orange/8 backdrop-blur-md mb-4 text-[11px] font-mono font-bold text-fivem-orange uppercase tracking-widest">
+              <ShieldCheck size={13} className="text-fivem-orange" />
+              <span>Official Protocol</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
+              Rules &{' '}
+              <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
+                Guidelines
+              </span>
+            </h2>
+            <p className="text-white/50 text-sm sm:text-base leading-relaxed max-w-xl">
+              Review the official competition standards before submitting your entries.
+            </p>
+          </motion.div>
         </div>
 
-        <button
+        <motion.button
           type="button"
           onClick={scrollToTop}
-          className="flex items-center gap-2 self-start md:self-end px-4 py-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-all hover:-translate-y-0.5 cursor-pointer shadow-md"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.97 }}
+          className="flex items-center gap-2 self-start md:self-end px-4 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-white/20 text-white/50 hover:text-white text-[11px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
         >
           <ArrowUp size={13} className="text-fivem-orange" />
           <span>Back to Top</span>
-        </button>
+        </motion.button>
       </div>
 
-      {/* ── 4 Quick-Reference Pillar Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-10">
-        <div className="relative p-5 rounded-2xl bg-[#0d0d14]/90 border border-white/10 shadow-lg flex flex-col justify-between overflow-hidden group hover:border-fivem-orange/40 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-fivem-orange/10 blur-2xl rounded-full pointer-events-none" />
-          <div>
-            <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center mb-3.5 text-fivem-orange">
-              <Camera size={20} />
-            </div>
-            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Standard 01</span>
-            <h3 className="text-base font-bold font-display text-white mb-1.5">1080p+ Full HD Minimum</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
-              All entries must meet or exceed 1920x1080 resolution. Clear, uncompressed in-game screenshots only.
-            </p>
-          </div>
-        </div>
+      {/* ── Quick Rule Cards (2×2 grid) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8">
+        {QUICK_RULES.map((rule, i) => {
+          const c = COLOR_MAP[rule.color];
+          const Icon = rule.icon;
+          return (
+            <motion.div
+              key={rule.number}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+            >
+              <MagicCard
+                gradientColor={c.gradient}
+                gradientSize={200}
+                className={cn(
+                  'p-5 sm:p-6 rounded-2xl bg-white/[0.015] border border-white/[0.07] cursor-default',
+                  c.hoverBorder,
+                  'transition-colors duration-300'
+                )}
+              >
+                <div className="flex items-start gap-4">
+                  {/* Icon */}
+                  <div className={cn(
+                    'shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center',
+                    c.iconBg, c.iconBorder
+                  )}>
+                    <Icon size={18} className={c.iconText} />
+                  </div>
 
-        <div className="relative p-5 rounded-2xl bg-[#0d0d14]/90 border border-white/10 shadow-lg flex flex-col justify-between overflow-hidden group hover:border-amber-400/40 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-400/10 blur-2xl rounded-full pointer-events-none" />
-          <div>
-            <div className="w-10 h-10 rounded-xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center mb-3.5 text-amber-300">
-              <Flame size={20} />
-            </div>
-            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Standard 02</span>
-            <h3 className="text-base font-bold font-display text-white mb-1.5">In-Game Authenticity</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
-              Pure GTA V / FiveM in-game captures. No real-life photographs, external watermarks, or AI generation.
-            </p>
-          </div>
-        </div>
-
-        <div className="relative p-5 rounded-2xl bg-[#0d0d14]/90 border border-white/10 shadow-lg flex flex-col justify-between overflow-hidden group hover:border-emerald-400/40 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-400/10 blur-2xl rounded-full pointer-events-none" />
-          <div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center mb-3.5 text-emerald-400">
-              <ShieldCheck size={20} />
-            </div>
-            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Standard 03</span>
-            <h3 className="text-base font-bold font-display text-white mb-1.5">Fair Play & Discord Sync</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
-              1 photo per user across each active category. Verified Discord authentication ensures anti-fraud vote integrity.
-            </p>
-          </div>
-        </div>
-
-        <div className="relative p-5 rounded-2xl bg-[#0d0d14]/90 border border-white/10 shadow-lg flex flex-col justify-between overflow-hidden group hover:border-purple-400/40 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-400/10 blur-2xl rounded-full pointer-events-none" />
-          <div>
-            <div className="w-10 h-10 rounded-xl bg-purple-400/15 border border-purple-400/30 flex items-center justify-center mb-3.5 text-purple-300">
-              <Trophy size={20} />
-            </div>
-            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Standard 04</span>
-            <h3 className="text-base font-bold font-display text-white mb-1.5">5 Round Co-Champions</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
-              The highest voted photo in each of the 5 categories earns Grand Champion status and server loading screen fame.
-            </p>
-          </div>
-        </div>
+                  {/* Text */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={cn('text-[10px] font-mono font-bold tracking-widest', c.numText)}>
+                        {rule.number}
+                      </span>
+                      <div className="h-px flex-1 bg-white/[0.06]" />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold font-display text-white mb-1">
+                      {rule.title}
+                    </h3>
+                    <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed">
+                      {rule.desc}
+                    </p>
+                  </div>
+                </div>
+              </MagicCard>
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* ── Wide Glassmorphic Rules Canvas ── */}
-      <div className="relative p-7 sm:p-10 md:p-14 rounded-3xl bg-gradient-to-b from-[#0e0e16]/95 via-[#0a0a10]/95 to-[#08080c]/98 border border-white/10 shadow-[0_20px_70px_rgba(0,0,0,0.85)] overflow-hidden">
-        {/* Border Beam subtle light trace */}
-        <BorderBeam size={260} duration={15} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
+      {/* ── Full Rules Canvas ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="relative rounded-2xl sm:rounded-3xl bg-[#09090d]/95 border border-white/[0.07] overflow-hidden"
+      >
+        {/* BorderBeam accent */}
+        <BorderBeam size={220} duration={18} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
 
-        {/* Ambient Radial Lights */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-fivem-orange/10 blur-[130px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-purple-500/5 blur-[120px] rounded-full pointer-events-none" />
+        {/* Ambient glow */}
+        <div className="absolute top-0 right-1/4 w-72 h-72 bg-fivem-orange/[0.06] blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-1/6 w-60 h-60 bg-violet-500/[0.04] blur-[90px] rounded-full pointer-events-none" />
 
-        {/* Subtle Background Grid */}
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, #ffffff 1px, transparent 1px),
-              linear-gradient(to bottom, #ffffff 1px, transparent 1px)
-            `,
-            backgroundSize: '32px 32px',
-          }}
-        />
-
+        {/* Content */}
         {rulesMarkdown ? (
-          <div className="relative z-10 prose prose-invert prose-orange max-w-none text-sm sm:text-base leading-relaxed space-y-5 prose-headings:font-display prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-2xl sm:prose-h1:text-3xl lg:prose-h1:text-4xl prose-h1:text-white prose-h1:border-b prose-h1:border-white/10 prose-h1:pb-4 prose-h1:mt-0 prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:text-fivem-orange prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-base sm:prose-h3:text-lg prose-h3:text-amber-300 prose-h3:mt-6 prose-p:text-white/80 prose-p:whitespace-pre-wrap prose-p:leading-relaxed prose-li:text-white/80 prose-li:my-2 prose-strong:text-white prose-strong:font-bold prose-em:text-amber-200 prose-a:text-fivem-orange prose-a:underline hover:prose-a:text-amber-400 prose-a:transition-colors prose-blockquote:border-l-4 prose-blockquote:border-fivem-orange prose-blockquote:bg-white/[0.03] prose-blockquote:p-4 sm:prose-blockquote:p-6 prose-blockquote:rounded-r-2xl prose-blockquote:text-white/90 prose-blockquote:not-italic prose-blockquote:shadow-sm prose-code:bg-white/10 prose-code:text-amber-300 prose-code:px-2.5 prose-code:py-1 prose-code:rounded-lg prose-code:font-mono prose-code:text-xs prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-white/15 prose-th:bg-white/5 prose-th:p-3 sm:prose-th:p-4 prose-th:text-white prose-th:font-display prose-td:border prose-td:border-white/10 prose-td:p-3 sm:prose-td:p-4 prose-td:text-white/80 prose-hr:border-white/10 prose-hr:my-8">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {rulesMarkdown}
-            </ReactMarkdown>
-          </div>
+          <>
+            <div
+              className={cn(
+                'relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 transition-all duration-500',
+                !isRulesExpanded && 'max-h-[420px] overflow-hidden'
+              )}
+            >
+              {/* Fade overlay when collapsed */}
+              {!isRulesExpanded && (
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#09090d] via-[#09090d]/90 to-transparent z-20 pointer-events-none" />
+              )}
+
+              <div className="prose prose-invert prose-orange max-w-none text-sm sm:text-base leading-relaxed space-y-4
+                prose-headings:font-display prose-headings:font-bold prose-headings:tracking-tight
+                prose-h1:text-xl sm:prose-h1:text-2xl lg:prose-h1:text-3xl prose-h1:text-white prose-h1:border-b prose-h1:border-white/[0.08] prose-h1:pb-4 prose-h1:mt-0
+                prose-h2:text-lg sm:prose-h2:text-xl prose-h2:text-fivem-orange prose-h2:mt-8 prose-h2:mb-3
+                prose-h3:text-base prose-h3:text-amber-300 prose-h3:mt-5
+                prose-p:text-white/70 prose-p:leading-relaxed
+                prose-li:text-white/70 prose-li:my-1.5
+                prose-strong:text-white prose-strong:font-semibold
+                prose-em:text-amber-200/90
+                prose-a:text-fivem-orange prose-a:underline hover:prose-a:text-amber-400 prose-a:transition-colors
+                prose-blockquote:border-l-2 prose-blockquote:border-fivem-orange/60 prose-blockquote:bg-white/[0.02] prose-blockquote:px-4 prose-blockquote:py-3 prose-blockquote:rounded-r-xl prose-blockquote:text-white/80 prose-blockquote:not-italic
+                prose-code:bg-white/[0.06] prose-code:text-amber-300 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-md prose-code:font-mono prose-code:text-xs
+                prose-table:border-collapse prose-table:w-full
+                prose-th:border prose-th:border-white/10 prose-th:bg-white/[0.03] prose-th:p-3 prose-th:text-white prose-th:font-display
+                prose-td:border prose-td:border-white/[0.06] prose-td:p-3 prose-td:text-white/70
+                prose-hr:border-white/[0.08] prose-hr:my-8"
+              >
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {rulesMarkdown}
+                </ReactMarkdown>
+              </div>
+            </div>
+
+            {/* Expand / Collapse toggle */}
+            <div className="relative z-30 px-6 sm:px-8 pb-5 pt-1 flex justify-center">
+              <motion.button
+                type="button"
+                onClick={() => setIsRulesExpanded(!isRulesExpanded)}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/15 text-white/60 hover:text-white text-[11px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer group"
+              >
+                {isRulesExpanded ? (
+                  <>
+                    <ChevronUp size={14} className="text-fivem-orange group-hover:text-orange-400 transition-colors" />
+                    <span>Collapse Rules</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={14} className="text-fivem-orange group-hover:text-orange-400 transition-colors" />
+                    <span>Read Full Rules</span>
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center relative z-10">
-            <FileText size={56} className="text-white/10 mb-4" />
-            <h3 className="text-xl font-bold font-display text-white/60 mb-2">No Rules Published Yet</h3>
-            <p className="text-white/35 max-w-sm text-sm">Contest administrators have not posted specific rules for this round yet. Check back soon.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center relative z-10 px-6">
+            <FileText size={48} className="text-white/[0.08] mb-4" />
+            <h3 className="text-lg font-bold font-display text-white/50 mb-2">No Rules Published Yet</h3>
+            <p className="text-white/30 max-w-sm text-sm">
+              Contest administrators have not posted specific rules for this round yet.
+            </p>
           </div>
         )}
+      </motion.div>
 
-        {/* Bottom divider line */}
-        <div className="relative z-10 mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-white/40">
-          <div className="flex items-center gap-2">
-            <Sparkles size={13} className="text-fivem-orange" />
-            <span>Vital RP Official Photo Contest Governance</span>
-          </div>
-          <span>Updated dynamically by contest administration</span>
+      {/* ── Footer ── */}
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono text-white/30 px-1">
+        <div className="flex items-center gap-2">
+          <Sparkles size={12} className="text-fivem-orange/60" />
+          <span>Vital RP Official Photo Contest Governance</span>
         </div>
+        <span>Updated dynamically by contest administration</span>
       </div>
     </section>
   );
