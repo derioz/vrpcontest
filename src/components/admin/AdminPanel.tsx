@@ -24,6 +24,7 @@ import { EditContestManager, ArchiveContest, CreateContestManager, StandaloneRul
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 import { AdminSuggestionsTab } from './AdminSuggestionsTab';
 import { DocTabs } from '../ui/doctabs';
+import { Skeleton } from '../ui/skeleton';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 
@@ -380,7 +381,23 @@ export default function AdminPanel(props: AdminPanelProps) {
                         </button>
                       }
                     />
-                    <Suspense fallback={<div className="flex justify-center p-16"><Loader2 className="animate-spin text-blue-400" /></div>}>
+                    <Suspense fallback={
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="p-5 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
+                              <Skeleton className="w-20 h-4 rounded-md bg-white/[0.07]" />
+                              <Skeleton className="w-28 h-8 rounded-lg bg-white/[0.08]" />
+                              <Skeleton className="w-36 h-3 rounded-md bg-white/[0.05]" />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="p-6 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-4">
+                          <Skeleton className="w-48 h-6 rounded-lg bg-white/[0.08]" />
+                          <Skeleton className="w-full h-64 rounded-xl bg-white/[0.05]" />
+                        </div>
+                      </div>
+                    }>
                       <AnalyticsDashboard
                         photos={allPhotos}
                         categories={categories}
@@ -406,7 +423,19 @@ export default function AdminPanel(props: AdminPanelProps) {
                         </span>
                       }
                     />
-                    <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-cyan-400" /></div>}>
+                    <Suspense fallback={
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                          <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
+                            <Skeleton className="w-full aspect-video rounded-xl bg-white/[0.07]" />
+                            <div className="flex items-center justify-between">
+                              <Skeleton className="w-1/2 h-4 rounded-md bg-white/[0.07]" />
+                              <Skeleton className="w-14 h-4 rounded-full bg-white/[0.05]" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    }>
                       <AdminSubmissionsPreview
                         allPhotos={allPhotos}
                         categories={categories}
@@ -979,7 +1008,13 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
 
           {showEditActive && (
             <div className="p-6 border-t border-white/10">
-              <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-fivem-orange" /></div>}>
+              <Suspense fallback={
+                <div className="space-y-4 p-2">
+                  <Skeleton className="w-1/3 h-5 rounded-lg bg-white/[0.08]" />
+                  <Skeleton className="w-full h-11 rounded-xl bg-white/[0.06]" />
+                  <Skeleton className="w-full h-32 rounded-xl bg-white/[0.05]" />
+                </div>
+              }>
                 <EditContestManager
                   activeContest={activeContest}
                   categories={categories}
@@ -1024,7 +1059,13 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
 
         {showCreate && (
           <div className="p-6 border-t border-white/10">
-            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-emerald-500" /></div>}>
+            <Suspense fallback={
+              <div className="space-y-4 p-2">
+                <Skeleton className="w-1/3 h-5 rounded-lg bg-white/[0.08]" />
+                <Skeleton className="w-full h-11 rounded-xl bg-white/[0.06]" />
+                <Skeleton className="w-full h-24 rounded-xl bg-white/[0.05]" />
+              </div>
+            }>
               <CreateContestManager
                 onCreated={() => window.location.reload()}
                 onContestCreated={() => window.location.reload()}
@@ -1251,7 +1292,12 @@ function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
           <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Contest Lifecycle</h4>
         </div>
         <div className="p-6">
-          <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-red-400" /></div>}>
+          <Suspense fallback={
+            <div className="space-y-3 p-2">
+              <Skeleton className="w-1/2 h-5 rounded-lg bg-white/[0.08]" />
+              <Skeleton className="w-full h-12 rounded-xl bg-white/[0.05]" />
+            </div>
+          }>
             <ArchiveContest
               onArchived={() => window.location.reload()}
               activeContest={activeContest}

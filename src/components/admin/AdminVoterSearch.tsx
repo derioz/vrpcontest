@@ -10,6 +10,7 @@ import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
 import { toast } from '../ui/toast';
 import { getDiceBearAvatarUrl } from '../../lib/dicebear';
+import { Skeleton } from '../ui/skeleton';
 
 interface AdminVoterSearchProps {
   allPhotos: Photo[];
@@ -713,9 +714,26 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
 
       {/* Main Results Display */}
       {isLoading ? (
-        <div className="py-16 flex flex-col items-center justify-center text-white/40 text-center border border-white/5 rounded-2xl">
-          <RefreshCw size={28} className="animate-spin text-cyan-400 mb-3" />
-          <p className="text-sm font-mono text-white/60">Loading voter database...</p>
+        <div className="space-y-4">
+          <div className="p-5 rounded-2xl border border-white/10 bg-[#0d0d14]/70 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-12 h-12 rounded-full bg-white/[0.08]" />
+              <div className="space-y-2">
+                <Skeleton className="w-40 h-5 rounded-lg bg-white/[0.08]" />
+                <Skeleton className="w-24 h-3 rounded-md bg-white/[0.05]" />
+              </div>
+            </div>
+            <Skeleton className="w-28 h-8 rounded-xl bg-white/[0.06]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
+                <Skeleton className="w-full aspect-video rounded-xl bg-white/[0.07]" />
+                <Skeleton className="w-3/4 h-4 rounded-md bg-white/[0.07]" />
+                <Skeleton className="w-1/2 h-3 rounded-md bg-white/[0.05]" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : activeVoter ? (
         <div className="space-y-4">

@@ -31,6 +31,7 @@ import { toast } from './ui/toast';
 import { downloadPhoto } from '../lib/download';
 import { ChampionBadge } from './ChampionBadge';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
+import { Skeleton } from './ui/skeleton';
 
 interface ArchivedWinnersViewProps {
   currentUser?: any | null;
@@ -643,8 +644,32 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   </div>
                 </div>
 
-                {/* Empty State for Filters */}
-                {displayedWinners.length === 0 ? (
+                {/* Loading Skeleton Grid */}
+                {loading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={i}
+                        className="rounded-3xl border border-white/10 bg-[#0d0d14]/70 p-4 space-y-4 shadow-xl"
+                      >
+                        <Skeleton className="w-full aspect-[16/10] rounded-2xl bg-white/[0.07]" />
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Skeleton className="w-1/2 h-5 rounded-lg bg-white/[0.08]" />
+                            <Skeleton className="w-16 h-5 rounded-full bg-white/[0.06]" />
+                          </div>
+                          <div className="flex items-center gap-3 pt-2">
+                            <Skeleton className="w-9 h-9 rounded-full bg-white/[0.08]" />
+                            <div className="space-y-1.5 flex-1">
+                              <Skeleton className="w-2/3 h-4 rounded-md bg-white/[0.07]" />
+                              <Skeleton className="w-1/3 h-3 rounded-md bg-white/[0.05]" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : displayedWinners.length === 0 ? (
                   <div className="py-16 text-center space-y-3 bg-white/[0.02] border border-white/[0.06] rounded-3xl p-4">
                     <Trophy size={36} className="mx-auto text-white/20" />
                     <p className="text-sm font-bold text-white/60">

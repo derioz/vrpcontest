@@ -28,9 +28,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260816-1837',
     version: 'v1.9.7',
-    title: 'Aceternity Grid Lines Login, Wide Rules Suite & Magic UI Velocity Typography',
+    title: 'Aceternity Grid Lines Login, Wide Rules Suite & shadcn Skeleton Loading Suite',
     category: 'UI/UX',
-    description: `• Aceternity UI Simple Login with Grid Lines: Re-engineered the platform authentication modal matching Aceternity UI's iconic grid lines block (https://ui.aceternity.com/blocks/login-and-signup-sections/simple-login-with-grid-lines) with signature corner cross marks (+), linear background grid, glowing Vital RP heraldry, and a dedicated high-impact Discord OAuth2 button.
+    description: `• shadcn/ui Radix Skeleton Placeholder Suite: Integrated the official shadcn/ui Skeleton component (https://ui.shadcn.com/docs/components/radix/skeleton) across the platform—replacing raw spinners with animated dark glass skeleton screens across Hall of Fame vault archives, Category Suggestions feed, Admin Analytics dashboard, submissions preview, and voter audit directory.
+• Aceternity UI Simple Login with Grid Lines: Re-engineered the platform authentication modal matching Aceternity UI's iconic grid lines block (https://ui.aceternity.com/blocks/login-and-signup-sections/simple-login-with-grid-lines) with signature corner cross marks (+), linear background grid, glowing Vital RP heraldry, and a dedicated high-impact Discord OAuth2 button.
 • Full-Width Wide Contest Rules & Guidelines Suite: Completely redesigned the rules section to span the full stage width below the submissions grid—featuring 4 quick-reference pillar cards (1080p+ resolution, in-game authenticity, fair play, 5 co-champions), BorderBeam light accents, and spacious Markdown formatting.
 • Magic UI Ambient Scroll-Based Velocity Backdrop: Integrated the official Magic UI Scroll-Based Velocity component (https://magicui.design/docs/components/scroll-based-velocity) as a clean, minimal kinetic backdrop behind the hero stage with Framer Motion velocity physics and seamless infinite repetition loops.
 • Award-Winning SeraUI Hero Redesign: Completely overhauled the landing hero stage with dynamic SparklesText typography, SeraUI Announcement live signal pills, radial ambient orange auras, and a glowing neon GlowLine divider—eliminating raw emoji artifacts from contest titles.
@@ -40,7 +41,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • High-Density Compact Badge Numbers: Optimized compact badge displays across photo cards, profile capsules, and winner archives with crisp numeric indicators (e.g. [🏆 1], [👑 2x], [👑 3x], [🔥 5x]) preventing line breaks.
 • Official SeraUI Verify & Profile Dropdown: Deployed official SeraUI VerifyBadge components with Basic/Gold/Premium variants, paired with frosted glassmorphic profile dropdowns, online status beacons, and unified DiceBear controls.`,
     author: 'Damon',
-    date: 'Aug 16, 2026 at 8:34 PM',
+    date: 'Aug 16, 2026 at 8:52 PM',
   },
   {
     id: 'release-20260815-1556',

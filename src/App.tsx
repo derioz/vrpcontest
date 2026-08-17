@@ -112,6 +112,7 @@ import { ContestClosedModal } from './components/ContestClosedModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ContestRulesSection } from './components/ContestRulesSection';
 import { GridLinesLoginModal } from './components/GridLinesLoginModal';
+import { Skeleton } from './components/ui/skeleton';
 
 
 
@@ -2774,7 +2775,26 @@ export default function App() {
                   <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fivem-orange/4 blur-[160px] rounded-full pointer-events-none" />
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
 
-                  <Suspense fallback={<div className="p-10 text-center text-fivem-orange/50 animate-pulse font-mono flex items-center justify-center min-h-[500px]">Loading Admin Modules...</div>}>
+                  <Suspense fallback={
+                    <div className="p-8 space-y-6 flex-1 overflow-hidden">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                        <div className="space-y-2">
+                          <Skeleton className="w-48 h-6 rounded-lg bg-white/[0.08]" />
+                          <Skeleton className="w-32 h-4 rounded-md bg-white/[0.05]" />
+                        </div>
+                        <Skeleton className="w-28 h-9 rounded-xl bg-white/[0.06]" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
+                            <Skeleton className="w-16 h-4 rounded-md bg-white/[0.07]" />
+                            <Skeleton className="w-24 h-7 rounded-lg bg-white/[0.08]" />
+                          </div>
+                        ))}
+                      </div>
+                      <Skeleton className="w-full h-64 rounded-2xl bg-white/[0.04]" />
+                    </div>
+                  }>
                     {isAuthLoading ? (
                       <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4 min-h-[400px]">
                         <div className="w-14 h-14 rounded-2xl bg-fivem-orange/10 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange">
@@ -3054,7 +3074,31 @@ export default function App() {
         {/* Archived Winners Fullscreen Render */}
         {showArchivedWinners && (
           <ErrorBoundary fallbackTitle="Hall of Fame Error" onReset={() => setShowArchivedWinners(false)}>
-            <Suspense fallback={<div className="fixed inset-0 z-[150] bg-[#060608] flex items-center justify-center text-amber-400 font-mono text-xs">Loading Hall of Fame...</div>}>
+            <Suspense fallback={
+              <div className="fixed inset-0 z-[150] bg-[#060608] flex flex-col p-4 sm:p-8 space-y-6 overflow-hidden">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full bg-white/[0.08]" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="w-48 h-5 rounded-md bg-white/[0.08]" />
+                      <Skeleton className="w-32 h-3 rounded-md bg-white/[0.05]" />
+                    </div>
+                  </div>
+                  <Skeleton className="w-28 h-8 rounded-full bg-white/[0.06]" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="p-4 rounded-3xl border border-white/10 bg-[#0d0d14]/70 space-y-4">
+                      <Skeleton className="w-full aspect-[16/10] rounded-2xl bg-white/[0.07]" />
+                      <div className="space-y-2">
+                        <Skeleton className="w-2/3 h-5 rounded-md bg-white/[0.08]" />
+                        <Skeleton className="w-1/3 h-4 rounded-md bg-white/[0.05]" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            }>
               <ArchivedWinnersView currentUser={user} onClose={() => setShowArchivedWinners(false)} />
             </Suspense>
           </ErrorBoundary>
@@ -3063,7 +3107,32 @@ export default function App() {
         {/* Category Suggestions Fullscreen Render */}
         {showCategorySuggestions && (
           <ErrorBoundary fallbackTitle="Category Suggestions Error" onReset={() => setShowCategorySuggestions(false)}>
-            <Suspense fallback={<div className="fixed inset-0 z-[150] bg-[#050507] flex items-center justify-center text-fivem-orange font-mono text-xs">Loading Category Suggestions...</div>}>
+            <Suspense fallback={
+              <div className="fixed inset-0 z-[150] bg-[#07070b] flex flex-col p-4 sm:p-8 space-y-6 overflow-hidden">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full bg-white/[0.08]" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="w-48 h-5 rounded-md bg-white/[0.08]" />
+                      <Skeleton className="w-32 h-3 rounded-md bg-white/[0.05]" />
+                    </div>
+                  </div>
+                  <Skeleton className="w-36 h-9 rounded-full bg-white/[0.06]" />
+                </div>
+                <div className="max-w-4xl mx-auto w-full space-y-4 pt-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="p-6 rounded-3xl border border-white/10 bg-[#0d0d14]/70 flex gap-5 items-start">
+                      <Skeleton className="w-12 h-20 rounded-2xl shrink-0 bg-white/[0.07]" />
+                      <div className="flex-1 space-y-3">
+                        <Skeleton className="w-1/3 h-5 rounded-md bg-white/[0.08]" />
+                        <Skeleton className="w-full h-10 rounded-xl bg-white/[0.05]" />
+                        <Skeleton className="w-1/4 h-4 rounded-md bg-white/[0.06]" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            }>
               <CategorySuggestionsView
                 currentUser={user}
                 isAdmin={isAdmin}

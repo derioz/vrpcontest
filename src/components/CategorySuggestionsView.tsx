@@ -45,6 +45,7 @@ import { Spotlight } from './ui/spotlight';
 import { DotPattern } from './ui/dot-pattern';
 import { NumberTicker } from './ui/number-ticker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Skeleton } from './ui/skeleton';
 
 interface CategorySuggestionsViewProps {
   currentUser?: any | null;
@@ -758,13 +759,16 @@ export function CategorySuggestionsView({
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="p-6 rounded-3xl border border-white/5 bg-white/[0.02] animate-pulse flex gap-5 items-start"
+                className="p-6 rounded-3xl border border-white/10 bg-[#0d0d14]/70 backdrop-blur-md flex gap-5 items-start"
               >
-                <div className="w-12 h-24 rounded-2xl bg-white/5 shrink-0" />
-                <div className="flex-1 space-y-3">
-                  <div className="w-1/3 h-5 bg-white/10 rounded-lg" />
-                  <div className="w-full h-12 bg-white/5 rounded-lg" />
-                  <div className="w-1/4 h-4 bg-white/5 rounded-lg" />
+                <Skeleton className="w-12 h-24 rounded-2xl shrink-0 bg-white/[0.07]" />
+                <div className="flex-1 space-y-3 min-w-0">
+                  <Skeleton className="w-1/3 h-5 rounded-lg bg-white/[0.08]" />
+                  <Skeleton className="w-full h-12 rounded-xl bg-white/[0.05]" />
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-24 h-4 rounded-md bg-white/[0.06]" />
+                    <Skeleton className="w-16 h-4 rounded-md bg-white/[0.06]" />
+                  </div>
                 </div>
               </div>
             ))}
