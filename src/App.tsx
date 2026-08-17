@@ -1906,95 +1906,153 @@ export default function App() {
         </div>
       </motion.header>
 
-      {/* Mobile Drawer Overlay Sheet (Inspired by shadcn Sheet + ElevenLabs) */}
+      {/* ── Mobile Bottom Sheet Navigation ── */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            {/* Backdrop filter */}
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-40 bg-black/85 backdrop-blur-md"
+              className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm"
             />
-            {/* Navigation Sheet Panel */}
+            {/* Bottom Sheet */}
             <motion.div
-              initial={{ y: '-100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '-100%', opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              className="fixed top-0 left-0 right-0 z-50 bg-[#09090b] border-b border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-6 pt-24"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[#0c0c10] border-t border-white/10 rounded-t-3xl shadow-[0_-20px_60px_rgba(0,0,0,0.8)] max-h-[85vh] overflow-y-auto"
             >
-              <div className="flex flex-col gap-6">
-                {/* Navigation Section */}
-                <div className="flex flex-col gap-2">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Navigation</span>
-                  {[
-                    { label: 'Categories', action: () => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
-                    ...(submissionsOpen ? [{ label: 'Submit Entry', action: () => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); } }] : []),
-                    { label: 'Rules', action: () => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } }
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={item.action}
-                      className="w-full text-left py-3 px-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-sm font-bold uppercase tracking-wider text-white/70 active:text-white cursor-pointer active:bg-white/[0.05] transition-all"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+              {/* Drag Handle */}
+              <div className="flex justify-center pt-3 pb-1 sticky top-0 bg-[#0c0c10] z-10">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
 
-                {/* Hall of Fame – Special Mobile Button */}
-                <div className="flex flex-col gap-2">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-400/50 mb-1">✦ Hall of Fame</span>
+              <div className="px-5 pb-8 pt-2 space-y-5">
+
+                {/* ── Quick Actions Grid ── */}
+                <div className="grid grid-cols-3 gap-2.5">
                   <button
-                    onClick={() => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); }}
-                    className="w-full text-left py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-400/20 text-sm font-black uppercase tracking-wider text-amber-300 active:text-amber-200 cursor-pointer active:bg-amber-500/15 transition-all flex items-center gap-2.5 shadow-[0_0_15px_rgba(245,158,11,0.08)]"
+                    onClick={() => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
+                    className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
                   >
-                    <Trophy size={16} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
-                    <span>Hall of Fame Vault</span>
-                    <Sparkles size={12} className="text-amber-400/50 ml-auto" />
+                    <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/25 flex items-center justify-center">
+                      <Layers size={18} className="text-fivem-orange" />
+                    </div>
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Categories</span>
+                  </button>
+
+                  {submissionsOpen ? (
+                    <button
+                      onClick={() => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); }}
+                      className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-fivem-orange/[0.06] border border-fivem-orange/20 active:bg-fivem-orange/15 transition-all cursor-pointer"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center">
+                        <Upload size={18} className="text-fivem-orange" />
+                      </div>
+                      <span className="text-[10px] font-bold text-fivem-orange/80 uppercase tracking-wider">Submit</span>
+                    </button>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04] opacity-40">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <Lock size={18} className="text-white/30" />
+                      </div>
+                      <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Closed</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
+                    className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                      <FileText size={18} className="text-sky-400" />
+                    </div>
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Rules</span>
                   </button>
                 </div>
 
-                {/* Category Suggestions – Mobile Item (Admin Only) */}
-                {isAdmin && (
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-orange-400/50 mb-1">💡 Admin Tools</span>
-                    <button
-                      onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
-                      className="w-full text-left py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-400/30 text-sm font-black uppercase tracking-wider text-orange-300 active:text-orange-200 cursor-pointer active:bg-orange-500/20 transition-all flex items-center gap-2.5 shadow-[0_0_15px_rgba(234,88,12,0.1)]"
-                    >
-                      <ShieldCheck size={16} className="text-fivem-orange drop-shadow-[0_0_4px_rgba(234,88,12,0.6)]" />
-                      <span>Category Suggestions</span>
-                      <span className="ml-auto px-2 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono font-bold text-fivem-orange uppercase">Admin</span>
-                    </button>
-                  </div>
-                )}
+                {/* ── Featured Actions ── */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Featured</span>
 
-                {/* Account Section */}
-                <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 mb-1">Account details</span>
+                  {/* Hall of Fame */}
+                  <button
+                    onClick={() => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); }}
+                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/[0.08] to-yellow-500/[0.04] border border-amber-500/20 active:border-amber-500/40 transition-all cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                      <Trophy size={18} className="text-amber-400" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-sm font-bold text-amber-200 block">Hall of Fame</span>
+                      <span className="text-[10px] text-white/35 font-mono">Browse past champions</span>
+                    </div>
+                    <ChevronRight size={16} className="text-amber-500/40 shrink-0" />
+                  </button>
+
+                  {/* Suggest Category */}
+                  <button
+                    onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
+                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] active:bg-white/[0.06] transition-all cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                      <Sparkles size={18} className="text-violet-400" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-sm font-bold text-white/80 block">Suggest Category</span>
+                      <span className="text-[10px] text-white/35 font-mono">Submit ideas for next round</span>
+                    </div>
+                    <ChevronRight size={16} className="text-white/15 shrink-0" />
+                  </button>
+
+                  {/* Admin Tools (Admin Only) */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setShowAdminModal(true);
+                        setIsAdminMinimized(false);
+                      }}
+                      className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-fivem-orange/[0.05] border border-fivem-orange/15 active:bg-fivem-orange/10 transition-all cursor-pointer"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/25 flex items-center justify-center shrink-0">
+                        <ShieldCheck size={18} className="text-fivem-orange" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <span className="text-sm font-bold text-fivem-orange/90 block">Admin Console</span>
+                        <span className="text-[10px] text-white/30 font-mono">Dashboard & settings</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md bg-fivem-orange/15 text-[9px] font-mono font-bold text-fivem-orange uppercase shrink-0">Admin</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* ── Account ── */}
+                <div className="space-y-2 pt-3 border-t border-white/[0.06]">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Account</span>
+
                   {user && !user.isAnonymous ? (
-                    <div className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
-                          alt=""
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
-                            if (target.src !== fallback) target.src = fallback;
-                          }}
-                          className="w-8 h-8 rounded-lg object-cover border border-white/10 shrink-0"
-                        />
-                        <div className="flex flex-col leading-none gap-1 min-w-0">
-                          <span className="text-sm font-bold text-white truncate">{user.displayName || user.email?.split('@')[0]}</span>
-                          <div className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
-                            <span className="text-[8px] font-mono uppercase tracking-widest text-emerald-400 font-bold">Online</span>
-                          </div>
+                    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                      <img
+                        src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                        alt=""
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                          if (target.src !== fallback) target.src = fallback;
+                        }}
+                        className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-bold text-white truncate block">{user.displayName || user.email?.split('@')[0]}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+                          <span className="text-[9px] font-mono uppercase tracking-widest text-emerald-400/70 font-bold">Online</span>
                         </div>
                       </div>
                       <button
@@ -2003,8 +2061,8 @@ export default function App() {
                           setIsEditingDisplayName(true);
                           setIsMobileMenuOpen(false);
                         }}
-                        className="p-2 rounded-lg bg-fivem-orange/15 hover:bg-fivem-orange/25 border border-fivem-orange/30 text-fivem-orange transition-all cursor-pointer shrink-0 ml-2"
-                        title="Rename Display Name"
+                        className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 active:text-white active:bg-white/[0.08] transition-all cursor-pointer shrink-0"
+                        title="Edit Display Name"
                       >
                         <Edit3 size={14} />
                       </button>
@@ -2012,48 +2070,36 @@ export default function App() {
                   ) : (
                     <button
                       onClick={() => { setShowSignInModal(true); setIsMobileMenuOpen(false); }}
-                      className="flex items-center justify-center gap-3 w-full py-3.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-98"
+                      className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-gradient-to-r from-fivem-orange to-orange-500 text-white font-bold text-xs uppercase tracking-wider cursor-pointer active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20"
                     >
                       <User size={16} />
-                      <span>Sign In</span>
+                      <span>Sign In with Discord</span>
                     </button>
                   )}
                 </div>
 
-                {/* Dashboard & Tools Section */}
-                <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white/40">Contest Admin Dashboard</span>
+                {/* ── Support ── */}
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => { setIsMobileMenuOpen(false); setShowBugModal(true); }}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/50 active:text-white active:bg-white/[0.06] text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    <Bug size={13} className="text-rose-400/70" />
+                    <span>Report Bug</span>
+                  </button>
+                  {!isAdmin && (
                     <button
-                      type="button"
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        isAdmin ? (setShowAdminModal(true), setIsAdminMinimized(false)) : (() => { setShowNotAdminModal(true); setNotAdminClickCount(c => c + 1); })();
+                        setShowNotAdminModal(true);
+                        setNotAdminClickCount(c => c + 1);
                       }}
-                      className={cn(
-                        'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer',
-                        isAdmin ? 'bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange shadow-[0_4px_12px_rgba(234,88,12,0.1)]' : 'bg-white/5 border border-white/10 text-white/50'
-                      )}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/50 active:text-white active:bg-white/[0.06] text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
                     >
-                      <Settings size={13} className={isAdmin ? 'animate-spin-slow' : ''} />
-                      <span>{isAdmin ? 'Admin Console' : 'Settings'}</span>
+                      <Settings size={13} className="text-white/40" />
+                      <span>Settings</span>
                     </button>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-xs font-bold text-white/40">Support & Feedback</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setShowBugModal(true);
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer shadow-sm"
-                    >
-                      <Bug size={13} />
-                      <span>Report Bug</span>
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -2364,37 +2410,49 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-6 py-5">
               
               {/* ========================================= */}
-              {/* MOBILE: Dropdown & Modal                 */}
+              {/* MOBILE: Swipeable Category Pill Strip     */}
               {/* ========================================= */}
               <div className="block sm:hidden">
-                <div className="relative flex items-center justify-between gap-4">
-                  <div className="relative flex-1">
-                    <button
-                      onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
-                      className="w-full flex items-center justify-between gap-4 px-5 py-3.5 rounded-2xl bg-white/[0.04] active:bg-white/[0.08] border border-white/[0.07] active:border-fivem-orange/30 transition-all duration-200 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{selectedCategory?.emoji || '✨'}</span>
-                        <div className="text-left">
-                          <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-fivem-orange/80 font-mono leading-none mb-1">Category</span>
-                          <span className="block text-sm font-black text-white font-display leading-tight">{selectedCategory?.name}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 pl-3 border-l border-white/10">
-                        <span className="text-xs font-mono text-white/40">
-                          {allPhotos.filter(p => p.category_id === selectedCategory?.id).length} entries
-                        </span>
-                        <ChevronDown className={cn("w-4 h-4 text-white/60 transition-transform duration-200", isCategoryMenuOpen && "rotate-180")} />
-                      </div>
-                    </button>
-
-                    {/* Removed modal markup from nesting context to prevent clipping */}
+                <div className="flex flex-col gap-3">
+                  {/* Label row */}
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-white/35">Select Category</span>
+                    <span className="text-[10px] font-mono text-white/25">{allPhotos.length} total entries</span>
                   </div>
-                  
-                  {/* Total entries on mobile */}
-                  <div className="pl-4 border-l border-white/10 flex flex-col justify-center items-end shrink-0">
-                    <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 leading-none">Total</span>
-                    <span className="text-lg font-black font-display text-white mt-0.5">{allPhotos.length}</span>
+
+                  {/* Horizontal scroll pills */}
+                  <div className="relative -mx-6">
+                    {/* Fade edges */}
+                    <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-fivem-dark/98 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-fivem-dark/98 to-transparent z-10 pointer-events-none" />
+
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-6 py-1 touch-pan-x scroll-smooth">
+                      {categories.map((cat) => {
+                        const isActive = selectedCategory?.id === cat.id;
+                        const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={cn(
+                              "relative flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-sm font-display font-bold shrink-0 transition-all duration-200 cursor-pointer select-none border",
+                              isActive
+                                ? "bg-fivem-orange/15 border-fivem-orange/35 text-white shadow-[0_0_16px_rgba(234,88,12,0.15)]"
+                                : "bg-white/[0.03] border-white/[0.06] text-white/60 active:bg-white/[0.08] active:border-white/15"
+                            )}
+                          >
+                            <span className="text-base leading-none">{cat.emoji || '✨'}</span>
+                            <span className="leading-none whitespace-nowrap">{cat.name}</span>
+                            <span className={cn(
+                              "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md",
+                              isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/[0.06] text-white/35"
+                            )}>
+                              {entryCount}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3479,82 +3537,8 @@ export default function App() {
             </motion.div>
           );
         })()}
-      </AnimatePresence>      {/* Mobile Category Selection Modal – Rendered at root level to avoid parent stacking context constraints */}
-      <AnimatePresence>
-        {isCategoryMenuOpen && (
-          <>
-            {/* Mobile: Full-screen overlay backdrop */}
-            <div
-              className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-sm"
-              onClick={() => setIsCategoryMenuOpen(false)}
-            />
-
-            {/* Dropdown Centered Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-45%' }}
-              animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-              exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-45%' }}
-              transition={{ type: 'spring', stiffness: 350, damping: 26 }}
-              className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-2.5rem)] max-w-md p-6 rounded-3xl bg-fivem-dark border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl max-h-[85vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
-                <span className="text-sm font-bold text-white uppercase tracking-wider font-display">Select Category</span>
-                <button
-                  onClick={() => setIsCategoryMenuOpen(false)}
-                  className="p-1.5 rounded-lg bg-white/5 text-white/60 hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                {categories.map((cat) => {
-                  const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
-                  const isActive = selectedCategory?.id === cat.id;
-                  const totalAll = allPhotos.length;
-                  const pct = totalAll > 0 ? ((entryCount / totalAll) * 100).toFixed(0) : '0';
-
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        setIsCategoryMenuOpen(false);
-                      }}
-                      className={cn(
-                        "flex flex-col gap-2 p-4 rounded-xl transition-all duration-200 text-left border cursor-pointer w-full",
-                        isActive
-                          ? "bg-fivem-orange/10 border-fivem-orange/40 text-white shadow-[inset_0_0_12px_rgba(234,88,12,0.1)]"
-                          : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05] hover:border-white/10 text-white/70 hover:text-white"
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-3 w-full">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl shrink-0">{cat.emoji || '✨'}</span>
-                          <span className="text-sm font-bold leading-tight">{cat.name}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 shrink-0 text-[10px] font-mono text-white/40">
-                          <span>{entryCount} entries</span>
-                          <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] font-bold", isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/5")}>
-                            {pct}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {cat.description && (
-                        <p className="text-xs text-white/45 leading-relaxed pl-8 pr-2">
-                          {cat.description}
-                        </p>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </>
-        )}
       </AnimatePresence>
+
 
       {/* ── Aceternity UI — Simple Login With Grid Lines Modal ── */}
       <GridLinesLoginModal
