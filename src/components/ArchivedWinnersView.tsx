@@ -251,18 +251,17 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return Array.from(new Set(winners.map(w => w.contest_name)));
   }, [winners]);
 
-  // Compute map of total win counts per user (deduplicated per document)
+  // Compute map of total win counts per unique user by discord_name or player_name
   const winnerWinsMap = useMemo(() => {
     const map = new Map<string, number>();
     winners.forEach(w => {
-      const docKeys = new Set<string>();
-      if (w.discord_name) docKeys.add(w.discord_name.toLowerCase().trim());
-      if (w.player_name) docKeys.add(w.player_name.toLowerCase().trim());
-      if (w.user_id) docKeys.add(w.user_id);
+      const disc = (w.discord_name || '').toLowerCase().trim();
+      const player = (w.player_name || '').toLowerCase().trim();
+      const uid = (w.user_id || '').trim();
 
-      docKeys.forEach(key => {
-        map.set(key, (map.get(key) || 0) + 1);
-      });
+      if (disc) map.set(disc, (map.get(disc) || 0) + 1);
+      if (player && player !== disc) map.set(player, (map.get(player) || 0) + 1);
+      if (uid) map.set(uid, (map.get(uid) || 0) + 1);
     });
     return map;
   }, [winners]);
@@ -297,59 +296,22 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     });
   }, [currentUser, winners]);
 
-  // Display name resolution: priority to logged in user's custom display name if matching
+  // Display name resolution: strictly respect the authentic archive author record
   const resolveDisplayName = useCallback((winner: ArchivedWinner) => {
-    if (currentUser && !currentUser.isAnonymous) {
-      const currentUid = currentUser.uid;
-      const currentName = currentUser.displayName?.toLowerCase().trim();
-      const currentDiscord = localStorage.getItem('fivem_discord_name')?.toLowerCase().trim();
-      const currentPlayer = localStorage.getItem('fivem_player_name')?.toLowerCase().trim();
-      const wName = winner.discord_name?.toLowerCase().trim();
-      const wPlayer = winner.player_name?.toLowerCase().trim();
+    return winner.player_name || winner.discord_name || 'Photographer';
+  }, []);
 
-      const isMatch =
-        (currentUid && winner.user_id === currentUid) ||
-        (currentName && (wName === currentName || wPlayer === currentName)) ||
-        (currentDiscord && (wName === currentDiscord || wPlayer === currentDiscord)) ||
-        (currentPlayer && (wName === currentPlayer || wPlayer === currentPlayer));
-
-      if (isMatch && currentUser.displayName && currentUser.displayName.trim()) {
-        return currentUser.displayName;
-      }
-    }
-    return winner.player_name || winner.discord_name;
-  }, [currentUser]);
-
-  // Resolution helper: Priority to Discord OAuth photoURL if available for user or winner
+  // Resolution helper: Priority to winner's direct photo, then deterministic DiceBear avatar
   const resolveAvatarUrl = useCallback((winner: ArchivedWinner) => {
-    // 1. Direct photo URL on winner record
     if (winner.user_photo_url && winner.user_photo_url.trim()) {
       return winner.user_photo_url;
     }
-    
-    // 2. If logged in user matches winner, check logged in user's photoURL (official Discord OAuth picture)
-    if (currentUser && !currentUser.isAnonymous) {
-      const currentUid = currentUser.uid;
-      const currentName = currentUser.displayName?.toLowerCase().trim();
-      const currentDiscord = localStorage.getItem('fivem_discord_name')?.toLowerCase().trim();
-      const currentPlayer = localStorage.getItem('fivem_player_name')?.toLowerCase().trim();
-      const wName = winner.discord_name?.toLowerCase().trim();
-      const wPlayer = winner.player_name?.toLowerCase().trim();
-
-      const isMatch =
-        (currentUid && winner.user_id === currentUid) ||
-        (currentName && (wName === currentName || wPlayer === currentName)) ||
-        (currentDiscord && (wName === currentDiscord || wPlayer === currentDiscord)) ||
-        (currentPlayer && (wName === currentPlayer || wPlayer === currentPlayer));
-
-      if (isMatch && currentUser.photoURL && currentUser.photoURL.trim()) {
-        return currentUser.photoURL;
-      }
-    }
-
-    // 3. Fallback to DiceBear deterministically
-    return getProfileAvatar(winner.user_photo_url, winner.avatar_seed || winner.user_id || winner.discord_name, (winner.avatar_style as any) || 'botttsNeutral');
-  }, [currentUser]);
+    return getProfileAvatar(
+      winner.user_photo_url,
+      winner.avatar_seed || winner.discord_name || winner.player_name || winner.user_id,
+      (winner.avatar_style as any) || 'botttsNeutral'
+    );
+  }, []);
 
   // Parse contest titles cleanly into edition and theme
   const parseVaultTitle = useCallback((raw: string) => {
@@ -367,24 +329,27 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     };
   }, []);
 
-  // Compute top all-time champions for the legends capsule
+  // Compute top all-time champions for the legends capsule (strictly grouped by unique Discord user)
   const topLegends = useMemo(() => {
     const userMap = new Map<string, { displayName: string; discordName: string; winCount: number; avatarUrl: string; userId?: string }>();
 
     winners.forEach((w) => {
-      const key = (w.discord_name || w.player_name || w.user_id || 'unknown').toLowerCase().trim();
-      const existing = userMap.get(key);
-      const customName = resolveDisplayName(w);
-      const avatarUrl = resolveAvatarUrl(w);
+      const discKey = (w.discord_name || '').toLowerCase().trim();
+      const playerKey = (w.player_name || '').toLowerCase().trim();
+      const primaryKey = discKey || playerKey || 'unknown';
 
+      const existing = userMap.get(primaryKey);
       if (existing) {
         existing.winCount += 1;
+        if (w.player_name && (!existing.displayName || existing.displayName === existing.discordName)) {
+          existing.displayName = w.player_name;
+        }
       } else {
-        userMap.set(key, {
-          displayName: customName,
-          discordName: w.discord_name || customName,
+        userMap.set(primaryKey, {
+          displayName: w.player_name || w.discord_name || 'Photographer',
+          discordName: w.discord_name || w.player_name || 'user',
           winCount: 1,
-          avatarUrl,
+          avatarUrl: resolveAvatarUrl(w),
           userId: w.user_id,
         });
       }
@@ -393,24 +358,23 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return Array.from(userMap.values())
       .sort((a, b) => b.winCount - a.winCount)
       .slice(0, 3);
-  }, [winners, resolveDisplayName, resolveAvatarUrl]);
+  }, [winners, resolveAvatarUrl]);
 
   // Filter displayed winners by selected contest, user filter, filter mode, and search query
   const displayedWinners = useMemo(() => {
     let result = winners;
 
     if (selectedUserFilter) {
-      const dName = selectedUserFilter.displayName.toLowerCase().trim();
-      const discName = selectedUserFilter.discordName.toLowerCase().trim();
-      const uId = selectedUserFilter.userId;
+      const targetDiscord = selectedUserFilter.discordName?.toLowerCase().trim();
+      const targetPlayer = selectedUserFilter.displayName?.toLowerCase().trim();
+      const targetUid = selectedUserFilter.userId;
 
-      result = winners.filter(w =>
-        (uId && w.user_id === uId) ||
-        (w.discord_name && w.discord_name.toLowerCase().trim() === discName) ||
-        (w.player_name && w.player_name.toLowerCase().trim() === dName) ||
-        (w.discord_name && w.discord_name.toLowerCase().trim() === dName) ||
-        (w.player_name && w.player_name.toLowerCase().trim() === discName)
-      );
+      result = winners.filter(w => {
+        if (targetUid && w.user_id && w.user_id === targetUid) return true;
+        if (targetDiscord && w.discord_name && w.discord_name.toLowerCase().trim() === targetDiscord) return true;
+        if (!targetDiscord && targetPlayer && w.player_name && w.player_name.toLowerCase().trim() === targetPlayer) return true;
+        return false;
+      });
     } else if (filterMode === 'my-wins') {
       result = userWinningEntries;
     } else if (selectedContest) {
@@ -987,7 +951,7 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs sm:text-sm font-bold text-white font-display group-hover/user:text-amber-400 transition-colors truncate">{resolveDisplayName(selectedWinnerPhoto)}</span>
-                      <ChampionBadge winCount={winnerWinsMap.get(selectedWinnerPhoto.discord_name?.toLowerCase()?.trim() || '') || 1} size="sm" />
+                      <ChampionBadge winCount={winnerWinsMap.get(selectedWinnerPhoto.discord_name?.toLowerCase()?.trim() || '') || winnerWinsMap.get(selectedWinnerPhoto.player_name?.toLowerCase()?.trim() || '') || 1} size="sm" />
                     </div>
                     <p className="text-[11px] sm:text-xs text-white/60 italic truncate">"{selectedWinnerPhoto.caption || 'No caption'}"</p>
                   </div>
