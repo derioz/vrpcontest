@@ -23,7 +23,7 @@ import {
   DropdownMenuBadge,
 } from './ui/dropdown-menu';
 import { ChampionBadge } from './ChampionBadge';
-import type { DiceBearStyleName } from '../lib/avatars';
+import type { DiceBearStyleName } from '../lib/dicebear';
 
 export interface UserProfileDropdownProps {
   user: {
