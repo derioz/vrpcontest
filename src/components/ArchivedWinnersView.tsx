@@ -15,7 +15,11 @@ import {
   X,
   Copy,
   Check,
-  ExternalLink
+  ExternalLink,
+  Sparkles,
+  ChevronRight,
+  Layers,
+  History
 } from 'lucide-react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -347,6 +351,50 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return getProfileAvatar(winner.user_photo_url, winner.avatar_seed || winner.user_id || winner.discord_name, (winner.avatar_style as any) || 'botttsNeutral');
   }, [currentUser]);
 
+  // Parse contest titles cleanly into edition and theme
+  const parseVaultTitle = useCallback((raw: string) => {
+    const clean = raw.replace(/^[\p{Emoji}\s\p{Punctuation}]+/gu, '').trim();
+    const colonIndex = clean.indexOf(':');
+    if (colonIndex !== -1) {
+      return {
+        round: clean.slice(0, colonIndex).trim() || clean,
+        theme: clean.slice(colonIndex + 1).trim(),
+      };
+    }
+    return {
+      round: clean || raw,
+      theme: '',
+    };
+  }, []);
+
+  // Compute top all-time champions for the legends capsule
+  const topLegends = useMemo(() => {
+    const userMap = new Map<string, { displayName: string; discordName: string; winCount: number; avatarUrl: string; userId?: string }>();
+
+    winners.forEach((w) => {
+      const key = (w.discord_name || w.player_name || w.user_id || 'unknown').toLowerCase().trim();
+      const existing = userMap.get(key);
+      const customName = resolveDisplayName(w);
+      const avatarUrl = resolveAvatarUrl(w);
+
+      if (existing) {
+        existing.winCount += 1;
+      } else {
+        userMap.set(key, {
+          displayName: customName,
+          discordName: w.discord_name || customName,
+          winCount: 1,
+          avatarUrl,
+          userId: w.user_id,
+        });
+      }
+    });
+
+    return Array.from(userMap.values())
+      .sort((a, b) => b.winCount - a.winCount)
+      .slice(0, 3);
+  }, [winners, resolveDisplayName, resolveAvatarUrl]);
+
   // Filter displayed winners by selected contest, user filter, filter mode, and search query
   const displayedWinners = useMemo(() => {
     let result = winners;
@@ -505,88 +553,262 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
           </div>
         ) : (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden w-full max-w-full">
-            {/* ── DESKTOP SIDEBAR TRACK (Hidden on mobile < md) ── */}
-            <div className="hidden md:flex flex-col w-64 lg:w-72 shrink-0 border-r border-white/[0.08] bg-black/40 backdrop-blur-md overflow-y-auto p-4 space-y-3">
-              <div className="px-2 mb-2 flex items-center justify-between">
-                <h3 className="text-[10px] font-mono font-bold text-amber-400/80 uppercase tracking-[0.2em]">Select Vault</h3>
-                <span className="text-[10px] font-mono text-white/30">{contests.length} contest(s)</span>
-              </div>
-
-              {/* Contest Buttons */}
-              <div className="space-y-1.5">
-                {contests.map((contest) => (
-                  <button
-                    key={contest}
-                    onClick={() => {
-                      setSelectedContest(contest);
-                      setFilterMode('all');
-                      setSelectedUserFilter(null);
-                    }}
-                    className={cn(
-                      "w-full text-left px-4 py-3 rounded-2xl transition-all duration-200 flex items-center justify-between group cursor-pointer border",
-                      selectedContest === contest && filterMode === 'all' && !selectedUserFilter
-                        ? "bg-gradient-to-r from-amber-500/20 to-orange-500/10 border-amber-500/40 text-white shadow-[0_0_20px_rgba(245,158,11,0.15)] font-bold"
-                        : "hover:bg-white/[0.04] text-white/50 border-transparent hover:border-white/10 hover:text-white"
-                    )}
-                  >
-                    <div className="min-w-0 pr-2">
-                      <p className="font-bold text-xs truncate font-display">{contest}</p>
-                      <p className="text-[10px] font-mono text-white/30 mt-0.5">
-                        {winners.filter(w => w.contest_name === contest).length} Champions
-                      </p>
+            {/* ── LUXURY ONE-OF-A-KIND DESKTOP SIDEBAR TRACK (Hidden on mobile < md) ── */}
+            <aside className="hidden md:flex flex-col w-72 lg:w-80 xl:w-[330px] shrink-0 border-r border-white/[0.08] bg-gradient-to-b from-[#09090f]/98 via-[#06060a]/98 to-[#040406]/98 backdrop-blur-2xl overflow-hidden justify-between select-none shadow-2xl">
+              {/* Top Scrollable Section: Header, Search & Editions */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+                {/* Vault Header & Badge */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest">
+                      <Sparkles size={11} className="text-amber-400 animate-pulse" />
+                      <span>Vault Archives</span>
                     </div>
-                    <Trophy size={14} className={cn("shrink-0 transition-opacity", selectedContest === contest && filterMode === 'all' && !selectedUserFilter ? "text-amber-400 opacity-100" : "opacity-0 group-hover:opacity-40")} />
-                  </button>
-                ))}
-              </div>
+                    <span className="text-[10px] font-mono text-white/40">{contests.length} Editions</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black font-display text-white tracking-wide">Hall of Fame</h2>
+                    <p className="text-xs text-white/50">{winners.length} immortalized champion photos</p>
+                  </div>
+                </div>
 
-              {/* Search Bar */}
-              <div className="pt-3 border-t border-white/10 space-y-2">
-                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block px-1">Search Champions</span>
+                {/* Interactive Search Bar */}
                 <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                  <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
                   <Input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search name, category..."
-                    className="pl-8 h-9 text-xs bg-black/60 border-white/15 focus:border-amber-400"
+                    placeholder="Search champion, category..."
+                    className="pl-9 pr-8 h-9 text-xs bg-black/60 border-white/15 focus:border-amber-400/80 rounded-xl placeholder:text-white/30"
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* All Editions Master Card */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedContest(null);
+                    setFilterMode('all');
+                    setSelectedUserFilter(null);
+                  }}
+                  className={cn(
+                    "w-full text-left p-3 rounded-2xl transition-all duration-300 flex items-center justify-between group cursor-pointer border relative overflow-hidden",
+                    !selectedContest && filterMode === 'all' && !selectedUserFilter
+                      ? "bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-transparent border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                      : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.06] hover:border-white/15 text-white/70"
+                  )}
+                >
+                  {!selectedContest && filterMode === 'all' && !selectedUserFilter && (
+                    <div className="absolute left-0 top-1 bottom-1 w-1 rounded-full bg-gradient-to-b from-amber-400 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                  )}
+                  <div className="flex items-center gap-3 pl-1.5 min-w-0">
+                    <div className={cn(
+                      "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors border",
+                      !selectedContest && filterMode === 'all' && !selectedUserFilter
+                        ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                        : "bg-white/5 text-white/40 border-white/10 group-hover:text-white"
+                    )}>
+                      <Layers size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs font-display text-white">All Contest Editions</p>
+                      <p className="text-[10px] font-mono text-white/40">{winners.length} Champions Combined</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className={cn("transition-transform", !selectedContest && filterMode === 'all' && !selectedUserFilter ? "text-amber-400 translate-x-0.5" : "text-white/20 group-hover:text-white/50")} />
+                </button>
+
+                {/* Contest Editions List */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-mono font-bold text-white/40 uppercase tracking-[0.15em]">Official Editions</span>
+                    <span className="text-[9px] font-mono text-amber-400/80">Chronological</span>
+                  </div>
+
+                  {contests.map((contest) => {
+                    const isSelected = selectedContest === contest && filterMode === 'all' && !selectedUserFilter;
+                    const contestWinners = winners.filter(w => w.contest_name === contest);
+                    const { round, theme } = parseVaultTitle(contest);
+
+                    return (
+                      <button
+                        key={contest}
+                        type="button"
+                        onClick={() => {
+                          setSelectedContest(contest);
+                          setFilterMode('all');
+                          setSelectedUserFilter(null);
+                        }}
+                        className={cn(
+                          "w-full text-left p-3 rounded-2xl transition-all duration-300 flex items-center justify-between group cursor-pointer border relative overflow-hidden",
+                          isSelected
+                            ? "bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-transparent border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                            : "bg-white/[0.015] hover:bg-white/[0.05] border-white/[0.06] hover:border-white/15 text-white/60 hover:text-white"
+                        )}
+                      >
+                        {/* Active Left Neon Marker */}
+                        {isSelected && (
+                          <div className="absolute left-0 top-1 bottom-1 w-1 rounded-full bg-gradient-to-b from-amber-400 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                        )}
+
+                        <div className="min-w-0 pr-2 pl-1.5 space-y-0.5">
+                          <p className={cn("font-bold text-xs font-display truncate transition-colors", isSelected ? "text-white" : "text-white/80 group-hover:text-white")}>
+                            {round}
+                          </p>
+                          {theme && (
+                            <p className={cn("text-[10px] font-mono truncate transition-colors", isSelected ? "text-amber-300/80" : "text-white/35 group-hover:text-white/50")}>
+                              {theme}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase transition-colors",
+                              isSelected
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                : "bg-white/[0.04] text-white/40 border border-white/[0.06]"
+                            )}>
+                              <Trophy size={9} className={isSelected ? "text-amber-400" : "text-white/30"} />
+                              <span>{contestWinners.length} Champions</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <ChevronRight
+                          size={15}
+                          className={cn(
+                            "shrink-0 transition-all duration-200",
+                            isSelected
+                              ? "text-amber-400 translate-x-0.5 opacity-100"
+                              : "text-white/20 opacity-0 group-hover:opacity-60 group-hover:translate-x-0.5"
+                          )}
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
 
-            {/* ── MOBILE COMPACT CONTROLS BAR (Only visible on mobile < md) ── */}
-            <div className="md:hidden shrink-0 border-b border-white/[0.08] bg-black/60 backdrop-blur-md p-3 space-y-2.5 w-full max-w-full overflow-hidden">
+              {/* Bottom Section: Top Legends Capsule */}
+              {topLegends.length > 0 && (
+                <div className="p-4 border-t border-white/[0.08] bg-black/40 space-y-2.5 shrink-0">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-mono font-bold text-amber-400/90 uppercase tracking-[0.15em] flex items-center gap-1.5">
+                      <Crown size={12} className="text-amber-400" />
+                      <span>All-Time Legends</span>
+                    </span>
+                    <span className="text-[9px] font-mono text-white/30">Top Champions</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {topLegends.map((legend) => {
+                      const isFilteringThisUser = selectedUserFilter?.displayName?.toLowerCase() === legend.displayName.toLowerCase();
+                      return (
+                        <button
+                          key={legend.discordName || legend.displayName}
+                          type="button"
+                          onClick={() => {
+                            setSelectedUserFilter({
+                              displayName: legend.displayName,
+                              discordName: legend.discordName,
+                              userId: legend.userId,
+                            });
+                            toast.info(`Filtering Hall of Fame for ${legend.displayName}`);
+                          }}
+                          className={cn(
+                            "w-full flex items-center justify-between p-2 rounded-xl border text-left transition-all group cursor-pointer",
+                            isFilteringThisUser
+                              ? "bg-amber-500/20 border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                              : "bg-white/[0.02] hover:bg-white/[0.06] border-white/5 hover:border-white/10"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img
+                              src={legend.avatarUrl}
+                              alt={legend.displayName}
+                              className="w-6 h-6 rounded-full border border-amber-400/40 object-cover shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-white truncate font-display group-hover:text-amber-300 transition-colors">
+                                {legend.displayName}
+                              </p>
+                              <p className="text-[9px] font-mono text-white/40 truncate">
+                                @{legend.discordName}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-300 shrink-0">
+                            {legend.winCount}x 👑
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </aside>
+
+            {/* ── REFINED MOBILE CONTROLS BAR (Only visible on mobile < md) ── */}
+            <div className="md:hidden shrink-0 border-b border-white/[0.08] bg-black/70 backdrop-blur-md p-3 space-y-2.5 w-full max-w-full overflow-hidden">
               {/* Horizontal Scroll Pill Bar for Contests */}
               <div className="relative w-full">
                 {/* Left fade scroll indicator */}
-                <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black/60 to-transparent z-10 pointer-events-none rounded-l-xl" />
+                <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black/70 to-transparent z-10 pointer-events-none rounded-l-xl" />
                 {/* Right fade scroll indicator */}
-                <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none rounded-r-xl" />
+                <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-black/70 to-transparent z-10 pointer-events-none rounded-r-xl" />
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1 w-full touch-pan-x">
-                  <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider shrink-0 flex items-center gap-1 pl-4">
-                    <Trophy size={11} />
-                  </span>
-                  {contests.map((contest) => (
-                    <button
-                      key={contest}
-                      onClick={() => {
-                        setSelectedContest(contest);
-                        setFilterMode('all');
-                        setSelectedUserFilter(null);
-                      }}
-                      className={cn(
-                        "px-2.5 py-1.5 rounded-full text-[11px] font-bold shrink-0 transition-all border cursor-pointer max-w-[140px] truncate",
-                        selectedContest === contest && filterMode === 'all' && !selectedUserFilter
-                          ? "bg-amber-500 text-black border-amber-400 shadow-md font-extrabold"
-                          : "bg-white/5 hover:bg-white/10 border-white/10 text-white/70"
-                      )}
-                      title={contest}
-                    >
-                      {contest}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedContest(null);
+                      setFilterMode('all');
+                      setSelectedUserFilter(null);
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 transition-all border cursor-pointer flex items-center gap-1",
+                      !selectedContest && filterMode === 'all' && !selectedUserFilter
+                        ? "bg-amber-500 text-black border-amber-400 shadow-md font-extrabold"
+                        : "bg-white/5 hover:bg-white/10 border-white/10 text-white/70"
+                    )}
+                  >
+                    <Layers size={11} />
+                    <span>All Vaults</span>
+                  </button>
+
+                  {contests.map((contest) => {
+                    const { round } = parseVaultTitle(contest);
+                    const isSelected = selectedContest === contest && filterMode === 'all' && !selectedUserFilter;
+                    return (
+                      <button
+                        key={contest}
+                        type="button"
+                        onClick={() => {
+                          setSelectedContest(contest);
+                          setFilterMode('all');
+                          setSelectedUserFilter(null);
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 transition-all border cursor-pointer max-w-[160px] truncate",
+                          isSelected
+                            ? "bg-amber-500 text-black border-amber-400 shadow-md font-extrabold"
+                            : "bg-white/5 hover:bg-white/10 border-white/10 text-white/70"
+                        )}
+                        title={contest}
+                      >
+                        {round}
+                      </button>
+                    );
+                  })}
                   {/* Spacer so last item isn't hidden under fade */}
                   <div className="shrink-0 w-4" aria-hidden="true" />
                 </div>
