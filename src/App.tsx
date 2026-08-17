@@ -91,6 +91,7 @@ import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
 import { Announcement } from './components/ui/announcement';
 import { VelocityScroll } from './components/ui/scroll-based-velocity';
+import { CountdownClock } from './components/ui/countdown-clock';
 
 
 // Integrations
@@ -2201,8 +2202,16 @@ export default function App() {
                 </motion.div>
 
                 {/* SeraUI GlowLine subtle separator */}
-                <motion.div variants={heroItemVariants} className="w-full max-w-md mb-8 opacity-60">
+                <motion.div variants={heroItemVariants} className="w-full max-w-md mb-6 opacity-60">
                   <GlowLine color="orange" />
+                </motion.div>
+
+                {/* Animated Countdown Clock */}
+                <motion.div variants={heroItemVariants} className="mb-8">
+                  <CountdownClock
+                    targetDate={new Date('2026-08-28T17:59:00-05:00')}
+                    label="Submissions Close In"
+                  />
                 </motion.div>
 
                 {/* High Impact Actions */}
