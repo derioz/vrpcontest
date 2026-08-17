@@ -28,16 +28,18 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260816-1837',
     version: 'v1.9.7',
-    title: 'SeraUI Official Profile Dropdown & Clean Vector Heraldry Badges',
+    title: 'SeraUI Profile Suite, Award-Winning Hero Stage & Vector Heraldry Badges',
     category: 'UI/UX',
-    description: `• SeraUI Precision Vector Heraldry Badges: Overhauled the contest victory badges using custom geometric SVG vector heraldry emblems (GoldChampionIcon, PlatinumChampionIcon, GrandChampionIcon, MythicLegendIcon) with multi-stop metallic gradients, subtle rotating starlight orbits, and deep glassmorphic pill geometry.
+    description: `• Award-Winning SeraUI Hero Redesign: Completely overhauled the landing hero stage with dynamic SparklesText typography, SeraUI Announcement live signal pills, radial ambient orange auras, and a glowing neon GlowLine divider—eliminating raw emoji artifacts from contest titles.
+• Dual-Tone Headline Typography Hierarchy: Engineered intelligent title parsing that separates contest rounds (e.g. 'September Photo Contest') into radiant gold sparkles typography, paired with crisp platinum metallic theme subheadings (e.g. 'Rewrite the Rules') and cycling FlipWords taglines.
+• SeraUI Precision Vector Heraldry Badges: Overhauled the contest victory badges using custom geometric SVG vector heraldry emblems (GoldChampionIcon, PlatinumChampionIcon, GrandChampionIcon, MythicLegendIcon) with multi-stop metallic gradients, subtle rotating starlight orbits, and deep glassmorphic pill geometry.
 • Multi-Tier Victory Progression: Engineered a clean 4-tier victory system (1x Gold Winner, 2x Platinum Champion, 3-4x Royal Amethyst Grand Champion, and 5+ Mythic Legend) with refined dark glass backdrops, crisp metallic borders, and typography.
 • High-Density Compact Badge Numbers: Optimized compact badge displays across photo cards, profile capsules, and winner archives with crisp numeric indicators (e.g. [🏆 1], [👑 2x], [👑 3x], [🔥 5x]) preventing line breaks.
 • Official SeraUI Verify & Base Badge Primitives: Deployed the official SeraUI VerifyBadge component suite (https://seraui.com/docs/verify-badge) with Basic, Gold, and Premium verification badges alongside the reusable Badge component in components/ui/.
 • Official SeraUI Profile Dropdown Architecture: Re-engineered the platform profile dropdown matching the official SeraUI Dropdown specification (https://seraui.com/docs/dropdown) with frosted glassmorphism, online status beacon, inline DiceBear controls, and grouped actions.
 • Interactive Changelog Expand & Consolidation: Added expandable bullet lists with 'Show more highlights' toggles and a global Expand/Collapse All toolbar button.`,
     author: 'Damon',
-    date: 'Aug 16, 2026 at 6:53 PM',
+    date: 'Aug 16, 2026 at 7:06 PM',
   },
   {
     id: 'release-20260815-1556',

@@ -87,6 +87,9 @@ import { FlipWords } from './components/ui/flip-words';
 import { UITripledCategoryCard } from './components/UITripledCategoryCard';
 import { StickyCategoryNav } from './components/StickyCategoryNav';
 import ThreeDCarousel from './components/ui/three-d-carousel';
+import { SparklesText } from './components/ui/sparkles-text';
+import { GlowLine } from './components/ui/glowline';
+import { Announcement } from './components/ui/announcement';
 
 
 // Integrations
@@ -2058,48 +2061,65 @@ export default function App() {
         <WinnerAnnouncement winners={winners} contestName={activeContest.name} />
       )}
 
-      {/* Hero Banner — Spotlight Stage (Aceternity-inspired redesign) */}
+      {/* Hero Banner — SeraUI Award-Winning Hero Stage */}
       {activeContest ? (() => {
         const heroContainerVariants = {
           hidden: { opacity: 0 },
-          visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+          visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.05 } },
         };
         const heroItemVariants = {
-          hidden: { opacity: 0, y: 24 },
-          visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
         };
-        // Text-generate stagger: split title into words, animate each
-        const titleWords = activeContest.name.split(' ');
+
+        // Clean and sanitize the contest title (eliminate all emojis like 📁 📸 🏆)
+        const rawName = activeContest.name || '';
+        const cleanName = rawName
+          .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '')
+          .trim();
+
+        // Split on colon if present (e.g. "September Photo Contest: Rewrite the Rules")
+        let primaryTitle = cleanName;
+        let themeSubtitle = '';
+        if (cleanName.includes(':')) {
+          const colonParts = cleanName.split(':');
+          primaryTitle = colonParts[0].trim();
+          themeSubtitle = colonParts.slice(1).join(':').trim();
+        }
 
         return (
           <section
-            className="relative overflow-hidden border-b border-white/10 pt-20 sm:pt-28"
-            style={{ minHeight: '520px' }}
+            className="relative overflow-hidden border-b border-white/10 pt-24 sm:pt-32 pb-16 sm:pb-24"
+            style={{ minHeight: '540px' }}
           >
-            {/* ── Deep dark base ── */}
-            <div className="absolute inset-0 bg-[#060606]" />
+            {/* ── Deep luxury base ── */}
+            <div className="absolute inset-0 bg-[#050508]" />
 
-            {/* ── Aceternity Spotlight Beams — the ONE dominant atmosphere effect ── */}
+            {/* ── Radial Ambient Aura behind Hero ── */}
+            <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-br from-fivem-orange/20 via-amber-500/10 to-transparent blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute top-1/3 right-10 w-[400px] h-[400px] bg-gradient-to-bl from-purple-500/10 via-pink-500/5 to-transparent blur-[140px] rounded-full pointer-events-none" />
+
+            {/* ── Aceternity Spotlight Beams ── */}
             <Spotlight
-              className="-top-40 left-0 md:left-60 md:-top-20"
-              fill="rgba(234, 88, 12, 0.35)"
+              className="-top-40 left-0 md:left-48 md:-top-20"
+              fill="rgba(234, 88, 12, 0.32)"
             />
             <Spotlight
-              className="top-10 left-full -translate-x-[70%] h-[80vh] w-[50vw]"
-              fill="rgba(251, 146, 60, 0.18)"
+              className="top-10 left-full -translate-x-[75%] h-[80vh] w-[50vw]"
+              fill="rgba(251, 146, 60, 0.15)"
             />
 
-            {/* ── DotPattern — kept as subtle texture ── */}
-            <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.06] z-[1]" />
+            {/* ── DotPattern ── */}
+            <DotPattern width={28} height={28} cr={0.75} className="opacity-[0.05] z-[1]" />
             
-            {/* Main Interactive Category Section */}
+            {/* Categories Section Anchor */}
             <div id="categories-section" className="relative z-30 max-w-7xl mx-auto px-4 sm:px-6" />
 
             {/* ── Main Hero Layout ── */}
             <div className={cn(
               "relative z-10 max-w-7xl mx-auto px-4 sm:px-6 items-center",
-              photos.length > 0 ? "grid grid-cols-1 lg:grid-cols-2 gap-12" : "flex flex-col items-center text-center max-w-3xl"
-            )} style={{ paddingTop: '2.5rem', paddingBottom: '3.5rem' }}>
+              photos.length > 0 ? "grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16" : "flex flex-col items-center text-center max-w-3xl"
+            )}>
 
               {/* LEFT — Text, CTAs & Telemetry */}
               <motion.div
@@ -2108,72 +2128,66 @@ export default function App() {
                 animate="visible"
                 className={cn("flex flex-col", photos.length === 0 && "items-center")}
               >
-                {/* Live Competition Badge Pill */}
-                <motion.div variants={heroItemVariants} className="mb-6">
-                  <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-[#0c0c14]/90 backdrop-blur-xl px-4 py-1.5 text-xs font-mono select-none shadow-lg">
-                    <span className="w-2 h-2 rounded-full bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.8)] animate-pulse" />
-                    <AnimatedShinyText shimmerWidth={80}>
-                      <span className="text-white/80 font-bold uppercase tracking-wider">Vital RP Photo Contest</span>
+                {/* SeraUI Live Announcement Capsule */}
+                <motion.div variants={heroItemVariants} className="mb-5">
+                  <Announcement
+                    variant="gradient"
+                    badge={isVotingOpen ? 'VOTING LIVE' : isSubmissionsOpen ? 'SUBMISSIONS OPEN' : 'ACTIVE CONTEST'}
+                    badgeColor={
+                      isVotingOpen
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                        : isSubmissionsOpen
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                        : 'bg-white/10 text-white/70 border border-white/20'
+                    }
+                  >
+                    <AnimatedShinyText shimmerWidth={100}>
+                      <span className="text-white/90 font-bold uppercase tracking-wider text-[11px]">
+                        Vital RP Photo Contest
+                      </span>
                     </AnimatedShinyText>
-                    <span className="text-white/20">•</span>
-                    <span className={cn(
-                      "font-bold uppercase tracking-wider text-[10px]",
-                      isVotingOpen ? "text-emerald-400" : isSubmissionsOpen ? "text-amber-400" : "text-white/60"
-                    )}>
-                      {isVotingOpen ? 'Voting Live' : isSubmissionsOpen ? 'Submissions Open' : 'Active'}
-                    </span>
-                  </div>
+                  </Announcement>
                 </motion.div>
 
-                {/* Main Headline */}
-                <motion.h2
-                  variants={heroItemVariants}
-                  className={cn(
-                    "text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.1] mb-5",
-                    photos.length === 0 && "text-center"
+                {/* Main Headline with SparklesText and Dual-Tone Hierarchy */}
+                <motion.div variants={heroItemVariants} className={cn("mb-4 space-y-1.5", photos.length === 0 && "text-center")}>
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.08] text-white">
+                    <SparklesText
+                      text={primaryTitle}
+                      sparklesCount={8}
+                      colors={{ first: '#f59e0b', second: '#fb923c' }}
+                      className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight"
+                    />
+                  </h1>
+                  {themeSubtitle && (
+                    <div className={cn("pt-1", photos.length === 0 && "flex justify-center")}>
+                      <span className="text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black font-display tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent drop-shadow-sm">
+                        {themeSubtitle}
+                      </span>
+                    </div>
                   )}
-                  style={{ textWrap: 'balance' }}
-                >
-                  {titleWords.map((word, idx) => (
-                    <motion.span
-                      key={`${word}-${idx}`}
-                      initial={{ opacity: 0, filter: 'blur(10px)', y: 10 }}
-                      animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-                      transition={{
-                        duration: 0.5,
-                        delay: 0.3 + idx * 0.08,
-                        ease: 'easeOut',
-                      }}
-                      className="inline-block mr-[0.25em]"
-                      style={{
-                        backgroundImage: idx < 2
-                          ? 'linear-gradient(to right, #ea580c, #fb923c, #fcd34d)'
-                          : 'linear-gradient(to right, #ffffff, #e5e5e5)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                        color: 'transparent',
-                      }}
-                    >
-                      {word}
-                    </motion.span>
-                  ))}
-                </motion.h2>
+                </motion.div>
 
-                {/* Animated Tagline */}
+                {/* Animated Tagline via FlipWords */}
                 <motion.div variants={heroItemVariants} className={cn(
-                  "text-white/65 text-base leading-relaxed mb-8 max-w-md font-medium h-[3em]",
+                  "text-white/65 text-sm sm:text-base leading-relaxed mb-6 max-w-lg font-medium h-[2.8em]",
                   photos.length === 0 && "text-center mx-auto"
                 )}>
                   <FlipWords
                     words={[
-                      "Capture the spirit of Los Santos through your lens.",
-                      "Submit your finest in-game photography.",
-                      "Community votes decide the champions.",
+                      "Capture the visual spirit of Los Santos through your lens.",
+                      "Submit your finest high-resolution in-game photography.",
+                      "Community votes decide the five round co-champions.",
+                      "Win eternal glory, custom badges, and server loading screen fame.",
                     ]}
-                    duration={3500}
-                    className="text-white/65"
+                    duration={3600}
+                    className="text-white/70 font-sans"
                   />
+                </motion.div>
+
+                {/* SeraUI GlowLine subtle separator */}
+                <motion.div variants={heroItemVariants} className="w-full max-w-md mb-8 opacity-60">
+                  <GlowLine color="orange" />
                 </motion.div>
 
                 {/* High Impact Actions */}
@@ -2212,7 +2226,7 @@ export default function App() {
                       e.preventDefault();
                       document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-white/[0.08] border border-white/15 hover:border-white/25 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md"
+                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-white/[0.08] border border-white/15 hover:border-white/25 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
                   >
                     <FileText size={14} className="text-fivem-orange" />
                     Rules & Guidelines
@@ -2221,7 +2235,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setShowCategorySuggestions(true)}
-                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-fivem-orange/15 border border-white/15 hover:border-fivem-orange/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md"
+                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-fivem-orange/15 border border-white/15 hover:border-fivem-orange/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
                   >
                     <Sparkles size={14} className="text-amber-400" />
                     Suggest Category
