@@ -329,37 +329,6 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     };
   }, []);
 
-  // Compute top all-time champions for the legends capsule (strictly grouped by unique Discord user)
-  const topLegends = useMemo(() => {
-    const userMap = new Map<string, { displayName: string; discordName: string; winCount: number; avatarUrl: string; userId?: string }>();
-
-    winners.forEach((w) => {
-      const discKey = (w.discord_name || '').toLowerCase().trim();
-      const playerKey = (w.player_name || '').toLowerCase().trim();
-      const primaryKey = discKey || playerKey || 'unknown';
-
-      const existing = userMap.get(primaryKey);
-      if (existing) {
-        existing.winCount += 1;
-        if (w.player_name && (!existing.displayName || existing.displayName === existing.discordName)) {
-          existing.displayName = w.player_name;
-        }
-      } else {
-        userMap.set(primaryKey, {
-          displayName: w.player_name || w.discord_name || 'Photographer',
-          discordName: w.discord_name || w.player_name || 'user',
-          winCount: 1,
-          avatarUrl: resolveAvatarUrl(w),
-          userId: w.user_id,
-        });
-      }
-    });
-
-    return Array.from(userMap.values())
-      .sort((a, b) => b.winCount - a.winCount)
-      .slice(0, 3);
-  }, [winners, resolveAvatarUrl]);
-
   // Filter displayed winners by selected contest, user filter, filter mode, and search query
   const displayedWinners = useMemo(() => {
     let result = winners;
@@ -661,65 +630,6 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                   })}
                 </div>
               </div>
-
-              {/* Bottom Section: Top Legends Capsule */}
-              {topLegends.length > 0 && (
-                <div className="p-4 border-t border-white/[0.08] bg-black/40 space-y-2.5 shrink-0">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[10px] font-mono font-bold text-amber-400/90 uppercase tracking-[0.15em] flex items-center gap-1.5">
-                      <Crown size={12} className="text-amber-400" />
-                      <span>All-Time Legends</span>
-                    </span>
-                    <span className="text-[9px] font-mono text-white/30">Top Champions</span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {topLegends.map((legend) => {
-                      const isFilteringThisUser = selectedUserFilter?.displayName?.toLowerCase() === legend.displayName.toLowerCase();
-                      return (
-                        <button
-                          key={legend.discordName || legend.displayName}
-                          type="button"
-                          onClick={() => {
-                            setSelectedUserFilter({
-                              displayName: legend.displayName,
-                              discordName: legend.discordName,
-                              userId: legend.userId,
-                            });
-                            toast.info(`Filtering Hall of Fame for ${legend.displayName}`);
-                          }}
-                          className={cn(
-                            "w-full flex items-center justify-between p-2 rounded-xl border text-left transition-all group cursor-pointer",
-                            isFilteringThisUser
-                              ? "bg-amber-500/20 border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-                              : "bg-white/[0.02] hover:bg-white/[0.06] border-white/5 hover:border-white/10"
-                          )}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <img
-                              src={legend.avatarUrl}
-                              alt={legend.displayName}
-                              className="w-6 h-6 rounded-full border border-amber-400/40 object-cover shrink-0"
-                            />
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-white truncate font-display group-hover:text-amber-300 transition-colors">
-                                {legend.displayName}
-                              </p>
-                              <p className="text-[9px] font-mono text-white/40 truncate">
-                                @{legend.discordName}
-                              </p>
-                            </div>
-                          </div>
-
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-300 shrink-0">
-                            {legend.winCount}x 👑
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </aside>
 
             {/* ── REFINED MOBILE CONTROLS BAR (Only visible on mobile < md) ── */}

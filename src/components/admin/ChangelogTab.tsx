@@ -30,8 +30,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
     version: 'v1.9.7',
     title: 'Luxury Vault Sidebar, Animated Controls Suite & Grid Lines Auth',
     category: 'UI/UX',
-    description: `• Immutable Photographer Identity & Attribution Fix: Resolved a user resolution defect where the viewer's local session username was erroneously substituting the historical author credits of archived winners. Enforced strict discrete keying for unique Discord handles, preventing cross-user portfolio pollution and guaranteeing accurate photographer attribution across all Hall of Fame entries.
-• Luxury One-of-a-Kind Hall of Fame Vault Sidebar: Completely redesigned the Hall of Fame sidebar into a bespoke luxury vault browser—featuring intelligent dual-line title parsing (separating edition rounds from themes), illuminated golden left indicators, master 'All Contest Editions' switch card, integrated quick search with instant clear controls, and an All-Time Grand Champions mini-hall capsule highlighting top winning photographers with avatar previews and click-to-filter.
+    description: `• Streamlined Luxury Vault Sidebar: Completely redesigned the Hall of Fame sidebar into a clean luxury vault browser—featuring intelligent dual-line title parsing (separating edition rounds from themes), illuminated golden left indicators, master 'All Contest Editions' switch card, and integrated quick search with instant clear controls.
+• Immutable Photographer Identity & Attribution Fix: Enforced strict discrete author attribution and isolated Discord handle queries, guaranteeing genuine photographer credits across all Hall of Fame vault entries.
 • Animated Controls & Security Suite: Overhauled the administrative Controls & Security hub with Framer Motion spring physics toggle switches, dynamic glowing halos, real-time live telemetry status strips, and categorized card grids for contest gates, anti-fraud enforcement, and 2048-bit RSA encryption.
 • shadcn/ui Radix Skeleton Placeholder Suite: Integrated the official shadcn/ui Skeleton component (https://ui.shadcn.com/docs/components/radix/skeleton) across the platform—replacing raw spinners with animated dark glass skeleton screens across Hall of Fame vault archives, Category Suggestions feed, Admin Analytics dashboard, submissions preview, and voter audit directory.
 • Aceternity UI Simple Login with Grid Lines: Re-engineered the platform authentication modal matching Aceternity UI's iconic grid lines block (https://ui.aceternity.com/blocks/login-and-signup-sections/simple-login-with-grid-lines) with signature corner cross marks (+), linear background grid, glowing Vital RP heraldry, and a dedicated high-impact Discord OAuth2 button.
@@ -44,7 +44,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • High-Density Compact Badge Numbers: Optimized compact badge displays across photo cards, profile capsules, and winner archives with crisp numeric indicators (e.g. [🏆 1], [👑 2x], [👑 3x], [🔥 5x]) preventing line breaks.
 • Official SeraUI Verify & Profile Dropdown: Deployed official SeraUI VerifyBadge components with Basic/Gold/Premium variants, paired with frosted glassmorphic profile dropdowns, online status beacons, and unified DiceBear controls.`,
     author: 'Damon',
-    date: 'Aug 16, 2026 at 9:05 PM',
+    date: 'Aug 16, 2026 at 9:08 PM',
   },
   {
     id: 'release-20260815-1556',
