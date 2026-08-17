@@ -28,9 +28,11 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260816-1837',
     version: 'v1.9.7',
-    title: 'Magic UI Scroll-Based Velocity Hero Suite, SeraUI Profile Hub & Vector Heraldry Badges',
+    title: 'Aceternity Grid Lines Login, Wide Rules Suite & Magic UI Velocity Typography',
     category: 'UI/UX',
-    description: `• Magic UI Ambient Scroll-Based Velocity Backdrop: Integrated the official Magic UI Scroll-Based Velocity component (https://magicui.design/docs/components/scroll-based-velocity) as a clean, minimal kinetic backdrop behind the hero stage with Framer Motion velocity physics and seamless infinite repetition loops.
+    description: `• Aceternity UI Simple Login with Grid Lines: Re-engineered the platform authentication modal matching Aceternity UI's iconic grid lines block (https://ui.aceternity.com/blocks/login-and-signup-sections/simple-login-with-grid-lines) with signature corner cross marks (+), linear background grid, glowing Vital RP heraldry, and a dedicated high-impact Discord OAuth2 button.
+• Full-Width Wide Contest Rules & Guidelines Suite: Completely redesigned the rules section to span the full stage width below the submissions grid—featuring 4 quick-reference pillar cards (1080p+ resolution, in-game authenticity, fair play, 5 co-champions), BorderBeam light accents, and spacious Markdown formatting.
+• Magic UI Ambient Scroll-Based Velocity Backdrop: Integrated the official Magic UI Scroll-Based Velocity component (https://magicui.design/docs/components/scroll-based-velocity) as a clean, minimal kinetic backdrop behind the hero stage with Framer Motion velocity physics and seamless infinite repetition loops.
 • Award-Winning SeraUI Hero Redesign: Completely overhauled the landing hero stage with dynamic SparklesText typography, SeraUI Announcement live signal pills, radial ambient orange auras, and a glowing neon GlowLine divider—eliminating raw emoji artifacts from contest titles.
 • Dual-Tone Headline Typography Hierarchy: Engineered intelligent title parsing that separates contest rounds (e.g. 'September Photo Contest') into radiant gold sparkles typography, paired with crisp platinum metallic theme subheadings (e.g. 'Rewrite the Rules') and cycling FlipWords taglines.
 • SeraUI Precision Vector Heraldry Badges: Overhauled the contest victory badges using custom geometric SVG vector heraldry emblems (GoldChampionIcon, PlatinumChampionIcon, GrandChampionIcon, MythicLegendIcon) with multi-stop metallic gradients, subtle rotating starlight orbits, and deep glassmorphic pill geometry.
@@ -38,7 +40,7 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • High-Density Compact Badge Numbers: Optimized compact badge displays across photo cards, profile capsules, and winner archives with crisp numeric indicators (e.g. [🏆 1], [👑 2x], [👑 3x], [🔥 5x]) preventing line breaks.
 • Official SeraUI Verify & Profile Dropdown: Deployed official SeraUI VerifyBadge components with Basic/Gold/Premium variants, paired with frosted glassmorphic profile dropdowns, online status beacons, and unified DiceBear controls.`,
     author: 'Damon',
-    date: 'Aug 16, 2026 at 8:08 PM',
+    date: 'Aug 16, 2026 at 8:34 PM',
   },
   {
     id: 'release-20260815-1556',

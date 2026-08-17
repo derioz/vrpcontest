@@ -110,6 +110,8 @@ const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashbo
 import AdminPanel from './components/admin/AdminPanel';
 import { ContestClosedModal } from './components/ContestClosedModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ContestRulesSection } from './components/ContestRulesSection';
+import { GridLinesLoginModal } from './components/GridLinesLoginModal';
 
 
 
@@ -2679,30 +2681,6 @@ export default function App() {
             )}
           </section>
 
-          {/* Rules Section */}
-          <section id="rules" className="pt-12 pb-24 border-t border-white/10">
-            <div className="mb-8">
-              <h2 className="text-3xl font-display font-bold mb-2">Contest Rules & Details</h2>
-              <p className="text-white/50">Please read carefully before submitting your entries.</p>
-            </div>
-            <div className="p-8 md:p-12 glass rounded-3xl border border-white/10 relative overflow-hidden">
-              {/* Premium Glow Aesthetic behind rules */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-fivem-orange/10 blur-[120px] rounded-full pointer-events-none" />
-
-              {rulesMarkdown ? (
-                <div className="prose prose-invert prose-orange max-w-none text-sm leading-relaxed space-y-4 prose-headings:font-display prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-2xl sm:prose-h1:text-3xl prose-h1:text-white prose-h1:border-b prose-h1:border-white/10 prose-h1:pb-3 prose-h2:text-lg sm:prose-h2:text-xl prose-h2:text-fivem-orange prose-h2:mt-6 prose-h3:text-sm sm:prose-h3:text-base prose-h3:text-amber-300 prose-h3:mt-4 prose-p:text-white/80 prose-p:whitespace-pre-wrap prose-p:leading-relaxed prose-li:text-white/80 prose-li:my-1.5 prose-strong:text-white prose-strong:font-bold prose-em:text-amber-200 prose-a:text-fivem-orange prose-a:underline hover:prose-a:text-amber-400 prose-a:transition-colors prose-blockquote:border-l-4 prose-blockquote:border-fivem-orange prose-blockquote:bg-white/[0.03] prose-blockquote:p-4 prose-blockquote:rounded-r-2xl prose-blockquote:text-white/85 prose-blockquote:not-italic prose-blockquote:shadow-sm prose-code:bg-white/10 prose-code:text-amber-300 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-lg prose-code:font-mono prose-code:text-xs prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-white/10 prose-th:bg-white/5 prose-th:p-3 prose-th:text-white prose-th:font-display prose-td:border prose-td:border-white/10 prose-td:p-3 prose-td:text-white/75 prose-hr:border-white/10 prose-hr:my-6 relative z-10">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {rulesMarkdown}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center relative z-10">
-                  <FileText size={48} className="text-white/10 mb-4" />
-                  <p className="text-white/40 font-medium">No rules have been posted yet.</p>
-                </div>
-              )}
-            </div>
-          </section>
         </div>
 
         {/* Contest Info Sidebar – 1 col (SeraUI Design) */}
@@ -2724,6 +2702,9 @@ export default function App() {
           />
         </div>
       </main>
+
+      {/* ── Redesigned Full-Width Wide Contest Rules & Guidelines ── */}
+      <ContestRulesSection rulesMarkdown={rulesMarkdown} />
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
         <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl max-h-[92vh] overflow-y-auto bg-[#0a0a0e] border-white/15 text-white p-5 sm:p-7 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)]">
@@ -3497,141 +3478,21 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Sign In Modal */}
-      <Dialog open={showSignInModal} onOpenChange={setShowSignInModal}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md bg-fivem-card border-white/10 text-white">
-          <DialogHeader>
-            <DialogTitle className="font-display text-center text-lg">Sign In</DialogTitle>
-          </DialogHeader>
-          <p className="text-center text-xs text-white/40 -mt-2 mb-1">Choose your preferred sign-in method</p>
-          <SignInOptions
-            onDiscordLogin={async () => {
-              setShowSignInModal(false);
-              const success = await handleDiscordLogin();
-              if (!success) setShowSignInModal(true);
-            }}
-            onEmailLinkSent={() => setShowSignInModal(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* ── Aceternity UI — Simple Login With Grid Lines Modal ── */}
+      <GridLinesLoginModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        onDiscordLogin={async () => {
+          setShowSignInModal(false);
+          const success = await handleDiscordLogin();
+          if (!success) setShowSignInModal(true);
+        }}
+      />
 
     </ShaderBackground>
   );
 }
 
-
-function SignInOptions({ onDiscordLogin, onEmailLinkSent }: { onDiscordLogin: () => void; onEmailLinkSent: () => void }) {
-  const [email, setEmail] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSendLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    setLoading(true);
-    setError('');
-    try {
-      const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true,
-      };
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      window.localStorage.setItem('emailForSignIn', email);
-      setEmailSent(true);
-      toast.success('Magic link sent! Check your email inbox.');
-      setTimeout(() => onEmailLinkSent(), 2000);
-    } catch (err: any) {
-      console.error('Email link send error:', err);
-      if (err.code === 'auth/invalid-email') {
-        setError('Please enter a valid email address.');
-      } else if (err.code === 'auth/unauthorized-continue-uri') {
-        setError('This domain is not authorized. Contact an admin.');
-      } else {
-        setError(err.message || 'Failed to send sign-in link.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (emailSent) {
-    return (
-      <div className="text-center space-y-3 p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-          <Mail className="text-emerald-400" size={24} />
-        </div>
-        <p className="text-sm font-bold text-emerald-400">Check your email!</p>
-        <p className="text-xs text-white/50">We sent a sign-in link to <span className="text-white/70 font-mono">{email}</span></p>
-        <p className="text-[10px] text-white/30">Click the link in your email to sign in. You can close this dialog.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      {/* Discord Option */}
-      <button
-        type="button"
-        onClick={() => onDiscordLogin()}
-        className="group w-full relative overflow-hidden bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2.5 transition-all hover:shadow-[0_0_28px_rgba(88,101,242,0.45)] hover:-translate-y-0.5 text-sm"
-      >
-        <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
-        <svg role="img" viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0 relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.014.043.031.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-        </svg>
-        <span className="relative z-10">Continue with Discord</span>
-      </button>
-
-      {/* Divider */}
-      <div className="relative py-1">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-white/10"></span>
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-fivem-card px-3 text-white/20 font-mono">Or use email</span>
-        </div>
-      </div>
-
-      {/* Email Link Form */}
-      <form onSubmit={handleSendLink} className="space-y-3">
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="bg-white/5 border-white/10 pl-10 h-12"
-            placeholder="your@email.com"
-            required
-          />
-        </div>
-        {error && <p className="text-red-400 text-xs">{error}</p>}
-        <Button
-          type="submit"
-          disabled={loading || !email}
-          className="w-full h-12 bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(234,88,12,0.3)]"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="animate-spin" size={16} />
-              Sending...
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Mail size={16} />
-              Send Magic Link
-            </span>
-          )}
-        </Button>
-        <p className="text-[10px] text-white/30 text-center leading-relaxed">
-          No password needed — we'll email you a secure sign-in link.<br />
-          New here? This will create your account automatically.
-        </p>
-      </form>
-    </div>
-  );
-}
 
 
 
