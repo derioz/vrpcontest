@@ -193,8 +193,8 @@ export function CategoryNav({
                         {cat.emoji || '✨'}
                       </span>
 
-                      {/* Category Name (Constant font weight to prevent layout jitter) */}
-                      <span className="relative z-10 truncate max-w-[130px] sm:max-w-[180px] leading-tight tracking-wide">
+                      {/* Category Name (Full readable width without artificial truncation) */}
+                      <span className="relative z-10 whitespace-nowrap leading-tight tracking-wide">
                         {cat.name}
                       </span>
 
@@ -236,7 +236,7 @@ export function CategoryNav({
 
           {/* Right Active Indicator Pill on wide screens */}
           <div className="hidden lg:flex items-center gap-1.5 shrink-0 pl-2 border-l border-white/10 text-xs font-mono text-white/40">
-            <span className="text-white/80 font-bold truncate max-w-[140px] font-display">
+            <span className="text-white/80 font-bold whitespace-nowrap font-display">
               {selectedCategory?.emoji} {selectedCategory?.name || 'All'}
             </span>
           </div>

@@ -2591,23 +2591,32 @@ export default function App() {
         {/* Main Content – 3 cols */}
         <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
           <section ref={categoryHeaderRef} id="category-header-anchor" className="scroll-mt-36 sm:scroll-mt-44">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <motion.div
-                key={selectedCategory?.id || 'none'}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="flex-1 min-w-0"
-              >
-                <div className="flex items-center gap-3 mb-1.5">
-                  <span className="text-3xl leading-none">{selectedCategory?.emoji || '📷'}</span>
-                  <h2 className="text-2xl font-display font-bold text-white">{selectedCategory?.name || 'Entries'}</h2>
-                </div>
-                {selectedCategory?.description && (
-                  <p className="text-sm text-white/50 leading-relaxed max-w-2xl">{selectedCategory?.description}</p>
-                )}
-                <p className="text-xs text-white/35 mt-1.5 font-mono">{photos.length} entries submitted</p>
-              </motion.div>
+            <motion.div
+              layout
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 min-h-[76px]"
+            >
+              <div className="flex-1 min-w-0">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={selectedCategory?.id || 'none'}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                  >
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <span className="text-3xl leading-none">{selectedCategory?.emoji || '📷'}</span>
+                      <h2 className="text-2xl font-display font-bold text-white">{selectedCategory?.name || 'Entries'}</h2>
+                    </div>
+                    {selectedCategory?.description && (
+                      <p className="text-sm text-white/50 leading-relaxed max-w-2xl">{selectedCategory?.description}</p>
+                    )}
+                    <p className="text-xs text-white/35 mt-1.5 font-mono">{photos.length} entries submitted</p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
               <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shrink-0 self-start sm:self-auto">
                 <button
                   onClick={() => setSortBy('top')}
@@ -2628,8 +2637,12 @@ export default function App() {
                   NEWEST
                 </button>
               </div>
-            </div>
+            </motion.div>
 
+            <motion.div
+              layout
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
             {isCategoryLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {[1, 2, 3, 4].map((n) => (
@@ -2834,6 +2847,7 @@ export default function App() {
                 </motion.div>
               </AnimatePresence>
             )}
+            </motion.div>
           </section>
 
         </div>

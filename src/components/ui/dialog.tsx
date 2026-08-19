@@ -38,15 +38,15 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-[150] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border border-white/10 bg-gradient-to-b from-[#0e0e14]/98 via-[#0a0a0f]/98 to-[#08080c]/98 shadow-[0_30px_90px_rgba(0,0,0,0.95)] backdrop-blur-2xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-3xl flex flex-col max-h-[90dvh] overflow-hidden text-white",
+        "fixed left-[50%] top-[50%] z-[150] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border border-white/10 bg-gradient-to-b from-[#0e0e14]/98 via-[#0a0a0f]/98 to-[#08080c]/98 shadow-[0_30px_90px_rgba(0,0,0,0.95)] backdrop-blur-2xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-3xl flex flex-col max-h-[90dvh] overflow-hidden text-white relative",
         className
       )}
       {...props}
     >
-      <div className="overflow-y-auto flex-1 p-6">
+      <div className="overflow-y-auto flex-1 p-5 sm:p-7 pr-7 sm:pr-9 space-y-4 custom-scrollbar">
         {children}
       </div>
-      <DialogPrimitive.Close className="absolute right-4 top-4 z-10 p-2 rounded-full bg-white/[0.05] border border-white/10 text-white/50 hover:text-white hover:bg-white/15 transition-all cursor-pointer focus:outline-none">
+      <DialogPrimitive.Close className="absolute right-4 top-4 z-20 p-2 rounded-full bg-[#121218]/90 hover:bg-[#1f1f2a] border border-white/15 text-white/60 hover:text-white transition-all cursor-pointer focus:outline-none shadow-lg active:scale-95">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -61,7 +61,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
+      "flex flex-col space-y-1.5 text-center sm:text-left pr-8 sm:pr-10",
       className
     )}
     {...props}

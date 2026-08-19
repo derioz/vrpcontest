@@ -108,27 +108,30 @@ export function BugReportModal({ isOpen, onClose, user }: BugReportModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 12 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="relative w-full max-w-lg rounded-3xl border border-white/15 bg-[#0a0a0d] p-6 sm:p-7 shadow-[0_20px_70px_rgba(0,0,0,0.9)] z-10 space-y-6 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-lg rounded-3xl border border-white/15 bg-[#0a0a0d] shadow-[0_20px_70px_rgba(0,0,0,0.9)] z-10 max-h-[90vh] flex flex-col overflow-hidden"
           >
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute top-5 right-5 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all cursor-pointer border border-white/10"
-            >
-              <X size={16} />
-            </button>
-
-            {/* Header */}
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange shadow-[0_0_16px_rgba(234,88,12,0.2)]">
-                <Bug size={22} />
+            {/* Dedicated Fixed Header (Never covered by scrollbar) */}
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-white/[0.08] shrink-0 bg-[#0d0d12]">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange shadow-[0_0_16px_rgba(234,88,12,0.2)]">
+                  <Bug size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black font-display text-white">Report Bug / Contact Creator</h3>
+                  <p className="text-xs text-white/40 font-mono mt-0.5">Direct link to Lead Developer Damon</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg sm:text-xl font-black font-display text-white">Report Bug / Contact Creator</h3>
-                <p className="text-xs text-white/40 font-mono mt-0.5">Direct link to Lead Developer Damon</p>
-              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all cursor-pointer border border-white/10"
+              >
+                <X size={16} />
+              </button>
             </div>
+
+            {/* Scrollable Content Body with dedicated right clearance */}
+            <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-6 custom-scrollbar">
 
             {/* ── DAMON'S DISCORD PROFILE SHOWCASE CARD ── */}
             <div className="relative overflow-hidden rounded-2xl border border-fivem-orange/30 bg-gradient-to-b from-[#161620] via-[#101018] to-[#0a0a0e] p-5 shadow-2xl">
@@ -242,6 +245,7 @@ export function BugReportModal({ isOpen, onClose, user }: BugReportModalProps) {
                 <span>{isSubmitting ? 'Submitting Report...' : 'Submit Bug Report'}</span>
               </button>
             </form>
+          </div>
 
           </motion.div>
         </div>
