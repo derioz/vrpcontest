@@ -125,17 +125,52 @@ export default function App() {
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const categoryCacheRef = useRef<Map<string, { photos: Photo[]; timestamp: number }>>(new Map());
+  const topNavContainerRef = useRef<HTMLDivElement>(null);
+  const categoryHeaderRef = useRef<HTMLElement>(null);
+  const pendingScrollCategoryRef = useRef<string | null>(null);
 
   // Helper to slugify category name for clean URLs (?category=farm-life)
   const slugifyCategory = (name: string) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
   };
 
+  // Helper to dynamically calculate total sticky navigation height across all viewports
+  const getStickyNavHeight = useCallback(() => {
+    if (topNavContainerRef.current) {
+      const rect = topNavContainerRef.current.getBoundingClientRect();
+      const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+      // When at the very top, the navbar expands to 80px; when scrolled it shrinks to 56px (difference = 24px)
+      const isCurrentlyAtTop = currentScrollY < 60;
+      return isCurrentlyAtTop ? rect.height - 24 : rect.height;
+    }
+    return window.innerWidth >= 640 ? 126 : 108;
+  }, []);
+
+  // Dedicated function to smoothly and deterministically scroll to the Selected Category Header
+  const scrollToCategoryHeader = useCallback((force = false) => {
+    const headerEl = categoryHeaderRef.current || document.getElementById('category-header-anchor') || document.getElementById('submissions-area');
+    if (!headerEl) return;
+
+    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+    const headerRect = headerEl.getBoundingClientRect();
+    const stickyHeight = getStickyNavHeight();
+    const targetY = Math.max(0, currentScrollY + headerRect.top - stickyHeight - 16);
+
+    // If currently above submissions area (Hero/Rules) or forced, or if the header is obscured/scrolled past
+    const isAboveSubmissions = currentScrollY < 350;
+    const isHeaderObscured = headerRect.top < stickyHeight - 20;
+
+    if (isAboveSubmissions || isHeaderObscured || force) {
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    }
+  }, [getStickyNavHeight]);
+
   // Smart Category Selection:
-  // - If user is browsing at the top (Hero / Rules), smoothly scroll down to position Selected Category Title immediately underneath CategoryNav
-  // - If user is already browsing inside the submissions area, update category in-place without jumping
+  // - Updates category state and sets pending scroll flag
+  // - Triggers scroll in post-render lifecycle so category header is guaranteed to be rendered
   const handleCategorySelect = useCallback((category: Category, forceScroll = false) => {
     setSelectedCategory(category);
+    pendingScrollCategoryRef.current = category.id;
 
     // Synchronize category in URL query params without full page reload
     if (typeof window !== 'undefined') {
@@ -146,18 +181,20 @@ export default function App() {
         window.history.pushState({ categoryId: category.id }, '', url.toString());
       }
     }
-
-    // Scroll smoothly to submissions area if currently above it
-    const submissionsEl = document.getElementById('submissions-area');
-    if (submissionsEl) {
-      const rect = submissionsEl.getBoundingClientRect();
-      const combinedNavHeight = window.innerWidth >= 640 ? 144 : 124;
-      if (rect.top > combinedNavHeight + 30 || forceScroll) {
-        const y = rect.top + window.pageYOffset - combinedNavHeight;
-        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-      }
-    }
   }, []);
+
+  // Post-render lifecycle: trigger precise scroll after React has rendered the updated category header
+  useEffect(() => {
+    if (pendingScrollCategoryRef.current && selectedCategory?.id === pendingScrollCategoryRef.current) {
+      pendingScrollCategoryRef.current = null;
+      // Double requestAnimationFrame ensures React commit phase and browser layout reflow are complete
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToCategoryHeader();
+        });
+      });
+    }
+  }, [selectedCategory?.id, scrollToCategoryHeader]);
 
   // Listen to browser Back/Forward navigation to restore selected category
   useEffect(() => {
@@ -1801,7 +1838,7 @@ export default function App() {
       <div className={cn("flex flex-col flex-1 transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
         
         {/* ── 1. UNIFIED FIXED TOP NAVIGATION CONTAINER ── */}
-        <div className="fixed top-0 sm:top-2.5 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl z-50 pointer-events-none flex flex-col gap-1 sm:gap-2 px-0">
+        <div ref={topNavContainerRef} className="fixed top-0 sm:top-2.5 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl z-50 pointer-events-none flex flex-col gap-1 sm:gap-2 px-0">
           <motion.header
             ref={navbarRef}
             style={{ height: navH }}
@@ -2552,7 +2589,7 @@ export default function App() {
       <main id="submissions-area" className="scroll-mt-36 sm:scroll-mt-44 max-w-7xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
         {/* Main Content – 3 cols */}
         <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
-          <section>
+          <section ref={categoryHeaderRef} id="category-header-anchor" className="scroll-mt-36 sm:scroll-mt-44">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <motion.div
                 key={selectedCategory?.id || 'none'}

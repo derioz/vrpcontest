@@ -26,20 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260818-2025',
+    id: 'release-20260818-2030',
     version: 'v1.9.8',
-    title: 'Permanent Secondary CategoryNav Suite, Zero Initial Scroll & Cyber-Glass Segmented Track',
+    title: 'Precision Category Scroll Coordinator, Cyber-Glass Navigation & Zero-Waste Cache',
     category: 'UI/UX',
-    description: `• Permanent Secondary CategoryNav Header: Unified the Main Navbar and Category Navigation into a permanent top fixed header—visible immediately on initial landing (scrollTop = 0) with zero threshold show/hide delay and zero flickering.
+    description: `• Post-Render Precision Scroll Coordinator: Engineered a dedicated ref-based scroll coordinator with double requestAnimationFrame post-render execution, guaranteeing the viewport only scrolls after the Selected Category Title has fully rendered in the DOM.
+• Dynamic Viewport Docking: Replaced fragile hardcoded scroll offsets with dynamic topNavContainerRef and categoryHeaderRef bounding rect measurements, docking the Selected Category Title exactly 16px directly beneath the sticky CategoryNav across desktop, tablet, and mobile.
+• In-Place Realignment on Category Switch: When switching categories while browsing submissions, crossfades content smoothly in-place and realigns only if the category title would be obscured by sticky headers.
+• Permanent Secondary CategoryNav Header: Unified the Main Navbar and Category Navigation into a permanent top fixed header—visible immediately on initial landing (scrollTop = 0) with zero threshold show/hide delay and zero flickering.
 • Cyber-Glass Segmented Track Redesign: Completely redesigned CategoryNav into a custom cyber-glass segmented capsule rail with moving gradient spring physics (layoutId), luminous Topics beacon, and crisp micro-count badges.
 • Pure Lightweight Micro-Interactions: Completely removed heavy hover preview cards and description expansions in favor of zero-layout-shift micro-hover glows and icon animations.
-• Absolute Zero Auto-Scroll Initial Landing: Eliminated all window auto-scrolling on initial visit so users always start at the absolute top of the page (Navbar → CategoryNav → Hero → Rules → Submissions).
-• Combined-Height Viewport Docking: Engineered smart scroll math accounting for the combined height of the Navbar + CategoryNav so category selection docks flush above the Selected Category Title with zero overlap.
 • Zero-Waste Firebase Submissions Cache: Engineered a high-performance in-memory category caching engine (5-minute TTL) with per-category querying, eliminating redundant Firebase reads when toggling between themes (e.g. Spooky → Farm Life → Spooky reads 0 network bytes on return).
-• Touch-Optimized Mobile Rail: Designed a swipeable horizontal touch rail with dynamic gradient edge fades, internal auto-centering of active categories, and comfortable safe-area touch targets.
 • Deep-Linked URL State & Browser History Sync: Integrated bidirectional URL query synchronization (?category=slug) with popstate event listening, enabling direct category linking and effortless browser Back/Forward navigation without page reloads.`,
     author: 'Damon',
-    date: 'Aug 18, 2026 at 8:25 PM',
+    date: 'Aug 18, 2026 at 8:30 PM',
   },
   {
     id: 'release-20260816-1837',
