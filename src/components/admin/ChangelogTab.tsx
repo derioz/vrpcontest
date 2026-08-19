@@ -26,20 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260818-2045',
+    id: 'release-20260818-2050',
     version: 'v1.9.8',
-    title: 'Smooth Category Layout Morphing, Unconstrained Titles & Modal Scrollbar Clearance',
+    title: 'All-Visible Category Matrix (Zero Scroll), Viewport-Centered Modals & Layout Morphing',
     category: 'UI/UX',
-    description: `• Smooth Category Header Layout Morphing: Integrated Framer Motion layout animation across the category header and submissions container, smoothly interpolating variable description heights and gliding submissions without sudden layout snaps or page jitter.
-• 100% Readable Unconstrained Category Titles: Removed all artificial ellipsis and max-width truncation constraints in CategoryNav, allowing category names to expand naturally on desktop and scroll smoothly on mobile touch tracks.
+    description: `• All-Visible Category Matrix (Zero Horizontal Scrolling): Completely replaced the horizontal scrolling category rail with an intelligent responsive grid/matrix, displaying 100% of categories simultaneously across mobile (2-col), tablet, and desktop with zero swiping required.
+• Viewport-Centered Modal & Dialog Architecture: Upgraded the entire modal system with flexbox viewport centering (fixed inset-0 flex items-center justify-center) and direct body portaling, eliminating all page-offset positioning and clipping bugs across all dialogs.
+• Smooth Category Header Layout Morphing: Integrated Framer Motion layout animation across the category header and submissions container, smoothly interpolating variable description heights and gliding submissions without sudden layout snaps or page jitter.
+• Dynamic Multi-Row Sticky Navigation Docking: Engineered smart scroll measurement that adapts dynamically to multi-row CategoryNav heights, docking the Selected Category Title flush below the navigation on all viewports.
+• Liquid Morphing Active Pill Indicator: Redesigned the CategoryNav active state using Framer Motion shared layout spring physics (layoutId), creating a fluid, silky glide between category buttons with zero font-weight jitter, zero scaling distortion, and 100% layout stability.
 • Modal Scrollbar & Close Button Clearance: Redesigned DialogContent and custom modals with fixed header architecture and dedicated right clearance (pr-7 sm:pr-9), ensuring close buttons never cover scrollbars, text, or interactive controls.
 • Universal Category Scroll Re-Alignment: Fixed scroll coordinator so selecting any category smoothly docks the viewport at the Selected Category Title from any page position (Hero, Rules, halfway between sections, deep submissions, or after scrolling back up).
-• Liquid Morphing Active Pill Indicator: Redesigned the CategoryNav active state using Framer Motion shared layout spring physics (layoutId), creating a fluid, silky glide between category buttons with zero font-weight jitter, zero scaling distortion, and 100% layout stability.
-• Post-Render Precision Viewport Docking: Replaced fragile hardcoded scroll offsets with dynamic topNavContainerRef and categoryHeaderRef bounding rect measurements, docking the Selected Category Title exactly 16px directly beneath the sticky CategoryNav across desktop, tablet, and mobile.
-• Permanent Secondary CategoryNav Header: Unified the Main Navbar and Category Navigation into a permanent top fixed header—visible immediately on initial landing (scrollTop = 0) with zero threshold show/hide delay and zero flickering.
 • Zero-Waste Firebase Submissions Cache: Engineered a high-performance in-memory category caching engine (5-minute TTL) with per-category querying, eliminating redundant Firebase reads when toggling between themes (e.g. Spooky → Farm Life → Spooky reads 0 network bytes on return).`,
     author: 'Damon',
-    date: 'Aug 18, 2026 at 8:45 PM',
+    date: 'Aug 18, 2026 at 8:50 PM',
   },
   {
     id: 'release-20260816-1837',

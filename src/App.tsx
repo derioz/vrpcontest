@@ -2873,7 +2873,7 @@ export default function App() {
       </main>
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl max-h-[92vh] overflow-y-auto bg-[#0a0a0e] border-white/15 text-white p-5 sm:p-7 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)]">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl bg-[#0a0a0e] border-white/15 text-white rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)]">
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-black flex items-center gap-2">
               <Sparkles className="text-fivem-orange" size={20} />

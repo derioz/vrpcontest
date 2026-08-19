@@ -1090,7 +1090,7 @@ export function CategorySuggestionsView({
 
       {/* ── Submit Suggestion Modal ── */}
       <Dialog open={isSubmitModalOpen} onOpenChange={setIsSubmitModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg max-h-[92vh] overflow-y-auto bg-[#0a0a0e]/98 border-white/15 text-white p-6 sm:p-8 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0a0a0e]/98 border-white/15 text-white rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-1">
               <div className="p-2.5 rounded-2xl bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange">
