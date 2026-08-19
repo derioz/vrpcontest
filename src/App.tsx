@@ -84,9 +84,7 @@ import { RetroGrid } from './components/ui/retro-grid';
 import { Spotlight } from './components/ui/spotlight';
 import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
-import { UITripledCategoryCard } from './components/UITripledCategoryCard';
-import { StickyCategoryNav } from './components/StickyCategoryNav';
-import { MobileCategoryDock } from './components/MobileCategoryDock';
+import { CategoryNav } from './components/CategoryNav';
 import ThreeDCarousel from './components/ui/three-d-carousel';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
@@ -123,12 +121,10 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCategorySticky, setIsCategorySticky] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const categoryCacheRef = useRef<Map<string, { photos: Photo[]; timestamp: number }>>(new Map());
-  const categorySentinelRef = useRef<HTMLDivElement>(null);
 
   // Helper to slugify category name for clean URLs (?category=farm-life)
   const slugifyCategory = (name: string) => {
@@ -136,8 +132,8 @@ export default function App() {
   };
 
   // Smart Category Selection:
-  // - If user is browsing at the top (Hero / Rules / Categories), smoothly scroll down to submissions area
-  // - If user is already inside the submissions area, update category in-place without jumping
+  // - If user is browsing at the top (Hero / Rules), smoothly scroll down to position CategoryNav flush below the navbar
+  // - If user is already browsing inside the submissions area, update category in-place without jumping
   const handleCategorySelect = useCallback((category: Category, forceScroll = false) => {
     setSelectedCategory(category);
 
@@ -151,13 +147,13 @@ export default function App() {
       }
     }
 
-    // Scroll smoothly to submissions area if currently above it
-    const submissionsEl = document.getElementById('submissions-area');
-    if (submissionsEl) {
-      const rect = submissionsEl.getBoundingClientRect();
-      if (rect.top > 140 || forceScroll) {
-        const yOffset = -85; // accounts for navbar height
-        const y = rect.top + window.pageYOffset + yOffset;
+    // Scroll smoothly to position CategoryNav flush below navbar if currently above it
+    const catNavEl = document.getElementById('category-nav');
+    if (catNavEl) {
+      const rect = catNavEl.getBoundingClientRect();
+      const navbarHeight = window.innerWidth >= 640 ? 64 : 56;
+      if (rect.top > navbarHeight + 16 || forceScroll) {
+        const y = rect.top + window.pageYOffset - navbarHeight;
         window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
       }
     }
@@ -205,23 +201,6 @@ export default function App() {
       document.body.style.overflow = '';
     };
   }, [isCategoryMenuOpen]);
-
-  // IntersectionObserver: detect when the large category section scrolls out of view
-  useEffect(() => {
-    const sentinel = categorySentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // When the sentinel is NOT intersecting (scrolled past), show sticky
-        setIsCategorySticky(!entry.isIntersecting);
-      },
-      { threshold: 0, rootMargin: '-80px 0px 0px 0px' } // 80px offset accounts for the navbar height
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [categories]);
 
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [rulesMarkdown, setRulesMarkdown] = useState('');
@@ -1814,7 +1793,6 @@ export default function App() {
   const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
   const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
   const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
-  const miniCatTop = useTransform(navH, (h) => `${h + 6}px`);
 
   const isSiteLocked = siteClosed && (!isAdmin || !adminBypassClosedModal);
 
@@ -1932,7 +1910,7 @@ export default function App() {
                 label: 'Categories',
                 icon: Layers,
                 action: () => {
-                  const el = document.getElementById('categories-section');
+                  const el = document.getElementById('category-nav') || document.getElementById('submissions-area');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                   else window.scrollTo({ top: 380, behavior: 'smooth' });
                 }
@@ -2104,7 +2082,7 @@ export default function App() {
             {/* ── Quick Actions Grid ── */}
             <div className="grid grid-cols-3 gap-2.5">
               <button
-                onClick={() => { const el = document.getElementById('categories-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); else window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
+                onClick={() => { const el = document.getElementById('category-nav') || document.getElementById('submissions-area'); if (el) el.scrollIntoView({ behavior: 'smooth' }); else window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
                 className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/25 flex items-center justify-center">
@@ -2121,45 +2099,45 @@ export default function App() {
                   <div className="w-10 h-10 rounded-xl bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center">
                     <Upload size={18} className="text-fivem-orange" />
                   </div>
-                  <span className="text-[10px] font-bold text-fivem-orange/80 uppercase tracking-wider">Submit</span>
+                  <span className="text-[10px] font-bold text-fivem-orange uppercase tracking-wider">Submit</span>
                 </button>
               ) : (
-                <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04] opacity-40">
+                <button
+                  disabled
+                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04] opacity-40 cursor-not-allowed"
+                >
                   <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                    <Lock size={18} className="text-white/30" />
+                    <Lock size={18} className="text-white/40" />
                   </div>
-                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Closed</span>
-                </div>
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Closed</span>
+                </button>
               )}
 
               <button
                 onClick={() => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
                 className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-                  <FileText size={18} className="text-sky-400" />
+                <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
+                  <FileText size={18} className="text-white/70" />
                 </div>
                 <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Rules</span>
               </button>
             </div>
 
-            {/* ── Featured Actions ── */}
+            {/* ── Featured Action Cards ── */}
             <div className="space-y-2">
-              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Featured</span>
-
-              {/* Hall of Fame */}
               <button
                 onClick={() => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/[0.08] to-yellow-500/[0.04] border border-amber-500/20 active:border-amber-500/40 transition-all cursor-pointer"
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-left transition-all cursor-pointer group"
               >
                 <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
                   <Trophy size={18} className="text-amber-400" />
                 </div>
-                <div className="flex-1 text-left">
-                  <span className="text-sm font-bold text-amber-200 block">Hall of Fame</span>
-                  <span className="text-[10px] text-white/35 font-mono">Browse past champions</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-white font-display">Hall of Fame</div>
+                  <div className="text-[10px] text-white/40 truncate">Explore past contest champions & winners</div>
                 </div>
-                <ChevronRight size={16} className="text-amber-500/40 shrink-0" />
+                <ChevronRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
               </button>
 
               {/* Suggest Category */}
@@ -2345,9 +2323,6 @@ export default function App() {
                 {`VITAL RP PHOTO CONTEST • ${primaryTitle} • `}
               </VelocityScroll>
             </div>
-
-            {/* Categories Section Anchor */}
-            <div id="categories-section" className="relative z-30 max-w-7xl mx-auto px-4 sm:px-6" />
 
             {/* ── Main Hero Layout ── */}
             <div className={cn(
@@ -2563,160 +2538,16 @@ export default function App() {
       {/* ── Redesigned Full-Width Wide Contest Rules & Guidelines ── */}
       <ContestRulesSection rulesMarkdown={rulesMarkdown} />
 
-      {/* ── Sticky Category Selector (Desktop: top bar, Mobile: bottom dock) ── */}
-      {/* Desktop/Tablet: slides out from underneath the navbar */}
-      <AnimatePresence>
-        {isCategorySticky && categories.length > 0 && (
-          <>
-            {/* Desktop: sticky top bar (hidden on mobile) */}
-            <div className="hidden sm:block">
-              <StickyCategoryNav
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onSelectCategory={handleCategorySelect}
-                topOffset={miniCatTop}
-              />
-            </div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile: floating bottom dock (hidden on desktop) */}
-      <MobileCategoryDock
+      {/* ── Unified Adaptive Category Navigation ── */}
+      {/* Sits in-flow on landing page below Rules; smoothly docks sticky directly under the navbar on scroll */}
+      <CategoryNav
         categories={categories}
         selectedCategory={selectedCategory}
         onSelectCategory={handleCategorySelect}
-        visible={isCategorySticky && categories.length > 0}
+        allPhotos={allPhotos}
       />
 
-
-      {
-        categories.length > 0 && (
-          <div id="categories-section" className="relative z-30 bg-fivem-dark/98 backdrop-blur-xl border-b border-white/10 shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
-            <div className="max-w-7xl mx-auto px-6 py-5">
-              
-              {/* ========================================= */}
-              {/* MOBILE: Swipeable Category Pill Strip     */}
-              {/* ========================================= */}
-              <div className="block sm:hidden">
-                <div className="flex flex-col gap-3">
-                  {/* Label row */}
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-white/35">Select Category</span>
-                    <span className="text-[10px] font-mono text-white/25">{allPhotos.length} total entries</span>
-                  </div>
-
-                  {/* Horizontal scroll pills */}
-                  <div className="relative -mx-6">
-                    {/* Fade edges */}
-                    <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-fivem-dark/98 to-transparent z-10 pointer-events-none" />
-                    <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-fivem-dark/98 to-transparent z-10 pointer-events-none" />
-
-                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-6 py-1 touch-pan-x scroll-smooth">
-                      {categories.map((cat) => {
-                        const isActive = selectedCategory?.id === cat.id;
-                        const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
-                        return (
-                          <button
-                            key={cat.id}
-                            onClick={() => handleCategorySelect(cat, true)}
-                            className={cn(
-                              "relative flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-sm font-display font-bold shrink-0 transition-all duration-200 cursor-pointer select-none border",
-                              isActive
-                                ? "bg-fivem-orange/15 border-fivem-orange/35 text-white shadow-[0_0_16px_rgba(234,88,12,0.15)]"
-                                : "bg-white/[0.03] border-white/[0.06] text-white/60 active:bg-white/[0.08] active:border-white/15"
-                            )}
-                          >
-                            <span className="text-base leading-none">{cat.emoji || '✨'}</span>
-                            <span className="leading-none whitespace-nowrap">{cat.name}</span>
-                            <span className={cn(
-                              "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md",
-                              isActive ? "bg-fivem-orange/20 text-fivem-orange" : "bg-white/[0.06] text-white/35"
-                            )}>
-                              {entryCount}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* ========================================= */}
-              {/* DESKTOP: High-Fidelity UI Tripled Grid    */}
-              {/* ========================================= */}
-              <div className="hidden sm:block relative overflow-hidden rounded-3xl border border-white/10 bg-[#09090b]/80 shadow-[0_12px_48px_rgba(0,0,0,0.6)] p-7 backdrop-blur-xl">
-                
-                {/* Background MagicUI DotPattern overlay */}
-                <DotPattern width={24} height={24} cr={1.2} className="opacity-25 z-0 pointer-events-none" />
-                
-                {/* Ambient dual glow spots */}
-                <div className="absolute -top-24 -left-24 w-72 h-72 bg-fivem-orange/15 blur-[100px] rounded-full pointer-events-none" />
-                <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col gap-6">
-                  
-                  {/* Section Title & Header */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                    <div className="flex items-center gap-3.5 flex-wrap">
-                      <span className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.25em] bg-fivem-orange/20 text-fivem-orange rounded-full border border-fivem-orange/30 shadow-[0_0_12px_rgba(234,88,12,0.3)] animate-pulse">
-                        Interactive Filters
-                      </span>
-                      <h3 className="text-base font-black text-white uppercase tracking-wider font-display">
-                        Filter Submissions by Category
-                      </h3>
-                      <span className="text-xs font-mono text-white/50">
-                        (<NumberTicker value={categories.length} /> topics live)
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-5 text-xs font-mono text-white/50">
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-white/60">Contest Entries:</span>
-                        <span className="font-black text-white font-display text-sm">
-                          <NumberTicker value={allPhotos.length} />
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* UI Tripled 3D Grid layout with MagicUI BlurFade */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-                    {categories.map((cat, catIdx) => {
-                      const entryCount = allPhotos.filter(p => p.category_id === cat.id).length;
-                      const isActive = selectedCategory?.id === cat.id;
-
-                      return (
-                        <BlurFade key={cat.id} delay={catIdx * 0.05} duration={0.35} className="h-full">
-                          <UITripledCategoryCard
-                            category={cat}
-                            index={catIdx}
-                            isActive={isActive}
-                            entryCount={entryCount}
-                            totalEntries={allPhotos.length}
-                            onSelect={() => handleCategorySelect(cat, true)}
-                          />
-                        </BlurFade>
-                      );
-                    })}
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-            {/* Category Sentinel at the very bottom of the categories section container */}
-            <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />
-          </div>
-        )
-      }
-
-
-
-      <main id="submissions-area" className={cn("max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8", isCategorySticky && categories.length > 0 && "sm:pt-0 mobile-dock-spacer sm:!pb-0")}>
+      <main id="submissions-area" className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
         {/* Main Content – 3 cols */}
         <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
           <section>

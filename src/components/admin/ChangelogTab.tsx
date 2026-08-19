@@ -26,20 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260818-1935',
+    id: 'release-20260818-2005',
     version: 'v1.9.8',
-    title: 'Landing-Page-First Architecture, Per-Category Submissions Cache & Mobile Navigation Suite',
+    title: 'Unified Adaptive CategoryNav Suite, Zero-Waste Submissions Cache & Mobile Navigation',
     category: 'UI/UX',
-    description: `• Continuous Landing-Page-First Architecture: Restructured the entire platform into a seamless continuous flow (Hero → Contest Rules & Guidelines → Categories → Selected Submissions Area), keeping all governance and categories permanently accessible via upward scroll.
+    description: `• Unified Adaptive Category Navigation Suite: Consolidated all category browsing into a single, high-fidelity CategoryNav component that sits naturally in-flow on the landing page and dynamically docks sticky underneath the main navbar (top-14 mobile / top-16 desktop) with zero gaps, zero threshold flicker, and zero layout shift.
+• Rich Desktop Hover & Theme Previews: Engineered interactive CategoryNav pills with smooth Framer Motion spring physics (layoutId) and zero-layout-shift glassmorphic hover popovers that reveal rich category descriptions and real-time live submission counts.
 • Zero-Waste Firebase Submissions Cache: Engineered a high-performance in-memory category caching engine (5-minute TTL) with per-category querying, eliminating redundant Firebase reads when toggling between themes (e.g. Spooky → Farm Life → Spooky reads 0 network bytes on return).
-• Smart Selection & In-Place Navigation Engine: Built an intelligent viewport-aware scroll coordinator that smoothly glides users down to submissions upon initial selection from the landing page, while preserving scroll position and crossfading submissions in-place when switching categories while browsing.
+• Touch-Optimized Mobile Category Rail: Designed a swipeable horizontal touch rail with dynamic gradient edge fades, auto-centering of active categories on selection, and comfortable safe-area touch targets pinned cleanly under the mobile navbar.
+• Smart Viewport-Aware Scroll Coordinator: Built an intelligent scroll handler that smoothly glides users down so CategoryNav docks flush under the navbar upon initial selection from the landing page, while preserving scroll position and crossfading submissions in-place when switching categories while browsing.
 • Deep-Linked URL State & Browser History Sync: Integrated bidirectional URL query synchronization (?category=slug) with popstate event listening, enabling direct category linking and effortless browser Back/Forward navigation without page reloads.
 • Skeleton Submissions Loading Suite & Crossfade Grid: Deployed shadcn/ui-compatible dark glass Skeleton cards during uncached category queries, paired with Framer Motion AnimatePresence mode="wait" crossfade transitions and dynamic category title motion headers.
-• Mobile Floating Bottom Category Dock: Engineered a thumb-friendly floating category dock that smoothly emerges with spring physics when the main category selector scrolls out of view on mobile viewports, featuring active category auto-centering, horizontal touch-scrolling, and safe-area inset protection.
-• Radix Dialog Bottom Sheet Navigation: Migrated the mobile navigation menu to an accessible Radix Dialog SheetContent architecture with GPU-accelerated bottom-slide animations, drag handle visuals, and built-in focus management.
-• High-Efficiency Atomic Voting & Mutation Synchronization: Upgraded vote and upload pipelines with optimistic local memory updates and instant cache synchronization for instantaneous UI response times.`,
+• Radix Dialog Bottom Sheet Navigation: Migrated the mobile navigation menu to an accessible Radix Dialog SheetContent architecture with GPU-accelerated bottom-slide animations, drag handle visuals, and built-in focus management.`,
     author: 'Damon',
-    date: 'Aug 18, 2026 at 7:55 PM',
+    date: 'Aug 18, 2026 at 8:05 PM',
   },
   {
     id: 'release-20260816-1837',
