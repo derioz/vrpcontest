@@ -2,14 +2,14 @@
  * CategoryNav — The Single Adaptive Permanent Category Navigation Component
  *
  * Sits directly attached underneath the Main Navbar as the permanent secondary
- * navigation header. Features a one-of-a-kind cyber-glass segmented track,
- * Framer Motion moving active indicator, subtle micro-interactions, zero layout shifts,
+ * navigation header. Features a fluid, morphing active indicator that glides
+ * between category pills with Framer Motion spring layout physics, zero layout shifts,
  * and zero hover popup expansions.
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category, Photo } from '../types';
 
@@ -99,7 +99,7 @@ export function CategoryNav({
       )}
     >
       {/* Outer Shell: Glassmorphic Capsule with Ambient Neon Accent Line */}
-      <div className="relative w-full rounded-2xl sm:rounded-2xl bg-[#09090e]/90 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden">
+      <div className="relative w-full rounded-2xl sm:rounded-2xl bg-[#09090e]/92 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden">
         
         {/* Subtle top travelling highlight line */}
         <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-fivem-orange/40 to-transparent pointer-events-none" />
@@ -136,7 +136,7 @@ export function CategoryNav({
             </button>
           )}
 
-          {/* Center: Connected Segmented Category Rail */}
+          {/* Center: Connected Segmented Category Rail with Liquid Active Morphing Indicator */}
           <div className="relative flex-1 min-w-0 overflow-hidden">
             {/* Dynamic Left Gradient Fade */}
             {canScrollLeft && (
@@ -164,27 +164,36 @@ export function CategoryNav({
                       data-category-id={cat.id}
                       onClick={() => onSelectCategory(cat)}
                       className={cn(
-                        "relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-display transition-all duration-150 cursor-pointer select-none group shrink-0",
+                        "relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-display font-semibold transition-colors duration-200 cursor-pointer select-none group shrink-0",
                         isActive
-                          ? "text-white font-black shadow-md shadow-orange-500/20"
-                          : "text-white/70 hover:text-white font-semibold hover:bg-white/[0.06] active:scale-95"
+                          ? "text-white"
+                          : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                       )}
                     >
-                      {/* Active Indicator Backdrop (Moving Framer Motion Spring Pill) */}
+                      {/* Fluid Active Indicator Backdrop (Shared Morphing Spring Layout Animation) */}
                       {isActive && (
                         <motion.div
                           layoutId="category-nav-active-pill"
-                          className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 shadow-[0_2px_14px_rgba(234,88,12,0.4)] border border-orange-400/30"
-                          transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                        />
+                          className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 shadow-[0_2px_16px_rgba(234,88,12,0.4),0_0_8px_rgba(251,146,60,0.2)] border border-orange-400/30 overflow-hidden"
+                          transition={{
+                            type: "spring",
+                            stiffness: 380,
+                            damping: 30,
+                            mass: 0.8,
+                          }}
+                        >
+                          {/* Inner glowing edge highlight */}
+                          <div className="absolute top-0 inset-x-2 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+                          <div className="absolute bottom-0 inset-x-3 h-[1px] bg-gradient-to-r from-transparent via-amber-200/40 to-transparent" />
+                        </motion.div>
                       )}
 
-                      {/* Emoji Icon with micro hover glow */}
-                      <span className="relative z-10 text-sm sm:text-base leading-none shrink-0 transition-transform duration-200 group-hover:scale-110">
+                      {/* Emoji Icon with subtle hover micro-scale */}
+                      <span className="relative z-10 text-sm sm:text-base leading-none shrink-0 transition-transform duration-200 group-hover:scale-105">
                         {cat.emoji || '✨'}
                       </span>
 
-                      {/* Category Name */}
+                      {/* Category Name (Constant font weight to prevent layout jitter) */}
                       <span className="relative z-10 truncate max-w-[130px] sm:max-w-[180px] leading-tight tracking-wide">
                         {cat.name}
                       </span>
@@ -192,17 +201,17 @@ export function CategoryNav({
                       {/* Micro Entry Count Badge */}
                       <span
                         className={cn(
-                          "relative z-10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors",
+                          "relative z-10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors duration-200",
                           isActive
                             ? "bg-black/30 text-white shadow-inner"
-                            : "bg-white/[0.06] text-white/40 group-hover:text-white/80 group-hover:bg-white/10"
+                            : "bg-white/[0.05] text-white/40 group-hover:text-white/80 group-hover:bg-white/10"
                         )}
                       >
                         {entryCount}
                       </span>
                     </button>
 
-                    {/* Subtle separator between items (except active or adjacent) */}
+                    {/* Subtle separator between items */}
                     {index < categories.length - 1 && (
                       <div className="w-[1px] h-3.5 bg-white/[0.06] shrink-0 pointer-events-none hidden sm:block" />
                     )}

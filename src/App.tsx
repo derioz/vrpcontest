@@ -154,13 +154,14 @@ export default function App() {
     const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
     const headerRect = headerEl.getBoundingClientRect();
     const stickyHeight = getStickyNavHeight();
-    const targetY = Math.max(0, currentScrollY + headerRect.top - stickyHeight - 16);
+    const idealHeaderTop = stickyHeight + 16;
+    const targetY = Math.max(0, currentScrollY + headerRect.top - idealHeaderTop);
 
-    // If currently above submissions area (Hero/Rules) or forced, or if the header is obscured/scrolled past
-    const isAboveSubmissions = currentScrollY < 350;
-    const isHeaderObscured = headerRect.top < stickyHeight - 20;
+    // Calculate distance from ideal docked position
+    const deltaFromIdeal = Math.abs(headerRect.top - idealHeaderTop);
 
-    if (isAboveSubmissions || isHeaderObscured || force) {
+    // If the category header is not currently docked right below the sticky navigation (e.g. at Hero, Rules, scrolled up/down), smooth scroll to it
+    if (deltaFromIdeal > 20 || force) {
       window.scrollTo({ top: targetY, behavior: 'smooth' });
     }
   }, [getStickyNavHeight]);
