@@ -26,6 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260818-1935',
+    version: 'v1.9.8',
+    title: 'Mobile-First Navbar Redesign, Floating Category Dock & Radix Bottom Sheet Navigation',
+    category: 'UI/UX',
+    description: `• Mobile Floating Bottom Category Dock: Engineered a thumb-friendly floating category dock that smoothly emerges with spring physics when the main category selector scrolls out of view on mobile viewports, featuring active category auto-centering, horizontal touch-scrolling, and safe-area inset protection.
+• IntersectionObserver Visibility Engine: Replaced arbitrary scroll-offset listeners with a high-performance IntersectionObserver sentinel system for smooth, flicker-free transitions between full-sized category cards and sticky navigation states.
+• Radix Dialog Bottom Sheet Navigation: Migrated the mobile navigation menu to an accessible Radix Dialog SheetContent architecture with GPU-accelerated bottom-slide animations, drag handle visuals, and built-in focus management.
+• Dedicated Mobile Navbar Architecture: Redesigned the mobile top header with a purpose-built compact layout featuring direct profile avatar triggers, compact Discord sign-in pills, and responsive action clusters.
+• Responsive Platform-Specific Sticky Modes: Decoupled navigation states into a compact sticky top bar for desktop/tablet viewports (≥640px) and a floating bottom dock for mobile (<640px), maintaining shared filtering state.
+• Content Spacing & Accessibility Suite: Added dynamic bottom spacing (.mobile-dock-spacer) to prevent content occlusion on mobile, alongside system prefers-reduced-motion media query support.`,
+    author: 'Damon',
+    date: 'Aug 18, 2026 at 7:36 PM',
+  },
+  {
     id: 'release-20260816-1837',
     version: 'v1.9.7',
     title: 'Luxury Vault Sidebar, Animated Controls Suite & Grid Lines Auth',
