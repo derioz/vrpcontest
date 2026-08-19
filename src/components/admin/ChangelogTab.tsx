@@ -26,20 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260818-2005',
+    id: 'release-20260818-2025',
     version: 'v1.9.8',
-    title: 'Unified Adaptive CategoryNav Suite, Zero-Waste Submissions Cache & Mobile Navigation',
+    title: 'Permanent Secondary CategoryNav Suite, Zero Initial Scroll & Cyber-Glass Segmented Track',
     category: 'UI/UX',
-    description: `• Unified Adaptive Category Navigation Suite: Consolidated all category browsing into a single, high-fidelity CategoryNav component that sits naturally in-flow on the landing page and dynamically docks sticky underneath the main navbar (top-14 mobile / top-16 desktop) with zero gaps, zero threshold flicker, and zero layout shift.
-• Rich Desktop Hover & Theme Previews: Engineered interactive CategoryNav pills with smooth Framer Motion spring physics (layoutId) and zero-layout-shift glassmorphic hover popovers that reveal rich category descriptions and real-time live submission counts.
+    description: `• Permanent Secondary CategoryNav Header: Unified the Main Navbar and Category Navigation into a permanent top fixed header—visible immediately on initial landing (scrollTop = 0) with zero threshold show/hide delay and zero flickering.
+• Cyber-Glass Segmented Track Redesign: Completely redesigned CategoryNav into a custom cyber-glass segmented capsule rail with moving gradient spring physics (layoutId), luminous Topics beacon, and crisp micro-count badges.
+• Pure Lightweight Micro-Interactions: Completely removed heavy hover preview cards and description expansions in favor of zero-layout-shift micro-hover glows and icon animations.
+• Absolute Zero Auto-Scroll Initial Landing: Eliminated all window auto-scrolling on initial visit so users always start at the absolute top of the page (Navbar → CategoryNav → Hero → Rules → Submissions).
+• Combined-Height Viewport Docking: Engineered smart scroll math accounting for the combined height of the Navbar + CategoryNav so category selection docks flush above the Selected Category Title with zero overlap.
 • Zero-Waste Firebase Submissions Cache: Engineered a high-performance in-memory category caching engine (5-minute TTL) with per-category querying, eliminating redundant Firebase reads when toggling between themes (e.g. Spooky → Farm Life → Spooky reads 0 network bytes on return).
-• Touch-Optimized Mobile Category Rail: Designed a swipeable horizontal touch rail with dynamic gradient edge fades, auto-centering of active categories on selection, and comfortable safe-area touch targets pinned cleanly under the mobile navbar.
-• Smart Viewport-Aware Scroll Coordinator: Built an intelligent scroll handler that smoothly glides users down so CategoryNav docks flush under the navbar upon initial selection from the landing page, while preserving scroll position and crossfading submissions in-place when switching categories while browsing.
-• Deep-Linked URL State & Browser History Sync: Integrated bidirectional URL query synchronization (?category=slug) with popstate event listening, enabling direct category linking and effortless browser Back/Forward navigation without page reloads.
-• Skeleton Submissions Loading Suite & Crossfade Grid: Deployed shadcn/ui-compatible dark glass Skeleton cards during uncached category queries, paired with Framer Motion AnimatePresence mode="wait" crossfade transitions and dynamic category title motion headers.
-• Radix Dialog Bottom Sheet Navigation: Migrated the mobile navigation menu to an accessible Radix Dialog SheetContent architecture with GPU-accelerated bottom-slide animations, drag handle visuals, and built-in focus management.`,
+• Touch-Optimized Mobile Rail: Designed a swipeable horizontal touch rail with dynamic gradient edge fades, internal auto-centering of active categories, and comfortable safe-area touch targets.
+• Deep-Linked URL State & Browser History Sync: Integrated bidirectional URL query synchronization (?category=slug) with popstate event listening, enabling direct category linking and effortless browser Back/Forward navigation without page reloads.`,
     author: 'Damon',
-    date: 'Aug 18, 2026 at 8:05 PM',
+    date: 'Aug 18, 2026 at 8:25 PM',
   },
   {
     id: 'release-20260816-1837',

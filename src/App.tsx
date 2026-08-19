@@ -132,7 +132,7 @@ export default function App() {
   };
 
   // Smart Category Selection:
-  // - If user is browsing at the top (Hero / Rules), smoothly scroll down to position CategoryNav flush below the navbar
+  // - If user is browsing at the top (Hero / Rules), smoothly scroll down to position Selected Category Title immediately underneath CategoryNav
   // - If user is already browsing inside the submissions area, update category in-place without jumping
   const handleCategorySelect = useCallback((category: Category, forceScroll = false) => {
     setSelectedCategory(category);
@@ -147,13 +147,13 @@ export default function App() {
       }
     }
 
-    // Scroll smoothly to position CategoryNav flush below navbar if currently above it
-    const catNavEl = document.getElementById('category-nav');
-    if (catNavEl) {
-      const rect = catNavEl.getBoundingClientRect();
-      const navbarHeight = window.innerWidth >= 640 ? 64 : 56;
-      if (rect.top > navbarHeight + 16 || forceScroll) {
-        const y = rect.top + window.pageYOffset - navbarHeight;
+    // Scroll smoothly to submissions area if currently above it
+    const submissionsEl = document.getElementById('submissions-area');
+    if (submissionsEl) {
+      const rect = submissionsEl.getBoundingClientRect();
+      const combinedNavHeight = window.innerWidth >= 640 ? 144 : 124;
+      if (rect.top > combinedNavHeight + 30 || forceScroll) {
+        const y = rect.top + window.pageYOffset - combinedNavHeight;
         window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
       }
     }
@@ -1799,14 +1799,14 @@ export default function App() {
   return (
     <ShaderBackground className={cn("min-h-screen flex flex-col relative", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
       <div className={cn("flex flex-col flex-1 transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
-        <motion.header
-        ref={navbarRef}
-        style={{ height: navH }}
-        className={cn(
-          "fixed z-50 transition-all duration-700 ease-out",
-          "top-0 sm:top-3 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl sm:rounded-2xl",
-        )}
-      >
+        
+        {/* ── 1. UNIFIED FIXED TOP NAVIGATION CONTAINER ── */}
+        <div className="fixed top-0 sm:top-2.5 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl z-50 pointer-events-none flex flex-col gap-1 sm:gap-2 px-0">
+          <motion.header
+            ref={navbarRef}
+            style={{ height: navH }}
+            className="pointer-events-auto w-full sm:rounded-2xl transition-all duration-700 ease-out relative"
+          >
         {/* ═══ OUTER CHROME SHELL ═══ */}
         {/* Animated gradient border — travels along the edge */}
         <div className="absolute inset-0 sm:rounded-2xl overflow-hidden pointer-events-none">
@@ -2074,6 +2074,17 @@ export default function App() {
         </div>
       </motion.header>
 
+      {/* ── Permanent Secondary Category Navigation ── */}
+      {categories.length > 0 && (
+        <CategoryNav
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={handleCategorySelect}
+          allPhotos={allPhotos}
+        />
+      )}
+    </div>
+
       {/* ── Mobile Bottom Sheet Navigation (Radix Dialog) ── */}
       <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetContent>
@@ -2290,7 +2301,7 @@ export default function App() {
 
         return (
           <section
-            className="relative overflow-hidden border-b border-white/10 pt-24 sm:pt-32 pb-16 sm:pb-24"
+            className="relative overflow-hidden border-b border-white/10 pt-36 sm:pt-48 pb-16 sm:pb-24"
             style={{ minHeight: '540px' }}
           >
             {/* ── Deep luxury base ── */}
@@ -2521,7 +2532,7 @@ export default function App() {
           </section>
         );
       })() : (
-        <section className="relative overflow-hidden border-b border-white/10 py-28 flex flex-col items-center justify-center text-center px-6">
+        <section className="relative overflow-hidden border-b border-white/10 pt-36 sm:pt-48 pb-28 flex flex-col items-center justify-center text-center px-6">
           <div className="absolute inset-0 bg-[#060606]" />
           <Spotlight className="-top-40 left-1/2 -translate-x-1/2" fill="rgba(234, 88, 12, 0.2)" />
           <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.04] z-[1]" />
@@ -2538,16 +2549,7 @@ export default function App() {
       {/* ── Redesigned Full-Width Wide Contest Rules & Guidelines ── */}
       <ContestRulesSection rulesMarkdown={rulesMarkdown} />
 
-      {/* ── Unified Adaptive Category Navigation ── */}
-      {/* Sits in-flow on landing page below Rules; smoothly docks sticky directly under the navbar on scroll */}
-      <CategoryNav
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onSelectCategory={handleCategorySelect}
-        allPhotos={allPhotos}
-      />
-
-      <main id="submissions-area" className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
+      <main id="submissions-area" className="scroll-mt-36 sm:scroll-mt-44 max-w-7xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
         {/* Main Content – 3 cols */}
         <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
           <section>

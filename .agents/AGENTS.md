@@ -9,3 +9,6 @@
   - **Expandable Long Lists**: For releases with extensive changes, ensure the platform UI supports expandable/collapsible changelog views so visitors and administrators can easily browse highlights or expand the full changelog on demand.
 - **Timestamp Requirement**: Include exact time and date on all release entries (e.g., `Aug 16, 2026 at 6:44 PM`).
 - **Creator Credit**: Always maintain the prominent **"Website Created and Designed by Damon"** credit banner.
+
+## Build & Push Confirmation Requirement
+- **Explicit User Confirmation**: After completing development and verifying the build, ALWAYS present a clear summary of modifications and explicitly ask the user if they are ready to build and push to GitHub before executing `git commit` or `git push`.
