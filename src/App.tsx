@@ -126,7 +126,64 @@ export default function App() {
   const [isCategorySticky, setIsCategorySticky] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+  const categoryCacheRef = useRef<Map<string, { photos: Photo[]; timestamp: number }>>(new Map());
   const categorySentinelRef = useRef<HTMLDivElement>(null);
+
+  // Helper to slugify category name for clean URLs (?category=farm-life)
+  const slugifyCategory = (name: string) => {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  };
+
+  // Smart Category Selection:
+  // - If user is browsing at the top (Hero / Rules / Categories), smoothly scroll down to submissions area
+  // - If user is already inside the submissions area, update category in-place without jumping
+  const handleCategorySelect = useCallback((category: Category, forceScroll = false) => {
+    setSelectedCategory(category);
+
+    // Synchronize category in URL query params without full page reload
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const slug = slugifyCategory(category.name);
+      if (url.searchParams.get('category') !== slug) {
+        url.searchParams.set('category', slug);
+        window.history.pushState({ categoryId: category.id }, '', url.toString());
+      }
+    }
+
+    // Scroll smoothly to submissions area if currently above it
+    const submissionsEl = document.getElementById('submissions-area');
+    if (submissionsEl) {
+      const rect = submissionsEl.getBoundingClientRect();
+      if (rect.top > 140 || forceScroll) {
+        const yOffset = -85; // accounts for navbar height
+        const y = rect.top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      }
+    }
+  }, []);
+
+  // Listen to browser Back/Forward navigation to restore selected category
+  useEffect(() => {
+    const handlePopState = () => {
+      if (categories.length === 0) return;
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get('category') || params.get('cat');
+      if (catParam) {
+        const match = categories.find(
+          (c) =>
+            c.id === catParam ||
+            slugifyCategory(c.name) === catParam.toLowerCase() ||
+            c.name.toLowerCase() === catParam.toLowerCase()
+        );
+        if (match) {
+          setSelectedCategory(match);
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [categories]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -843,7 +900,22 @@ export default function App() {
         const catSnap = await getDocs(qCats);
         const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[];
         setCategories(cats);
+
+        // Check if a category was requested via URL search param (?category=slug)
+        const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const catParam = params ? (params.get('category') || params.get('cat')) : null;
+        let matchedCat: Category | null = null;
+        if (catParam) {
+          matchedCat = cats.find(
+            c =>
+              c.id === catParam ||
+              slugifyCategory(c.name) === catParam.toLowerCase() ||
+              c.name.toLowerCase() === catParam.toLowerCase()
+          ) || null;
+        }
+
         setSelectedCategory(prev => {
+          if (matchedCat) return matchedCat;
           if (!prev && cats.length > 0) return cats[0];
           if (prev && cats.find(c => c.id === prev.id)) return prev;
           return cats.length > 0 ? cats[0] : null;
@@ -886,60 +958,105 @@ export default function App() {
   }, [currentTheme]);
 
   const activeContestId = activeContest?.id;
-  const categoryIdsKey = useMemo(() => categories.map(c => c.id).sort().join(','), [categories]);
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5-minute cache TTL
 
-  // Listen to ALL photos for all categories in the active contest
-  useEffect(() => {
-    if (!activeContestId || !categoryIdsKey) {
-      setAllPhotos([]);
-      return;
-    }
-    const catIds = categoryIdsKey.split(',').filter(Boolean);
-    if (catIds.length === 0) return;
+  // Decrypt and process photos
+  const decryptAndProcessPhotos = useCallback(async (rawPhotos: Photo[]): Promise<Photo[]> => {
+    const isCensoredNow = censorSubmissions && !votingOpen;
 
-    const q = query(collection(db, 'photos'), where('category_id', 'in', catIds));
-    const unsub = onSnapshot(q, async (snapshot) => {
-      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Photo[];
-
-      const processedPhotos = await Promise.all(fetched.map(async (photo) => {
-        const isCensoredNow = censorSubmissions && !votingOpen;
-
-        if (privateKey && photo.encrypted_image_url) {
-          try {
-            const clearUrl = await decryptUrl(photo.encrypted_image_url, privateKey);
-            return {
-              ...photo,
-              image_url: isCensoredNow ? (photo.censored_image_url || clearUrl) : clearUrl,
-              clear_image_url: clearUrl
-            };
-          } catch (e) {
-            console.error("Failed to decrypt photo", photo.id);
-            return { ...photo, image_url: photo.censored_image_url || photo.image_url };
-          }
-        }
-
-        if (isCensoredNow) {
+    return await Promise.all(rawPhotos.map(async (photo) => {
+      if (privateKey && photo.encrypted_image_url) {
+        try {
+          const clearUrl = await decryptUrl(photo.encrypted_image_url, privateKey);
           return {
             ...photo,
-            image_url: photo.censored_image_url || photo.image_url,
-            clear_image_url: photo.image_url
+            image_url: isCensoredNow ? (photo.censored_image_url || clearUrl) : clearUrl,
+            clear_image_url: clearUrl
           };
-        }
-
-        if (photo.encrypted_image_url && !privateKey) {
+        } catch (e) {
+          console.error("Failed to decrypt photo", photo.id);
           return { ...photo, image_url: photo.censored_image_url || photo.image_url };
         }
+      }
 
-        return { ...photo, image_url: photo.image_url };
-      }));
+      if (isCensoredNow) {
+        return {
+          ...photo,
+          image_url: photo.censored_image_url || photo.image_url,
+          clear_image_url: photo.image_url
+        };
+      }
 
-      setAllPhotos(processedPhotos);
-    }, (err) => {
-      console.error('Photos listener error', err);
-      toast.error('Failed to load photos');
-    });
-    return () => unsub();
-  }, [activeContestId, categoryIdsKey, privateKey, censorSubmissions, votingOpen]);
+      if (photo.encrypted_image_url && !privateKey) {
+        return { ...photo, image_url: photo.censored_image_url || photo.image_url };
+      }
+
+      return { ...photo, image_url: photo.image_url };
+    }));
+  }, [privateKey, censorSubmissions, votingOpen]);
+
+  // Per-category cached photo loader: fetches only the active category's photos and caches them in memory
+  useEffect(() => {
+    if (!activeContestId || !selectedCategory?.id) {
+      return;
+    }
+
+    const catId = selectedCategory.id;
+    const cached = categoryCacheRef.current.get(catId);
+    const now = Date.now();
+
+    // Cache hit: immediately use cached submissions without any Firebase read
+    if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+      setAllPhotos(prev => {
+        const otherPhotos = prev.filter(p => p.category_id !== catId);
+        return [...otherPhotos, ...cached.photos];
+      });
+      setIsCategoryLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsCategoryLoading(true);
+
+    const fetchCategoryPhotos = async () => {
+      try {
+        const q = query(
+          collection(db, 'photos'),
+          where('category_id', '==', catId)
+        );
+        const snap = await getDocs(q);
+        if (isCancelled) return;
+
+        const rawPhotos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Photo[];
+        const processed = await decryptAndProcessPhotos(rawPhotos);
+
+        if (isCancelled) return;
+
+        categoryCacheRef.current.set(catId, {
+          photos: processed,
+          timestamp: Date.now()
+        });
+
+        setAllPhotos(prev => {
+          const otherPhotos = prev.filter(p => p.category_id !== catId);
+          return [...otherPhotos, ...processed];
+        });
+      } catch (err) {
+        console.error('Photos fetch error:', err);
+        toast.error('Failed to load category submissions');
+      } finally {
+        if (!isCancelled) {
+          setIsCategoryLoading(false);
+        }
+      }
+    };
+
+    fetchCategoryPhotos();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeContestId, selectedCategory?.id, decryptAndProcessPhotos]);
 
   // Subscribe to flagged_voters collection
   const [flaggedVoterIds, setFlaggedVoterIds] = useState<Set<string>>(new Set());
@@ -982,6 +1099,16 @@ export default function App() {
           disqualification_reason: deleteField(),
         });
         toast.success('Photo re-qualified successfully');
+      }
+
+      // Optimistically update memory and cache
+      setAllPhotos(prev => prev.map(p => p.id === photoId ? { ...p, is_disqualified: disqualify, disqualification_reason: disqualify ? (reason || 'Disqualified by admin') : undefined } : p));
+      const targetPhoto = allPhotos.find(p => p.id === photoId);
+      if (targetPhoto?.category_id) {
+        const cached = categoryCacheRef.current.get(targetPhoto.category_id);
+        if (cached) {
+          cached.photos = cached.photos.map(p => p.id === photoId ? { ...p, is_disqualified: disqualify, disqualification_reason: disqualify ? (reason || 'Disqualified by admin') : undefined } : p);
+        }
       }
     } catch (error: any) {
       console.error('Failed to update disqualification status:', error);
@@ -1066,6 +1193,28 @@ export default function App() {
       } else {
         toast.success('Vote removed!');
       }
+
+      // Optimistically update photo vote count in memory & category cache
+      setAllPhotos(prev => prev.map(p => {
+        if (p.id === photoId) {
+          const newCount = actionResult === 'voted' ? (p.vote_count || 0) + 1 : Math.max(0, (p.vote_count || 0) - 1);
+          return { ...p, vote_count: newCount };
+        }
+        return p;
+      }));
+
+      if (targetPhoto?.category_id) {
+        const cached = categoryCacheRef.current.get(targetPhoto.category_id);
+        if (cached) {
+          cached.photos = cached.photos.map(p => {
+            if (p.id === photoId) {
+              const newCount = actionResult === 'voted' ? (p.vote_count || 0) + 1 : Math.max(0, (p.vote_count || 0) - 1);
+              return { ...p, vote_count: newCount };
+            }
+            return p;
+          });
+        }
+      }
     } catch (error: any) {
       console.error("Vote Error:", error);
       toast.error(error?.message || 'Network error or vote failed');
@@ -1115,6 +1264,9 @@ export default function App() {
         await photoBatch.commit();
       }
 
+      // Invalidate memory cache so fresh 0 votes reflect everywhere
+      categoryCacheRef.current.clear();
+      setAllPhotos(prev => prev.map(p => ({ ...p, vote_count: 0 })));
       setVotedPhotoIds(new Set());
       toast.success('Successfully reset all votes to 0!', { id: toastId });
     } catch (error: any) {
@@ -1140,6 +1292,13 @@ export default function App() {
     try {
       await deleteDoc(doc(db, 'photos', photoId));
       if (lightboxPhoto?.id === photoId) setLightboxPhoto(null);
+      setAllPhotos(prev => prev.filter(p => p.id !== photoId));
+      if (targetPhoto?.category_id) {
+        const cached = categoryCacheRef.current.get(targetPhoto.category_id);
+        if (cached) {
+          cached.photos = cached.photos.filter(p => p.id !== photoId);
+        }
+      }
       toast.success('Photo deleted successfully!');
       return true;
     } catch (error) {
@@ -1221,6 +1380,9 @@ export default function App() {
       };
 
       await addDoc(collection(db, 'photos'), newPhoto);
+
+      // Invalidate category cache to ensure freshly uploaded photo displays
+      categoryCacheRef.current.delete(categoryId);
 
       toast.success('Secure upload successful!', { id: "upload-toast" });
       setShowUploadModal(false);
@@ -2398,6 +2560,9 @@ export default function App() {
       )}
 
 
+      {/* ── Redesigned Full-Width Wide Contest Rules & Guidelines ── */}
+      <ContestRulesSection rulesMarkdown={rulesMarkdown} />
+
       {/* ── Sticky Category Selector (Desktop: top bar, Mobile: bottom dock) ── */}
       {/* Desktop/Tablet: slides out from underneath the navbar */}
       <AnimatePresence>
@@ -2408,7 +2573,7 @@ export default function App() {
               <StickyCategoryNav
                 categories={categories}
                 selectedCategory={selectedCategory}
-                onSelectCategory={(cat) => setSelectedCategory(cat)}
+                onSelectCategory={handleCategorySelect}
                 topOffset={miniCatTop}
               />
             </div>
@@ -2420,7 +2585,7 @@ export default function App() {
       <MobileCategoryDock
         categories={categories}
         selectedCategory={selectedCategory}
-        onSelectCategory={(cat) => setSelectedCategory(cat)}
+        onSelectCategory={handleCategorySelect}
         visible={isCategorySticky && categories.length > 0}
       />
 
@@ -2454,7 +2619,7 @@ export default function App() {
                         return (
                           <button
                             key={cat.id}
-                            onClick={() => setSelectedCategory(cat)}
+                            onClick={() => handleCategorySelect(cat, true)}
                             className={cn(
                               "relative flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-sm font-display font-bold shrink-0 transition-all duration-200 cursor-pointer select-none border",
                               isActive
@@ -2531,7 +2696,7 @@ export default function App() {
                             isActive={isActive}
                             entryCount={entryCount}
                             totalEntries={allPhotos.length}
-                            onSelect={() => setSelectedCategory(cat)}
+                            onSelect={() => handleCategorySelect(cat, true)}
                           />
                         </BlurFade>
                       );
@@ -2551,12 +2716,18 @@ export default function App() {
 
 
 
-      <main className={cn("max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8", isCategorySticky && categories.length > 0 && "sm:pt-0 mobile-dock-spacer sm:!pb-0")}>
+      <main id="submissions-area" className={cn("max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8", isCategorySticky && categories.length > 0 && "sm:pt-0 mobile-dock-spacer sm:!pb-0")}>
         {/* Main Content – 3 cols */}
         <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
           <section>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex-1 min-w-0">
+              <motion.div
+                key={selectedCategory?.id || 'none'}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="flex-1 min-w-0"
+              >
                 <div className="flex items-center gap-3 mb-1.5">
                   <span className="text-3xl leading-none">{selectedCategory?.emoji || '📷'}</span>
                   <h2 className="text-2xl font-display font-bold text-white">{selectedCategory?.name || 'Entries'}</h2>
@@ -2565,7 +2736,7 @@ export default function App() {
                   <p className="text-sm text-white/50 leading-relaxed max-w-2xl">{selectedCategory?.description}</p>
                 )}
                 <p className="text-xs text-white/35 mt-1.5 font-mono">{photos.length} entries submitted</p>
-              </div>
+              </motion.div>
               <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shrink-0 self-start sm:self-auto">
                 <button
                   onClick={() => setSortBy('top')}
@@ -2588,8 +2759,25 @@ export default function App() {
               </div>
             </div>
 
-            {photos.length === 0 ? (
+            {isCategoryLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="bg-fivem-card/70 rounded-2xl border border-white/5 p-4 flex flex-col gap-3">
+                    <Skeleton className="w-full aspect-video rounded-xl" />
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="w-6 h-6 rounded-full" />
+                        <Skeleton className="w-24 h-3.5 rounded-md" />
+                      </div>
+                      <Skeleton className="w-16 h-7 rounded-full" />
+                    </div>
+                    <Skeleton className="w-3/4 h-3 rounded-md" />
+                  </div>
+                ))}
+              </div>
+            ) : photos.length === 0 ? (
               <motion.div
+                key="empty"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center py-32 bg-fivem-card rounded-3xl border border-dashed border-white/10"
@@ -2607,8 +2795,15 @@ export default function App() {
                 )}
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <AnimatePresence mode="popLayout">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={selectedCategory?.id || 'all'}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.22, ease: 'easeInOut' }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
+                >
                   {sortedPhotos.map((photo, index) => {
                     const rankEmoji = sortBy === 'top' ? (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null) : null;
                     return (
@@ -2765,8 +2960,8 @@ export default function App() {
                     </BlurFade>
                   );
                 })}
-                </AnimatePresence>
-              </div>
+                </motion.div>
+              </AnimatePresence>
             )}
           </section>
 
@@ -2791,9 +2986,6 @@ export default function App() {
           />
         </div>
       </main>
-
-      {/* ── Redesigned Full-Width Wide Contest Rules & Guidelines ── */}
-      <ContestRulesSection rulesMarkdown={rulesMarkdown} />
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
         <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl max-h-[92vh] overflow-y-auto bg-[#0a0a0e] border-white/15 text-white p-5 sm:p-7 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)]">

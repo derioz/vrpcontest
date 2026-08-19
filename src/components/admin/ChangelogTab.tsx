@@ -28,16 +28,18 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260818-1935',
     version: 'v1.9.8',
-    title: 'Mobile-First Navbar Redesign, Floating Category Dock & Radix Bottom Sheet Navigation',
+    title: 'Landing-Page-First Architecture, Per-Category Submissions Cache & Mobile Navigation Suite',
     category: 'UI/UX',
-    description: `• Mobile Floating Bottom Category Dock: Engineered a thumb-friendly floating category dock that smoothly emerges with spring physics when the main category selector scrolls out of view on mobile viewports, featuring active category auto-centering, horizontal touch-scrolling, and safe-area inset protection.
-• IntersectionObserver Visibility Engine: Replaced arbitrary scroll-offset listeners with a high-performance IntersectionObserver sentinel system for smooth, flicker-free transitions between full-sized category cards and sticky navigation states.
+    description: `• Continuous Landing-Page-First Architecture: Restructured the entire platform into a seamless continuous flow (Hero → Contest Rules & Guidelines → Categories → Selected Submissions Area), keeping all governance and categories permanently accessible via upward scroll.
+• Zero-Waste Firebase Submissions Cache: Engineered a high-performance in-memory category caching engine (5-minute TTL) with per-category querying, eliminating redundant Firebase reads when toggling between themes (e.g. Spooky → Farm Life → Spooky reads 0 network bytes on return).
+• Smart Selection & In-Place Navigation Engine: Built an intelligent viewport-aware scroll coordinator that smoothly glides users down to submissions upon initial selection from the landing page, while preserving scroll position and crossfading submissions in-place when switching categories while browsing.
+• Deep-Linked URL State & Browser History Sync: Integrated bidirectional URL query synchronization (?category=slug) with popstate event listening, enabling direct category linking and effortless browser Back/Forward navigation without page reloads.
+• Skeleton Submissions Loading Suite & Crossfade Grid: Deployed shadcn/ui-compatible dark glass Skeleton cards during uncached category queries, paired with Framer Motion AnimatePresence mode="wait" crossfade transitions and dynamic category title motion headers.
+• Mobile Floating Bottom Category Dock: Engineered a thumb-friendly floating category dock that smoothly emerges with spring physics when the main category selector scrolls out of view on mobile viewports, featuring active category auto-centering, horizontal touch-scrolling, and safe-area inset protection.
 • Radix Dialog Bottom Sheet Navigation: Migrated the mobile navigation menu to an accessible Radix Dialog SheetContent architecture with GPU-accelerated bottom-slide animations, drag handle visuals, and built-in focus management.
-• Dedicated Mobile Navbar Architecture: Redesigned the mobile top header with a purpose-built compact layout featuring direct profile avatar triggers, compact Discord sign-in pills, and responsive action clusters.
-• Responsive Platform-Specific Sticky Modes: Decoupled navigation states into a compact sticky top bar for desktop/tablet viewports (≥640px) and a floating bottom dock for mobile (<640px), maintaining shared filtering state.
-• Content Spacing & Accessibility Suite: Added dynamic bottom spacing (.mobile-dock-spacer) to prevent content occlusion on mobile, alongside system prefers-reduced-motion media query support.`,
+• High-Efficiency Atomic Voting & Mutation Synchronization: Upgraded vote and upload pipelines with optimistic local memory updates and instant cache synchronization for instantaneous UI response times.`,
     author: 'Damon',
-    date: 'Aug 18, 2026 at 7:36 PM',
+    date: 'Aug 18, 2026 at 7:55 PM',
   },
   {
     id: 'release-20260816-1837',
