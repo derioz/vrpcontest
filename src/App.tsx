@@ -1012,68 +1012,45 @@ export default function App() {
     }));
   }, [privateKey, censorSubmissions, votingOpen]);
 
-  // Per-category cached photo loader: fetches only the active category's photos and caches them in memory
+  // Real-time photo listener: loads all contest submissions across all categories immediately on visit
   useEffect(() => {
-    if (!activeContestId || !selectedCategory?.id) {
-      return;
-    }
-
-    const catId = selectedCategory.id;
-    const cached = categoryCacheRef.current.get(catId);
-    const now = Date.now();
-
-    // Cache hit: immediately use cached submissions without any Firebase read
-    if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
-      setAllPhotos(prev => {
-        const otherPhotos = prev.filter(p => p.category_id !== catId);
-        return [...otherPhotos, ...cached.photos];
-      });
+    if (!activeContestId) {
+      setAllPhotos([]);
       setIsCategoryLoading(false);
       return;
     }
 
-    let isCancelled = false;
     setIsCategoryLoading(true);
+    let isCancelled = false;
 
-    const fetchCategoryPhotos = async () => {
+    const qPhotos = collection(db, 'photos');
+    const unsub = onSnapshot(qPhotos, async (snapshot) => {
       try {
-        const q = query(
-          collection(db, 'photos'),
-          where('category_id', '==', catId)
-        );
-        const snap = await getDocs(q);
-        if (isCancelled) return;
-
-        const rawPhotos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Photo[];
+        const rawPhotos = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Photo[];
         const processed = await decryptAndProcessPhotos(rawPhotos);
 
-        if (isCancelled) return;
-
-        categoryCacheRef.current.set(catId, {
-          photos: processed,
-          timestamp: Date.now()
-        });
-
-        setAllPhotos(prev => {
-          const otherPhotos = prev.filter(p => p.category_id !== catId);
-          return [...otherPhotos, ...processed];
-        });
+        if (!isCancelled) {
+          setAllPhotos(processed);
+          setIsCategoryLoading(false);
+        }
       } catch (err) {
-        console.error('Photos fetch error:', err);
-        toast.error('Failed to load category submissions');
-      } finally {
+        console.error("Photos listener processing error:", err);
         if (!isCancelled) {
           setIsCategoryLoading(false);
         }
       }
-    };
-
-    fetchCategoryPhotos();
+    }, (err) => {
+      console.error("Photos listener error:", err);
+      if (!isCancelled) {
+        setIsCategoryLoading(false);
+      }
+    });
 
     return () => {
       isCancelled = true;
+      unsub();
     };
-  }, [activeContestId, selectedCategory?.id, decryptAndProcessPhotos]);
+  }, [activeContestId, decryptAndProcessPhotos]);
 
   // Subscribe to flagged_voters collection
   const [flaggedVoterIds, setFlaggedVoterIds] = useState<Set<string>>(new Set());
