@@ -70,7 +70,7 @@ import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, SheetContent } from './components/ui/dialog';
 import { VoteButton, VotersButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 import { NumberTicker } from './components/ui/number-ticker';
@@ -86,6 +86,7 @@ import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
 import { UITripledCategoryCard } from './components/UITripledCategoryCard';
 import { StickyCategoryNav } from './components/StickyCategoryNav';
+import { MobileCategoryDock } from './components/MobileCategoryDock';
 import ThreeDCarousel from './components/ui/three-d-carousel';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
@@ -135,9 +136,10 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Lock body scroll when mobile menu or category selection modal is active
+  // Lock body scroll when category selection modal is active
+  // Note: isMobileMenuOpen scroll lock is handled by Radix Dialog automatically
   useEffect(() => {
-    if (isCategoryMenuOpen || isMobileMenuOpen) {
+    if (isCategoryMenuOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -145,23 +147,23 @@ export default function App() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isCategoryMenuOpen, isMobileMenuOpen]);
+  }, [isCategoryMenuOpen]);
 
+  // IntersectionObserver: detect when the large category section scrolls out of view
   useEffect(() => {
-    const handleScroll = () => {
-      const sentinel = categorySentinelRef.current;
-      if (!sentinel) {
-        setIsCategorySticky(window.scrollY > 600);
-        return;
-      }
-      const rect = sentinel.getBoundingClientRect();
-      // Only show sticky category bar when user has scrolled down past the top section and is scrolling past the category cards (rect.top <= 140)
-      setIsCategorySticky(window.scrollY > 350 && rect.top <= 140);
-    };
+    const sentinel = categorySentinelRef.current;
+    if (!sentinel) return;
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When the sentinel is NOT intersecting (scrolled past), show sticky
+        setIsCategorySticky(!entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: '-80px 0px 0px 0px' } // 80px offset accounts for the navbar height
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   }, [categories]);
 
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
@@ -1843,17 +1845,43 @@ export default function App() {
             <Sparkles size={10} className="text-amber-400/60 group-hover:text-amber-300 transition-colors relative z-10" />
           </button>
 
-          {/* ── RIGHT: Mobile Menu Toggle ── */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-white/15 bg-white/[0.04] text-white/80 hover:text-white cursor-pointer transition-all active:scale-95 shadow-sm"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5" />
+          {/* ── RIGHT: Mobile Action Cluster ── */}
+          <div className="md:hidden flex items-center gap-2 shrink-0">
+            {/* Compact mobile sign-in OR avatar */}
+            {user && !user.isAnonymous ? (
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="w-8 h-8 rounded-xl overflow-hidden border border-white/15 active:scale-95 transition-transform cursor-pointer"
+              >
+                <img
+                  src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                  alt=""
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                    if (target.src !== fallback) target.src = fallback;
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </button>
             ) : (
-              <Menu className="w-5 h-5" />
+              <button
+                onClick={() => setShowSignInModal(true)}
+                className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-gradient-to-r from-fivem-orange to-orange-500 text-white active:scale-[0.97] transition-transform cursor-pointer shadow-[0_2px_12px_rgba(234,88,12,0.3)] border border-orange-400/30"
+              >
+                <User size={13} />
+                <span className="text-[10px] font-display font-bold tracking-wider uppercase">Sign In</span>
+              </button>
             )}
-          </button>
+            {/* Hamburger menu */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-xl border border-white/15 bg-white/[0.04] text-white/80 active:text-white cursor-pointer transition-all active:scale-95 shadow-sm"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* ── RIGHT: Action Cluster (Desktop Only) ── */}
           <motion.div
@@ -1906,206 +1934,188 @@ export default function App() {
         </div>
       </motion.header>
 
-      {/* ── Mobile Bottom Sheet Navigation ── */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm"
-            />
-            {/* Bottom Sheet */}
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[#0c0c10] border-t border-white/10 rounded-t-3xl shadow-[0_-20px_60px_rgba(0,0,0,0.8)] max-h-[85vh] overflow-y-auto"
-            >
-              {/* Drag Handle */}
-              <div className="flex justify-center pt-3 pb-1 sticky top-0 bg-[#0c0c10] z-10">
-                <div className="w-10 h-1 rounded-full bg-white/20" />
-              </div>
+      {/* ── Mobile Bottom Sheet Navigation (Radix Dialog) ── */}
+      <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent>
+          <div className="space-y-5">
 
-              <div className="px-5 pb-8 pt-2 space-y-5">
+            {/* ── Quick Actions Grid ── */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <button
+                onClick={() => { const el = document.getElementById('categories-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); else window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
+                className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/25 flex items-center justify-center">
+                  <Layers size={18} className="text-fivem-orange" />
+                </div>
+                <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Categories</span>
+              </button>
 
-                {/* ── Quick Actions Grid ── */}
-                <div className="grid grid-cols-3 gap-2.5">
-                  <button
-                    onClick={() => { window.scrollTo({ top: 380, behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
-                    className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/25 flex items-center justify-center">
-                      <Layers size={18} className="text-fivem-orange" />
+              {submissionsOpen ? (
+                <button
+                  onClick={() => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); }}
+                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-fivem-orange/[0.06] border border-fivem-orange/20 active:bg-fivem-orange/15 transition-all cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center">
+                    <Upload size={18} className="text-fivem-orange" />
+                  </div>
+                  <span className="text-[10px] font-bold text-fivem-orange/80 uppercase tracking-wider">Submit</span>
+                </button>
+              ) : (
+                <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04] opacity-40">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                    <Lock size={18} className="text-white/30" />
+                  </div>
+                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Closed</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
+                className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <FileText size={18} className="text-sky-400" />
+                </div>
+                <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Rules</span>
+              </button>
+            </div>
+
+            {/* ── Featured Actions ── */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Featured</span>
+
+              {/* Hall of Fame */}
+              <button
+                onClick={() => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/[0.08] to-yellow-500/[0.04] border border-amber-500/20 active:border-amber-500/40 transition-all cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                  <Trophy size={18} className="text-amber-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-bold text-amber-200 block">Hall of Fame</span>
+                  <span className="text-[10px] text-white/35 font-mono">Browse past champions</span>
+                </div>
+                <ChevronRight size={16} className="text-amber-500/40 shrink-0" />
+              </button>
+
+              {/* Suggest Category */}
+              <button
+                onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] active:bg-white/[0.06] transition-all cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                  <Sparkles size={18} className="text-violet-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-bold text-white/80 block">Suggest Category</span>
+                  <span className="text-[10px] text-white/35 font-mono">Submit ideas for next round</span>
+                </div>
+                <ChevronRight size={16} className="text-white/15 shrink-0" />
+              </button>
+
+              {/* Admin Tools (Admin Only) */}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setShowAdminModal(true);
+                    setIsAdminMinimized(false);
+                  }}
+                  className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-fivem-orange/[0.05] border border-fivem-orange/15 active:bg-fivem-orange/10 transition-all cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/25 flex items-center justify-center shrink-0">
+                    <ShieldCheck size={18} className="text-fivem-orange" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-sm font-bold text-fivem-orange/90 block">Admin Console</span>
+                    <span className="text-[10px] text-white/30 font-mono">Dashboard & settings</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-fivem-orange/15 text-[9px] font-mono font-bold text-fivem-orange uppercase shrink-0">Admin</span>
+                </button>
+              )}
+            </div>
+
+            {/* ── Account ── */}
+            <div className="space-y-2 pt-3 border-t border-white/[0.06]">
+              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Account</span>
+
+              {user && !user.isAnonymous ? (
+                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                  <img
+                    src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                    alt=""
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                      if (target.src !== fallback) target.src = fallback;
+                    }}
+                    className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold text-white truncate block">{user.displayName || user.email?.split('@')[0]}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+                      <span className="text-[9px] font-mono uppercase tracking-widest text-emerald-400/70 font-bold">Online</span>
                     </div>
-                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Categories</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditedDisplayName(user.displayName || '');
+                      setIsEditingDisplayName(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 active:text-white active:bg-white/[0.08] transition-all cursor-pointer shrink-0"
+                    title="Edit Display Name"
+                  >
+                    <Edit3 size={14} />
                   </button>
-
-                  {submissionsOpen ? (
-                    <button
-                      onClick={() => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); }}
-                      className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-fivem-orange/[0.06] border border-fivem-orange/20 active:bg-fivem-orange/15 transition-all cursor-pointer"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center">
-                        <Upload size={18} className="text-fivem-orange" />
-                      </div>
-                      <span className="text-[10px] font-bold text-fivem-orange/80 uppercase tracking-wider">Submit</span>
-                    </button>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04] opacity-40">
-                      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                        <Lock size={18} className="text-white/30" />
-                      </div>
-                      <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Closed</span>
-                    </div>
-                  )}
-
                   <button
-                    onClick={() => { document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
-                    className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] active:bg-white/[0.08] active:border-white/15 transition-all cursor-pointer"
+                    onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }}
+                    className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 active:text-rose-400 active:bg-rose-500/10 transition-all cursor-pointer shrink-0"
+                    title="Sign Out"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-                      <FileText size={18} className="text-sky-400" />
-                    </div>
-                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Rules</span>
+                    <LogOut size={14} />
                   </button>
                 </div>
+              ) : (
+                <button
+                  onClick={() => { setShowSignInModal(true); setIsMobileMenuOpen(false); }}
+                  className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-gradient-to-r from-fivem-orange to-orange-500 text-white font-bold text-xs uppercase tracking-wider cursor-pointer active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20"
+                >
+                  <User size={16} />
+                  <span>Sign In with Discord</span>
+                </button>
+              )}
+            </div>
 
-                {/* ── Featured Actions ── */}
-                <div className="space-y-2">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Featured</span>
-
-                  {/* Hall of Fame */}
-                  <button
-                    onClick={() => { setShowArchivedWinners(true); setIsMobileMenuOpen(false); }}
-                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/[0.08] to-yellow-500/[0.04] border border-amber-500/20 active:border-amber-500/40 transition-all cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
-                      <Trophy size={18} className="text-amber-400" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="text-sm font-bold text-amber-200 block">Hall of Fame</span>
-                      <span className="text-[10px] text-white/35 font-mono">Browse past champions</span>
-                    </div>
-                    <ChevronRight size={16} className="text-amber-500/40 shrink-0" />
-                  </button>
-
-                  {/* Suggest Category */}
-                  <button
-                    onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
-                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] active:bg-white/[0.06] transition-all cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                      <Sparkles size={18} className="text-violet-400" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="text-sm font-bold text-white/80 block">Suggest Category</span>
-                      <span className="text-[10px] text-white/35 font-mono">Submit ideas for next round</span>
-                    </div>
-                    <ChevronRight size={16} className="text-white/15 shrink-0" />
-                  </button>
-
-                  {/* Admin Tools (Admin Only) */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setShowAdminModal(true);
-                        setIsAdminMinimized(false);
-                      }}
-                      className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-fivem-orange/[0.05] border border-fivem-orange/15 active:bg-fivem-orange/10 transition-all cursor-pointer"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/25 flex items-center justify-center shrink-0">
-                        <ShieldCheck size={18} className="text-fivem-orange" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <span className="text-sm font-bold text-fivem-orange/90 block">Admin Console</span>
-                        <span className="text-[10px] text-white/30 font-mono">Dashboard & settings</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-md bg-fivem-orange/15 text-[9px] font-mono font-bold text-fivem-orange uppercase shrink-0">Admin</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* ── Account ── */}
-                <div className="space-y-2 pt-3 border-t border-white/[0.06]">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Account</span>
-
-                  {user && !user.isAnonymous ? (
-                    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                      <img
-                        src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
-                        alt=""
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
-                          if (target.src !== fallback) target.src = fallback;
-                        }}
-                        className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-bold text-white truncate block">{user.displayName || user.email?.split('@')[0]}</span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
-                          <span className="text-[9px] font-mono uppercase tracking-widest text-emerald-400/70 font-bold">Online</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setEditedDisplayName(user.displayName || '');
-                          setIsEditingDisplayName(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 active:text-white active:bg-white/[0.08] transition-all cursor-pointer shrink-0"
-                        title="Edit Display Name"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setShowSignInModal(true); setIsMobileMenuOpen(false); }}
-                      className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-gradient-to-r from-fivem-orange to-orange-500 text-white font-bold text-xs uppercase tracking-wider cursor-pointer active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20"
-                    >
-                      <User size={16} />
-                      <span>Sign In with Discord</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* ── Support ── */}
-                <div className="flex gap-2.5">
-                  <button
-                    onClick={() => { setIsMobileMenuOpen(false); setShowBugModal(true); }}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/50 active:text-white active:bg-white/[0.06] text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
-                  >
-                    <Bug size={13} className="text-rose-400/70" />
-                    <span>Report Bug</span>
-                  </button>
-                  {!isAdmin && (
-                    <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setShowNotAdminModal(true);
-                        setNotAdminClickCount(c => c + 1);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/50 active:text-white active:bg-white/[0.06] text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
-                    >
-                      <Settings size={13} className="text-white/40" />
-                      <span>Settings</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            {/* ── Support ── */}
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); setShowBugModal(true); }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/50 active:text-white active:bg-white/[0.06] text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                <Bug size={13} className="text-rose-400/70" />
+                <span>Report Bug</span>
+              </button>
+              {!isAdmin && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setShowNotAdminModal(true);
+                    setNotAdminClickCount(c => c + 1);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/50 active:text-white active:bg-white/[0.06] text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  <Settings size={13} className="text-white/40" />
+                  <span>Settings</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Dialog>
 
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (
@@ -2387,21 +2397,32 @@ export default function App() {
         </section>
       )}
 
-      {/* Category Sentinel */}
-      {categories.length > 0 && <div ref={categorySentinelRef} className="h-px w-full pointer-events-none" />}
 
-      {/* ── Sticky Minimized Category Selector ── */}
-      {/* Matches navbar glass architecture — slides out from underneath */}
+      {/* ── Sticky Category Selector (Desktop: top bar, Mobile: bottom dock) ── */}
+      {/* Desktop/Tablet: slides out from underneath the navbar */}
       <AnimatePresence>
         {isCategorySticky && categories.length > 0 && (
-          <StickyCategoryNav
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={(cat) => setSelectedCategory(cat)}
-            topOffset={miniCatTop}
-          />
+          <>
+            {/* Desktop: sticky top bar (hidden on mobile) */}
+            <div className="hidden sm:block">
+              <StickyCategoryNav
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={(cat) => setSelectedCategory(cat)}
+                topOffset={miniCatTop}
+              />
+            </div>
+          </>
         )}
       </AnimatePresence>
+
+      {/* Mobile: floating bottom dock (hidden on desktop) */}
+      <MobileCategoryDock
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={(cat) => setSelectedCategory(cat)}
+        visible={isCategorySticky && categories.length > 0}
+      />
 
 
       {
@@ -2530,7 +2551,7 @@ export default function App() {
 
 
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
+      <main className={cn("max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8", isCategorySticky && categories.length > 0 && "sm:pt-0 mobile-dock-spacer sm:!pb-0")}>
         {/* Main Content – 3 cols */}
         <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
           <section>

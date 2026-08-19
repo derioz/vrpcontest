@@ -110,6 +110,39 @@ const DialogDescription = React.forwardRef<
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
+/**
+ * SheetContent — A bottom-sheet variant of DialogContent for mobile navigation.
+ * Slides up from the bottom of the screen with accessible focus trapping.
+ */
+const SheetContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPortal>
+    <DialogPrimitive.Overlay
+      className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200"
+    />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-[150] bg-[#0c0c10] border-t border-white/10 rounded-t-3xl shadow-[0_-20px_60px_rgba(0,0,0,0.8)] max-h-[85dvh] overflow-hidden text-white flex flex-col",
+        "data-[state=open]:animate-sheet-in data-[state=closed]:animate-sheet-out",
+        className
+      )}
+      {...props}
+    >
+      {/* Drag Handle */}
+      <div className="flex justify-center pt-3 pb-1 shrink-0">
+        <div className="w-10 h-1 rounded-full bg-white/20" />
+      </div>
+      <div className="overflow-y-auto flex-1 px-5 pb-8 pt-2">
+        {children}
+      </div>
+    </DialogPrimitive.Content>
+  </DialogPortal>
+));
+SheetContent.displayName = "SheetContent";
+
 export {
   Dialog,
   DialogClose,
@@ -121,4 +154,6 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  SheetContent,
 };
+

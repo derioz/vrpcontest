@@ -256,3 +256,54 @@
   background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
   background-size: 20px 20px;
 }
+
+/* ═══════════════════════════════════════════════════════
+   Mobile Navigation — Safe Areas & Dock Spacing
+   ═══════════════════════════════════════════════════════ */
+
+/* Safe area padding for floating bottom elements (iPhone notch/home indicator) */
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+/* Bottom spacer when mobile category dock is active — prevents content from being hidden */
+.mobile-dock-spacer {
+  padding-bottom: 72px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Bottom Sheet Dialog — Slide Animations
+   ═══════════════════════════════════════════════════════ */
+
+/* Radix Dialog bottom sheet: slide up from bottom */
+@keyframes sheet-slide-in-from-bottom {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes sheet-slide-out-to-bottom {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+.animate-sheet-in {
+  animation: sheet-slide-in-from-bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.animate-sheet-out {
+  animation: sheet-slide-out-to-bottom 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Reduced Motion — Accessibility
+   ═══════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-in,
+  .animate-sheet-out {
+    animation-duration: 0.01ms !important;
+  }
+
+  .animate-pulse {
+    animation: none !important;
+  }
+}
