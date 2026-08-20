@@ -86,6 +86,7 @@ import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
 import { CategoryNav } from './components/CategoryNav';
 import { Toolbar, ToolbarItem } from './components/ui/toolbar';
+import { HoverGradientNavBar, HoverGradientMenuItem } from './components/ui/hover-gradient-nav-bar';
 import ThreeDCarousel from './components/ui/three-d-carousel';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
@@ -1916,19 +1917,17 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* ── CENTER: KokonutUI Navigation Toolbar ── */}
-          <div className="hidden md:flex items-center">
-            <Toolbar
-              size="sm"
-              notificationPosition="bottom"
-              selectedId={activeNavId}
-              onSelect={(id) => setActiveNavId(id)}
+          {/* ── CENTER: HoverGradientNavBar with Expanded Options ── */}
+          <div className="hidden lg:flex items-center">
+            <HoverGradientNavBar
+              activeId={activeNavId}
               items={[
                 {
                   id: 'categories',
-                  title: 'Categories',
-                  icon: Layers,
-                  notificationText: 'Categories Navigation Active',
+                  icon: <Layers className="h-4 w-4" />,
+                  label: 'Categories',
+                  gradient: 'radial-gradient(circle, rgba(234,88,12,0.25) 0%, rgba(249,115,22,0.1) 50%, rgba(194,65,12,0) 100%)',
+                  iconColor: 'group-hover:text-fivem-orange text-orange-400',
                   onClick: () => {
                     setActiveNavId('categories');
                     const el = document.getElementById('category-nav') || document.getElementById('submissions-area');
@@ -1938,12 +1937,12 @@ export default function App() {
                 },
                 ...(submissionsOpen ? [{
                   id: 'submit',
-                  title: 'Submit Entry',
-                  icon: Plus,
+                  icon: <Upload className="h-4 w-4" />,
+                  label: 'Submit Entry',
                   badge: 'Open',
-                  badgeClassName: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
-                  accent: true,
-                  notificationText: 'Submissions Open!',
+                  badgeClassName: 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-bold',
+                  gradient: 'radial-gradient(circle, rgba(16,185,129,0.25) 0%, rgba(5,150,105,0.1) 50%, rgba(4,120,87,0) 100%)',
+                  iconColor: 'group-hover:text-emerald-400 text-emerald-400',
                   onClick: () => {
                     setActiveNavId('submit');
                     if (!user) {
@@ -1954,33 +1953,41 @@ export default function App() {
                   }
                 }] : []),
                 {
+                  id: 'suggest',
+                  icon: <Sparkles className="h-4 w-4" />,
+                  label: 'Suggest Theme',
+                  gradient: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
+                  iconColor: 'group-hover:text-purple-400 text-purple-400',
+                  onClick: () => {
+                    setActiveNavId('suggest');
+                    setShowCategorySuggestions(true);
+                  }
+                },
+                {
                   id: 'rules',
-                  title: 'Rules',
-                  icon: FileText,
-                  notificationText: 'Contest Rules',
+                  icon: <FileText className="h-4 w-4" />,
+                  label: 'Rules',
+                  gradient: 'radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(37,99,235,0.1) 50%, rgba(29,78,216,0) 100%)',
+                  iconColor: 'group-hover:text-blue-400 text-blue-400',
                   onClick: () => {
                     setActiveNavId('rules');
                     document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
                   }
-                }
+                },
+                ...(isAdmin ? [{
+                  id: 'admin',
+                  icon: <ShieldCheck className="h-4 w-4" />,
+                  label: 'Admin Hub',
+                  badge: 'Staff',
+                  badgeClassName: 'bg-red-500/25 text-red-300 border border-red-500/40 font-bold',
+                  gradient: 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, rgba(220,38,38,0.1) 50%, rgba(185,28,28,0) 100%)',
+                  iconColor: 'group-hover:text-red-400 text-red-400',
+                  onClick: () => {
+                    setShowAdminModal(true);
+                    setIsAdminMinimized(false);
+                  }
+                }] : [])
               ]}
-              rightElement={
-                <motion.button
-                  type="button"
-                  onClick={() => setShowArchivedWinners(true)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-display font-black uppercase tracking-wider cursor-pointer select-none transition-all duration-300
-                    bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-yellow-500/20 hover:to-amber-500/25
-                    border border-amber-400/30 hover:border-amber-400/50
-                    text-amber-300 hover:text-amber-200
-                    shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)]"
-                >
-                  <Trophy size={13} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
-                  <span className="leading-none">Hall of Fame</span>
-                  <Sparkles size={10} className="text-amber-400/60" />
-                </motion.button>
-              }
             />
           </div>
 
@@ -2022,14 +2029,36 @@ export default function App() {
             </button>
           </div>
 
-          {/* ── RIGHT: Action Cluster (Desktop Only) ── */}
+          {/* ── RIGHT: Combined & Separated Actions Hub (Hall of Fame + Profile) ── */}
           <motion.div
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="hidden md:flex items-center gap-2 shrink-0"
+            className="hidden md:flex items-center gap-1.5 p-1 rounded-2xl bg-[#09090e]/90 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)]"
           >
-            {/* Profile Capsule & Sera UI Dropdown */}
+            {/* 1. Hall of Fame 3D Hover Radial Glow Pill */}
+            <motion.button
+              type="button"
+              onClick={() => setShowArchivedWinners(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="group/hof relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-display font-black uppercase tracking-wider cursor-pointer select-none transition-all duration-300
+                bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-yellow-500/20 hover:to-amber-500/25
+                border border-amber-400/30 hover:border-amber-400/50
+                text-amber-300 hover:text-amber-200
+                shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)] overflow-hidden"
+              title="Open Hall of Fame & Past Champions"
+            >
+              <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle,rgba(245,158,11,0.3)_0%,transparent_100%)] opacity-0 group-hover/hof:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <Trophy size={14} className="text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)] relative z-10 transition-transform duration-300 group-hover/hof:scale-110" />
+              <span className="relative z-10 whitespace-nowrap leading-none">Hall of Fame</span>
+              <Sparkles size={11} className="text-amber-400/70 group-hover/hof:text-amber-300 relative z-10" />
+            </motion.button>
+
+            {/* ── Crisp Vertical Separation Divider ── */}
+            <div className="h-5 w-[1px] bg-white/10 mx-0.5" />
+
+            {/* 2. User Profile Dropdown / Sign In Trigger */}
             {user && !user.isAnonymous ? (
               <UserProfileDropdown
                 user={user}
@@ -2060,11 +2089,11 @@ export default function App() {
             ) : (
               <button
                 onClick={() => setShowSignInModal(true)}
-                className="group/login relative flex items-center gap-2 px-4 h-8 rounded-full
+                className="group/login relative flex items-center gap-2 px-3.5 h-8 rounded-xl
                   bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.5)] border border-orange-400/30"
               >
                 <User className="w-3.5 h-3.5 relative z-10 opacity-90 group-hover/login:opacity-100 transition-opacity duration-200" size={14} />
-                <span className="relative z-10 text-[11px] font-display font-bold tracking-wider uppercase">
+                <span className="relative z-10 text-[11px] font-display font-bold tracking-wider uppercase whitespace-nowrap">
                   Sign In
                 </span>
               </button>

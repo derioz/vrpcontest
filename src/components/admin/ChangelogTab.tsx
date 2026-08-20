@@ -28,17 +28,15 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260819-1930',
     version: 'v1.9.9',
-    title: 'KokonutUI Toolbar Navigation, Spring Micro-Interactions & Floating Notifications Suite',
+    title: 'HoverGradient 3D Flip Navigation, KokonutUI Category Toolbar & Hall of Fame / Profile Hub',
     category: 'UI/UX',
-    description: `• Official KokonutUI Toolbar Suite Integration: Re-engineered top-level navigation and category selection matching the iconic KokonutUI Toolbar architecture (https://kokonutui.com/docs/navigation/toolbar) with fluid spring physics, glassmorphic dark capsules, and micro-interactions.
-• Spring-Expanding Interactive Tool Buttons: Implemented Motion spring-physics button variants that smoothly expand selected tools and category pills, dynamically interpolating text labels, category badges, and padding without layout shift.
-• Floating Confirmation Tooltips with Glowing Line Accents: Engineered floating spring notification pills with animated laser baseline accents that dynamically pop up on category switches and navigation actions to confirm user interactions.
-• KokonutUI Top Navbar Island: Replaced legacy pill navigation in the header with a dedicated KokonutUI Toolbar featuring instant section routing (Categories, Rules, Submit Entry) alongside an integrated luxury Hall of Fame trophy tool toggle.
-• KokonutUI Category Bar Overhaul: Upgraded the contest CategoryNav with KokonutUI spring pill morphing, live category photo entry count badges, interactive emoji scaling, and an auxiliary real-time stats & filter tool pill.
-• Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new KokonutUI physics engine.
-• Polymorphic Icon Renderer & Error Boundary: Engineered a robust polymorphic renderer handling forwardRef icon components, JSX nodes, and emoji strings seamlessly, paired with a root-level ErrorBoundary for fail-safe resilience.`,
+    description: `• HoverGradient 3D Flip Navigation Suite: Integrated HoverGradientNavBar into the primary header with 3D card rotation physics (rotateX -90°/90°), tailored multi-stop radial glow highlights, and rich expanded navigation options (Categories, Submit Entry, Suggest Theme, Contest Rules, and Admin Hub).
+• Combined & Separated Hall of Fame / Profile Hub: Harmonized past champion archives and community profile controls into a unified luxury action island with tactile 3D hover radial glow effects, cleanly partitioned with a crisp glass hairline divider.
+• KokonutUI Category Toolbar Architecture: Upgraded the contest CategoryNav with KokonutUI spring pill morphing, real-time category photo entry counts, interactive emoji scaling, floating confirmation tooltips with glowing laser baselines, and an auxiliary stats toggle.
+• Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new Motion physics engine.
+• Polymorphic Icon Renderer & Root Error Boundary: Engineered a resilient polymorphic renderer supporting forwardRef icon components, JSX nodes, and emoji strings seamlessly, paired with a root-level ErrorBoundary for fail-safe resilience.`,
     author: 'Damon',
-    date: 'Aug 19, 2026 at 7:30 PM',
+    date: 'Aug 19, 2026 at 7:45 PM',
   },
   {
     id: 'release-20260818-2158',
