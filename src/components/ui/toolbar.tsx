@@ -145,6 +145,31 @@ export function Toolbar({
 
   const iconSize = size === "sm" ? 14 : size === "lg" ? 18 : 15;
 
+  const renderIcon = (icon: ToolbarItem["icon"], isSelected: boolean) => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) {
+      return icon;
+    }
+    if (typeof icon === "string") {
+      return (
+        <span className="text-sm sm:text-base leading-none transition-transform duration-200 group-hover:scale-110">
+          {icon}
+        </span>
+      );
+    }
+    // Handle React Component (functions or forwardRef objects like Lucide icons)
+    const IconComponent = icon as React.ComponentType<{ className?: string; size?: number }>;
+    return (
+      <IconComponent
+        size={iconSize}
+        className={cn(
+          "transition-transform duration-200 group-hover:scale-110",
+          isSelected ? "text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]" : "text-white/60 group-hover:text-white"
+        )}
+      />
+    );
+  };
+
   return (
     <div className="relative inline-flex flex-col items-center">
       {/* Floating Spring Notification Tooltip (Kokonut Signature) */}
@@ -215,21 +240,7 @@ export function Toolbar({
               >
                 {/* Render Icon */}
                 <div className="relative z-10 flex items-center justify-center shrink-0">
-                  {typeof item.icon === "function" ? (
-                    <item.icon
-                      size={iconSize}
-                      className={cn(
-                        "transition-transform duration-200 group-hover:scale-110",
-                        isSelected ? "text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]" : "text-white/60 group-hover:text-white"
-                      )}
-                    />
-                  ) : typeof item.icon === "string" ? (
-                    <span className="text-sm sm:text-base leading-none transition-transform duration-200 group-hover:scale-110">
-                      {item.icon}
-                    </span>
-                  ) : (
-                    item.icon
-                  )}
+                  {renderIcon(item.icon, isSelected)}
                 </div>
 
                 {/* Animated Spring Expandable Label */}

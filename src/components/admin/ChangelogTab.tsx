@@ -35,7 +35,8 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Floating Confirmation Tooltips with Glowing Line Accents: Engineered floating spring notification pills with animated laser baseline accents that dynamically pop up on category switches and navigation actions to confirm user interactions.
 • KokonutUI Top Navbar Island: Replaced legacy pill navigation in the header with a dedicated KokonutUI Toolbar featuring instant section routing (Categories, Rules, Submit Entry) alongside an integrated luxury Hall of Fame trophy tool toggle.
 • KokonutUI Category Bar Overhaul: Upgraded the contest CategoryNav with KokonutUI spring pill morphing, live category photo entry count badges, interactive emoji scaling, and an auxiliary real-time stats & filter tool pill.
-• Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new KokonutUI physics engine.`,
+• Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new KokonutUI physics engine.
+• Polymorphic Icon Renderer & Error Boundary: Engineered a robust polymorphic renderer handling forwardRef icon components, JSX nodes, and emoji strings seamlessly, paired with a root-level ErrorBoundary for fail-safe resilience.`,
     author: 'Damon',
     date: 'Aug 19, 2026 at 7:30 PM',
   },
