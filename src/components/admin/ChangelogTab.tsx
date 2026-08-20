@@ -34,9 +34,10 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Combined & Separated Hall of Fame / Profile Hub: Harmonized past champion archives and community profile controls into a unified luxury action island with tactile 3D hover radial glow effects, cleanly partitioned with a crisp glass hairline divider.
 • KokonutUI Category Toolbar Architecture: Upgraded the contest CategoryNav with KokonutUI spring pill morphing, real-time category photo entry counts, interactive emoji scaling, floating confirmation tooltips with glowing laser baselines, and an auxiliary stats toggle.
 • Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new Motion physics engine.
-• Polymorphic Icon Renderer & Root Error Boundary: Engineered a resilient polymorphic renderer supporting forwardRef icon components, JSX nodes, and emoji strings seamlessly, paired with a root-level ErrorBoundary for fail-safe resilience.`,
+• Polymorphic Icon Renderer & Root Error Boundary: Engineered a resilient polymorphic renderer supporting forwardRef icon components, JSX nodes, and emoji strings seamlessly, paired with a root-level ErrorBoundary for fail-safe resilience.
+• Login Modal Stacking & Viewport Elevation Fix: Fixed GridLinesLoginModal z-index stacking ('z-[210]') over the backdrop blur overlay ('z-[200]') with responsive flexbox viewport centering, restoring crisp modal rendering and instant Discord sign-in.`,
     author: 'Damon',
-    date: 'Aug 19, 2026 at 7:45 PM',
+    date: 'Aug 19, 2026 at 7:50 PM',
   },
   {
     id: 'release-20260818-2158',

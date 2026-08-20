@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Shield, CheckCircle2, X, ArrowRight, Loader2 } from 'lucide-react';
-import { Dialog, DialogPortal, DialogOverlay } from './ui/dialog';
+import { Dialog, DialogPortal, DialogOverlay, DialogTitle, DialogDescription } from './ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '../lib/utils';
 import { BorderBeam } from './ui/border-beam';
@@ -42,12 +42,16 @@ export function GridLinesLoginModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogPortal>
-        <DialogOverlay className="bg-black/85 backdrop-blur-md" />
-        <DialogPrimitive.Content
-          className="fixed left-[50%] top-[50%] z-[160] w-[calc(100%-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-300"
-        >
-          {/* ── Aceternity Grid Lines Container ── */}
-          <div className="relative mx-auto w-full rounded-2xl bg-[#09090d] p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.9)] border border-white/10 overflow-hidden">
+        <DialogOverlay className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md" />
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-3 sm:p-6 pointer-events-none overflow-hidden">
+          <DialogPrimitive.Content
+            className="pointer-events-auto relative w-full max-w-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-300 my-auto"
+          >
+            <DialogTitle className="sr-only">Sign In to Vital RP Photo Contest</DialogTitle>
+            <DialogDescription className="sr-only">Connect your Discord account to submit contest photography and vote.</DialogDescription>
+
+            {/* ── Aceternity Grid Lines Container ── */}
+            <div className="relative mx-auto w-full rounded-2xl bg-[#09090d] p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.9)] border border-white/10 overflow-hidden">
             {/* Subtle Inner Border Beam Accent */}
             <BorderBeam size={180} duration={12} colorFrom="#ea580c" colorTo="#5865F2" borderWidth={1.5} />
 
@@ -181,9 +185,10 @@ export function GridLinesLoginModal({
 
           </div>
         </DialogPrimitive.Content>
-      </DialogPortal>
-    </Dialog>
-  );
+      </div>
+    </DialogPortal>
+  </Dialog>
+);
 }
 
 export default GridLinesLoginModal;
