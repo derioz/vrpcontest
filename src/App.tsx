@@ -1917,8 +1917,8 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* ── CENTER: HoverGradientNavBar with Expanded Options ── */}
-          <div className="hidden lg:flex items-center">
+          {/* ── CENTER: Perfectly Centered HoverGradientNavBar for all viewports & users ── */}
+          <div className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 pointer-events-auto z-20">
             <HoverGradientNavBar
               activeId={activeNavId}
               items={[
@@ -1935,34 +1935,6 @@ export default function App() {
                     else window.scrollTo({ top: 380, behavior: 'smooth' });
                   }
                 },
-                ...(submissionsOpen ? [{
-                  id: 'submit',
-                  icon: <Upload className="h-4 w-4" />,
-                  label: 'Submit Entry',
-                  badge: 'Open',
-                  badgeClassName: 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-bold',
-                  gradient: 'radial-gradient(circle, rgba(16,185,129,0.25) 0%, rgba(5,150,105,0.1) 50%, rgba(4,120,87,0) 100%)',
-                  iconColor: 'group-hover:text-emerald-400 text-emerald-400',
-                  onClick: () => {
-                    setActiveNavId('submit');
-                    if (!user) {
-                      setShowSignInModal(true);
-                    } else {
-                      setShowUploadModal(true);
-                    }
-                  }
-                }] : []),
-                {
-                  id: 'suggest',
-                  icon: <Sparkles className="h-4 w-4" />,
-                  label: 'Suggest Theme',
-                  gradient: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
-                  iconColor: 'group-hover:text-purple-400 text-purple-400',
-                  onClick: () => {
-                    setActiveNavId('suggest');
-                    setShowCategorySuggestions(true);
-                  }
-                },
                 {
                   id: 'rules',
                   icon: <FileText className="h-4 w-4" />,
@@ -1974,19 +1946,34 @@ export default function App() {
                     document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
                   }
                 },
-                ...(isAdmin ? [{
-                  id: 'admin',
-                  icon: <ShieldCheck className="h-4 w-4" />,
-                  label: 'Admin Hub',
-                  badge: 'Staff',
-                  badgeClassName: 'bg-red-500/25 text-red-300 border border-red-500/40 font-bold',
-                  gradient: 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, rgba(220,38,38,0.1) 50%, rgba(185,28,28,0) 100%)',
-                  iconColor: 'group-hover:text-red-400 text-red-400',
-                  onClick: () => {
-                    setShowAdminModal(true);
-                    setIsAdminMinimized(false);
+                ...(isAdmin ? [
+                  {
+                    id: 'suggest',
+                    icon: <Sparkles className="h-4 w-4" />,
+                    label: 'Suggest Theme',
+                    badge: 'Staff',
+                    badgeClassName: 'bg-purple-500/25 text-purple-300 border border-purple-500/40 font-bold',
+                    gradient: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
+                    iconColor: 'group-hover:text-purple-400 text-purple-400',
+                    onClick: () => {
+                      setActiveNavId('suggest');
+                      setShowCategorySuggestions(true);
+                    }
+                  },
+                  {
+                    id: 'admin',
+                    icon: <ShieldCheck className="h-4 w-4" />,
+                    label: 'Admin Hub',
+                    badge: 'Staff',
+                    badgeClassName: 'bg-red-500/25 text-red-300 border border-red-500/40 font-bold',
+                    gradient: 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, rgba(220,38,38,0.1) 50%, rgba(185,28,28,0) 100%)',
+                    iconColor: 'group-hover:text-red-400 text-red-400',
+                    onClick: () => {
+                      setShowAdminModal(true);
+                      setIsAdminMinimized(false);
+                    }
                   }
-                }] : [])
+                ] : [])
               ]}
             />
           </div>

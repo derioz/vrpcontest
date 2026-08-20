@@ -28,16 +28,17 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260819-1930',
     version: 'v1.9.9',
-    title: 'HoverGradient 3D Flip Navigation, KokonutUI Category Toolbar & Hall of Fame / Profile Hub',
+    title: 'HoverGradient 3D Flip Navigation & Category Toolbar, Precision Centered Header & Auth Stacking',
     category: 'UI/UX',
-    description: `• HoverGradient 3D Flip Navigation Suite: Integrated HoverGradientNavBar into the primary header with 3D card rotation physics (rotateX -90°/90°), tailored multi-stop radial glow highlights, and rich expanded navigation options (Categories, Submit Entry, Suggest Theme, Contest Rules, and Admin Hub).
+    description: `• HoverGradient 3D Flip Category Toolbar: Overhauled the contest CategoryNav with matching HoverGradient 3D flip card architecture (rotateX -90°/90°), tailored vibrant radial light blooms per category, interactive emoji scaling, and real-time live submission count badges.
+• Precision Viewport-Centered Top Navigation: Engineered dead-center absolute viewport alignment ('absolute left-1/2 -translate-x-1/2') for the main navbar, guaranteeing symmetrical, perfectly balanced centering across all viewports for both regular visitors and administrators.
+• Streamlined Role-Based Navigation Menu: Refined top navbar items to Categories & Rules for all community members, while cleanly restricting Suggest Theme and Admin Hub to verified staff/admins, and removing duplicate submit actions.
 • Combined & Separated Hall of Fame / Profile Hub: Harmonized past champion archives and community profile controls into a unified luxury action island with tactile 3D hover radial glow effects, cleanly partitioned with a crisp glass hairline divider.
-• KokonutUI Category Toolbar Architecture: Upgraded the contest CategoryNav with KokonutUI spring pill morphing, real-time category photo entry counts, interactive emoji scaling, floating confirmation tooltips with glowing laser baselines, and an auxiliary stats toggle.
 • Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new Motion physics engine.
 • Polymorphic Icon Renderer & Root Error Boundary: Engineered a resilient polymorphic renderer supporting forwardRef icon components, JSX nodes, and emoji strings seamlessly, paired with a root-level ErrorBoundary for fail-safe resilience.
 • Login Modal Stacking & Viewport Elevation Fix: Fixed GridLinesLoginModal z-index stacking ('z-[210]') over the backdrop blur overlay ('z-[200]') with responsive flexbox viewport centering, restoring crisp modal rendering and instant Discord sign-in.`,
     author: 'Damon',
-    date: 'Aug 19, 2026 at 7:50 PM',
+    date: 'Aug 19, 2026 at 7:55 PM',
   },
   {
     id: 'release-20260818-2158',

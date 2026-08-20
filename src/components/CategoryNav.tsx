@@ -1,18 +1,18 @@
 /**
- * CategoryNav — Redesigned with KokonutUI Toolbar Architecture
- * Reference: https://kokonutui.com/docs/navigation/toolbar
- *
+ * CategoryNav — Redesigned with HoverGradient 3D Flip Architecture
+ * 
  * Features:
- * - KokonutUI Spring Animations: Selected category morphs and expands with spring physics
- * - Dynamic Floating Notification Bubble: Floating confirmation with glowing accent line on category switch
- * - KokonutUI Action Toggle: Integrated right-aligned stats & view toggle pill
- * - Zero Horizontal Scrolling: Fully responsive adaptive layout with 100% visibility
+ * - 3D Rotating Flip Card Animations: Front & back 3D card flipping (rotateX -90°/90°) on hover
+ * - Radial Glow Gradients: Per-category radiant light blooms on interaction
+ * - Fluid Spring Morphing Active Pill: High-contrast active highlight with inner glow
+ * - Dynamic Floating Confirmation Tooltip: Smooth popup confirmation with laser baseline
+ * - Zero Horizontal Scrolling: 100% all-visible category matrix across desktop, tablet, and mobile
  * - High-End Dark Glassmorphism with ambient FiveM orange accents
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Layers, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence, type Variants } from 'motion/react';
+import { Sparkles, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category, Photo } from '../types';
 
@@ -24,25 +24,34 @@ interface CategoryNavProps {
   className?: string;
 }
 
-const buttonSpring = { type: "spring", stiffness: 450, damping: 30, mass: 0.7 };
-
-const buttonVariants = {
-  initial: {
-    gap: "0.375rem",
-    paddingLeft: "0.625rem",
-    paddingRight: "0.625rem",
-  },
-  animate: (isSelected: boolean) => ({
-    gap: isSelected ? "0.5rem" : "0.375rem",
-    paddingLeft: isSelected ? "0.875rem" : "0.625rem",
-    paddingRight: isSelected ? "0.875rem" : "0.625rem",
-  }),
+// 3D Flip Card Animation Variants
+const itemVariants: Variants = {
+  initial: { rotateX: 0, opacity: 1 },
+  hover: { rotateX: -90, opacity: 0 },
 };
 
-const spanVariants = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.95 },
+const backVariants: Variants = {
+  initial: { rotateX: 90, opacity: 0 },
+  hover: { rotateX: 0, opacity: 1 },
+};
+
+const glowVariants: Variants = {
+  initial: { opacity: 0, scale: 0.8 },
+  hover: {
+    opacity: 1,
+    scale: 1.8,
+    transition: {
+      opacity: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+      scale: { duration: 0.4, type: 'spring', stiffness: 300, damping: 25 },
+    },
+  },
+};
+
+const sharedTransition = {
+  type: 'spring' as const,
+  stiffness: 120,
+  damping: 18,
+  duration: 0.4,
 };
 
 const notificationVariants = {
@@ -64,6 +73,18 @@ const lineVariants = {
     transition: { duration: 0.2, ease: "easeIn" },
   },
 };
+
+// Curated radial gradients for vibrant category aesthetics
+const CATEGORY_GRADIENTS = [
+  'radial-gradient(circle, rgba(234,88,12,0.25) 0%, rgba(249,115,22,0.1) 50%, rgba(194,65,12,0) 100%)',
+  'radial-gradient(circle, rgba(245,158,11,0.25) 0%, rgba(217,119,6,0.1) 50%, rgba(180,83,9,0) 100%)',
+  'radial-gradient(circle, rgba(16,185,129,0.25) 0%, rgba(5,150,105,0.1) 50%, rgba(4,120,87,0) 100%)',
+  'radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(37,99,235,0.1) 50%, rgba(29,78,216,0) 100%)',
+  'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
+  'radial-gradient(circle, rgba(244,63,94,0.25) 0%, rgba(225,29,72,0.1) 50%, rgba(190,18,60,0) 100%)',
+  'radial-gradient(circle, rgba(20,184,166,0.25) 0%, rgba(13,148,136,0.1) 50%, rgba(15,118,110,0) 100%)',
+  'radial-gradient(circle, rgba(236,72,153,0.25) 0%, rgba(219,39,119,0.1) 50%, rgba(190,24,93,0) 100%)',
+];
 
 export function CategoryNav({
   categories,
@@ -116,7 +137,7 @@ export function CategoryNav({
         className
       )}
     >
-      {/* ── KokonutUI Floating Spring Notification Bubble ── */}
+      {/* ── Floating Confirmation Tooltip ── */}
       <AnimatePresence>
         {activeNotification && (
           <motion.div
@@ -143,8 +164,8 @@ export function CategoryNav({
         )}
       </AnimatePresence>
 
-      {/* ── KokonutUI Outer Glassmorphic Toolbar Container ── */}
-      <div className="relative w-full rounded-2xl bg-[#09090e]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden p-1.5 sm:p-2">
+      {/* ── Outer Glassmorphic Container ── */}
+      <div className="relative w-full rounded-2xl sm:rounded-3xl bg-[#09090e]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden p-1.5 sm:p-2">
         
         {/* Subtle top travelling ambient highlight line */}
         <div className="absolute top-0 left-[8%] right-[8%] h-[1px] bg-gradient-to-r from-transparent via-fivem-orange/40 to-transparent pointer-events-none" />
@@ -155,10 +176,10 @@ export function CategoryNav({
           style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}
         />
 
-        {/* ── Kokonut Toolbar Category Grid (Adaptive Zero-Scroll Matrix) ── */}
+        {/* ── Responsive All-Visible Category Matrix (Zero Horizontal Scroll) ── */}
         <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 sm:gap-2 w-full">
           
-          {/* Category Items */}
+          {/* Category Items Cluster with 3D Card Flips */}
           <div className={cn(
             "grid gap-1 sm:gap-1.5 flex-1 w-full",
             categories.length <= 2 
@@ -169,73 +190,129 @@ export function CategoryNav({
                   ? "grid-cols-2 sm:grid-cols-4" 
                   : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
           )}>
-            {categories.map((cat) => {
+            {categories.map((cat, index) => {
               const isActive = selectedCategory?.id === cat.id;
               const entryCount = getCategoryCount(cat.id);
+              const gradient = CATEGORY_GRADIENTS[index % CATEGORY_GRADIENTS.length];
 
               return (
-                <motion.button
+                <div
                   key={cat.id}
-                  type="button"
-                  data-category-id={cat.id}
-                  onClick={() => handleCategoryClick(cat)}
-                  animate="animate"
-                  custom={isActive}
-                  initial={false}
-                  transition={buttonSpring}
-                  variants={buttonVariants as any}
-                  className={cn(
-                    "relative flex items-center justify-between gap-1.5 sm:gap-2 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-display font-semibold transition-all duration-200 cursor-pointer select-none group min-w-0 overflow-hidden",
-                    isActive
-                      ? "text-white shadow-lg"
-                      : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-                  )}
+                  className="relative flex-1 min-w-0"
                 >
-                  {/* Fluid Active Spring Pill Backdrop */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="kokonut-category-pill"
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 shadow-[0_2px_16px_rgba(234,88,12,0.45),0_0_8px_rgba(251,146,60,0.25)] border border-orange-400/40 overflow-hidden"
-                      transition={buttonSpring}
-                    >
-                      {/* Top & bottom glowing edge highlight */}
-                      <div className="absolute top-0 inset-x-2 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                      <div className="absolute bottom-0 inset-x-3 h-[1px] bg-gradient-to-r from-transparent via-amber-200/40 to-transparent" />
-                    </motion.div>
-                  )}
-
-                  {/* Left Content: Category Emoji + Name */}
-                  <div className="relative z-10 flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <span className="text-sm sm:text-base leading-none shrink-0 transition-transform duration-200 group-hover:scale-110">
-                      {cat.emoji || '📷'}
-                    </span>
-                    <motion.span
-                      variants={spanVariants as any}
-                      animate="animate"
-                      className="truncate whitespace-nowrap leading-tight tracking-wide font-bold"
-                    >
-                      {cat.name}
-                    </motion.span>
-                  </div>
-
-                  {/* Right Content: Entry Count Badge with Spring feedback */}
-                  <motion.span
-                    layout
+                  <motion.div
                     className={cn(
-                      "relative z-10 text-[9px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors duration-200 shrink-0",
-                      isActive
-                        ? "bg-black/30 text-white shadow-inner border border-white/10"
-                        : "bg-white/[0.06] text-white/40 group-hover:text-white/90 group-hover:bg-white/10"
+                      'block rounded-xl overflow-visible group relative cursor-pointer',
+                      isActive && 'bg-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_16px_rgba(234,88,12,0.2)] border border-white/10'
                     )}
+                    style={{ perspective: '600px' }}
+                    whileHover="hover"
+                    initial="initial"
+                    onClick={() => handleCategoryClick(cat)}
                   >
-                    {entryCount}
-                  </motion.span>
-                </motion.button>
+                    {/* Per-item radial glow bloom */}
+                    <motion.div
+                      className="absolute inset-0 z-0 pointer-events-none rounded-xl"
+                      variants={glowVariants}
+                      style={{
+                        background: gradient,
+                        opacity: 0,
+                      }}
+                    />
+
+                    {/* Active Gradient Pill (Fluid Spring Morphing Indicator) */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="category-nav-active-pill"
+                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 shadow-[0_2px_16px_rgba(234,88,12,0.45),0_0_8px_rgba(251,146,60,0.25)] border border-orange-400/40 overflow-hidden z-0"
+                        transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+                      >
+                        <div className="absolute top-0 inset-x-2 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                        <div className="absolute bottom-0 inset-x-3 h-[1px] bg-gradient-to-r from-transparent via-amber-200/40 to-transparent" />
+                      </motion.div>
+                    )}
+
+                    {/* Front-Facing 3D Card */}
+                    <motion.div
+                      className={cn(
+                        "relative z-10 flex items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-display font-semibold transition-colors duration-200 min-w-0 select-none",
+                        isActive ? "text-white shadow-lg" : "text-white/70 group-hover:text-white"
+                      )}
+                      variants={itemVariants}
+                      transition={sharedTransition}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transformOrigin: 'center bottom',
+                      }}
+                    >
+                      {/* Left: Emoji + Category Name */}
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <span className="text-sm sm:text-base leading-none shrink-0 transition-transform duration-200 group-hover:scale-110">
+                          {cat.emoji || '📷'}
+                        </span>
+                        <span className="truncate whitespace-nowrap leading-tight tracking-wide font-bold">
+                          {cat.name}
+                        </span>
+                      </div>
+
+                      {/* Right: Entry Count Badge */}
+                      <span
+                        className={cn(
+                          "text-[9px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors shrink-0",
+                          isActive
+                            ? "bg-black/30 text-white shadow-inner border border-white/10"
+                            : "bg-white/[0.06] text-white/50 group-hover:text-white group-hover:bg-white/15"
+                        )}
+                      >
+                        {entryCount}
+                      </span>
+                    </motion.div>
+
+                    {/* Back-Facing 3D Card (Flipped State) */}
+                    <motion.div
+                      className={cn(
+                        "absolute inset-0 z-10 flex items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-display font-black transition-colors min-w-0 select-none",
+                        isActive
+                          ? "bg-gradient-to-r from-orange-600 via-fivem-orange to-amber-500 text-white"
+                          : "bg-white/[0.05] text-white"
+                      )}
+                      variants={backVariants}
+                      transition={sharedTransition}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transformOrigin: 'center top',
+                        transform: 'rotateX(90deg)',
+                      }}
+                    >
+                      {/* Left: Emoji + Category Name */}
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <span className="text-sm sm:text-base leading-none shrink-0 text-fivem-orange drop-shadow-[0_0_8px_rgba(234,88,12,0.9)]">
+                          {cat.emoji || '📷'}
+                        </span>
+                        <span className="truncate whitespace-nowrap leading-tight tracking-wider font-extrabold uppercase">
+                          {cat.name}
+                        </span>
+                      </div>
+
+                      {/* Right: Entry Count Badge */}
+                      <span
+                        className={cn(
+                          "text-[9px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shrink-0",
+                          isActive
+                            ? "bg-black/40 text-white border border-white/20"
+                            : "bg-fivem-orange/30 text-white border border-orange-400/30"
+                        )}
+                      >
+                        {entryCount}
+                      </span>
+                    </motion.div>
+                  </motion.div>
+                </div>
               );
             })}
           </div>
 
-          {/* ── KokonutUI Auxiliary Stats / Filter Toggle ── */}
+          {/* ── Right Auxiliary Stats Toggle ── */}
           <motion.div
             className="hidden xl:flex items-center shrink-0 pl-1.5 border-l border-white/[0.08]"
           >
