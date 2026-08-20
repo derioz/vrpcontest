@@ -64,7 +64,7 @@ import { getProfileAvatar, getDiceBearAvatarUrl, AVAILABLE_DICEBEAR_STYLES, Dice
 import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
 import { BugReportModal } from './components/BugReportModal';
 import { ChampionBadge } from './components/ChampionBadge';
-import { UserProfileDropdown } from './components/UserProfileDropdown';
+import { ProfileSheet } from './components/ProfileSheet';
 import { ShaderBackground } from './components/ui/shader-background';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
@@ -285,6 +285,7 @@ export default function App() {
   const [showNotAdminModal, setShowNotAdminModal] = useState(false);
   const [showDiscordReqModal, setShowDiscordReqModal] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
+  const [isProfileSheetOpen, setIsProfileSheetOpen] = useState(false);
   const [discordReqReason, setDiscordReqReason] = useState<'not_in_server' | 'missing_role' | 'api_error' | null>(null);
   const [discordReqMessage, setDiscordReqMessage] = useState<string | null>(null);
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
@@ -1730,6 +1731,105 @@ export default function App() {
     }
   };
 
+  const handleSaveProfile = async ({
+    displayName: newName,
+    avatarStyle: newStyle,
+    avatarSeed: newSeed,
+    useDiscordPhoto,
+  }: {
+    displayName: string;
+    avatarStyle: DiceBearStyleName;
+    avatarSeed: string;
+    useDiscordPhoto: boolean;
+  }) => {
+    if (!user) return;
+    const cleanName = newName.trim();
+    if (!cleanName) {
+      toast.error('Display name cannot be empty');
+      return;
+    }
+
+    const toastId = 'save-profile-toast';
+    toast.loading('Saving profile changes...', { id: toastId });
+
+    try {
+      const newAvatarUrl = useDiscordPhoto && user.photoURL && user.photoURL.includes('discord')
+        ? user.photoURL
+        : getDiceBearAvatarUrl(newSeed, newStyle);
+
+      // Optimistic update
+      setUser((prev: any) => prev ? {
+        ...prev,
+        displayName: cleanName,
+        avatarStyle: newStyle,
+        avatarSeed: newSeed,
+        photoURL: newAvatarUrl,
+        hasCustomOAuthAvatar: useDiscordPhoto,
+      } : null);
+      setPlayerName(cleanName);
+      localStorage.setItem('fivem_player_name', cleanName);
+      if (!useDiscordPhoto) {
+        localStorage.setItem('user_photo_url_' + user.uid, newAvatarUrl);
+      }
+
+      // 1. Update Firestore user document
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        discord_id: user.discordId || null,
+        custom_display_name: cleanName,
+        avatar_style: newStyle,
+        avatar_seed: newSeed,
+        photo_url: newAvatarUrl,
+        avatar_url: newAvatarUrl,
+        updated_at: new Date().toISOString(),
+      }, { merge: true });
+
+      // 2. Update Supabase Auth metadata
+      try {
+        await supabase.auth.updateUser({
+          data: { full_name: cleanName, name: cleanName }
+        });
+      } catch (authErr) {
+        console.warn('Supabase auth update notice:', authErr);
+      }
+
+      // 3. Retroactively sync user's name & avatar across active submissions in Firestore
+      try {
+        const photosQuery = query(collection(db, 'photos'), where('user_id', '==', user.uid));
+        const photosSnap = await getDocs(photosQuery);
+        if (!photosSnap.empty) {
+          const batch = writeBatch(db);
+          photosSnap.docs.forEach((pDoc) => {
+            batch.update(pDoc.ref, {
+              discord_name: cleanName,
+              user_photo_url: newAvatarUrl,
+              author_avatar_url: newAvatarUrl,
+              submitter_avatar: newAvatarUrl,
+            });
+          });
+          await batch.commit();
+        }
+
+        // Update local gallery state
+        setAllPhotos((prev) =>
+          prev.map((p) =>
+            p.user_id === user.uid || (p as any).uploader_uid === user.uid
+              ? { ...p, discord_name: cleanName, user_photo_url: newAvatarUrl, author_avatar_url: newAvatarUrl }
+              : p
+          )
+        );
+      } catch (syncErr) {
+        console.warn('Failed to sync submissions:', syncErr);
+      }
+
+      toast.success('Profile and avatar updated across the entire website!', { id: toastId });
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      toast.error('Failed to save profile changes.', { id: toastId });
+    }
+  };
+
   const handleSaveDisplayName = async () => {
     if (!editedDisplayName.trim() || !user) {
       toast.error('Display name cannot be empty');
@@ -1917,8 +2017,8 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* ── CENTER: Perfectly Centered HoverGradientNavBar for all viewports & users ── */}
-          <div className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 pointer-events-auto z-20">
+          {/* ── CENTER: Perfectly Sized & Flowing HoverGradientNavBar ── */}
+          <div className="hidden lg:flex items-center justify-center flex-1 max-w-fit mx-auto min-w-0">
             <HoverGradientNavBar
               activeId={activeNavId}
               items={[
@@ -1944,6 +2044,16 @@ export default function App() {
                   onClick: () => {
                     setActiveNavId('rules');
                     document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
+                  }
+                },
+                {
+                  id: 'hall-of-fame',
+                  icon: <Trophy className="h-4 w-4 text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />,
+                  label: 'Hall of Fame',
+                  gradient: 'radial-gradient(circle, rgba(245,158,11,0.3) 0%, rgba(217,119,6,0.15) 50%, rgba(180,83,9,0) 100%)',
+                  iconColor: 'group-hover:text-amber-300 text-amber-400',
+                  onClick: () => {
+                    setShowArchivedWinners(true);
                   }
                 },
                 ...(isAdmin ? [
@@ -1978,114 +2088,54 @@ export default function App() {
             />
           </div>
 
-          {/* ── RIGHT: Mobile Action Cluster ── */}
-          <div className="md:hidden flex items-center gap-2 shrink-0">
-            {/* Compact mobile sign-in OR avatar */}
+          {/* ── RIGHT: Far Right Profile Button (Avatar Only) / Sign In / Mobile Toggle ── */}
+          <div className="flex items-center gap-2.5 shrink-0">
             {user && !user.isAnonymous ? (
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="w-8 h-8 rounded-xl overflow-hidden border border-white/15 active:scale-95 transition-transform cursor-pointer"
+              <motion.button
+                type="button"
+                onClick={() => setIsProfileSheetOpen(true)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="group/avatar relative w-9 h-9 rounded-full bg-[#0c0c14] border border-white/20 hover:border-fivem-orange/60 p-0.5 shadow-[0_2px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_16px_rgba(234,88,12,0.4)] transition-all cursor-pointer flex items-center justify-center overflow-visible"
+                title={`Signed in as ${user.displayName || 'User'} • Open Profile`}
+                aria-label="Open Account & Profile Menu"
               >
                 <img
                   src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
-                  alt=""
+                  alt="Profile Avatar"
                   onError={(e) => {
                     const target = e.currentTarget;
                     const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
                     if (target.src !== fallback) target.src = fallback;
                   }}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full rounded-full object-cover"
                 />
-              </button>
+                {/* Live Online Status Pip */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-[1.5px] border-[#09090b] shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+              </motion.button>
             ) : (
               <button
+                type="button"
                 onClick={() => setShowSignInModal(true)}
-                className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-gradient-to-r from-fivem-orange to-orange-500 text-white active:scale-[0.97] transition-transform cursor-pointer shadow-[0_2px_12px_rgba(234,88,12,0.3)] border border-orange-400/30"
-              >
-                <User size={13} />
-                <span className="text-[10px] font-display font-bold tracking-wider uppercase">Sign In</span>
-              </button>
-            )}
-            {/* Hamburger menu */}
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="flex items-center justify-center w-9 h-9 rounded-xl border border-white/15 bg-white/[0.04] text-white/80 active:text-white cursor-pointer transition-all active:scale-95 shadow-sm"
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* ── RIGHT: Combined & Separated Actions Hub (Hall of Fame + Profile) ── */}
-          <motion.div
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="hidden md:flex items-center gap-1.5 p-1 rounded-2xl bg-[#09090e]/90 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)]"
-          >
-            {/* 1. Hall of Fame 3D Hover Radial Glow Pill */}
-            <motion.button
-              type="button"
-              onClick={() => setShowArchivedWinners(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="group/hof relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-display font-black uppercase tracking-wider cursor-pointer select-none transition-all duration-300
-                bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-yellow-500/20 hover:to-amber-500/25
-                border border-amber-400/30 hover:border-amber-400/50
-                text-amber-300 hover:text-amber-200
-                shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)] overflow-hidden"
-              title="Open Hall of Fame & Past Champions"
-            >
-              <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle,rgba(245,158,11,0.3)_0%,transparent_100%)] opacity-0 group-hover/hof:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              <Trophy size={14} className="text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)] relative z-10 transition-transform duration-300 group-hover/hof:scale-110" />
-              <span className="relative z-10 whitespace-nowrap leading-none">Hall of Fame</span>
-              <Sparkles size={11} className="text-amber-400/70 group-hover/hof:text-amber-300 relative z-10" />
-            </motion.button>
-
-            {/* ── Crisp Vertical Separation Divider ── */}
-            <div className="h-5 w-[1px] bg-white/10 mx-0.5" />
-
-            {/* 2. User Profile Dropdown / Sign In Trigger */}
-            {user && !user.isAnonymous ? (
-              <UserProfileDropdown
-                user={user}
-                isAdmin={isAdmin}
-                getUserWinCount={getUserWinCount}
-                getProfileAvatar={getProfileAvatar}
-                getDiceBearAvatarUrl={getDiceBearAvatarUrl}
-                availableDiceBearStyles={AVAILABLE_DICEBEAR_STYLES}
-                onChangeAvatarStyle={handleChangeAvatarStyle}
-                onShuffleAvatarSeed={handleShuffleAvatarSeed}
-                onRetryDiscordAvatar={handleRetryDiscordAvatar}
-                onOpenAdminModal={() => {
-                  setShowAdminModal(true);
-                  setIsAdminMinimized(false);
-                }}
-                onOpenNotAdminModal={() => {
-                  setShowNotAdminModal(true);
-                  setNotAdminClickCount((c) => c + 1);
-                }}
-                onOpenCategorySuggestions={() => setShowCategorySuggestions(true)}
-                onOpenBugModal={() => setShowBugModal(true)}
-                onOpenRenameModal={() => {
-                  setEditedDisplayName(user.displayName || '');
-                  setIsEditingDisplayName(true);
-                }}
-                onSignOut={handleSignOut}
-              />
-            ) : (
-              <button
-                onClick={() => setShowSignInModal(true)}
-                className="group/login relative flex items-center gap-2 px-3.5 h-8 rounded-xl
+                className="group/login relative flex items-center gap-2 px-3.5 h-8 rounded-full
                   bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.5)] border border-orange-400/30"
               >
-                <User className="w-3.5 h-3.5 relative z-10 opacity-90 group-hover/login:opacity-100 transition-opacity duration-200" size={14} />
+                <User className="w-3.5 h-3.5 relative z-10 opacity-90 group-hover/login:opacity-100 transition-opacity duration-200" size={13} />
                 <span className="relative z-10 text-[11px] font-display font-bold tracking-wider uppercase whitespace-nowrap">
                   Sign In
                 </span>
               </button>
             )}
-          </motion.div>
+
+            {/* Mobile Hamburger toggle */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-white/15 bg-white/[0.04] text-white/80 active:text-white cursor-pointer transition-all active:scale-95 shadow-sm"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </motion.header>
 
@@ -2208,42 +2258,35 @@ export default function App() {
               <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Account</span>
 
               {user && !user.isAnonymous ? (
-                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                  <img
-                    src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
-                    alt=""
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
-                      if (target.src !== fallback) target.src = fallback;
-                    }}
-                    className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
-                  />
+                <div
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsProfileSheetOpen(true);
+                  }}
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] active:border-fivem-orange/40 transition-all cursor-pointer group"
+                >
+                  <div className="relative shrink-0">
+                    <img
+                      src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                      alt=""
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
+                        if (target.src !== fallback) target.src = fallback;
+                      }}
+                      className="w-10 h-10 rounded-xl object-cover border border-white/10"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0c0c14] shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-bold text-white truncate block">{user.displayName || user.email?.split('@')[0]}</span>
+                    <span className="text-sm font-bold text-white truncate block group-hover:text-fivem-orange transition-colors">
+                      {user.displayName || user.email?.split('@')[0]}
+                    </span>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
-                      <span className="text-[9px] font-mono uppercase tracking-widest text-emerald-400/70 font-bold">Online</span>
+                      <span className="text-[10px] font-mono text-white/40">Open Profile & Avatar Studio</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setEditedDisplayName(user.displayName || '');
-                      setIsEditingDisplayName(true);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 active:text-white active:bg-white/[0.08] transition-all cursor-pointer shrink-0"
-                    title="Edit Display Name"
-                  >
-                    <Edit3 size={14} />
-                  </button>
-                  <button
-                    onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }}
-                    className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 active:text-rose-400 active:bg-rose-500/10 transition-all cursor-pointer shrink-0"
-                    title="Sign Out"
-                  >
-                    <LogOut size={14} />
-                  </button>
+                  <ChevronRight size={16} className="text-white/30 group-hover:text-white transition-colors shrink-0" />
                 </div>
               ) : (
                 <button
@@ -3625,6 +3668,29 @@ export default function App() {
           if (!success) setShowSignInModal(true);
         }}
       />
+
+      {/* ── Animate UI Radix Sheet — User Profile & Kokonut UI Avatar Picker ── */}
+      {user && (
+        <ProfileSheet
+          isOpen={isProfileSheetOpen}
+          onClose={() => setIsProfileSheetOpen(false)}
+          user={user}
+          isAdmin={isAdmin}
+          getUserWinCount={getUserWinCount}
+          getProfileAvatar={getProfileAvatar}
+          getDiceBearAvatarUrl={getDiceBearAvatarUrl}
+          availableDiceBearStyles={AVAILABLE_DICEBEAR_STYLES}
+          onSaveProfile={handleSaveProfile}
+          onRetryDiscordAvatar={handleRetryDiscordAvatar}
+          onOpenAdminModal={() => {
+            setShowAdminModal(true);
+            setIsAdminMinimized(false);
+          }}
+          onOpenCategorySuggestions={() => setShowCategorySuggestions(true)}
+          onOpenBugModal={() => setShowBugModal(true)}
+          onSignOut={handleSignOut}
+        />
+      )}
 
     </ShaderBackground>
   );

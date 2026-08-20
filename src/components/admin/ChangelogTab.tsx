@@ -28,17 +28,17 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260819-1930',
     version: 'v1.9.9',
-    title: 'HoverGradient 3D Flip Navigation & Category Toolbar, Precision Centered Header & Auth Stacking',
+    title: 'Animate UI Profile Sheet, Kokonut UI Avatar Studio & HoverGradient Navigation Suite',
     category: 'UI/UX',
-    description: `• HoverGradient 3D Flip Category Toolbar: Overhauled the contest CategoryNav with matching HoverGradient 3D flip card architecture (rotateX -90°/90°), tailored vibrant radial light blooms per category, interactive emoji scaling, and real-time live submission count badges.
-• Precision Viewport-Centered Top Navigation: Engineered dead-center absolute viewport alignment ('absolute left-1/2 -translate-x-1/2') for the main navbar, guaranteeing symmetrical, perfectly balanced centering across all viewports for both regular visitors and administrators.
-• Streamlined Role-Based Navigation Menu: Refined top navbar items to Categories & Rules for all community members, while cleanly restricting Suggest Theme and Admin Hub to verified staff/admins, and removing duplicate submit actions.
-• Combined & Separated Hall of Fame / Profile Hub: Harmonized past champion archives and community profile controls into a unified luxury action island with tactile 3D hover radial glow effects, cleanly partitioned with a crisp glass hairline divider.
+    description: `• Animate UI Radix Sheet Profile Drawer: Integrated a luxurious right-side sliding profile Sheet replacing legacy dropdowns, featuring smooth spring physics transitions, role badges, platform shortcuts, and account controls.
+• Kokonut UI Avatar Picker & Display Name Studio: Engineered an animated profile customization suite with large center stage avatar previews, glowing halo rings, Discord photo sync, 12 DiceBear vector styles, seed randomizers, and real-time 3–20 character name validation.
+• Integrated Hall of Fame in Main Navigation: Seamlessly incorporated Hall of Fame directly into the primary HoverGradient navigation bar with custom Trophy heraldry and 3D amber radial glows, resolving all positioning overlaps.
+• Ultra-Compact Far-Right Avatar Trigger: Refactored the navbar profile button to display only the user's avatar with live status pips, eliminating username text clutter and ensuring 100% responsive alignment across mobile, tablet, and desktop.
+• HoverGradient 3D Flip Category Toolbar: Overhauled the contest CategoryNav with matching HoverGradient 3D flip card architecture (rotateX -90°/90°), tailored vibrant radial light blooms per category, interactive emoji scaling, and real-time live submission count badges.
 • Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new Motion physics engine.
-• Polymorphic Icon Renderer & Root Error Boundary: Engineered a resilient polymorphic renderer supporting forwardRef icon components, JSX nodes, and emoji strings seamlessly, paired with a root-level ErrorBoundary for fail-safe resilience.
 • Login Modal Stacking & Viewport Elevation Fix: Fixed GridLinesLoginModal z-index stacking ('z-[210]') over the backdrop blur overlay ('z-[200]') with responsive flexbox viewport centering, restoring crisp modal rendering and instant Discord sign-in.`,
     author: 'Damon',
-    date: 'Aug 19, 2026 at 7:55 PM',
+    date: 'Aug 19, 2026 at 8:12 PM',
   },
   {
     id: 'release-20260818-2158',
