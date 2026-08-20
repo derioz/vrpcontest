@@ -28,17 +28,18 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260819-1930',
     version: 'v1.9.9',
-    title: 'Animate UI Profile Sheet, Kokonut UI Avatar Studio & HoverGradient Navigation Suite',
+    title: 'Animate UI Spring Motion Profile Sheet, Discord Avatar Sync Engine & Compact Role Actions',
     category: 'UI/UX',
-    description: `• Animate UI Radix Sheet Profile Drawer: Integrated a luxurious right-side sliding profile Sheet replacing legacy dropdowns, featuring smooth spring physics transitions, role badges, platform shortcuts, and account controls.
-• Kokonut UI Avatar Picker & Display Name Studio: Engineered an animated profile customization suite with large center stage avatar previews, glowing halo rings, Discord photo sync, 12 DiceBear vector styles, seed randomizers, and real-time 3–20 character name validation.
+    description: `• Spring-Physics Sliding Profile Sheet: Re-engineered the Animate UI Radix Sheet with Motion spring physics and gradual backdrop-blur interpolation, delivering buttery smooth 60fps sliding transitions on both open and close.
+• Multi-Tiered Discord Avatar Synchronization: Fixed avatar sync bug with dedicated avatarSource ('discord' | 'dicebear') tracking and persistent discordPhotoURL caching, guaranteeing instant, reliable Discord photo recovery when switching back from DiceBear.
+• Compact Role-Gated Platform Controls: Redesigned Platform Features into sleek, minimal action buttons with strict permission gating (Admin Console & Category Themes conditionally rendered only for admins; Report Bug for all members).
+• Kokonut UI Avatar Picker & Display Name Studio: Interactive customization suite with large center stage avatar previews, glowing halo rings, Discord photo sync, 12 DiceBear vector styles, and real-time 3–20 character name validation.
 • Integrated Hall of Fame in Main Navigation: Seamlessly incorporated Hall of Fame directly into the primary HoverGradient navigation bar with custom Trophy heraldry and 3D amber radial glows, resolving all positioning overlaps.
 • Ultra-Compact Far-Right Avatar Trigger: Refactored the navbar profile button to display only the user's avatar with live status pips, eliminating username text clutter and ensuring 100% responsive alignment across mobile, tablet, and desktop.
 • HoverGradient 3D Flip Category Toolbar: Overhauled the contest CategoryNav with matching HoverGradient 3D flip card architecture (rotateX -90°/90°), tailored vibrant radial light blooms per category, interactive emoji scaling, and real-time live submission count badges.
-• Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new Motion physics engine.
 • Login Modal Stacking & Viewport Elevation Fix: Fixed GridLinesLoginModal z-index stacking ('z-[210]') over the backdrop blur overlay ('z-[200]') with responsive flexbox viewport centering, restoring crisp modal rendering and instant Discord sign-in.`,
     author: 'Damon',
-    date: 'Aug 19, 2026 at 8:12 PM',
+    date: 'Aug 19, 2026 at 8:23 PM',
   },
   {
     id: 'release-20260818-2158',

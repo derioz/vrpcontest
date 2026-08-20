@@ -18,43 +18,49 @@ import { cn } from '../../lib/utils';
 import {
   AVAILABLE_DICEBEAR_STYLES,
   getDiceBearAvatarUrl,
-  getProfileAvatar,
   DiceBearStyleName,
 } from '../../lib/dicebear';
 
 interface AvatarPickerProps {
   currentDisplayName: string;
   currentPhotoURL?: string | null;
+  discordPhotoURL?: string | null;
   currentAvatarSeed?: string;
   currentAvatarStyle?: DiceBearStyleName;
+  currentAvatarSource?: 'discord' | 'dicebear';
   discordId?: string | null;
   onSave: (data: {
     displayName: string;
     avatarStyle: DiceBearStyleName;
     avatarSeed: string;
-    useDiscordPhoto: boolean;
+    avatarSource: 'discord' | 'dicebear';
   }) => Promise<void> | void;
   onCancel?: () => void;
-  onRetryDiscordPhoto?: () => Promise<void> | void;
+  onRetryDiscordPhoto?: () => Promise<string | null | void> | void;
   className?: string;
 }
 
 export function AvatarPicker({
   currentDisplayName,
   currentPhotoURL,
+  discordPhotoURL,
   currentAvatarSeed = 'vital-user',
   currentAvatarStyle = 'botttsNeutral',
+  currentAvatarSource,
   discordId,
   onSave,
   onCancel,
   onRetryDiscordPhoto,
   className,
 }: AvatarPickerProps) {
+  const initialSource = currentAvatarSource || (currentPhotoURL && !currentPhotoURL.includes('dicebear') ? 'discord' : 'dicebear');
+  
   const [displayName, setDisplayName] = useState(currentDisplayName || '');
   const [selectedStyle, setSelectedStyle] = useState<DiceBearStyleName>(currentAvatarStyle);
   const [avatarSeed, setAvatarSeed] = useState(currentAvatarSeed);
-  const [useDiscordPhoto, setUseDiscordPhoto] = useState(
-    Boolean(currentPhotoURL && currentPhotoURL.includes('discord'))
+  const [avatarSource, setAvatarSource] = useState<'discord' | 'dicebear'>(initialSource);
+  const [resolvedDiscordPhoto, setResolvedDiscordPhoto] = useState<string | null>(
+    discordPhotoURL || (currentPhotoURL && !currentPhotoURL.includes('dicebear') ? currentPhotoURL : null)
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncingDiscord, setIsSyncingDiscord] = useState(false);
@@ -64,31 +70,42 @@ export function AvatarPicker({
     setDisplayName(currentDisplayName || '');
     setSelectedStyle(currentAvatarStyle);
     setAvatarSeed(currentAvatarSeed || 'vital-user');
-    setUseDiscordPhoto(Boolean(currentPhotoURL && currentPhotoURL.includes('discord')));
-  }, [currentDisplayName, currentAvatarStyle, currentAvatarSeed, currentPhotoURL]);
+    const source = currentAvatarSource || (currentPhotoURL && !currentPhotoURL.includes('dicebear') ? 'discord' : 'dicebear');
+    setAvatarSource(source);
+    if (discordPhotoURL) {
+      setResolvedDiscordPhoto(discordPhotoURL);
+    } else if (currentPhotoURL && !currentPhotoURL.includes('dicebear')) {
+      setResolvedDiscordPhoto(currentPhotoURL);
+    }
+  }, [currentDisplayName, currentAvatarStyle, currentAvatarSeed, currentPhotoURL, discordPhotoURL, currentAvatarSource]);
 
-  // Generate live preview URL
-  const previewUrl = useDiscordPhoto && currentPhotoURL
-    ? currentPhotoURL
+  // Generate live preview URL based on selected avatarSource
+  const previewUrl = avatarSource === 'discord' && resolvedDiscordPhoto
+    ? resolvedDiscordPhoto
     : getDiceBearAvatarUrl(avatarSeed, selectedStyle);
 
   const handleShuffleSeed = () => {
     const newSeed = Math.random().toString(36).substring(2, 10);
     setAvatarSeed(newSeed);
-    setUseDiscordPhoto(false);
+    setAvatarSource('dicebear');
   };
 
   const handleSelectStyle = (styleId: DiceBearStyleName) => {
     setSelectedStyle(styleId);
-    setUseDiscordPhoto(false);
+    setAvatarSource('dicebear');
   };
 
   const handleSelectDiscord = async () => {
-    setUseDiscordPhoto(true);
-    if (!currentPhotoURL && onRetryDiscordPhoto) {
+    setAvatarSource('discord');
+    if (!resolvedDiscordPhoto && onRetryDiscordPhoto) {
       try {
         setIsSyncingDiscord(true);
-        await onRetryDiscordPhoto();
+        const fresh = await onRetryDiscordPhoto();
+        if (typeof fresh === 'string' && fresh) {
+          setResolvedDiscordPhoto(fresh);
+        }
+      } catch (err) {
+        console.error('Failed to sync Discord photo:', err);
       } finally {
         setIsSyncingDiscord(false);
       }
@@ -100,7 +117,7 @@ export function AvatarPicker({
     displayName.trim() !== (currentDisplayName || '').trim() ||
     selectedStyle !== currentAvatarStyle ||
     avatarSeed !== currentAvatarSeed ||
-    useDiscordPhoto !== Boolean(currentPhotoURL && currentPhotoURL.includes('discord'));
+    avatarSource !== initialSource;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +129,7 @@ export function AvatarPicker({
         displayName: displayName.trim(),
         avatarStyle: selectedStyle,
         avatarSeed,
-        useDiscordPhoto,
+        avatarSource,
       });
     } finally {
       setIsSaving(false);
@@ -122,16 +139,16 @@ export function AvatarPicker({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn("flex flex-col gap-6 w-full text-white", className)}
+      className={cn("flex flex-col gap-5 w-full text-white", className)}
     >
       {/* ── Center Stage Avatar Preview (Kokonut UI signature) ── */}
-      <div className="relative flex flex-col items-center justify-center pt-2">
+      <div className="relative flex flex-col items-center justify-center pt-1">
         <div className="relative group">
           {/* Animated Ambient Glow Halo */}
           <div className="absolute -inset-3 bg-gradient-to-tr from-fivem-orange/40 via-amber-500/30 to-purple-500/30 rounded-3xl blur-xl opacity-80 group-hover:opacity-100 transition-opacity duration-500 animate-pulse pointer-events-none" />
 
           {/* Avatar Stage Frame */}
-          <div className="relative w-28 h-28 rounded-2xl bg-gradient-to-b from-[#181824] to-[#0c0c14] border-2 border-white/20 p-2 flex items-center justify-center backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-b from-[#181824] to-[#0c0c14] border-2 border-white/20 p-2 flex items-center justify-center backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.8)] overflow-hidden">
             <img
               src={previewUrl}
               alt="Avatar Preview"
@@ -147,22 +164,22 @@ export function AvatarPicker({
             onClick={handleShuffleSeed}
             whileHover={{ scale: 1.1, rotate: 180 }}
             whileTap={{ scale: 0.9 }}
-            className="absolute -bottom-2 -right-2 p-2 rounded-full bg-fivem-orange hover:bg-orange-500 text-white shadow-[0_4px_16px_rgba(234,88,12,0.6)] border border-orange-300/40 cursor-pointer transition-colors"
+            className="absolute -bottom-1.5 -right-1.5 p-2 rounded-full bg-fivem-orange hover:bg-orange-500 text-white shadow-[0_4px_16px_rgba(234,88,12,0.6)] border border-orange-300/40 cursor-pointer transition-colors"
             title="Randomize avatar seed"
           >
-            <RefreshCw size={13} />
+            <RefreshCw size={12} />
           </motion.button>
         </div>
 
-        <div className="mt-3 text-center">
-          <span className="text-[11px] font-mono font-bold text-white/50 uppercase tracking-widest block">
-            {useDiscordPhoto ? 'Discord OAuth2 Photo' : `DiceBear ${selectedStyle}`}
+        <div className="mt-2.5 text-center">
+          <span className="text-[10px] font-mono font-bold text-white/50 uppercase tracking-widest block">
+            {avatarSource === 'discord' ? 'Discord OAuth2 Photo' : `DiceBear ${selectedStyle}`}
           </span>
         </div>
       </div>
 
       {/* ── Display Name Input with Character Validation (Kokonut UI) ── */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label
             htmlFor="profile-display-name"
@@ -192,7 +209,7 @@ export function AvatarPicker({
             placeholder="Enter display name..."
             maxLength={20}
             className={cn(
-              "w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border text-sm text-white placeholder:text-white/30 focus:outline-none transition-all",
+              "w-full px-3 py-2 rounded-xl bg-white/[0.04] border text-xs sm:text-sm text-white placeholder:text-white/30 focus:outline-none transition-all",
               isNameValid
                 ? "border-white/15 focus:border-fivem-orange/80 focus:bg-white/[0.07] focus:shadow-[0_0_16px_rgba(234,88,12,0.25)]"
                 : "border-red-500/50 focus:border-red-500 focus:bg-red-500/[0.04]"
@@ -200,14 +217,14 @@ export function AvatarPicker({
           />
           {isNameValid && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400">
-              <Check size={16} />
+              <Check size={15} />
             </div>
           )}
         </div>
       </div>
 
       {/* ── Avatar Gallery / Selection Strip (Kokonut UI) ── */}
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-display font-bold uppercase tracking-wider text-white/80 flex items-center gap-1.5">
             <Layers size={13} className="text-fivem-orange" />
@@ -216,22 +233,22 @@ export function AvatarPicker({
           <button
             type="button"
             onClick={handleShuffleSeed}
-            className="text-[11px] font-mono text-fivem-orange hover:text-orange-400 transition-colors flex items-center gap-1 cursor-pointer font-bold"
+            className="text-[10px] font-mono text-fivem-orange hover:text-orange-400 transition-colors flex items-center gap-1 cursor-pointer font-bold"
           >
-            <RefreshCw size={11} />
+            <RefreshCw size={10} />
             Shuffle Seed
           </button>
         </div>
 
         {/* Discord Photo Sync Option Pill */}
-        {discordId && (
+        {(discordId || resolvedDiscordPhoto) && (
           <button
             type="button"
             onClick={handleSelectDiscord}
             disabled={isSyncingDiscord}
             className={cn(
               "flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer text-left",
-              useDiscordPhoto
+              avatarSource === 'discord'
                 ? "bg-[#5865F2]/20 border-[#5865F2] shadow-[0_0_16px_rgba(88,101,242,0.3)] text-white"
                 : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06] text-white/70 hover:text-white"
             )}
@@ -248,17 +265,17 @@ export function AvatarPicker({
               </div>
             </div>
             {isSyncingDiscord ? (
-              <Loader2 size={15} className="animate-spin text-[#5865F2]" />
-            ) : useDiscordPhoto ? (
+              <Loader2 size={14} className="animate-spin text-[#5865F2]" />
+            ) : avatarSource === 'discord' ? (
               <span className="px-2 py-0.5 rounded-md bg-[#5865F2] text-white text-[10px] font-bold">Active</span>
             ) : null}
           </button>
         )}
 
         {/* DiceBear Avatars Grid */}
-        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
+        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5 max-h-40 overflow-y-auto p-1 custom-scrollbar">
           {AVAILABLE_DICEBEAR_STYLES.map((style) => {
-            const isSelected = !useDiscordPhoto && selectedStyle === style.id;
+            const isSelected = avatarSource === 'dicebear' && selectedStyle === style.id;
             const thumbUrl = getDiceBearAvatarUrl(avatarSeed, style.id);
 
             return (
@@ -276,7 +293,7 @@ export function AvatarPicker({
                 )}
                 title={style.label}
               >
-                <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#0c0c14] border border-white/10 flex items-center justify-center p-0.5">
+                <div className="w-9 h-9 rounded-lg overflow-hidden bg-[#0c0c14] border border-white/10 flex items-center justify-center p-0.5">
                   <img
                     src={thumbUrl}
                     alt={style.label}
@@ -288,8 +305,8 @@ export function AvatarPicker({
                   {style.label.split(' ')[0]}
                 </span>
                 {isSelected && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-fivem-orange text-white flex items-center justify-center shadow-md">
-                    <Check size={10} strokeWidth={3} />
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-fivem-orange text-white flex items-center justify-center shadow-md">
+                    <Check size={9} strokeWidth={3} />
                   </span>
                 )}
               </motion.button>
@@ -305,7 +322,7 @@ export function AvatarPicker({
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
+            className="flex-1 py-2 px-3 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
           >
             Cancel
           </button>
@@ -314,16 +331,16 @@ export function AvatarPicker({
         <button
           type="submit"
           disabled={!isNameValid || isSaving || !isDirty}
-          className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-display font-black uppercase tracking-wider shadow-[0_4px_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_25px_rgba(234,88,12,0.6)] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-display font-black uppercase tracking-wider shadow-[0_4px_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_25px_rgba(234,88,12,0.6)] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
         >
           {isSaving ? (
             <>
-              <Loader2 size={14} className="animate-spin" />
-              <span>Saving Changes...</span>
+              <Loader2 size={13} className="animate-spin" />
+              <span>Saving...</span>
             </>
           ) : (
             <>
-              <Check size={14} />
+              <Check size={13} />
               <span>Save Profile</span>
             </>
           )}

@@ -614,8 +614,13 @@ export default function App() {
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
         currentUser.identities?.find((i: any) => i.provider === 'discord')?.id;
 
-      // Check Firestore persistent profile for custom display name, DiceBear preferences, and pulled Discord photo
+      // Extract raw Discord avatar from Supabase OAuth session
+      const rawDiscordPhoto = meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
+
+      let persistentDiscordPhoto = localStorage.getItem('user_discord_photo_url_' + currentUser.id) || null;
+      let persistentAvatarSource = (localStorage.getItem('user_avatar_source_' + currentUser.id) as 'discord' | 'dicebear') || null;
       let persistentPhotoUrl = localStorage.getItem('user_photo_url_' + currentUser.id) || null;
+
       try {
         const userDocRef = doc(db, 'users', currentUser.id);
         const userDoc = await getDoc(userDocRef);
@@ -624,11 +629,10 @@ export default function App() {
           if (uData.custom_display_name) displayName = uData.custom_display_name;
           if (uData.avatar_style) avatarStyle = uData.avatar_style as DiceBearStyleName;
           if (uData.avatar_seed) avatarSeed = uData.avatar_seed;
+          if (uData.avatar_source) persistentAvatarSource = uData.avatar_source as 'discord' | 'dicebear';
+          if (uData.discord_avatar_url) persistentDiscordPhoto = uData.discord_avatar_url;
           if (uData.photo_url) persistentPhotoUrl = uData.photo_url;
           else if (uData.avatar_url) persistentPhotoUrl = uData.avatar_url;
-          if (persistentPhotoUrl) {
-            localStorage.setItem('user_photo_url_' + currentUser.id, persistentPhotoUrl);
-          }
         } else {
           await setDoc(userDocRef, {
             uid: currentUser.id,
@@ -636,6 +640,9 @@ export default function App() {
             custom_display_name: displayName,
             avatar_style: avatarStyle,
             avatar_seed: avatarSeed,
+            avatar_source: rawDiscordPhoto ? 'discord' : 'dicebear',
+            discord_avatar_url: rawDiscordPhoto || null,
+            photo_url: rawDiscordPhoto || getDiceBearAvatarUrl(avatarSeed, avatarStyle),
             default_discord_name: meta.full_name || meta.name || 'Discord User',
             updated_at: new Date().toISOString(),
           }, { merge: true });
@@ -644,12 +651,22 @@ export default function App() {
         console.warn("User profile doc fetch error:", userErr);
       }
 
-      // Priority 1: Pulled Discord avatar saved in profile / localStorage
-      // Priority 2: Discord metadata avatar from OAuth session
-      // Priority 3: DiceBear SVG fallback
-      const discordAvatar = persistentPhotoUrl || meta.avatar_url || meta.picture || (meta.avatar && discordId ? `https://cdn.discordapp.com/avatars/${discordId}/${meta.avatar}.png` : null);
-      const photoURL = discordAvatar || getDiceBearAvatarUrl(avatarSeed, avatarStyle);
-      const hasCustomOAuthAvatar = !!discordAvatar;
+      const verifiedDiscordPhoto = persistentDiscordPhoto || rawDiscordPhoto || (discordId ? `https://cdn.discordapp.com/avatars/${discordId}/avatar.png` : null);
+      if (verifiedDiscordPhoto) {
+        localStorage.setItem('user_discord_photo_url_' + currentUser.id, verifiedDiscordPhoto);
+      }
+
+      const avatarSource: 'discord' | 'dicebear' = persistentAvatarSource || (verifiedDiscordPhoto ? 'discord' : 'dicebear');
+      
+      let photoURL: string;
+      if (avatarSource === 'discord' && verifiedDiscordPhoto) {
+        photoURL = verifiedDiscordPhoto;
+      } else {
+        photoURL = getDiceBearAvatarUrl(avatarSeed, avatarStyle);
+      }
+
+      localStorage.setItem('user_avatar_source_' + currentUser.id, avatarSource);
+      localStorage.setItem('user_photo_url_' + currentUser.id, photoURL);
 
       const normalizedUser = {
         uid: currentUser.id,
@@ -657,10 +674,12 @@ export default function App() {
         discordId: discordId ? String(discordId) : null,
         displayName,
         email: currentUser.email || '',
+        avatarSource,
+        discordPhotoURL: verifiedDiscordPhoto,
         photoURL,
         avatarStyle,
         avatarSeed,
-        hasCustomOAuthAvatar,
+        hasCustomOAuthAvatar: avatarSource === 'discord',
         providerData: currentUser.identities ? currentUser.identities.map((id: any) => ({
           providerId: id.provider === 'discord' ? 'oidc.discord' : id.provider,
           uid: discordId ? String(discordId) : (id.id || id.identity_data?.sub || currentUser.id),
@@ -1639,17 +1658,23 @@ export default function App() {
 
         setUser((prev: any) => prev ? {
           ...prev,
+          avatarSource: 'discord',
+          discordPhotoURL: freshAvatarUrl,
           photoURL: freshAvatarUrl,
           hasCustomOAuthAvatar: true,
         } : null);
 
         // Cache in localStorage for instant 0ms retrieval on page loads
+        localStorage.setItem('user_avatar_source_' + user.uid, 'discord');
+        localStorage.setItem('user_discord_photo_url_' + user.uid, freshAvatarUrl);
         localStorage.setItem('user_photo_url_' + user.uid, freshAvatarUrl);
 
         try {
           // 1. Save in Firestore users collection
           const userDocRef = doc(db, 'users', user.uid);
           await setDoc(userDocRef, {
+            avatar_source: 'discord',
+            discord_avatar_url: freshAvatarUrl,
             photo_url: freshAvatarUrl,
             avatar_url: freshAvatarUrl,
             updated_at: new Date().toISOString(),
@@ -1722,12 +1747,15 @@ export default function App() {
         }
 
         toast.success('Successfully updated Discord profile picture across the entire website!', { id: toastId });
+        return freshAvatarUrl;
       } else {
         toast.error('No Discord avatar found. Make sure your Discord account has an avatar uploaded.', { id: toastId });
+        return null;
       }
     } catch (err) {
       console.error('Error refreshing Discord avatar:', err);
       toast.error('Failed to pull latest Discord photo.', { id: toastId });
+      return null;
     }
   };
 
@@ -1735,12 +1763,12 @@ export default function App() {
     displayName: newName,
     avatarStyle: newStyle,
     avatarSeed: newSeed,
-    useDiscordPhoto,
+    avatarSource: newSource,
   }: {
     displayName: string;
     avatarStyle: DiceBearStyleName;
     avatarSeed: string;
-    useDiscordPhoto: boolean;
+    avatarSource: 'discord' | 'dicebear';
   }) => {
     if (!user) return;
     const cleanName = newName.trim();
@@ -1753,37 +1781,54 @@ export default function App() {
     toast.loading('Saving profile changes...', { id: toastId });
 
     try {
-      const newAvatarUrl = useDiscordPhoto && user.photoURL && user.photoURL.includes('discord')
-        ? user.photoURL
-        : getDiceBearAvatarUrl(newSeed, newStyle);
+      let resolvedPhotoUrl: string;
+
+      if (newSource === 'discord') {
+        let discordUrl = user.discordPhotoURL || localStorage.getItem('user_discord_photo_url_' + user.uid);
+        if (!discordUrl && user.discordId) {
+          const fresh = await fetchFreshDiscordAvatar(user.discordId);
+          if (fresh.avatarUrl) discordUrl = fresh.avatarUrl;
+        }
+        resolvedPhotoUrl = discordUrl || getDiceBearAvatarUrl(newSeed, newStyle);
+      } else {
+        resolvedPhotoUrl = getDiceBearAvatarUrl(newSeed, newStyle);
+      }
 
       // Optimistic update
       setUser((prev: any) => prev ? {
         ...prev,
         displayName: cleanName,
+        avatarSource: newSource,
         avatarStyle: newStyle,
         avatarSeed: newSeed,
-        photoURL: newAvatarUrl,
-        hasCustomOAuthAvatar: useDiscordPhoto,
+        photoURL: resolvedPhotoUrl,
+        hasCustomOAuthAvatar: newSource === 'discord',
       } : null);
       setPlayerName(cleanName);
       localStorage.setItem('fivem_player_name', cleanName);
-      if (!useDiscordPhoto) {
-        localStorage.setItem('user_photo_url_' + user.uid, newAvatarUrl);
-      }
+      localStorage.setItem('user_avatar_source_' + user.uid, newSource);
+      localStorage.setItem('user_photo_url_' + user.uid, resolvedPhotoUrl);
 
       // 1. Update Firestore user document
       const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, {
+      const updatePayload: Record<string, any> = {
         uid: user.uid,
         discord_id: user.discordId || null,
         custom_display_name: cleanName,
+        avatar_source: newSource,
         avatar_style: newStyle,
         avatar_seed: newSeed,
-        photo_url: newAvatarUrl,
-        avatar_url: newAvatarUrl,
+        photo_url: resolvedPhotoUrl,
+        avatar_url: resolvedPhotoUrl,
         updated_at: new Date().toISOString(),
-      }, { merge: true });
+      };
+
+      if (newSource === 'discord' && resolvedPhotoUrl) {
+        updatePayload.discord_avatar_url = resolvedPhotoUrl;
+        localStorage.setItem('user_discord_photo_url_' + user.uid, resolvedPhotoUrl);
+      }
+
+      await setDoc(userDocRef, updatePayload, { merge: true });
 
       // 2. Update Supabase Auth metadata
       try {
@@ -1803,9 +1848,9 @@ export default function App() {
           photosSnap.docs.forEach((pDoc) => {
             batch.update(pDoc.ref, {
               discord_name: cleanName,
-              user_photo_url: newAvatarUrl,
-              author_avatar_url: newAvatarUrl,
-              submitter_avatar: newAvatarUrl,
+              user_photo_url: resolvedPhotoUrl,
+              author_avatar_url: resolvedPhotoUrl,
+              submitter_avatar: resolvedPhotoUrl,
             });
           });
           await batch.commit();
@@ -1815,7 +1860,7 @@ export default function App() {
         setAllPhotos((prev) =>
           prev.map((p) =>
             p.user_id === user.uid || (p as any).uploader_uid === user.uid
-              ? { ...p, discord_name: cleanName, user_photo_url: newAvatarUrl, author_avatar_url: newAvatarUrl }
+              ? { ...p, discord_name: cleanName, user_photo_url: resolvedPhotoUrl, author_avatar_url: resolvedPhotoUrl }
               : p
           )
         );
