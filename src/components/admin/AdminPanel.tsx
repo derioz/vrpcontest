@@ -63,6 +63,9 @@ interface AdminPanelProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
   onClose?: () => void;
+  isFullPage?: boolean;
+  initialTab?: AdminTab;
+  onTabChange?: (tab: AdminTab) => void;
 }
 
 const TAB_GROUPS: {
@@ -115,13 +118,197 @@ export default function AdminPanel(props: AdminPanelProps) {
     onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false, publicKey, privateKey, rulesMarkdown, winners = [],
     onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed, onToggleCensorSubmissions,
     onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
-    isMinimized = false, onToggleMinimize, onClose
+    isMinimized = false, onToggleMinimize, onClose,
+    isFullPage = false, initialTab, onTabChange
   } = props;
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab || 'dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   if (!isAdmin) return null;
+
+  if (isFullPage) {
+    const currentActiveTab = initialTab || activeTab;
+    const handleSwitchTab = (tab: AdminTab) => {
+      setActiveTab(tab);
+      if (onTabChange) onTabChange(tab);
+    };
+
+    return (
+      <div className="w-full max-w-full 2xl:max-w-[1440px] xl:max-w-[1280px] mx-auto">
+        {currentActiveTab === 'dashboard' && (
+          <OverviewTab
+            activeContest={activeContest}
+            categories={categories}
+            allPhotos={allPhotos}
+            votingOpen={votingOpen}
+            submissionsOpen={submissionsOpen}
+            siteClosed={siteClosed}
+            setActiveTab={handleSwitchTab}
+            onOpenAnalytics={() => (onOpenAnalytics ? onOpenAnalytics() : handleSwitchTab('analytics'))}
+          />
+        )}
+
+        {currentActiveTab === 'analytics' && (
+          <div className="space-y-6">
+            <AdminHeader
+              badge="LIVE TELEMETRY"
+              badgeColor="bg-blue-500/15 text-blue-400 border-blue-500/30"
+              title="Contest Telemetry & Analytics"
+              subtitle="Real-time vote progression, submission velocity charts, and category popularity distribution."
+              icon={<BarChart3 size={20} className="text-blue-400" />}
+              iconBg="bg-blue-500/15 border-blue-500/30"
+              actions={
+                <button
+                  onClick={onOpenAnalytics || (() => handleSwitchTab('dashboard'))}
+                  className="px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
+                >
+                  <Maximize2 size={13} />
+                  <span>Fullscreen Mode</span>
+                </button>
+              }
+            />
+            <Suspense fallback={
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="p-5 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
+                      <Skeleton className="w-20 h-4 rounded-md bg-white/[0.07]" />
+                      <Skeleton className="w-28 h-8 rounded-lg bg-white/[0.08]" />
+                      <Skeleton className="w-36 h-3 rounded-md bg-white/[0.05]" />
+                    </div>
+                  ))}
+                </div>
+                <div className="p-6 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-4">
+                  <Skeleton className="w-48 h-6 rounded-lg bg-white/[0.08]" />
+                  <Skeleton className="w-full h-64 rounded-xl bg-white/[0.05]" />
+                </div>
+              </div>
+            }>
+              <AnalyticsDashboard
+                photos={allPhotos}
+                categories={categories}
+                onClose={() => handleSwitchTab('dashboard')}
+                isInline={true}
+              />
+            </Suspense>
+          </div>
+        )}
+
+        {currentActiveTab === 'submissions' && (
+          <div className="space-y-6">
+            <AdminHeader
+              badge="ENTRIES & MEDIA"
+              badgeColor="bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
+              title="Submissions Management"
+              subtitle="Review decrypted photo submissions, inspect photographer details, and manage entries."
+              icon={<ImageIcon size={20} className="text-cyan-400" />}
+              iconBg="bg-cyan-500/15 border-cyan-500/30"
+              actions={
+                <span className="px-3.5 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs font-bold">
+                  {allPhotos.length} Total Submissions
+                </span>
+              }
+            />
+            <Suspense fallback={
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
+                    <Skeleton className="w-full aspect-video rounded-xl bg-white/[0.07]" />
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="w-1/2 h-4 rounded-md bg-white/[0.07]" />
+                      <Skeleton className="w-14 h-4 rounded-full bg-white/[0.05]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }>
+              <AdminSubmissionsPreview
+                allPhotos={allPhotos}
+                categories={categories}
+                onDeletePhoto={onDeletePhoto}
+                onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
+              />
+            </Suspense>
+          </div>
+        )}
+
+        {currentActiveTab === 'voters' && (
+          <div className="space-y-6">
+            <AdminHeader
+              badge="SECURITY & AUDIT"
+              badgeColor="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+              title="Voter Audit & Fraud Check"
+              subtitle="Search voters by Discord username or UID, inspect vote distribution, and clear flagged records."
+              icon={<UserCheck size={20} className="text-emerald-400" />}
+              iconBg="bg-emerald-500/15 border-emerald-500/30"
+            />
+            <AdminVoterSearch
+              allPhotos={allPhotos}
+              categories={categories}
+            />
+          </div>
+        )}
+
+        {currentActiveTab === 'suggestions' && (
+          <AdminSuggestionsTab
+            currentUser={user}
+            isAdmin={isAdmin}
+          />
+        )}
+
+        {currentActiveTab === 'contest' && (
+          <ContestSetupTab
+            activeContest={activeContest}
+            categories={categories}
+            rulesMarkdown={rulesMarkdown}
+            winners={winners}
+            onDownloadWinners={onDownloadWinners}
+          />
+        )}
+
+        {currentActiveTab === 'controls' && (
+          <ControlsAndSecurityTab
+            votingOpen={votingOpen}
+            submissionsOpen={submissionsOpen}
+            onePhotoPerUser={onePhotoPerUser}
+            showWinnersToggle={showWinnersToggle}
+            siteClosed={siteClosed}
+            censorSubmissions={censorSubmissions}
+            publicKey={publicKey}
+            privateKey={privateKey}
+            onToggleVoting={onToggleVoting}
+            onToggleSubmissions={onToggleSubmissions}
+            onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
+            onToggleShowWinners={onToggleShowWinners}
+            onToggleSiteClosed={onToggleSiteClosed}
+            onToggleCensorSubmissions={onToggleCensorSubmissions}
+            onGenerateKeys={onGenerateKeys}
+            onToggleReveal={onToggleReveal}
+          />
+        )}
+
+        {currentActiveTab === 'changelogs' && (
+          <ChangelogTab />
+        )}
+
+        {currentActiveTab === 'danger' && (
+          <DangerTab
+            activeContest={activeContest}
+            categories={categories}
+            allPhotos={allPhotos}
+            onResetVotes={onResetVotes}
+          />
+        )}
+      </div>
+    );
+  }
 
   if (isMinimized) {
     return (

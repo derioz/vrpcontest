@@ -26,20 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
-    id: 'release-20260819-1930',
-    version: 'v1.9.9',
-    title: 'Animate UI Spring Motion Profile Sheet, Discord Avatar Sync Engine & Compact Role Actions',
-    category: 'UI/UX',
-    description: `• Spring-Physics Sliding Profile Sheet: Re-engineered the Animate UI Radix Sheet with Motion spring physics and gradual backdrop-blur interpolation, delivering buttery smooth 60fps sliding transitions on both open and close.
-• Multi-Tiered Discord Avatar Synchronization: Fixed avatar sync bug with dedicated avatarSource ('discord' | 'dicebear') tracking and persistent discordPhotoURL caching, guaranteeing instant, reliable Discord photo recovery when switching back from DiceBear.
-• Compact Role-Gated Platform Controls: Redesigned Platform Features into sleek, minimal action buttons with strict permission gating (Admin Console & Category Themes conditionally rendered only for admins; Report Bug for all members).
-• Kokonut UI Avatar Picker & Display Name Studio: Interactive customization suite with large center stage avatar previews, glowing halo rings, Discord photo sync, 12 DiceBear vector styles, and real-time 3–20 character name validation.
-• Integrated Hall of Fame in Main Navigation: Seamlessly incorporated Hall of Fame directly into the primary HoverGradient navigation bar with custom Trophy heraldry and 3D amber radial glows, resolving all positioning overlaps.
-• Ultra-Compact Far-Right Avatar Trigger: Refactored the navbar profile button to display only the user's avatar with live status pips, eliminating username text clutter and ensuring 100% responsive alignment across mobile, tablet, and desktop.
-• HoverGradient 3D Flip Category Toolbar: Overhauled the contest CategoryNav with matching HoverGradient 3D flip card architecture (rotateX -90°/90°), tailored vibrant radial light blooms per category, interactive emoji scaling, and real-time live submission count badges.
-• Login Modal Stacking & Viewport Elevation Fix: Fixed GridLinesLoginModal z-index stacking ('z-[210]') over the backdrop blur overlay ('z-[200]') with responsive flexbox viewport centering, restoring crisp modal rendering and instant Discord sign-in.`,
+    id: 'release-20260819-2035',
+    version: 'v2.0.0',
+    title: 'AdminCN Full-Page Admin Dashboard, Dedicated Route Architecture & Multi-Tier Role Security',
+    category: 'Feature',
+    description: `• Dedicated AdminCN Full-Page Dashboard: Migrated the Admin Console from a popup/modal into a dedicated, responsive full-page administrative dashboard modeled after AdminCN—featuring a collapsible grouped sidebar, minimal sticky top header with live contest telemetry pills, breadcrumbs, and fast spring tab transitions.
+• Full Feature Preservation & Zero-Reduction Engine: Retained 100% of all administrative tools, forms, and database mutation functions (Overview, Telemetry & Live Analytics, Decrypted Submissions Moderation, Voter Fraud Audit, Category Theme Voting & Staff Proposals, Contest Setup & Archive, Controls & Security RSA Key Switches, Changelogs, and Danger Zone).
+• Deep-Linking & SPA Route Protection: Implemented clean client-side path routing (/admin, /admin/analytics, /admin/submissions, /admin/suggestions, /admin/voters, /admin/contest, /admin/controls, /admin/changelogs, /admin/danger) with strict AdminRouteGuard gatekeeper blocking unauthorized users and providing Discord ID audit copies.
+• Brand Identity & Dual-Way Navigation: Preserved official Vital RP dark glass styling, Space Grotesk & Outfit typography, and official high-resolution heraldry, paired with smooth 'Back to Public Contest' shortcuts across sidebar and header.
+• Spring-Physics Sliding Profile Sheet: Re-engineered the Animate UI Radix Sheet with Motion spring physics and gradual backdrop-blur interpolation, delivering buttery smooth 60fps sliding transitions on both open and close.
+• Multi-Tier Discord Avatar Sync Engine: Fixed avatar sync bug with dedicated avatarSource ('discord' | 'dicebear') tracking and persistent discordPhotoURL caching, guaranteeing instant Discord photo recovery when switching back from DiceBear.
+• Compact Role-Gated Platform Controls: Sleek platform action buttons in the Profile Sheet with strict permission gating (Admin Console & Category Themes conditionally rendered only for admins; Report Bug for all members).
+• HoverGradient 3D Flip Category Toolbar: Overhauled the contest CategoryNav with matching HoverGradient 3D flip card architecture (rotateX -90°/90°), tailored vibrant radial light blooms per category, interactive emoji scaling, and real-time live submission count badges.`,
     author: 'Damon',
-    date: 'Aug 19, 2026 at 8:23 PM',
+    date: 'Aug 19, 2026 at 8:36 PM',
   },
   {
     id: 'release-20260818-2158',

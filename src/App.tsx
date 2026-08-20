@@ -110,6 +110,8 @@ const CategorySuggestionsView = lazy(() => import('./components/CategorySuggesti
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 import AdminPanel from './components/admin/AdminPanel';
+import { AdminDashboardPage, AdminRouteTab } from './components/admin/AdminDashboardPage';
+import { AdminRouteGuard } from './components/admin/AdminRouteGuard';
 import { ContestClosedModal } from './components/ContestClosedModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ContestRulesSection } from './components/ContestRulesSection';
@@ -272,13 +274,36 @@ export default function App() {
   const [user, setUser] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showAdminModal, setShowAdminModal] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab') || params.get('view');
-    const storedView = localStorage.getItem('active_view');
-    return tab === 'admin' || storedView === 'admin';
-  });
+  // ── Router State for Dedicated Full-Page Routes (/admin, /admin/submissions, etc.) ──
+  const [currentPath, setCurrentPath] = useState(() =>
+    typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (path: string) => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', path);
+      setCurrentPath(path);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const isAdminRoute = currentPath.startsWith('/admin');
+  const rawTab = currentPath.replace(/^\/admin\/?/, '').split('/')[0];
+  const adminSubTab: AdminRouteTab =
+    rawTab === 'ideas' || rawTab === 'suggest'
+      ? 'suggestions'
+      : (['dashboard', 'analytics', 'submissions', 'suggestions', 'voters', 'contest', 'controls', 'changelogs', 'danger'].includes(rawTab)
+          ? (rawTab as AdminRouteTab)
+          : 'dashboard');
+
   const [isAdminMinimized, setIsAdminMinimized] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -360,19 +385,7 @@ export default function App() {
   const isVotingOpen = votingOpen;
   const isSubmissionsOpen = submissionsOpen;
 
-  // Disable background page scrolling when Admin Console overlay is open and not minimized
-  useEffect(() => {
-    if (showAdminModal && !isAdminMinimized) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showAdminModal, isAdminMinimized]);
-
-  // Persist current active view (Hall of Fame & Admin Console) across page refreshes
+  // Persist current active view (Hall of Fame) across page refreshes
   useEffect(() => {
     const url = new URL(window.location.href);
     const currentTab = url.searchParams.get('tab') || url.searchParams.get('view');
@@ -383,24 +396,18 @@ export default function App() {
         url.searchParams.set('tab', 'hall-of-fame');
         window.history.replaceState({}, '', url.toString());
       }
-    } else if (showAdminModal) {
-      localStorage.setItem('active_view', 'admin');
-      if (currentTab !== 'admin') {
-        url.searchParams.set('tab', 'admin');
-        window.history.replaceState({}, '', url.toString());
-      }
     } else {
       const storedView = localStorage.getItem('active_view');
-      if (storedView === 'hall-of-fame' || storedView === 'admin') {
+      if (storedView === 'hall-of-fame') {
         localStorage.removeItem('active_view');
       }
-      if (currentTab === 'hall-of-fame' || currentTab === 'hof' || currentTab === 'admin') {
+      if (currentTab === 'hall-of-fame' || currentTab === 'hof') {
         url.searchParams.delete('tab');
         url.searchParams.delete('view');
         window.history.replaceState({}, '', url.toString());
       }
     }
-  }, [showArchivedWinners, showAdminModal]);
+  }, [showArchivedWinners]);
 
   // photos for the currently-selected category (derived from allPhotos)
   const photos = useMemo(() => {
@@ -1958,6 +1965,66 @@ export default function App() {
 
   const isSiteLocked = siteClosed && (!isAdmin || !adminBypassClosedModal);
 
+  // ── Router Check: If URL starts with /admin, render Dedicated AdminCN Dashboard ──
+  if (isAdminRoute) {
+    if (isAuthLoading) {
+      return (
+        <div className="min-h-screen w-full bg-[#07070a] text-white flex flex-col items-center justify-center p-4">
+          <Loader2 className="w-8 h-8 animate-spin text-fivem-orange mb-3" />
+          <span className="text-xs font-mono text-white/50 uppercase tracking-widest">
+            Verifying Admin Session...
+          </span>
+        </div>
+      );
+    }
+
+    if (!isAdmin) {
+      return (
+        <AdminRouteGuard
+          user={user}
+          onNavigateHome={() => navigateTo('/')}
+          onOpenSignIn={() => setShowSignInModal(true)}
+        />
+      );
+    }
+
+    return (
+      <AdminDashboardPage
+        currentTab={adminSubTab}
+        onNavigateTab={(tab) => navigateTo(tab === 'dashboard' ? '/admin' : `/admin/${tab}`)}
+        onNavigateHome={() => navigateTo('/')}
+        isAdmin={isAdmin}
+        user={user}
+        activeContest={activeContest}
+        categories={categories}
+        allPhotos={allPhotos}
+        votingOpen={votingOpen}
+        submissionsOpen={submissionsOpen}
+        onePhotoPerUser={onePhotoPerUser}
+        showWinnersToggle={showWinnersToggle}
+        siteClosed={siteClosed}
+        censorSubmissions={censorSubmissions}
+        publicKey={publicKey}
+        privateKey={privateKey}
+        rulesMarkdown={rulesMarkdown}
+        winners={winners}
+        onToggleVoting={toggleVoting}
+        onToggleSubmissions={toggleSubmissions}
+        onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
+        onToggleShowWinners={toggleShowWinners}
+        onToggleSiteClosed={toggleSiteClosed}
+        onToggleCensorSubmissions={toggleCensorSubmissions}
+        onGenerateKeys={handleGenerateKeys}
+        onToggleReveal={handleToggleReveal}
+        onDownloadWinners={handleDownloadWinningPhotos}
+        onDeletePhoto={handleDeletePhoto}
+        onToggleDisqualifyPhoto={handleToggleDisqualifyPhoto}
+        onResetVotes={handleResetVotes}
+        onOpenAnalytics={() => navigateTo('/admin/analytics')}
+      />
+    );
+  }
+
   return (
     <ShaderBackground className={cn("min-h-screen flex flex-col relative", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
       <div className={cn("flex flex-col flex-1 transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
@@ -2111,8 +2178,7 @@ export default function App() {
                     gradient: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
                     iconColor: 'group-hover:text-purple-400 text-purple-400',
                     onClick: () => {
-                      setActiveNavId('suggest');
-                      setShowCategorySuggestions(true);
+                      navigateTo('/admin/suggestions');
                     }
                   },
                   {
@@ -2124,8 +2190,7 @@ export default function App() {
                     gradient: 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, rgba(220,38,38,0.1) 50%, rgba(185,28,28,0) 100%)',
                     iconColor: 'group-hover:text-red-400 text-red-400',
                     onClick: () => {
-                      setShowAdminModal(true);
-                      setIsAdminMinimized(false);
+                      navigateTo('/admin');
                     }
                   }
                 ] : [])
@@ -2281,8 +2346,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    setShowAdminModal(true);
-                    setIsAdminMinimized(false);
+                    navigateTo('/admin');
                   }}
                   className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-fivem-orange/[0.05] border border-fivem-orange/15 active:bg-fivem-orange/10 transition-all cursor-pointer"
                 >
@@ -2291,7 +2355,7 @@ export default function App() {
                   </div>
                   <div className="flex-1 text-left">
                     <span className="text-sm font-bold text-fivem-orange/90 block">Admin Console</span>
-                    <span className="text-[10px] text-white/30 font-mono">Dashboard & settings</span>
+                    <span className="text-[10px] text-white/30 font-mono">Full-page dashboard</span>
                   </div>
                   <span className="px-2 py-0.5 rounded-md bg-fivem-orange/15 text-[9px] font-mono font-bold text-fivem-orange uppercase shrink-0">Admin</span>
                 </button>
@@ -2965,202 +3029,6 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-      {/* ── PERSISTENT MINIMIZABLE ADMIN PANEL OVERLAY ── */}
-      <AnimatePresence>
-        {showAdminModal && (
-          <>
-            {/* Backdrop overlay (rendered ONLY when NOT minimized so site is 100% interactive when minimized!) */}
-            {!isAdminMinimized && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => setIsAdminMinimized(true)}
-                className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md"
-              />
-            )}
-
-            {/* Admin Panel Container */}
-            <motion.div
-              layout
-              transition={{ type: "spring", stiffness: 350, damping: 28 }}
-              className={cn(
-                "fixed z-[160] transition-all duration-300",
-                isAdminMinimized
-                  ? "pointer-events-none inset-0"
-                  : "fixed inset-0 flex items-center justify-center p-0 sm:p-4 pointer-events-auto"
-              )}
-            >
-              {!isAdminMinimized ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="w-full max-w-full sm:max-w-[98vw] 2xl:max-w-[1600px] xl:max-w-[1450px] lg:max-w-[1280px] h-full sm:h-[88vh] max-h-full sm:max-h-[920px] bg-[#0a0a0a]/98 backdrop-blur-2xl border-0 sm:border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white p-0 overflow-hidden flex flex-col rounded-none sm:rounded-3xl relative pointer-events-auto"
-                >
-                  {/* Ambient glows */}
-                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fivem-orange/8 blur-[200px] rounded-full pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fivem-orange/4 blur-[160px] rounded-full pointer-events-none" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-fivem-orange/3 blur-[120px] rounded-full pointer-events-none" />
-
-                  <Suspense fallback={
-                    <div className="p-8 space-y-6 flex-1 overflow-hidden">
-                      <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                        <div className="space-y-2">
-                          <Skeleton className="w-48 h-6 rounded-lg bg-white/[0.08]" />
-                          <Skeleton className="w-32 h-4 rounded-md bg-white/[0.05]" />
-                        </div>
-                        <Skeleton className="w-28 h-9 rounded-xl bg-white/[0.06]" />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[1, 2, 3, 4].map((i) => (
-                          <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
-                            <Skeleton className="w-16 h-4 rounded-md bg-white/[0.07]" />
-                            <Skeleton className="w-24 h-7 rounded-lg bg-white/[0.08]" />
-                          </div>
-                        ))}
-                      </div>
-                      <Skeleton className="w-full h-64 rounded-2xl bg-white/[0.04]" />
-                    </div>
-                  }>
-                    {isAuthLoading ? (
-                      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4 min-h-[400px]">
-                        <div className="w-14 h-14 rounded-2xl bg-fivem-orange/10 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange">
-                          <ShieldCheck size={28} className="animate-pulse" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="font-display font-bold text-white text-base">Authenticating Staff Access...</p>
-                          <p className="text-xs font-mono text-white/40">Verifying administrator credentials and permissions</p>
-                        </div>
-                      </div>
-                    ) : !isAdmin ? (
-                      <div className="flex-1 flex items-center justify-center p-10">
-                        {user ? (
-                          <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3 max-w-sm">
-                            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
-                              <Lock className="text-red-400" size={24} />
-                            </div>
-                            <p className="font-bold text-red-400">Access Denied</p>
-                            <p className="text-xs text-white/50">Your account ({user.displayName}) is not listed as an administrator.</p>
-                            <button onClick={() => supabase.auth.signOut()} className="text-xs text-white/30 hover:text-white underline cursor-pointer">
-                              Logout to switch accounts
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="p-8 bg-[#0e0e13] border border-white/10 rounded-2xl text-center space-y-4 max-w-sm">
-                            <div className="w-14 h-14 mx-auto rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange">
-                              <Shield size={28} />
-                            </div>
-                            <div className="space-y-1">
-                              <p className="font-display font-bold text-white text-base">Administrator Login Required</p>
-                              <p className="text-xs text-white/50">Please sign in with your verified Discord administrator account to access the control console.</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleDiscordLogin()}
-                              className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all text-sm active:scale-95 shadow-md cursor-pointer"
-                            >
-                              <svg role="img" viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0" xmlns="http://www.w3.org/2000/svg">
-                                <title>Discord</title>
-                                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.014.043.031.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-                              </svg>
-                              <span>Sign in with Discord</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <AdminPanel
-                        isAdmin={isAdmin}
-                        user={user}
-                        activeContest={activeContest}
-                        categories={categories}
-                        allPhotos={allPhotos}
-                        votingOpen={votingOpen}
-                        submissionsOpen={submissionsOpen}
-                        onePhotoPerUser={onePhotoPerUser}
-                        showWinnersToggle={showWinnersToggle}
-                        siteClosed={siteClosed}
-                        censorSubmissions={censorSubmissions}
-                        publicKey={publicKey}
-                        privateKey={privateKey}
-                        rulesMarkdown={rulesMarkdown}
-                        winners={winners}
-                        onToggleVoting={toggleVoting}
-                        onToggleSubmissions={toggleSubmissions}
-                        onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
-                        onToggleShowWinners={toggleShowWinners}
-                        onToggleSiteClosed={toggleSiteClosed}
-                        onToggleCensorSubmissions={toggleCensorSubmissions}
-                        onGenerateKeys={handleGenerateKeys}
-                        onToggleReveal={handleToggleReveal}
-                        onDownloadWinners={handleDownloadWinningPhotos}
-                        onDeletePhoto={handleDeletePhoto}
-                        onToggleDisqualifyPhoto={handleToggleDisqualifyPhoto}
-                        onResetVotes={handleResetVotes}
-                        onOpenAnalytics={() => {
-                          setIsAdminMinimized(true);
-                          setShowAnalyticsDashboard(true);
-                        }}
-                        isMinimized={false}
-                        onToggleMinimize={() => setIsAdminMinimized(true)}
-                        onClose={() => {
-                          setShowAdminModal(false);
-                          setIsAdminMinimized(false);
-                        }}
-                      />
-                    )}
-                  </Suspense>
-                </motion.div>
-              ) : (
-                /* Minimized state handles rendering internally in AdminPanel via isMinimized={true} */
-                <AdminPanel
-                  isAdmin={isAdmin}
-                  user={user}
-                  activeContest={activeContest}
-                  categories={categories}
-                  allPhotos={allPhotos}
-                  votingOpen={votingOpen}
-                  submissionsOpen={submissionsOpen}
-                  onePhotoPerUser={onePhotoPerUser}
-                  showWinnersToggle={showWinnersToggle}
-                  siteClosed={siteClosed}
-                  censorSubmissions={censorSubmissions}
-                  publicKey={publicKey}
-                  privateKey={privateKey}
-                  rulesMarkdown={rulesMarkdown}
-                  winners={winners}
-                  onToggleVoting={toggleVoting}
-                  onToggleSubmissions={toggleSubmissions}
-                  onToggleOnePhotoPerUser={toggleOnePhotoPerUser}
-                  onToggleShowWinners={toggleShowWinners}
-                  onToggleSiteClosed={toggleSiteClosed}
-                  onToggleCensorSubmissions={toggleCensorSubmissions}
-                  onGenerateKeys={handleGenerateKeys}
-                  onToggleReveal={handleToggleReveal}
-                  onDownloadWinners={handleDownloadWinningPhotos}
-                  onDeletePhoto={handleDeletePhoto}
-                  onToggleDisqualifyPhoto={handleToggleDisqualifyPhoto}
-                  onResetVotes={handleResetVotes}
-                  onOpenAnalytics={() => {
-                    setIsAdminMinimized(true);
-                    setShowAnalyticsDashboard(true);
-                  }}
-                  isMinimized={true}
-                  onToggleMinimize={() => setIsAdminMinimized(false)}
-                  onClose={() => {
-                    setShowAdminModal(false);
-                    setIsAdminMinimized(false);
-                  }}
-                />
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
       {/* Lightbox Modal */}
       {lightboxPhoto && (
         <Suspense fallback={null}>
@@ -3558,10 +3426,7 @@ export default function App() {
           onOpenHallOfFame={() => setShowArchivedWinners(true)}
           onOpenSignIn={() => setShowSignInModal(true)}
           onSignOut={() => signOut(auth)}
-          onOpenAdminPanel={() => {
-            setShowAdminModal(true);
-            setIsAdminMinimized(false);
-          }}
+          onOpenAdminPanel={() => navigateTo('/admin')}
         />
       )}
 
@@ -3727,11 +3592,8 @@ export default function App() {
           availableDiceBearStyles={AVAILABLE_DICEBEAR_STYLES}
           onSaveProfile={handleSaveProfile}
           onRetryDiscordAvatar={handleRetryDiscordAvatar}
-          onOpenAdminModal={() => {
-            setShowAdminModal(true);
-            setIsAdminMinimized(false);
-          }}
-          onOpenCategorySuggestions={() => setShowCategorySuggestions(true)}
+          onOpenAdminModal={() => navigateTo('/admin')}
+          onOpenCategorySuggestions={() => navigateTo('/admin/suggestions')}
           onOpenBugModal={() => setShowBugModal(true)}
           onSignOut={handleSignOut}
         />
