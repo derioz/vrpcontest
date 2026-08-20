@@ -26,6 +26,20 @@ export interface ChangelogEntry {
 
 const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
+    id: 'release-20260819-1930',
+    version: 'v1.9.9',
+    title: 'KokonutUI Toolbar Navigation, Spring Micro-Interactions & Floating Notifications Suite',
+    category: 'UI/UX',
+    description: `• Official KokonutUI Toolbar Suite Integration: Re-engineered top-level navigation and category selection matching the iconic KokonutUI Toolbar architecture (https://kokonutui.com/docs/navigation/toolbar) with fluid spring physics, glassmorphic dark capsules, and micro-interactions.
+• Spring-Expanding Interactive Tool Buttons: Implemented Motion spring-physics button variants that smoothly expand selected tools and category pills, dynamically interpolating text labels, category badges, and padding without layout shift.
+• Floating Confirmation Tooltips with Glowing Line Accents: Engineered floating spring notification pills with animated laser baseline accents that dynamically pop up on category switches and navigation actions to confirm user interactions.
+• KokonutUI Top Navbar Island: Replaced legacy pill navigation in the header with a dedicated KokonutUI Toolbar featuring instant section routing (Categories, Rules, Submit Entry) alongside an integrated luxury Hall of Fame trophy tool toggle.
+• KokonutUI Category Bar Overhaul: Upgraded the contest CategoryNav with KokonutUI spring pill morphing, live category photo entry count badges, interactive emoji scaling, and an auxiliary real-time stats & filter tool pill.
+• Zero-Shift Adaptive Matrix Layout: Maintained 100% all-visible category access across mobile (2-col), tablet, and desktop without horizontal swiping, perfectly harmonized with the new KokonutUI physics engine.`,
+    author: 'Damon',
+    date: 'Aug 19, 2026 at 7:30 PM',
+  },
+  {
     id: 'release-20260818-2158',
     version: 'v1.9.8',
     title: 'Universal Submissions Synchronization, Social Previews & All-Visible Category Matrix',

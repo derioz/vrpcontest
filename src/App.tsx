@@ -85,6 +85,7 @@ import { Spotlight } from './components/ui/spotlight';
 import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
 import { CategoryNav } from './components/CategoryNav';
+import { Toolbar, ToolbarItem } from './components/ui/toolbar';
 import ThreeDCarousel from './components/ui/three-d-carousel';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
@@ -122,7 +123,7 @@ export default function App() {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
+  const [activeNavId, setActiveNavId] = useState<string | null>('categories');
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const categoryCacheRef = useRef<Map<string, { photos: Photo[]; timestamp: number }>>(new Map());
   const topNavContainerRef = useRef<HTMLDivElement>(null);
@@ -1915,90 +1916,73 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* ── CENTER: Navigation Capsule ── */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/[0.08] relative">
-            {/* Inner inset shadow for depth */}
-            <div className="absolute inset-0 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] pointer-events-none" />
-            {[
-              {
-                id: 'categories',
-                label: 'Categories',
-                icon: Layers,
-                action: () => {
-                  const el = document.getElementById('category-nav') || document.getElementById('submissions-area');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  else window.scrollTo({ top: 380, behavior: 'smooth' });
-                }
-              },
-              ...(submissionsOpen ? [{
-                id: 'submit',
-                label: 'Submit Entry',
-                icon: Plus,
-                accent: true,
-                action: () => {
-                  if (!user) {
-                    setShowSignInModal(true);
-                  } else {
-                    setShowUploadModal(true);
+          {/* ── CENTER: KokonutUI Navigation Toolbar ── */}
+          <div className="hidden md:flex items-center">
+            <Toolbar
+              size="sm"
+              notificationPosition="bottom"
+              selectedId={activeNavId}
+              onSelect={(id) => setActiveNavId(id)}
+              items={[
+                {
+                  id: 'categories',
+                  title: 'Categories',
+                  icon: Layers,
+                  notificationText: 'Categories Navigation Active',
+                  onClick: () => {
+                    setActiveNavId('categories');
+                    const el = document.getElementById('category-nav') || document.getElementById('submissions-area');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    else window.scrollTo({ top: 380, behavior: 'smooth' });
+                  }
+                },
+                ...(submissionsOpen ? [{
+                  id: 'submit',
+                  title: 'Submit Entry',
+                  icon: Plus,
+                  badge: 'Open',
+                  badgeClassName: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+                  accent: true,
+                  notificationText: 'Submissions Open!',
+                  onClick: () => {
+                    setActiveNavId('submit');
+                    if (!user) {
+                      setShowSignInModal(true);
+                    } else {
+                      setShowUploadModal(true);
+                    }
+                  }
+                }] : []),
+                {
+                  id: 'rules',
+                  title: 'Rules',
+                  icon: FileText,
+                  notificationText: 'Contest Rules',
+                  onClick: () => {
+                    setActiveNavId('rules');
+                    document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
                   }
                 }
-              }] : []),
-              {
-                id: 'rules',
-                label: 'Rules',
-                icon: FileText,
-                action: () => document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' })
-              }
-            ].map((item, index) => {
-              const isHovered = hoveredNavIndex === index;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={item.action}
-                  onMouseEnter={() => setHoveredNavIndex(index)}
-                  onMouseLeave={() => setHoveredNavIndex(null)}
-                  className={cn(
-                    "relative px-4 py-1.5 rounded-full text-xs font-bold font-display uppercase tracking-wider transition-all duration-200 cursor-pointer flex items-center gap-1.5 select-none",
-                    item.accent
-                      ? "text-fivem-orange hover:text-white bg-fivem-orange/10 hover:bg-fivem-orange/20 border border-fivem-orange/30"
-                      : "text-white/70 hover:text-white"
-                  )}
+              ]}
+              rightElement={
+                <motion.button
+                  type="button"
+                  onClick={() => setShowArchivedWinners(true)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-display font-black uppercase tracking-wider cursor-pointer select-none transition-all duration-300
+                    bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-yellow-500/20 hover:to-amber-500/25
+                    border border-amber-400/30 hover:border-amber-400/50
+                    text-amber-300 hover:text-amber-200
+                    shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)]"
                 >
-                  <Icon size={13} className={cn(item.accent ? "text-fivem-orange" : "text-white/50")} />
-                  <span className="relative z-10">{item.label}</span>
-                  <AnimatePresence>
-                    {isHovered && !item.accent && (
-                      <motion.div
-                        layoutId="header-nav-indicator"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 rounded-full bg-white/[0.08] border border-white/[0.12]"
-                        transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                      />
-                    )}
-                  </AnimatePresence>
-                </button>
-              );
-            })}
+                  <Trophy size={13} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
+                  <span className="leading-none">Hall of Fame</span>
+                  <Sparkles size={10} className="text-amber-400/60" />
+                </motion.button>
+              }
+            />
           </div>
-
-          {/* ── Hall of Fame – Special Standalone Button ── */}
-          <button
-            onClick={() => setShowArchivedWinners(true)}
-            className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black font-display uppercase tracking-wider cursor-pointer select-none transition-all duration-300 relative group
-              bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-yellow-500/20 hover:to-amber-500/25
-              border border-amber-400/30 hover:border-amber-400/50
-              text-amber-300 hover:text-amber-200
-              shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)]"
-          >
-            {/* Animated glow ring */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400/0 via-amber-400/10 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
-            <Trophy size={13} className="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)] relative z-10" />
-            <span className="relative z-10">Hall of Fame</span>
-            <Sparkles size={10} className="text-amber-400/60 group-hover:text-amber-300 transition-colors relative z-10" />
-          </button>
 
           {/* ── RIGHT: Mobile Action Cluster ── */}
           <div className="md:hidden flex items-center gap-2 shrink-0">
