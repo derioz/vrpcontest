@@ -287,7 +287,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
         <Button
           variant="outline"
           size="icon"
-          className="absolute top-2 left-1/2 -translate-x-1/2 h-8 w-8 rounded-full bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
+          className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 h-9 w-9 rounded-full bg-black/80 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
           onClick={() => go(-1)}
           aria-label="Previous slide up"
         >
@@ -296,28 +296,15 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
         <Button
           variant="outline"
           size="icon"
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 h-8 w-8 rounded-full bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
+          className="absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 h-9 w-9 rounded-full bg-black/80 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
           onClick={() => go(1)}
           aria-label="Next slide down"
         >
           <ChevronDown className="h-4 w-4" />
         </Button>
-      </div>
 
-      {/* Perfectly Centered Bottom Navigation Controls and Indicator Dots */}
-      <div className="flex items-center justify-center gap-3.5 w-full pt-1 z-30">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 rounded-full bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
-          onClick={() => go(-1)}
-          aria-label="Previous slide"
-        >
-          <ArrowUp className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Dynamic Dot Indicators */}
-        <div className="flex items-center justify-center gap-1.5 py-1 px-1">
+        {/* Vertical Indicator Dots & Pill on the side */}
+        <div className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 py-2 px-1 z-30 bg-black/50 backdrop-blur-md rounded-full border border-white/10 shadow-lg">
           {slides.map((_, idx) => (
             <button
               key={idx}
@@ -326,23 +313,13 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
               className={cn(
                 'rounded-full transition-all duration-300 cursor-pointer',
                 idx === active
-                  ? 'h-1.5 w-6 bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.7)]'
-                  : 'h-1.5 w-1.5 bg-white/25 hover:bg-white/50'
+                  ? 'w-1.5 h-6 bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.7)]'
+                  : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/60'
               )}
               aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
         </div>
-
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 rounded-full bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
-          onClick={() => go(1)}
-          aria-label="Next slide"
-        >
-          <ArrowDown className="h-3.5 w-3.5" />
-        </Button>
       </div>
     </Carousel>
   )
