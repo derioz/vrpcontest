@@ -3628,24 +3628,23 @@ export default function App() {
       />
 
       {/* ── Animate UI Radix Sheet — User Profile & Kokonut UI Avatar Picker ── */}
-      {user && (
-        <ProfileSheet
-          isOpen={isProfileSheetOpen}
-          onClose={() => setIsProfileSheetOpen(false)}
-          user={user}
-          isAdmin={isAdmin}
-          getUserWinCount={getUserWinCount}
-          getProfileAvatar={getProfileAvatar}
-          getDiceBearAvatarUrl={getDiceBearAvatarUrl}
-          availableDiceBearStyles={AVAILABLE_DICEBEAR_STYLES}
-          onSaveProfile={handleSaveProfile}
-          onRetryDiscordAvatar={handleRetryDiscordAvatar}
-          onOpenAdminModal={() => navigateTo('/admin')}
-          onOpenCategorySuggestions={() => navigateTo('/admin/suggestions')}
-          onOpenBugModal={() => setShowBugModal(true)}
-          onSignOut={handleSignOut}
-        />
-      )}
+      <ProfileSheet
+        isOpen={isProfileSheetOpen}
+        onClose={() => setIsProfileSheetOpen(false)}
+        user={user}
+        isAdmin={isAdmin}
+        isAuthLoading={isAuthLoading}
+        getUserWinCount={getUserWinCount}
+        getProfileAvatar={getProfileAvatar}
+        getDiceBearAvatarUrl={getDiceBearAvatarUrl}
+        availableDiceBearStyles={AVAILABLE_DICEBEAR_STYLES}
+        onSaveProfile={handleSaveProfile}
+        onRetryDiscordAvatar={handleRetryDiscordAvatar}
+        onOpenAdminModal={() => navigateTo('/admin')}
+        onOpenCategorySuggestions={() => navigateTo('/admin/suggestions')}
+        onOpenBugModal={() => setShowBugModal(true)}
+        onSignOut={handleSignOut}
+      />
 
     </ShaderBackground>
   );

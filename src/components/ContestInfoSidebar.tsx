@@ -1,28 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React from 'react';
+import { motion } from 'motion/react';
 import {
-  Trophy,
   Upload,
-  Sparkles,
   Lock,
   CheckCircle2,
   Clock,
   Layers,
   Image as ImageIcon,
-  FileText,
-  ChevronRight,
-  ChevronDown,
   Vote,
-  Calendar,
-  ShieldCheck,
   Flame,
-  Award,
-  Radio,
-  ExternalLink,
-  Info,
-  Check,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category, Photo, ArchivedWinner } from '../types';
@@ -45,10 +33,10 @@ export interface ContestInfoSidebarProps {
   currentUserPhoto: Photo | null;
   userSubmissionCount: number;
   onePhotoPerUser: boolean;
-  archivedWinners: ArchivedWinner[];
+  archivedWinners?: ArchivedWinner[];
   isLoading?: boolean;
   onUploadClick: () => void;
-  onOpenHallOfFame: () => void;
+  onOpenHallOfFame?: () => void;
   onSignInClick: () => void;
   onOpenRules?: () => void;
 }
@@ -63,68 +51,50 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
   currentUserPhoto,
   userSubmissionCount = 0,
   onePhotoPerUser,
-  archivedWinners = [],
   isLoading = false,
   onUploadClick,
-  onOpenHallOfFame,
   onSignInClick,
-  onOpenRules,
 }) => {
-  const [mobileExpanded, setMobileExpanded] = useState(false);
-
   const hasUserSubmitted = !!currentUserPhoto || userSubmissionCount > 0;
   const totalVotes = allPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0);
 
-  // Timeline phase states
+  // Timeline phase states (Supports future multi-phase configurations)
   const phases = [
     {
       id: 1,
       title: 'Photo Submissions',
-      subtitle: submissionsOpen ? 'Accepting community entries' : 'Submissions closed',
+      subtitle: submissionsOpen ? 'Currently accepting entries' : 'Submissions closed',
       icon: Upload,
       isActive: submissionsOpen,
-      isCompleted: !submissionsOpen && (votingOpen || true),
-      badge: submissionsOpen ? 'LIVE' : 'ENDED',
+      isCompleted: !submissionsOpen,
+      badge: submissionsOpen ? 'OPEN' : 'ENDED',
       badgeColor: submissionsOpen
-        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
         : 'bg-white/10 text-white/40 border-white/10',
     },
     {
       id: 2,
       title: 'Community Voting',
-      subtitle: votingOpen ? 'Live ballot open to public' : 'Awaiting submission deadline',
+      subtitle: votingOpen ? 'Live ballots open to public' : 'Starts after submissions',
       icon: Vote,
       isActive: votingOpen,
       isCompleted: false,
-      badge: votingOpen ? 'VOTING LIVE' : 'UPCOMING',
+      badge: votingOpen ? 'VOTING LIVE' : 'LOCKED',
       badgeColor: votingOpen
-        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
         : 'bg-white/5 text-white/30 border-white/5',
     },
   ];
 
-  const scrollToRules = () => {
-    if (onOpenRules) {
-      onOpenRules();
-      return;
-    }
-    const el = document.getElementById('rules');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   if (isLoading) {
     return (
-      <aside className="space-y-4">
+      <aside className="space-y-4 max-w-full">
         <div className="rounded-3xl border border-white/10 bg-[#09090e]/95 p-5 space-y-4 backdrop-blur-2xl">
           <div className="flex items-center justify-between">
-            <Skeleton className="w-24 h-5 rounded-full" />
-            <Skeleton className="w-16 h-4 rounded" />
+            <Skeleton className="w-32 h-6 rounded-lg" />
+            <Skeleton className="w-16 h-5 rounded-full" />
           </div>
-          <Skeleton className="w-full h-8 rounded-lg" />
-          <Skeleton className="w-3/4 h-4 rounded" />
-          <div className="space-y-2 pt-2">
+          <div className="space-y-2 pt-1">
             <Skeleton className="w-full h-14 rounded-2xl" />
             <Skeleton className="w-full h-14 rounded-2xl" />
           </div>
@@ -141,58 +111,42 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
 
   return (
     <aside className="sticky top-28 space-y-4 max-w-full">
-      {/* ── Main Live Contest Control Center (Kokonut / 21st.dev Glass Card) ── */}
+      {/* ── Refined Live Contest Overview Card ── */}
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#0e0e14]/98 via-[#0a0a0f]/95 to-[#08080c]/98 p-5 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all">
         
-        {/* Top Floating Glow Orbs */}
+        {/* Subtle Ambient Backdrops */}
         <div className="absolute -top-16 -right-16 w-44 h-44 bg-fivem-orange/15 blur-[65px] rounded-full pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-44 h-44 bg-amber-500/10 blur-[65px] rounded-full pointer-events-none" />
 
         <div className="relative z-10 space-y-5">
           
-          {/* ═══ 1. LIVE EVENT HEADER ═══ */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              {/* Pulsing Status Dot & Live Pill */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-fivem-orange/15 border border-fivem-orange/35 text-fivem-orange text-[10px] font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(234,88,12,0.25)]">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fivem-orange opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-fivem-orange" />
-                </span>
-                <span>Live Round</span>
-              </div>
-
-              <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest flex items-center gap-1">
-                <Radio size={11} className="text-fivem-orange animate-pulse" />
-                Official Event
-              </span>
-            </div>
-
-            <h3 className="text-lg sm:text-xl font-black font-display text-white tracking-tight leading-tight">
-              {activeContest?.name || 'Vital RP Community Photo Contest'}
+          {/* ═══ 1. REFINED CONTEST OVERVIEW HEADER ═══ */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-base sm:text-lg font-black font-display text-white tracking-tight leading-tight">
+              Contest Overview
             </h3>
 
-            {activeContest?.description && (
-              <p className="text-xs text-white/50 leading-relaxed line-clamp-2 font-sans">
-                {activeContest.description}
-              </p>
-            )}
+            {/* Subtle Live Indicator Pill */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-fivem-orange/15 border border-fivem-orange/35 text-fivem-orange text-[10px] font-mono font-bold uppercase tracking-wider shadow-[0_0_12px_rgba(234,88,12,0.2)]">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fivem-orange opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-fivem-orange" />
+              </span>
+              <span>Live</span>
+            </div>
           </div>
 
-          {/* ═══ 2. CONNECTED TIMELINE / STEPPER ═══ */}
+          {/* ═══ 2. CONNECTED EVENT TIMELINE / STEPPER ═══ */}
           <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-3.5 space-y-3">
             <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase tracking-widest text-white/40">
-              <span className="flex items-center gap-1.5">
-                <Clock size={12} className="text-fivem-orange" />
-                Event Timeline
-              </span>
+              <span>Event Timeline</span>
               <span className="text-fivem-orange flex items-center gap-1">
                 <Flame size={11} /> Phase {submissionsOpen ? '1' : '2'} of 2
               </span>
             </div>
 
             <div className="relative pl-3 space-y-3 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-white/10">
-              {phases.map((phase, idx) => {
+              {phases.map((phase) => {
                 const PhaseIcon = phase.icon;
                 return (
                   <div key={phase.id} className="relative flex items-start gap-3 group">
@@ -276,11 +230,11 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
             </div>
           </div>
 
-          {/* ═══ 4. USER SUBMISSION STATUS CHIP ═══ */}
+          {/* ═══ 4. DYNAMIC SUBMISSION STATUS WORDING ═══ */}
           {user && !user.isAnonymous && (
             <div
               className={cn(
-                "p-3 rounded-2xl border flex items-center justify-between gap-3 text-xs transition-all",
+                "p-3.5 rounded-2xl border flex items-center justify-between gap-3 text-xs transition-all",
                 hasUserSubmitted
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
                   : "bg-white/[0.02] border-white/[0.06] text-white/50"
@@ -299,27 +253,29 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="truncate text-xs font-bold text-white">
-                    {hasUserSubmitted ? 'Your Entry is Submitted' : 'No Entry Submitted Yet'}
+                    {hasUserSubmitted ? 'Entry Submitted' : 'No contest entry submitted'}
                   </span>
                   <span className="text-[10px] font-mono text-white/40 truncate">
                     {hasUserSubmitted
-                      ? onePhotoPerUser
-                        ? '1 of 1 slot active'
-                        : `${userSubmissionCount} entries recorded`
-                      : 'Upload your photo before time expires'}
+                      ? currentUserPhoto?.category
+                        ? `Category: ${currentUserPhoto.category}`
+                        : onePhotoPerUser
+                          ? '1 of 1 slot active'
+                          : `${userSubmissionCount} entries recorded`
+                      : "You haven't submitted a photo to any category yet."}
                   </span>
                 </div>
               </div>
 
               {hasUserSubmitted && (
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shrink-0">
-                  Confirmed
+                  Active
                 </span>
               )}
             </div>
           )}
 
-          {/* ═══ 5. PRIMARY CTA: SUBMIT ENTRY ═══ */}
+          {/* ═══ 5. PRIMARY CTA: SUBMIT CONTEST ENTRY ═══ */}
           <div className="pt-1">
             {user && !user.isAnonymous ? (
               <motion.button
@@ -373,27 +329,6 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
                 <span>Sign In with Discord to Submit</span>
               </motion.button>
             )}
-          </div>
-
-          {/* ═══ 6. RULES & HALL OF FAME NAVIGATION CARDS ═══ */}
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/[0.06]">
-            <button
-              type="button"
-              onClick={scrollToRules}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-white/70 hover:text-white transition-all text-[11px] font-bold font-display uppercase tracking-wider cursor-pointer active:scale-95 group"
-            >
-              <FileText size={13} className="text-white/40 group-hover:text-white transition-colors" />
-              <span>Rules</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onOpenHallOfFame}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 hover:text-amber-200 transition-all text-[11px] font-bold font-display uppercase tracking-wider cursor-pointer active:scale-95 group"
-            >
-              <Trophy size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
-              <span>Hall of Fame</span>
-            </button>
           </div>
 
         </div>

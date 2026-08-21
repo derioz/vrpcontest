@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260820-2024',
+    id: 'entry-20260820-2034',
     dateKey: 'August 20, 2026',
-    timeStr: '8:24 PM',
-    fullTimestamp: 'August 20, 2026 at 8:24 PM',
-    labels: ['UI', 'MOBILE', 'ENHANCE'],
-    title: 'Live Contest Control Center, Mobile Overflow Fix & Smooth Sheet Animations',
+    timeStr: '8:34 PM',
+    fullTimestamp: 'August 20, 2026 at 8:34 PM',
+    labels: ['UI', 'PERFORMANCE', 'MOBILE'],
+    title: 'Contest Overview Sidebar, Profile Skeletons & Mobile Touch Navigation',
     bullets: [
-      'Redesigned the Contest Companion Sidebar into a modern live event control center with a connected phase timeline, real-time metric cards, and dynamic submission chips.',
-      'Fixed mobile horizontal overflow and removed grey side space across all mobile viewports (320px to 430px+).',
-      'Smoothed out the Profile Sheet closing animation to perfectly mirror opening with synchronized slide-out, opacity fades, and backdrop blur reduction.',
+      'Refined the Contest Overview sidebar with a clean header, streamlined metrics, and clear contest-wide submission status guidance.',
+      'Optimized the Profile Sheet with matching Skeleton placeholders for instant, zero-lag opening and mirrored exit animations.',
+      'Added smooth touch-pan and momentum scrolling to the horizontal Admin top navigation on mobile with active category auto-centering.',
+      'Eliminated mobile horizontal overflow and grey side space across all device widths (320px–430px+).',
       'Replaced the vertical Admin sidebar with a floating top-centered horizontal navigation dock and interactive dropdown sub-menus.',
-      'Implemented Shadcn Studio Breadcrumb navigation with hierarchical pathing across the entire platform.',
     ],
     author: 'Damon',
   },

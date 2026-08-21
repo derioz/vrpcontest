@@ -17,7 +17,6 @@ import {
   ChevronDown,
   Home,
   Check,
-  ExternalLink,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
@@ -214,6 +213,9 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const navContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartXRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
+  const isSwipingRef = useRef<boolean>(false);
 
   // Monitor scroll for smooth backdrop blur interpolation
   useEffect(() => {
@@ -254,7 +256,18 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
 
   const activeSubItem = activeCategory.subsections?.find((sub) => sub.id === currentTab);
 
+  // Smoothly center active category item in mobile scroll container
+  useEffect(() => {
+    if (navContainerRef.current) {
+      const activeEl = navContainerRef.current.querySelector<HTMLElement>(`[data-category-id="${activeCategory.id}"]`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeCategory.id]);
+
   const handleCategoryClick = (category: AdminNavCategory) => {
+    if (isSwipingRef.current) return;
     if (category.directTab) {
       onNavigateTab(category.directTab);
       setOpenDropdownId(null);
@@ -268,8 +281,22 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
     setOpenDropdownId(null);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+    isSwipingRef.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const deltaX = Math.abs(e.touches[0].clientX - touchStartXRef.current);
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartYRef.current);
+    if (deltaX > 8 || deltaY > 8) {
+      isSwipingRef.current = true;
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full bg-[#07070a] text-white flex flex-col antialiased selection:bg-fivem-orange selection:text-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-[#07070a] text-white flex flex-col antialiased selection:bg-fivem-orange selection:text-white">
       {/* ── Top Ambient Lighting Aura ── */}
       <div className="fixed top-0 left-1/3 w-[600px] h-[200px] bg-fivem-orange/10 blur-[150px] pointer-events-none z-0" />
       <div className="fixed top-1/4 right-10 w-[500px] h-[300px] bg-purple-600/5 blur-[170px] pointer-events-none z-0" />
@@ -277,18 +304,18 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
       {/* ── STICKY TOP HEADER WITH HORIZONTAL CENTERED NAVIGATION ── */}
       <header
         className={cn(
-          "sticky top-0 z-40 w-full transition-all duration-300 border-b",
+          "sticky top-0 z-40 w-full max-w-full transition-all duration-300 border-b",
           isScrolled
             ? "bg-[#09090e]/90 backdrop-blur-2xl border-white/[0.12] shadow-[0_10px_35px_rgba(0,0,0,0.7)]"
             : "bg-[#09090e]/60 backdrop-blur-md border-white/[0.08]"
         )}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-18 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* ── LEFT: Brand Logo & Title ── */}
           <div
             onClick={onNavigateHome}
-            className="flex items-center gap-3 cursor-pointer group shrink-0"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0"
             title="Return to Public Contest"
           >
             <img
@@ -306,9 +333,15 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
             </div>
           </div>
 
-          {/* ── CENTER: Floating Horizontal Top Navigation Dock (21st.dev Inspired) ── */}
-          <div ref={navContainerRef} className="flex items-center justify-center flex-1 max-w-fit mx-auto relative z-50">
-            <nav className="flex items-center gap-1 p-1.5 rounded-full bg-[#0c0c14]/90 border border-white/12 shadow-2xl backdrop-blur-2xl">
+          {/* ── CENTER: Floating Horizontal Top Navigation Dock with Mobile Touch Scroll ── */}
+          <div
+            ref={navContainerRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            className="flex items-center justify-start md:justify-center flex-1 min-w-0 max-w-full overflow-x-auto no-scrollbar touch-pan-x py-1 px-1 relative z-50 scroll-smooth"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <nav className="flex items-center gap-1 p-1 sm:p-1.5 rounded-full bg-[#0c0c14]/90 border border-white/12 shadow-2xl backdrop-blur-2xl shrink-0 mx-auto">
               {ADMIN_NAV_CATEGORIES.map((category) => {
                 const Icon = category.icon;
                 const isActive = activeCategory.id === category.id;
@@ -321,14 +354,14 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                 const showLockedBadge = category.id === 'contest' && siteClosed;
 
                 return (
-                  <div key={category.id} className="relative">
+                  <div key={category.id} data-category-id={category.id} className="relative shrink-0">
                     <button
                       type="button"
                       onClick={() => handleCategoryClick(category)}
                       onMouseEnter={() => setHoveredCategoryId(category.id)}
                       onMouseLeave={() => setHoveredCategoryId(null)}
                       className={cn(
-                        "relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-display font-bold transition-all duration-200 cursor-pointer select-none outline-none",
+                        "relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-display font-bold transition-all duration-200 cursor-pointer select-none outline-none whitespace-nowrap",
                         isActive
                           ? "text-white"
                           : "text-white/60 hover:text-white"
@@ -355,7 +388,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
 
                       {/* Icon */}
                       <Icon
-                        size={15}
+                        size={14}
                         className={cn(
                           "relative z-10 transition-colors shrink-0",
                           isActive ? "text-fivem-orange" : "text-white/50 group-hover:text-white"
@@ -400,7 +433,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.96 }}
                           transition={{ duration: 0.16, ease: "easeOut" }}
-                          className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 min-w-[270px]"
+                          className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 min-w-[260px] max-w-[calc(100vw-2rem)]"
                         >
                           <div className="relative rounded-2xl bg-[#09090e]/98 backdrop-blur-2xl border border-white/15 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.85)] ring-1 ring-white/5">
                             
@@ -438,7 +471,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                                           : "bg-white/[0.04] text-white/50 border border-white/10 group-hover:text-white"
                                       )}
                                     >
-                                      <SubIcon size={16} />
+                                      <SubIcon size={15} />
                                     </div>
 
                                     <div className="flex-1 min-w-0">
@@ -469,47 +502,16 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
           </div>
 
           {/* ── RIGHT: Live Telemetry Badges, User Pill & Back Button ── */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {/* Quick Contest Status */}
-            <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[11px] font-mono">
-              <span
-                className={cn(
-                  "w-2 h-2 rounded-full",
-                  activeContest ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"
-                )}
-              />
-              <span className="text-white/60 truncate max-w-[140px]">
-                {activeContest ? activeContest.name : "No Active Contest"}
-              </span>
-            </div>
-
-            {/* Uploads Badge */}
-            <div
-              className={cn(
-                "hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase",
-                submissionsOpen
-                  ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
-                  : "bg-white/[0.04] text-white/40 border border-white/10"
-              )}
-            >
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  submissionsOpen ? "bg-cyan-400 animate-pulse" : "bg-zinc-500"
-                )}
-              />
-              <span>Uploads {submissionsOpen ? "Open" : "Closed"}</span>
-            </div>
-
+          <div className="flex items-center gap-2 shrink-0">
             {/* Back to Public Site */}
             <button
               type="button"
               onClick={onNavigateHome}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-fivem-orange/15 hover:bg-fivem-orange/25 text-fivem-orange hover:text-orange-300 border border-fivem-orange/30 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-sm"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-fivem-orange/15 hover:bg-fivem-orange/25 text-fivem-orange hover:text-orange-300 border border-fivem-orange/30 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-sm"
               title="Return to Public Contest"
             >
               <Globe size={13} />
-              <span className="hidden md:inline">Back to Site</span>
+              <span className="hidden sm:inline">Back to Site</span>
             </button>
 
             {/* Admin Avatar with Skeleton State */}
