@@ -2033,6 +2033,7 @@ export default function App() {
         onNavigateTab={(tab) => navigateTo(tab === 'dashboard' ? '/admin' : `/admin/${tab}`)}
         onNavigateHome={() => navigateTo('/')}
         isAdmin={isAdmin}
+        isAuthLoading={isAuthLoading}
         user={user}
         activeContest={activeContest}
         categories={categories}
@@ -2239,7 +2240,9 @@ export default function App() {
 
           {/* ── RIGHT: Far Right Profile Button (Avatar Only) / Sign In / Mobile Toggle ── */}
           <div className="flex items-center gap-2.5 shrink-0">
-            {user && !user.isAnonymous ? (
+            {isAuthLoading ? (
+              <Skeleton className="w-9 h-9 rounded-full bg-white/10 shrink-0" />
+            ) : user && !user.isAnonymous ? (
               <motion.button
                 type="button"
                 onClick={() => setIsProfileSheetOpen(true)}
@@ -2405,7 +2408,15 @@ export default function App() {
             <div className="space-y-2 pt-3 border-t border-white/[0.06]">
               <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/25 px-1">Account</span>
 
-              {user && !user.isAnonymous ? (
+              {isAuthLoading ? (
+                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
+                  <Skeleton className="w-10 h-10 rounded-xl bg-white/10 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="w-32 h-4 rounded bg-white/10" />
+                    <Skeleton className="w-44 h-3 rounded bg-white/5" />
+                  </div>
+                </div>
+              ) : user && !user.isAnonymous ? (
                 <div
                   onClick={() => {
                     setIsMobileMenuOpen(false);

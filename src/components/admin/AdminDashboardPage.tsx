@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
 import {
   LayoutDashboard,
   BarChart3,
@@ -23,24 +23,25 @@ import {
   Loader2,
   X,
   ExternalLink,
+  GripVertical,
+  RotateCcw,
+  Home,
 } from 'lucide-react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
 import { Sheet, SheetContent } from '../ui/sheet';
 import { Skeleton } from '../ui/skeleton';
-
-// Lazy load heavier tabs
-const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
-const AdminSubmissionsPreview = lazy(() => import('./AdminSubmissionsPreview'));
-import { AdminVoterSearch } from './AdminVoterSearch';
-import { AdminSuggestionsTab } from './AdminSuggestionsTab';
-import { ChangelogTab } from './ChangelogTab';
+import { toast } from '../ui/toast';
 import {
-  EditContestManager,
-  ArchiveContest,
-  CreateContestManager,
-  StandaloneRulesEditor
-} from './ContestManagers';
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../ui/breadcrumb';
 
 // Import Tab Views from AdminPanel or define inline for maximum speed & cohesion
 import AdminPanel from './AdminPanel';
@@ -61,6 +62,7 @@ export interface AdminDashboardPageProps {
   onNavigateTab: (tab: AdminRouteTab) => void;
   onNavigateHome: () => void;
   isAdmin: boolean;
+  isAuthLoading?: boolean;
   user: any;
   activeContest: { id: string; name: string; submissions_close_date?: string; voting_end_date?: string } | null;
   categories: Category[];
@@ -90,17 +92,121 @@ export interface AdminDashboardPageProps {
   onOpenAnalytics?: () => void;
 }
 
-interface NavItem {
+interface NavItemMeta {
   id: AdminRouteTab;
   label: string;
   icon: React.ElementType;
-  badge?: string | number;
-  badgeColor?: string;
 }
 
-interface NavSection {
-  title: string;
-  items: NavItem[];
+const ALL_ADMIN_NAV_ITEMS: Record<AdminRouteTab, NavItemMeta> = {
+  dashboard: { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+  analytics: { id: 'analytics', label: 'Telemetry & Analytics', icon: BarChart3 },
+  submissions: { id: 'submissions', label: 'Submissions', icon: ImageIcon },
+  voters: { id: 'voters', label: 'Voter Audit', icon: UserCheck },
+  suggestions: { id: 'suggestions', label: 'Category Themes', icon: Sparkles },
+  contest: { id: 'contest', label: 'Contest Setup', icon: Trophy },
+  controls: { id: 'controls', label: 'Controls & Security', icon: Zap },
+  changelogs: { id: 'changelogs', label: 'Changelog', icon: Layers },
+  danger: { id: 'danger', label: 'Danger Zone', icon: AlertCircle },
+};
+
+const DEFAULT_TAB_ORDER: AdminRouteTab[] = [
+  'dashboard',
+  'analytics',
+  'submissions',
+  'voters',
+  'suggestions',
+  'contest',
+  'controls',
+  'changelogs',
+  'danger',
+];
+
+interface SortableNavItemProps {
+  key?: React.Key;
+  item: NavItemMeta;
+  isActive: boolean;
+  isCollapsed: boolean;
+  isMobile: boolean;
+  onClick: () => void;
+  badge?: React.ReactNode;
+}
+
+function SortableNavItem({
+  item,
+  isActive,
+  isCollapsed,
+  isMobile,
+  onClick,
+  badge,
+}: SortableNavItemProps) {
+  const controls = useDragControls();
+  const Icon = item.icon;
+  const isDanger = item.id === 'danger';
+
+  return (
+    <Reorder.Item
+      value={item.id}
+      dragListener={false}
+      dragControls={controls}
+      className="relative select-none list-none"
+    >
+      <div
+        onClick={onClick}
+        title={isCollapsed && !isMobile ? item.label : undefined}
+        className={cn(
+          "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-display font-bold transition-all cursor-pointer relative group/item",
+          isActive
+            ? isDanger
+              ? "bg-red-500/15 text-red-300 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+              : "bg-fivem-orange/15 text-white border border-fivem-orange/40 shadow-[0_0_20px_rgba(234,88,12,0.25)]"
+            : isDanger
+              ? "text-red-400/70 hover:text-red-300 hover:bg-red-500/10 border border-transparent"
+              : "text-white/60 hover:text-white hover:bg-white/[0.04] border border-transparent"
+        )}
+      >
+        {/* Left Active Accent Indicator */}
+        {isActive && (
+          <span
+            className={cn(
+              "absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full",
+              isDanger ? "bg-red-500" : "bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.9)]"
+            )}
+          />
+        )}
+
+        <Icon
+          size={16}
+          className={cn(
+            "shrink-0 transition-transform duration-200 group-hover/item:scale-110",
+            isActive
+              ? isDanger
+                ? "text-red-400"
+                : "text-fivem-orange"
+              : "text-white/50 group-hover/item:text-white"
+          )}
+        />
+
+        {(!isCollapsed || isMobile) && (
+          <span className="truncate flex-1 text-left">{item.label}</span>
+        )}
+
+        {(!isCollapsed || isMobile) && badge}
+
+        {/* Drag Handle Grip (GripVertical) on far right */}
+        {(!isCollapsed || isMobile) && (
+          <div
+            onPointerDown={(e) => controls.start(e)}
+            className="opacity-0 group-hover/item:opacity-70 hover:!opacity-100 hover:text-fivem-orange p-1 -mr-1 rounded text-white/30 cursor-grab active:cursor-grabbing transition-opacity shrink-0"
+            title="Drag to rearrange"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical size={13} />
+          </div>
+        )}
+      </div>
+    </Reorder.Item>
+  );
 }
 
 export function AdminDashboardPage(props: AdminDashboardPageProps) {
@@ -109,6 +215,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
     onNavigateTab,
     onNavigateHome,
     isAdmin,
+    isAuthLoading = false,
     user,
     activeContest,
     categories = [],
@@ -140,137 +247,142 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  const navSections: NavSection[] = [
-    {
-      title: "Core Operations",
-      items: [
-        { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-        { id: 'analytics', label: 'Telemetry & Analytics', icon: BarChart3 },
-        {
-          id: 'submissions',
-          label: 'Submissions',
-          icon: ImageIcon,
-          badge: allPhotos.length > 0 ? allPhotos.length : undefined,
-          badgeColor: 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30',
-        },
-        { id: 'voters', label: 'Voter Audit', icon: UserCheck },
-      ],
-    },
-    {
-      title: "Community & Ideas",
-      items: [
-        {
-          id: 'suggestions',
-          label: 'Category Themes',
-          icon: Sparkles,
-        },
-      ],
-    },
-    {
-      title: "Contest Setup",
-      items: [
-        { id: 'contest', label: 'Contest Setup', icon: Trophy },
-        {
-          id: 'controls',
-          label: 'Controls & Security',
-          icon: Zap,
-          badge: siteClosed ? 'Locked' : undefined,
-          badgeColor: siteClosed ? 'bg-red-500/20 text-red-300 border border-red-500/40 font-bold' : undefined,
-        },
-      ],
-    },
-    {
-      title: "Platform & Audit",
-      items: [
-        { id: 'changelogs', label: 'Changelog', icon: Layers },
-        { id: 'danger', label: 'Danger Zone', icon: AlertCircle },
-      ],
-    },
-  ];
+  // Per-user sortable sidebar storage key
+  const storageKey = user?.uid ? `admin_sidebar_order_${user.uid}` : 'admin_sidebar_order_guest';
 
-  const currentNavTitle =
-    navSections.flatMap((s) => s.items).find((item) => item.id === currentTab)?.label ||
-    'Dashboard';
+  // Sortable sidebar tabs state with local storage fallback
+  const [tabOrder, setTabOrder] = useState<AdminRouteTab[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter((id) => id in ALL_ADMIN_NAV_ITEMS) as AdminRouteTab[];
+          DEFAULT_TAB_ORDER.forEach((id) => {
+            if (!valid.includes(id)) valid.push(id);
+          });
+          return valid;
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_TAB_ORDER;
+  });
+
+  // Load custom sidebar order from Firestore on user login
+  useEffect(() => {
+    if (!user?.uid) return;
+    const loadUserPreference = async () => {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const snap = await getDoc(userDocRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data.adminSidebarOrder) && data.adminSidebarOrder.length > 0) {
+            const valid = data.adminSidebarOrder.filter((id: string) => id in ALL_ADMIN_NAV_ITEMS) as AdminRouteTab[];
+            DEFAULT_TAB_ORDER.forEach((id) => {
+              if (!valid.includes(id)) valid.push(id);
+            });
+            setTabOrder(valid);
+            localStorage.setItem(storageKey, JSON.stringify(valid));
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load user sidebar order preference:', e);
+      }
+    };
+    loadUserPreference();
+  }, [user?.uid, storageKey]);
+
+  // Persist sidebar order on drag end
+  const handleReorder = (newOrder: AdminRouteTab[]) => {
+    setTabOrder(newOrder);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(newOrder));
+    } catch (e) {}
+
+    if (user?.uid) {
+      const userDocRef = doc(db, 'users', user.uid);
+      setDoc(userDocRef, { adminSidebarOrder: newOrder }, { merge: true }).catch((err) => {
+        console.warn('Failed to save sidebar order to Firestore:', err);
+      });
+    }
+  };
+
+  // Reset to default sidebar order
+  const handleResetOrder = () => {
+    setTabOrder(DEFAULT_TAB_ORDER);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (e) {}
+
+    if (user?.uid) {
+      const userDocRef = doc(db, 'users', user.uid);
+      setDoc(userDocRef, { adminSidebarOrder: DEFAULT_TAB_ORDER }, { merge: true }).catch(() => {});
+    }
+    toast.success('Sidebar menu order reset to default');
+  };
+
+  const currentNavTitle = ALL_ADMIN_NAV_ITEMS[currentTab]?.label || 'Dashboard';
 
   const handleTabClick = (tabId: AdminRouteTab) => {
     onNavigateTab(tabId);
     setMobileDrawerOpen(false);
   };
 
+  const getBadgeForItem = (id: AdminRouteTab) => {
+    if (id === 'submissions' && allPhotos.length > 0) {
+      return (
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0 leading-none bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+          {allPhotos.length}
+        </span>
+      );
+    }
+    if (id === 'controls' && siteClosed) {
+      return (
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0 leading-none bg-red-500/20 text-red-300 border border-red-500/40 font-bold">
+          Locked
+        </span>
+      );
+    }
+    return null;
+  };
+
   const renderNavList = (isMobile = false) => (
-    <div className="flex flex-col gap-6">
-      {navSections.map((section) => (
-        <div key={section.title} className="space-y-1.5">
-          {(!sidebarCollapsed || isMobile) && (
-            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-white/30 px-3 block">
-              {section.title}
-            </span>
-          )}
-          <div className="space-y-1">
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentTab === item.id;
-              const isDanger = item.id === 'danger';
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-3">
+        {(!sidebarCollapsed || isMobile) && (
+          <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-white/30 block">
+            Navigation Menu
+          </span>
+        )}
+        {(!sidebarCollapsed || isMobile) && (
+          <span className="text-[9px] font-mono text-white/20">Drag to reorder</span>
+        )}
+      </div>
 
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleTabClick(item.id)}
-                  title={sidebarCollapsed && !isMobile ? item.label : undefined}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-display font-bold transition-all cursor-pointer relative group/item",
-                    isActive
-                      ? isDanger
-                        ? "bg-red-500/15 text-red-300 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-                        : "bg-fivem-orange/15 text-white border border-fivem-orange/40 shadow-[0_0_20px_rgba(234,88,12,0.25)]"
-                      : isDanger
-                        ? "text-red-400/70 hover:text-red-300 hover:bg-red-500/10 border border-transparent"
-                        : "text-white/60 hover:text-white hover:bg-white/[0.04] border border-transparent"
-                  )}
-                >
-                  {/* Left Active Accent Indicator */}
-                  {isActive && (
-                    <span
-                      className={cn(
-                        "absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full",
-                        isDanger ? "bg-red-500" : "bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.9)]"
-                      )}
-                    />
-                  )}
+      <Reorder.Group
+        axis="y"
+        values={tabOrder}
+        onReorder={handleReorder}
+        className="space-y-1 p-0 m-0 list-none"
+      >
+        {tabOrder.map((tabId) => {
+          const item = ALL_ADMIN_NAV_ITEMS[tabId];
+          if (!item) return null;
 
-                  <Icon
-                    size={16}
-                    className={cn(
-                      "shrink-0 transition-transform duration-200 group-hover/item:scale-110",
-                      isActive
-                        ? isDanger
-                          ? "text-red-400"
-                          : "text-fivem-orange"
-                        : "text-white/50 group-hover/item:text-white"
-                    )}
-                  />
-
-                  {(!sidebarCollapsed || isMobile) && (
-                    <span className="truncate flex-1 text-left">{item.label}</span>
-                  )}
-
-                  {(!sidebarCollapsed || isMobile) && item.badge && (
-                    <span
-                      className={cn(
-                        "px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0 leading-none",
-                        item.badgeColor || "bg-white/10 text-white/80"
-                      )}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+          return (
+            <SortableNavItem
+              key={tabId}
+              item={item}
+              isActive={currentTab === tabId}
+              isCollapsed={sidebarCollapsed}
+              isMobile={isMobile}
+              onClick={() => handleTabClick(tabId)}
+              badge={getBadgeForItem(tabId)}
+            />
+          );
+        })}
+      </Reorder.Group>
     </div>
   );
 
@@ -281,7 +393,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
       <div className="fixed top-1/3 right-10 w-[500px] h-[300px] bg-purple-600/5 blur-[160px] pointer-events-none z-0" />
 
       <div className="relative z-10 flex flex-1 w-full min-h-screen">
-        {/* ── DESKTOP COLLAPSIBLE SIDEBAR (AdminCN Architecture) ── */}
+        {/* ── DESKTOP COLLAPSIBLE SIDEBAR (Sortable & User-Customizable) ── */}
         <aside
           className={cn(
             "hidden md:flex flex-col shrink-0 border-r border-white/[0.08] bg-[#09090d]/95 backdrop-blur-2xl transition-all duration-300 relative z-20",
@@ -329,31 +441,57 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
             {renderNavList(false)}
           </div>
 
-          {/* Sidebar Bottom Footer: Admin User & Public Site Link */}
+          {/* Sidebar Bottom Footer: Reset Order + Admin User + Public Site Link */}
           <div className="p-3 border-t border-white/[0.08] bg-[#07070a]/90 space-y-2">
-            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-              <div className="relative shrink-0">
-                <img
-                  src={
-                    user?.photoURL ||
-                    'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=admin'
-                  }
-                  alt="Admin"
-                  className="w-7 h-7 rounded-lg object-cover border border-white/10"
-                />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-[#09090d]" />
+            {/* Reset Order Button */}
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                onClick={handleResetOrder}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.06] text-white/40 hover:text-white/80 text-[10px] font-mono transition-all cursor-pointer"
+                title="Restore default menu order"
+              >
+                <RotateCcw size={11} />
+                <span>Reset Menu Order</span>
+              </button>
+            )}
+
+            {/* User Profile Info with Skeleton Fallback */}
+            {isAuthLoading ? (
+              <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <Skeleton className="w-7 h-7 rounded-lg bg-white/10" />
+                {!sidebarCollapsed && (
+                  <div className="flex-1 space-y-1">
+                    <Skeleton className="w-20 h-3 rounded bg-white/10" />
+                    <Skeleton className="w-10 h-2 rounded bg-white/5" />
+                  </div>
+                )}
               </div>
-              {!sidebarCollapsed && (
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[11px] font-bold text-white truncate font-display">
-                    {user?.displayName || 'Admin'}
-                  </span>
-                  <span className="text-[9px] font-mono text-fivem-orange font-bold uppercase tracking-wider leading-none">
-                    Staff
-                  </span>
+            ) : (
+              <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <div className="relative shrink-0">
+                  <img
+                    src={
+                      user?.photoURL ||
+                      'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=admin'
+                    }
+                    alt="Admin"
+                    className="w-7 h-7 rounded-lg object-cover border border-white/10"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-[#09090d]" />
                 </div>
-              )}
-            </div>
+                {!sidebarCollapsed && (
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[11px] font-bold text-white truncate font-display">
+                      {user?.displayName || 'Admin'}
+                    </span>
+                    <span className="text-[9px] font-mono text-fivem-orange font-bold uppercase tracking-wider leading-none">
+                      Staff
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Back to Public Site Action */}
             <button
@@ -399,7 +537,16 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
             </div>
 
             {/* Mobile Drawer Footer */}
-            <div className="p-4 border-t border-white/[0.08] bg-[#07070a]">
+            <div className="p-4 border-t border-white/[0.08] bg-[#07070a] space-y-2">
+              <button
+                type="button"
+                onClick={handleResetOrder}
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-white/50 text-[11px] font-mono"
+              >
+                <RotateCcw size={12} />
+                <span>Reset Menu Order</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -417,9 +564,9 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
 
         {/* ── MAIN DASHBOARD STAGE ── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* ── MINIMAL TOP HEADER (AdminCN Style) ── */}
+          {/* ── MINIMAL TOP HEADER (AdminCN Style with Shadcn Studio Breadcrumb) ── */}
           <header className="h-16 border-b border-white/[0.08] bg-[#09090d]/80 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
-            {/* Left: Mobile Toggle & Dynamic Breadcrumb Title */}
+            {/* Left: Mobile Toggle & Dynamic Shadcn Breadcrumb Navigation */}
             <div className="flex items-center gap-3 min-w-0">
               {/* Mobile menu trigger button */}
               <button
@@ -431,16 +578,45 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                 <Menu size={16} />
               </button>
 
-              {/* Breadcrumb Path */}
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs font-mono font-bold text-white/40 uppercase tracking-wider hidden sm:inline-block">
-                  Admin Console
-                </span>
-                <span className="text-white/20 hidden sm:inline-block">/</span>
-                <h1 className="text-sm sm:text-base font-black font-display text-white truncate capitalize">
-                  {currentNavTitle}
-                </h1>
-              </div>
+              {/* Shadcn Studio Breadcrumb Component */}
+              <Breadcrumb className="min-w-0">
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink
+                      onClick={onNavigateHome}
+                      className="cursor-pointer text-white/40 hover:text-fivem-orange transition-colors flex items-center gap-1.5 text-xs font-mono"
+                      title="Back to Public Contest"
+                    >
+                      <Home size={12} className="text-white/40" />
+                      <span className="hidden sm:inline">Vital RP</span>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink
+                      onClick={() => handleTabClick('dashboard')}
+                      className={cn(
+                        "cursor-pointer text-xs font-mono transition-colors",
+                        currentTab === 'dashboard'
+                          ? "text-fivem-orange font-bold pointer-events-none"
+                          : "text-white/50 hover:text-white"
+                      )}
+                    >
+                      Admin
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  {currentTab !== 'dashboard' && (
+                    <>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="text-xs sm:text-sm font-bold text-white font-display tracking-tight capitalize truncate max-w-[140px] sm:max-w-[240px]">
+                          {currentNavTitle}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </>
+                  )}
+                </BreadcrumbList>
+              </Breadcrumb>
             </div>
 
             {/* Right: Quick Telemetry Badges & Home Shortcut */}
@@ -505,18 +681,22 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                 <span className="hidden sm:inline">Back to Site</span>
               </button>
 
-              {/* Admin Avatar Pill */}
-              <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-white/15 p-0.5 bg-[#0c0c14] shrink-0">
-                <img
-                  src={
-                    user?.photoURL ||
-                    'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=admin'
-                  }
-                  alt="Admin"
-                  className="w-full h-full rounded-lg object-cover"
-                />
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-[#09090d]" />
-              </div>
+              {/* Admin Avatar Pill with Skeleton */}
+              {isAuthLoading ? (
+                <Skeleton className="w-8 h-8 rounded-xl bg-white/10" />
+              ) : (
+                <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-white/15 p-0.5 bg-[#0c0c14] shrink-0">
+                  <img
+                    src={
+                      user?.photoURL ||
+                      'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=admin'
+                    }
+                    alt="Admin"
+                    className="w-full h-full rounded-lg object-cover"
+                  />
+                  <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-[#09090d]" />
+                </div>
+              )}
             </div>
           </header>
 

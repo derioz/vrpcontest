@@ -85,17 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260820-1932',
+    id: 'entry-20260820-1959',
     dateKey: 'August 20, 2026',
-    timeStr: '7:32 PM',
-    fullTimestamp: 'August 20, 2026 at 7:32 PM',
-    labels: ['UI', 'NEW', 'ENHANCE'],
-    title: '16:9 Vertical 3D Hero Carousel & Streamlined Navigation',
+    timeStr: '7:59 PM',
+    fullTimestamp: 'August 20, 2026 at 7:59 PM',
+    labels: ['ADMIN', 'UI', 'ENHANCE'],
+    title: 'Admin Breadcrumb Navigation, Sortable Sidebar & Auth Skeleton States',
     bullets: [
+      'Implemented Shadcn Studio Breadcrumb navigation across the Admin Console with dynamic pathing and one-click back navigation.',
+      'Upgraded the Admin sidebar with smooth drag-and-drop sortable navigation, allowing each administrator to customize and save their own menu order.',
+      'Added per-user sidebar order persistence to Firestore with local caching and a 1-click Reset Menu Order option.',
+      'Eliminated account loading flashes by deploying Shadcn Skeleton placeholders across navbar profile buttons and mobile drawer accounts while authentication initializes.',
       'Upgraded the homepage hero section with a vertical 3D rotating cylinder showcase for 16:9 widescreen contest photography.',
-      'Featured photography submissions dynamically from all active contest categories with closed-voting pixelation safeguards.',
-      'Added smooth mouse wheel scrolling, vertical drag gestures, and arrow key navigation.',
-      'Streamlined controls with dedicated top and bottom flip buttons and sleek vertical progress indicators on the side.',
     ],
     author: 'Damon',
   },
