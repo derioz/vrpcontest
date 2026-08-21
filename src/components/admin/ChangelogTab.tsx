@@ -34,9 +34,9 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
 • Contest-Wide Cross-Category Showcase: Sourced submissions dynamically from all active contest categories into the hero showcase, pairing each slide with its authentic category badge, photographer title, and live vote counts.
 • Closed-Voting Pixelation Safeguards: Maintained strict platform censoring rules across the hero carousel—automatically rendering pixelated thumbnails and amber 'Pixelated until voting' indicator badges whenever voting is closed.
 • Seamless Full-Resolution Inspection: Wired 3D carousel slides directly to the platform's high-resolution Lightbox modal for one-click deep-dive inspections with full photographer telemetry.
-• Multi-Modal Navigation & Smooth Motion Physics: Integrated interactive keyboard arrow navigation, drag/swipe physics with Framer Motion spring dampening, dynamic dot navigation indicators, and glassmorphic previous/next controls.`,
+• Multi-Modal Navigation & Perfectly Centered Controls: Integrated interactive keyboard arrow navigation, drag/swipe physics with Framer Motion spring dampening, card-level floating flanking arrows, and a perfectly centered bottom control bar with indicator dots.`,
     author: 'Damon',
-    date: 'Aug 20, 2026 at 7:15 PM',
+    date: 'Aug 20, 2026 at 7:20 PM',
   },
   {
     id: 'release-20260819-2035',

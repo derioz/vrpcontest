@@ -158,7 +158,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
           return (
             <motion.div
               key={slide.id || i}
-              className="absolute cursor-pointer select-none touch-none"
+              className="absolute top-1/2 left-1/2 -translate-y-1/2 cursor-pointer select-none touch-none"
               style={{
                 width: 'clamp(280px, 42vw, 420px)',
                 marginLeft: 'calc(-1 * clamp(280px, 42vw, 420px) / 2)',
@@ -264,18 +264,30 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
             </motion.div>
           )
         })}
+
+        {/* Side Flanking Arrows for direct card level navigation */}
+        <CarouselPrevious
+          className="absolute left-0 sm:left-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
+          onClick={() => go(-1)}
+          disabled={false}
+        />
+        <CarouselNext
+          className="absolute right-0 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
+          onClick={() => go(1)}
+          disabled={false}
+        />
       </div>
 
-      {/* Navigation Controls and Indicator Dots */}
-      <div className="flex items-center justify-between w-full max-w-sm px-4 pt-1 z-30">
+      {/* Perfectly Centered Bottom Navigation Controls and Indicator Dots */}
+      <div className="flex items-center justify-center gap-3.5 w-full pt-2 z-30">
         <CarouselPrevious
-          className="static top-auto left-auto translate-y-0 h-8 w-8 bg-black/60 hover:bg-fivem-orange border-white/20 text-white"
+          className="static top-auto left-auto translate-y-0 h-8 w-8 bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
           onClick={() => go(-1)}
           disabled={false}
         />
 
         {/* Dynamic Dot Indicators */}
-        <div className="flex items-center gap-1.5 max-w-[200px] overflow-x-auto py-1 px-2 no-scrollbar">
+        <div className="flex items-center justify-center gap-1.5 py-1 px-1">
           {slides.map((_, idx) => (
             <button
               key={idx}
@@ -293,7 +305,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
         </div>
 
         <CarouselNext
-          className="static top-auto right-auto translate-y-0 h-8 w-8 bg-black/60 hover:bg-fivem-orange border-white/20 text-white"
+          className="static top-auto right-auto translate-y-0 h-8 w-8 bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
           onClick={() => go(1)}
           disabled={false}
         />
