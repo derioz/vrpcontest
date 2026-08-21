@@ -87,7 +87,7 @@ import { FlipWords } from './components/ui/flip-words';
 import { CategoryNav } from './components/CategoryNav';
 import { Toolbar, ToolbarItem } from './components/ui/toolbar';
 import { HoverGradientNavBar, HoverGradientMenuItem } from './components/ui/hover-gradient-nav-bar';
-import ThreeDCarousel from './components/ui/three-d-carousel';
+import RadialCarousel, { RadialCarouselItem } from './components/shadcn-studio/carousel/carousel-12';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
 import { Announcement } from './components/ui/announcement';
@@ -424,6 +424,45 @@ export default function App() {
       (user.providerData && user.providerData.some((pd: any) => pd.displayName === p.discord_name))
     ) || null;
   }, [user, allPhotos]);
+
+  // Photos across ALL categories for the Hero 16:9 Radial Carousel
+  const heroCarouselItems: RadialCarouselItem[] = useMemo(() => {
+    if (allPhotos && allPhotos.length > 0) {
+      return allPhotos.map((p) => {
+        const cat = categories.find((c) => c.id === p.category_id);
+        const isPixelated = censorSubmissions && !votingOpen;
+        return {
+          id: p.id,
+          image: p.image_url,
+          title: p.caption || p.player_name || 'Vital RP Entry',
+          category: cat ? cat.name : 'Contest Entry',
+          voteCount: p.vote_count || 0,
+          isPixelated,
+          isDisqualified: p.is_disqualified,
+          rawPhoto: p,
+          onClick: () => {
+            setLightboxPhoto(p);
+          },
+        };
+      });
+    }
+
+    if (categories && categories.length > 0) {
+      return categories.map((cat) => ({
+        id: `cat-preview-${cat.id}`,
+        image: cat.icon_url || 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-42.png',
+        title: cat.description || `Submit your finest ${cat.name} photo`,
+        category: cat.name,
+        voteCount: 0,
+        isPixelated: false,
+        onClick: () => {
+          handleCategorySelect(cat, true);
+        },
+      }));
+    }
+
+    return [];
+  }, [allPhotos, categories, censorSubmissions, votingOpen, handleCategorySelect]);
 
   // Subscribe to archived_winners collection to track user win badges
   useEffect(() => {
@@ -2466,6 +2505,8 @@ export default function App() {
           themeSubtitle = colonParts.slice(1).join(':').trim();
         }
 
+        const hasHeroItems = heroCarouselItems.length > 0;
+
         return (
           <section
             className="relative overflow-hidden border-b border-white/10 pt-36 sm:pt-48 pb-16 sm:pb-24"
@@ -2505,7 +2546,7 @@ export default function App() {
             {/* ── Main Hero Layout ── */}
             <div className={cn(
               "relative z-10 max-w-7xl mx-auto px-4 sm:px-6 items-center",
-              photos.length > 0 ? "grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16" : "flex flex-col items-center text-center max-w-3xl"
+              hasHeroItems ? "grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16" : "flex flex-col items-center text-center max-w-3xl"
             )}>
 
               {/* LEFT — Text, CTAs & Telemetry */}
@@ -2513,7 +2554,7 @@ export default function App() {
                 variants={heroContainerVariants}
                 initial="hidden"
                 animate="visible"
-                className={cn("flex flex-col", photos.length === 0 && "items-center")}
+                className={cn("flex flex-col", !hasHeroItems && "items-center")}
               >
                 {/* SeraUI Live Announcement Capsule */}
                 <motion.div variants={heroItemVariants} className="mb-5">
@@ -2537,7 +2578,7 @@ export default function App() {
                 </motion.div>
 
                 {/* Main Headline with SparklesText and Dual-Tone Hierarchy */}
-                <motion.div variants={heroItemVariants} className={cn("mb-4 space-y-1.5", photos.length === 0 && "text-center")}>
+                <motion.div variants={heroItemVariants} className={cn("mb-4 space-y-1.5", !hasHeroItems && "text-center")}>
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.08] text-white">
                     <SparklesText
                       text={primaryTitle}
@@ -2547,7 +2588,7 @@ export default function App() {
                     />
                   </h1>
                   {themeSubtitle && (
-                    <div className={cn("pt-1", photos.length === 0 && "flex justify-center")}>
+                    <div className={cn("pt-1", !hasHeroItems && "flex justify-center")}>
                       <span className="text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black font-display tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent drop-shadow-sm">
                         {themeSubtitle}
                       </span>
@@ -2558,7 +2599,7 @@ export default function App() {
                 {/* Animated Tagline via FlipWords */}
                 <motion.div variants={heroItemVariants} className={cn(
                   "text-white/65 text-sm sm:text-base leading-relaxed mb-6 max-w-lg font-medium h-[2.8em]",
-                  photos.length === 0 && "text-center mx-auto"
+                  !hasHeroItems && "text-center mx-auto"
                 )}>
                   <FlipWords
                     words={[
@@ -2588,7 +2629,7 @@ export default function App() {
                 {/* High Impact Actions */}
                 <motion.div variants={heroItemVariants} className={cn(
                   "flex flex-wrap gap-3.5 mb-10",
-                  photos.length === 0 && "justify-center"
+                  !hasHeroItems && "justify-center"
                 )}>
                   {isSubmissionsOpen ? (
                     <ShimmerButton
@@ -2665,32 +2706,27 @@ export default function App() {
                 </motion.div>
               </motion.div>
 
-              {/* RIGHT — SeraUI 3D Carousel (Rendered ONLY when photos exist) */}
-              {photos.length > 0 && (
+              {/* RIGHT — 16:9 Radial Carousel (All Categories) */}
+              {hasHeroItems && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.92 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.8, delay: 0.25, ease: 'easeOut' }}
-                  className="hidden lg:flex flex-col items-center justify-center relative w-full h-[400px]"
+                  className="flex flex-col items-center justify-center relative w-full overflow-visible py-2"
                 >
-                  <ThreeDCarousel
-                    items={photos.slice(0, 8).map((p) => ({
-                      id: p.id,
-                      src: p.image_url,
-                      title: p.player_name || 'Vital RP Entry',
-                      badge: p.vote_count || 0,
-                      onClick: () => {
-                        setLightboxPhoto(p);
-                      },
-                    }))}
-                    radius={220}
-                    cardW={170}
-                    cardH={230}
-                    className="h-[360px]"
+                  <RadialCarousel
+                    items={heroCarouselItems}
+                    isVotingOpen={votingOpen}
+                    censorSubmissions={censorSubmissions}
+                    onItemClick={(item) => {
+                      if (item.rawPhoto) {
+                        setLightboxPhoto(item.rawPhoto);
+                      }
+                    }}
                   />
                   <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/40 tracking-wider mt-1 select-none">
                     <Sparkles size={11} className="text-fivem-orange animate-pulse" />
-                    <span>Drag or hover to rotate · Click photo to inspect</span>
+                    <span>Arrow keys or drag to rotate · Click active slide to inspect</span>
                   </div>
                 </motion.div>
               )}
