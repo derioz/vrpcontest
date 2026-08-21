@@ -2,12 +2,12 @@
 
 ## Automatic Changelog Updates
 - **Mandatory Practice**: Whenever code modifications are built and pushed to GitHub, ALWAYS update the platform Changelog in `ChangelogTab.tsx` (and sync with Firestore `changelogs` collection).
-- **6-Hour Grouping Rule**: Group changes made within the same 6-hour window into a single comprehensive release entry rather than multiple fragmented entries.
-- **Bulleted Section Structure & Consolidation**:
-  - Always use clear bullet points (`• `) with bold titles (`• Title: Description...`) for each major feature or fix.
-  - **Simplify & Merge**: Avoid generating dozens of micro-level fragmented entries. Consolidate related changes into 4–8 high-impact, well-written bullet points per release.
-  - **Expandable Long Lists**: For releases with extensive changes, ensure the platform UI supports expandable/collapsible changelog views so visitors and administrators can easily browse highlights or expand the full changelog on demand.
-- **Timestamp Requirement**: Include exact time and date on all release entries (e.g., `Aug 16, 2026 at 6:44 PM`).
+- **1-Hour Grouping Rule**: Group Git commits and pushes occurring within 1 hour of each other into a single changelog entry, using the date and time of the most recent commit in that cluster. Once there is a gap of 1 hour or more, start a new changelog entry.
+- **Date-First Organization**: Group changelog entries by date (e.g., `August 20, 2026`), displaying the time (e.g., `7:32 PM`) on each entry with the newest updates first.
+- **Subtle Category Labels**: Assign 1–3 concise badges per update from: `UI`, `FIX`, `ENHANCE`, `NEW`, `PERFORMANCE`, `MOBILE`, `ADMIN`, `SECURITY`, `BACKEND`.
+- **Human-Readable & User-Centric Bullets**:
+  - Always write 1–5 concise, high-impact bullet points in plain English for regular users.
+  - Avoid raw commit messages, technical filenames, or developer jargon.
 - **Creator Credit**: Always maintain the prominent **"Website Created and Designed by Damon"** credit banner.
 
 ## Build & Push Confirmation Requirement

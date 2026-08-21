@@ -1,431 +1,663 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Sparkles, History, Plus, Tag, Calendar, User, Code, CheckCircle,
-  FileCode, ShieldCheck, Zap, Wrench, Bug, ExternalLink, Trash2, Search,
-  Terminal, Share2, Layers, ChevronDown, ChevronUp, ChevronsUpDown
+  Sparkles, History, Plus, Tag, Calendar, User, CheckCircle,
+  ShieldCheck, Zap, Wrench, Bug, Trash2, Search,
+  Terminal, Layers, ChevronDown, ChevronUp, ChevronsUpDown,
+  Clock, Smartphone, Server, Eye, Filter, ArrowUpRight
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
-import { AnimatedShinyText } from '../ui/animated-shiny-text';
-import { BorderBeam } from '../ui/border-beam';
 import { AdminHeader } from './AdminHeader';
 
-export interface ChangelogEntry {
+export type ChangelogLabel = 'UI' | 'FIX' | 'ENHANCE' | 'NEW' | 'PERFORMANCE' | 'MOBILE' | 'ADMIN' | 'SECURITY' | 'BACKEND';
+
+export interface ChangelogItem {
   id?: string;
-  version: string;
+  dateKey: string;          // e.g. "August 20, 2026"
+  timeStr: string;          // e.g. "7:32 PM"
+  fullTimestamp?: string;    // e.g. "August 20, 2026 at 7:32 PM"
+  labels: ChangelogLabel[];
   title: string;
-  category: 'Feature' | 'UI/UX' | 'Fix' | 'Security' | 'Performance';
-  description: string;
-  author: string;
-  date: string;
+  bullets: string[];
+  author?: string;
   createdAt?: any;
 }
 
-const INITIAL_CHANGELOGS: ChangelogEntry[] = [
+export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; border: string; label: string }> = {
+  NEW: {
+    bg: 'bg-amber-500/10 hover:bg-amber-500/20',
+    text: 'text-amber-400',
+    border: 'border-amber-500/30',
+    label: 'NEW',
+  },
+  UI: {
+    bg: 'bg-cyan-500/10 hover:bg-cyan-500/20',
+    text: 'text-cyan-400',
+    border: 'border-cyan-500/30',
+    label: 'UI',
+  },
+  ENHANCE: {
+    bg: 'bg-purple-500/10 hover:bg-purple-500/20',
+    text: 'text-purple-400',
+    border: 'border-purple-500/30',
+    label: 'ENHANCE',
+  },
+  FIX: {
+    bg: 'bg-emerald-500/10 hover:bg-emerald-500/20',
+    text: 'text-emerald-400',
+    border: 'border-emerald-500/30',
+    label: 'FIX',
+  },
+  PERFORMANCE: {
+    bg: 'bg-yellow-500/10 hover:bg-yellow-500/20',
+    text: 'text-yellow-300',
+    border: 'border-yellow-500/30',
+    label: 'PERFORMANCE',
+  },
+  MOBILE: {
+    bg: 'bg-pink-500/10 hover:bg-pink-500/20',
+    text: 'text-pink-400',
+    border: 'border-pink-500/30',
+    label: 'MOBILE',
+  },
+  ADMIN: {
+    bg: 'bg-indigo-500/10 hover:bg-indigo-500/20',
+    text: 'text-indigo-300',
+    border: 'border-indigo-500/30',
+    label: 'ADMIN',
+  },
+  SECURITY: {
+    bg: 'bg-rose-500/10 hover:bg-rose-500/20',
+    text: 'text-rose-400',
+    border: 'border-rose-500/30',
+    label: 'SECURITY',
+  },
+  BACKEND: {
+    bg: 'bg-teal-500/10 hover:bg-teal-500/20',
+    text: 'text-teal-300',
+    border: 'border-teal-500/30',
+    label: 'BACKEND',
+  },
+};
+
+export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'release-20260820-1915',
-    version: 'v2.1.0',
-    title: '16:9 Vertical 3D Hero Carousel, Cross-Category Submissions Showcase & Pixelation Safeguards',
-    category: 'UI/UX',
-    description: `• 16:9 Vertical 3D Cylinder Carousel: Transformed the hero showcase into a vertical 3D rolling carousel with customized pitch angle (θ = 24°) and vertical offset physics (115px) calibrated for widescreen 16:9 in-game photography.
-• Contest-Wide Cross-Category Showcase: Sourced submissions dynamically from all active contest categories into the hero showcase, pairing each slide with its authentic category badge, photographer title, and live vote counts.
-• Closed-Voting Pixelation Safeguards: Maintained strict platform censoring rules across the hero carousel—automatically rendering pixelated thumbnails and amber 'Pixelated until voting' indicator badges whenever voting is closed.
-• Seamless Full-Resolution Inspection: Wired 3D carousel slides directly to the platform's high-resolution Lightbox modal for one-click deep-dive inspections with full photographer telemetry.
-• Multi-Modal Vertical Navigation: Integrated mouse wheel scrolling with debounced flip physics, vertical drag/swipe gestures with Framer Motion spring damping, floating top/bottom chevrons, and centered arrow controls.`,
+    id: 'entry-20260820-1932',
+    dateKey: 'August 20, 2026',
+    timeStr: '7:32 PM',
+    fullTimestamp: 'August 20, 2026 at 7:32 PM',
+    labels: ['UI', 'NEW', 'ENHANCE'],
+    title: '16:9 Vertical 3D Hero Carousel & Streamlined Navigation',
+    bullets: [
+      'Upgraded the homepage hero section with a vertical 3D rotating cylinder showcase for 16:9 widescreen contest photography.',
+      'Featured photography submissions dynamically from all active contest categories with closed-voting pixelation safeguards.',
+      'Added smooth mouse wheel scrolling, vertical drag gestures, and arrow key navigation.',
+      'Streamlined controls with dedicated top and bottom flip buttons and sleek vertical progress indicators on the side.',
+    ],
     author: 'Damon',
-    date: 'Aug 20, 2026 at 7:28 PM',
   },
   {
-    id: 'release-20260819-2035',
-    version: 'v2.0.0',
-    title: 'AdminCN Full-Page Admin Dashboard, Dedicated Route Architecture & Multi-Tier Role Security',
-    category: 'Feature',
-    description: `• Dedicated AdminCN Full-Page Dashboard: Migrated the Admin Console from a popup/modal into a dedicated, responsive full-page administrative dashboard modeled after AdminCN—featuring a collapsible grouped sidebar, minimal sticky top header with live contest telemetry pills, breadcrumbs, and fast spring tab transitions.
-• Full Feature Preservation & Zero-Reduction Engine: Retained 100% of all administrative tools, forms, and database mutation functions (Overview, Telemetry & Live Analytics, Decrypted Submissions Moderation, Voter Fraud Audit, Category Theme Voting & Staff Proposals, Contest Setup & Archive, Controls & Security RSA Key Switches, Changelogs, and Danger Zone).
-• Deep-Linking, SPA Rewrites & Route Protection: Configured universal hosting rewrites (vercel.json & _redirects) for direct URL access and page refreshes on /admin routes, backed by strict AdminRouteGuard gatekeeper blocking unauthorized users and providing Discord ID audit copies.
-• Brand Identity & Dual-Way Navigation: Preserved official Vital RP dark glass styling, Space Grotesk & Outfit typography, and official high-resolution heraldry, paired with smooth 'Back to Public Contest' shortcuts across sidebar and header.
-• Spring-Physics Sliding Profile Sheet: Re-engineered the Animate UI Radix Sheet with Motion spring physics and gradual backdrop-blur interpolation, delivering buttery smooth 60fps sliding transitions on both open and close.
-• Multi-Tier Discord Avatar Sync Engine: Fixed avatar sync bug with dedicated avatarSource ('discord' | 'dicebear') tracking and persistent discordPhotoURL caching, guaranteeing instant Discord photo recovery when switching back from DiceBear.
-• Compact Role-Gated Platform Controls: Sleek platform action buttons in the Profile Sheet with strict permission gating (Admin Console & Category Themes conditionally rendered only for admins; Report Bug for all members).
-• HoverGradient 3D Flip Category Toolbar: Overhauled the contest CategoryNav with matching HoverGradient 3D flip card architecture (rotateX -90°/90°), tailored vibrant radial light blooms per category, interactive emoji scaling, and real-time live submission count badges.`,
+    id: 'entry-20260819-2036',
+    dateKey: 'August 19, 2026',
+    timeStr: '8:36 PM',
+    fullTimestamp: 'August 19, 2026 at 8:36 PM',
+    labels: ['ADMIN', 'UI', 'SECURITY'],
+    title: 'Full-Page Admin Dashboard & Profile Drawer Upgrades',
+    bullets: [
+      'Migrated the Admin Console to a dedicated full-page dashboard with a collapsible sidebar and route security.',
+      'Upgraded the profile drawer with smooth spring animations and reliable Discord avatar syncing.',
+      'Enhanced category navigation with 3D flip card interactions and active category glows.',
+      'Added direct URL routing and refresh support for all admin pages.',
+    ],
     author: 'Damon',
-    date: 'Aug 19, 2026 at 8:36 PM',
   },
   {
-    id: 'release-20260818-2158',
-    version: 'v1.9.8',
-    title: 'Universal Submissions Synchronization, Social Previews & All-Visible Category Matrix',
-    category: 'UI/UX',
-    description: `• Real-Time Universal Submissions Synchronization: Replaced selective category fetching with a contest-wide real-time listener, ensuring all category badge totals in CategoryNav, total submissions in the Hero section, and sidebar counters are 100% accurate immediately on initial visit.
-• Social Media Link Preview & Open Graph Suite: Added static Open Graph (og:title, og:description, og:image, og:url, og:type, og:site_name) and Twitter/X summary_large_image metadata in index.html, delivering rich link preview cards on Discord, Facebook, Twitter, and iMessage.
-• All-Visible Category Matrix (Zero Horizontal Scrolling): Completely replaced the horizontal scrolling category rail with an intelligent responsive grid/matrix, displaying 100% of categories simultaneously across mobile (2-col), tablet, and desktop with zero swiping required.
-• Viewport-Centered Modal & Dialog Architecture: Upgraded the entire modal system with flexbox viewport centering (fixed inset-0 flex items-center justify-center) and direct body portaling, eliminating all page-offset positioning and clipping bugs across all dialogs.
-• Smooth Category Header Layout Morphing: Integrated Framer Motion layout animation across the category header and submissions container, smoothly interpolating variable description heights and gliding submissions without sudden layout snaps or page jitter.
-• Dynamic Multi-Row Sticky Navigation Docking: Engineered smart scroll measurement that adapts dynamically to multi-row CategoryNav heights, docking the Selected Category Title flush below the navigation on all viewports.
-• Liquid Morphing Active Pill Indicator: Redesigned the CategoryNav active state using Framer Motion shared layout spring physics (layoutId), creating a fluid, silky glide between category buttons with zero font-weight jitter, zero scaling distortion, and 100% layout stability.
-• Universal Category Scroll Re-Alignment: Fixed scroll coordinator so selecting any category smoothly docks the viewport at the Selected Category Title from any page position (Hero, Rules, halfway between sections, deep submissions, or after scrolling back up).`,
+    id: 'entry-20260818-2232',
+    dateKey: 'August 18, 2026',
+    timeStr: '10:32 PM',
+    fullTimestamp: 'August 18, 2026 at 10:32 PM',
+    labels: ['FIX', 'PERFORMANCE'],
+    title: 'Real-Time Submission Counts Synchronization',
+    bullets: [
+      'Fixed photo entry counters to instantly sync total submissions across all category tabs and stat counters on initial page load.',
+    ],
     author: 'Damon',
-    date: 'Aug 18, 2026 at 9:58 PM',
   },
   {
-    id: 'release-20260816-1837',
-    version: 'v1.9.7',
-    title: 'Luxury Vault Sidebar, Animated Controls Suite & Grid Lines Auth',
-    category: 'UI/UX',
-    description: `• Mobile Bottom Sheet Navigation: Completely redesigned the mobile hamburger menu as a modern bottom sheet sliding up from the bottom of the screen with a drag handle, 3-column quick actions grid (Categories, Submit, Rules), featured action list cards with icons and descriptions (Hall of Fame, Suggest Category, Admin Console), inline profile card with edit button, and paired support buttons.
-• Mobile Swipeable Category Pills: Replaced the old category dropdown modal with inline horizontally-scrollable category pills directly in the category section. Each pill shows emoji, name, and entry count badge. Fade edges on both sides indicate scrollability. No modal needed—just swipe and tap.
-• Redesigned Contest Rules & Guidelines Section: Rebuilt the entire rules page with MagicCard interactive hover-gradient quick-rule cards in a 2×2 grid, collapsible markdown rules canvas with a smooth fade-out gradient and expand/collapse toggle, Framer Motion scroll-reveal entry animations, and clean typography hierarchy.
-• Animated Countdown Clock: Added a premium flip-digit countdown timer to the hero section counting down to the submission deadline (Aug 28 @ 5:59 PM EST), featuring per-unit glassmorphic cards with color-coded accents, Framer Motion spring-physics digit flip animations, pulsing status indicators, and automatic expiration detection.
-• Streamlined Luxury Vault Sidebar: Completely redesigned the Hall of Fame sidebar into a clean luxury vault browser—featuring intelligent dual-line title parsing (separating edition rounds from themes), illuminated golden left indicators, master 'All Contest Editions' switch card, and integrated quick search with instant clear controls.
-• Immutable Photographer Identity & Attribution Fix: Enforced strict discrete author attribution and isolated Discord handle queries, guaranteeing genuine photographer credits across all Hall of Fame vault entries.
-• Animated Controls & Security Suite: Overhauled the administrative Controls & Security hub with Framer Motion spring physics toggle switches, dynamic glowing halos, real-time live telemetry status strips, and categorized card grids for contest gates, anti-fraud enforcement, and 2048-bit RSA encryption.
-• shadcn/ui Radix Skeleton Placeholder Suite: Integrated the official shadcn/ui Skeleton component (https://ui.shadcn.com/docs/components/radix/skeleton) across the platform—replacing raw spinners with animated dark glass skeleton screens across Hall of Fame vault archives, Category Suggestions feed, Admin Analytics dashboard, submissions preview, and voter audit directory.
-• Aceternity UI Simple Login with Grid Lines: Re-engineered the platform authentication modal matching Aceternity UI's iconic grid lines block (https://ui.aceternity.com/blocks/login-and-signup-sections/simple-login-with-grid-lines) with signature corner cross marks (+), linear background grid, glowing Vital RP heraldry, and a dedicated high-impact Discord OAuth2 button.
-• Full-Width Wide Contest Rules & Guidelines Suite: Completely redesigned the rules section to span the full stage width below the submissions grid—featuring 4 quick-reference pillar cards (1080p+ resolution, in-game authenticity, fair play, 5 co-champions), BorderBeam light accents, and spacious Markdown formatting.
-• Magic UI Ambient Scroll-Based Velocity Backdrop: Integrated the official Magic UI Scroll-Based Velocity component (https://magicui.design/docs/components/scroll-based-velocity) as a clean, minimal kinetic backdrop behind the hero stage with Framer Motion velocity physics and seamless infinite repetition loops.
-• Award-Winning SeraUI Hero Redesign: Completely overhauled the landing hero stage with dynamic SparklesText typography, SeraUI Announcement live signal pills, radial ambient orange auras, and a glowing neon GlowLine divider—eliminating raw emoji artifacts from contest titles.
-• Dual-Tone Headline Typography Hierarchy: Engineered intelligent title parsing that separates contest rounds (e.g. 'September Photo Contest') into radiant gold sparkles typography, paired with crisp platinum metallic theme subheadings (e.g. 'Rewrite the Rules') and cycling FlipWords taglines.
-• SeraUI Precision Vector Heraldry Badges: Overhauled the contest victory badges using custom geometric SVG vector heraldry emblems (GoldChampionIcon, PlatinumChampionIcon, GrandChampionIcon, MythicLegendIcon) with multi-stop metallic gradients, subtle rotating starlight orbits, and deep glassmorphic pill geometry.
-• Multi-Tier Victory Progression: Engineered a clean 4-tier victory system (1x Gold Winner, 2x Platinum Champion, 3-4x Royal Amethyst Grand Champion, and 5+ Mythic Legend) with refined dark glass backdrops, crisp metallic borders, and typography.
-• High-Density Compact Badge Numbers: Optimized compact badge displays across photo cards, profile capsules, and winner archives with crisp numeric indicators (e.g. [🏆 1], [👑 2x], [👑 3x], [🔥 5x]) preventing line breaks.
-• Official SeraUI Verify & Profile Dropdown: Deployed official SeraUI VerifyBadge components with Basic/Gold/Premium variants, paired with frosted glassmorphic profile dropdowns, online status beacons, and unified DiceBear controls.`,
+    id: 'entry-20260818-2057',
+    dateKey: 'August 18, 2026',
+    timeStr: '8:57 PM',
+    fullTimestamp: 'August 18, 2026 at 8:57 PM',
+    labels: ['UI', 'MOBILE', 'ENHANCE'],
+    title: 'All-Visible Category Grid & Social Link Previews',
+    bullets: [
+      'Replaced horizontal category scrolling with an all-visible responsive grid showing all categories at once.',
+      'Added rich social media preview cards when sharing contest links on Discord, Twitter/X, and messaging apps.',
+      'Improved category header transitions so selecting any category smoothly scrolls it into view.',
+      'Centered all dialogs and modals on screen to eliminate clipping on mobile devices.',
+    ],
     author: 'Damon',
-    date: 'Aug 16, 2026 at 9:08 PM',
   },
   {
-    id: 'release-20260815-1556',
-    version: 'v1.9.6',
-    title: 'SeraUI Component Suite Integration, Radio Voting Buttons & Ambient Contest Rail',
-    category: 'UI/UX',
-    description: `• Official SeraUI Component Suite Deployment: Integrated the official SeraUI 3D Carousel, Fancy Tabs, DocTabs, Progress Bars, Glassmorphic Modal Dialogs, and native Floating Toast notifications across landing hero, contest setups, and voting flows.
-• Atomic Voting Concurrency & Fraud Prevention: Upgraded the voting engine in App.tsx with Firestore runTransaction atomic locking, synthetic double-increment prevention, and a one-click Admin Vote Count Reconciler utility.
-• Alt Account Blacklist Manager & Multi-Key Resolution: Enhanced the Voter Search directory with permanent Blacklist registries, direct UID ban modals, cross-contest historical vote aggregation, and normalized multi-key identifier cascade queries.
-• Separated Voting & Voter Audit Architecture: Decoupled community voting into standalone SeraUI radio voting buttons and dedicated non-obstructive Voter Badge modal inspection triggers.
-• Real-time Admin Suggestion Voting Sync: Decoupled category suggestion decision votes from client screen reflows with optimistic state sync, 360-degree rotating refresh physics, and eliminated page auth flicker states.`,
+    id: 'entry-20260816-2201',
+    dateKey: 'August 16, 2026',
+    timeStr: '10:01 PM',
+    fullTimestamp: 'August 16, 2026 at 10:01 PM',
+    labels: ['UI', 'MOBILE', 'NEW'],
+    title: 'Mobile Navigation Bottom Sheet & Submission Countdown Clock',
+    bullets: [
+      'Redesigned mobile navigation as a convenient bottom sheet with quick action shortcuts and swipeable category pills.',
+      'Added an animated countdown clock showing exact time remaining until submissions close.',
+      'Overhauled the Hall of Fame sidebar with luxury vault archives and clear contest edition titles.',
+      'Redesigned contest rules into interactive quick-rule cards with an expandable guide.',
+      'Added smooth skeleton loading screens across the entire site.',
+    ],
     author: 'Damon',
-    date: 'Aug 15, 2026 at 10:39 PM',
   },
   {
-    id: 'release-20260814-1635',
-    version: 'v1.9.5',
-    title: 'Category Suggestions System, Reddit-Style Voting, Firebase Backend & Admin Console Hub',
-    category: 'Feature',
-    description: `• Community Category Suggestions Brainstorm Portal: Built a dedicated community theme suggestion hub powered by atomic Firestore transactions, Discord OAuth attribution, and real-time keyword search and sorting.
-• Dual-Axis Voting Engine & Score Sync: Implemented interactive Reddit-style upvoting/downvoting (▲ / ▼) with single-vote document constraints, live score recalculation, and hover voter popovers.
-• Admin Category Ideas Hub & 2/3 Quorum Progression: Built an admin management center with 6 functional workflow statuses, real-time live activity banners, and an automated 2/3 staff quorum consensus pipeline.
-• Real-Time Markdown & GFM Rules Engine: Upgraded contest rules authoring and landing page displays with full ReactMarkdown and remark-gfm rendering, split-view previews, and instant-save actions.
-• Adaptive Category Navigation & Image Censor Gate: Introduced StickyCategoryNav with chevron controls alongside an Admin image censorship gate to prevent early bias during submission phases.
-• Performance & Zero-Read Optimization: Optimized suggestions data layers with in-memory memoized sorting, voter sample embeddings, and LRU cache debounce.`,
+    id: 'entry-20260816-1906',
+    dateKey: 'August 16, 2026',
+    timeStr: '7:06 PM',
+    fullTimestamp: 'August 16, 2026 at 7:06 PM',
+    labels: ['UI', 'ENHANCE'],
+    title: 'Hero Typography Polish & Multi-Tier Victory Badges',
+    bullets: [
+      'Redesigned the homepage hero with live status pills, glowing borders, and gold sparkles typography.',
+      'Upgraded community victory badges with custom metallic heraldry icons for Gold, Platinum, Grand Champion, and Mythic Legend tiers.',
+      'Redesigned the user profile dropdown menu with live online indicators and Discord status.',
+    ],
     author: 'Damon',
-    date: 'Aug 14, 2026 at 10:59 PM',
   },
   {
-    id: 'release-20260813-2010',
-    version: 'v1.9.4',
-    title: 'Admin Console Redesign, Unified Headers, Collapsible Contest Editors & Site Lockdown',
-    category: 'Feature',
-    description: `• Unified Admin Page Header Architecture: Standardized AdminHeader across all 8 Admin Console categories with themed badges, pulsating status indicators, and action triggers.
-• Collapsible Contest Setup Editors: Added collapsible accordions for active contest editing and new round creation with in-place editable category items and emoji pickers.
-• High-Fidelity Responsive Admin Viewport: Enlarged console modal stage (up to 1600px width), categorized dock navigation, and full-width inline analytics dashboards.
-• Site Closed Lockdown Gate: Built a global maintenance lockdown toggle in Controls & Security with official Vital RP logo artwork and administrator live bypass.`,
+    id: 'entry-20260815-2249',
+    dateKey: 'August 15, 2026',
+    timeStr: '10:49 PM',
+    fullTimestamp: 'August 15, 2026 at 10:49 PM',
+    labels: ['UI', 'SECURITY', 'ENHANCE'],
+    title: 'Radio Voting Buttons, Sidebar Overhaul & Voter Security',
+    bullets: [
+      'Redesigned voting buttons into responsive radio buttons with instant 1-click feedback.',
+      'Built persistent voter fraud auditing and alt account protection with atomic transaction safety.',
+      'Redesigned the contest information sidebar with a visual stage timeline and live community stats.',
+    ],
     author: 'Damon',
-    date: 'Aug 13, 2026 at 8:59 PM',
   },
   {
-    id: 'release-20260812-2208',
-    version: 'v1.9.3',
-    title: 'Rename Display Name Modal & Profile Menu Cleanup',
-    category: 'UI/UX',
-    description: `• Dedicated Rename Display Name Modal: Rebuilt handle editing into an interactive glassmorphic modal overlay accessible across navbar dropdowns, mobile menus, and profile cards.
-• Mobile Menu & Navigation Cleanup: Streamlined profile menu options and mobile action cards for high-density account management.`,
+    id: 'entry-20260815-1606',
+    dateKey: 'August 15, 2026',
+    timeStr: '4:06 PM',
+    fullTimestamp: 'August 15, 2026 at 4:06 PM',
+    labels: ['ADMIN', 'ENHANCE'],
+    title: 'Staff Suggestion Decision Sync',
+    bullets: [
+      'Added on-demand vote synchronization with an animated refresh button for real-time staff decisions on category proposals.',
+    ],
     author: 'Damon',
-    date: 'Aug 12, 2026 at 10:08 PM',
   },
   {
-    id: 'release-20260812-2114',
-    version: 'v1.9.2',
-    title: 'Mobile Vault Menu, Admin Panel Width & Scroll Indicator Fixes',
-    category: 'UI/UX',
-    description: `• Mobile Vault Optimization: Compacted previous contest selector pills with gradient edge fades, text truncation, and smooth touch scrolling.
-• Full-Width Mobile Admin Console: Expanded admin overlays to full-width mobile viewports with scrollable tab bars and visual overflow indicators.`,
+    id: 'entry-20260814-2310',
+    dateKey: 'August 14, 2026',
+    timeStr: '11:10 PM',
+    fullTimestamp: 'August 14, 2026 at 11:10 PM',
+    labels: ['NEW', 'ADMIN', 'ENHANCE'],
+    title: 'Community Category Suggestions & Upvoting System',
+    bullets: [
+      'Launched community category suggestions with Reddit-style voting and Discord profile attribution.',
+      'Built an admin category workflow pipeline with automated 2/3 staff consensus quorum.',
+      'Added live rank sorting, search, and deep-link sharing for submitted category ideas.',
+    ],
     author: 'Damon',
-    date: 'Aug 12, 2026 at 9:14 PM',
   },
   {
-    id: 'release-20260812-2042',
-    version: 'v1.9.1',
-    title: 'Hall of Fame Navbar Separation & Submissions Closed Button Cleanup',
-    category: 'UI/UX',
-    description: `• Standalone Hall of Fame Vault Pill: Separated Hall of Fame into an eye-catching gold-accented standalone button with persistent URL/localStorage state sync.
-• Dynamic CTA Visibility: Submissions Closed buttons are now cleanly hidden when submissions are locked, rendering Submit Entry only when rounds are open.`,
+    id: 'entry-20260814-1701',
+    dateKey: 'August 14, 2026',
+    timeStr: '5:01 PM',
+    fullTimestamp: 'August 14, 2026 at 5:01 PM',
+    labels: ['UI', 'SECURITY'],
+    title: 'Live Rules Markdown Preview & Image Censoring Controls',
+    bullets: [
+      'Upgraded contest rules editing with live Markdown preview in the admin console.',
+      'Enhanced public image censoring to keep submissions pixelated until voting officially begins.',
+    ],
     author: 'Damon',
-    date: 'Aug 12, 2026 at 8:46 PM',
   },
   {
-    id: 'release-20260811-2115',
-    version: 'v1.9.0',
-    title: 'Premium Dual-Layer Glass Navbar, Hall of Fame Vault & Strict Resolution Inspector',
-    category: 'UI/UX',
-    description: `• Dual-Layer Glass Navbar & Category Rail: Engineered animated shimmer gradient borders and frosted glass panels across headers and category navigation.
-• Strict 1080p Resolution Inspector & 1-Photo Limit: Enforced strict 1920x1080 upload validation with dimension error alerts and 1-photo per user swap management.
-• Hall of Fame Vault & Multi-Tier Victory Badges: Built the archived champions gallery with interactive photo lightboxes, photographer portfolio filters, and multi-tier victory badge attribution.
-• Permanent Alt Blacklist Persistence: Ensured flagged account registries persist permanently across round resets and database archives.`,
+    id: 'entry-20260813-2100',
+    dateKey: 'August 13, 2026',
+    timeStr: '9:00 PM',
+    fullTimestamp: 'August 13, 2026 at 9:00 PM',
+    labels: ['ADMIN', 'NEW'],
+    title: 'Contest Lockdown Mode & Admin Console Redesign',
+    bullets: [
+      'Added a full-site maintenance lockdown mode with admin bypass controls.',
+      'Overhauled the Admin Console with unified headers, collapsible contest editors, and integrated analytics.',
+    ],
     author: 'Damon',
-    date: 'Aug 11, 2026 at 9:15 PM',
   },
   {
-    id: 'release-20260811-2032',
-    version: 'v1.8.0',
-    title: 'High-Fidelity 3D Category Redesign & Prominent Emoji Visual Polish',
-    category: 'UI/UX',
-    description: `• 3D Glassmorphic Category Physics: Added spring-loaded cursor tilt physics, specular glare reflections, and MagicUI Neon Border Beams.
-• Large Floating Category Emojis: Replaced emoji border boxes with text-5xl floating graphics with smooth drop-shadow glow effects.
-• ClipPath Category Peeling Animation: Replaced simple fade-in with a CSS clipPath reveal sliding smoothly from beneath the navbar.`,
+    id: 'entry-20260812-2208',
+    dateKey: 'August 12, 2026',
+    timeStr: '10:08 PM',
+    fullTimestamp: 'August 12, 2026 at 10:08 PM',
+    labels: ['UI', 'ENHANCE'],
+    title: 'Dedicated Hall of Fame Button & Custom Handle Editor',
+    bullets: [
+      'Added a dedicated Hall of Fame navigation button with persistent view state across page refreshes.',
+      'Created an interactive modal for photographers to customize their display names.',
+    ],
     author: 'Damon',
-    date: 'Aug 11, 2026 at 8:32 PM',
   },
   {
-    id: 'release-20260810-2151',
-    version: 'v1.7.0',
-    title: 'DiceBear Dynamic Default Avatars & Discord Fallback Integration',
-    category: 'Feature',
-    description: `• Discord & DiceBear Avatar Pipeline: Prioritizes Discord OAuth photos with automatic deterministic DiceBear SVG fallback on load errors.
-• Interactive Avatar Customization: Added avatar style choosers (Robots, Adventurers, Avataaars, Lorelei, Fun Emoji) and seed randomizers across platform cards.`,
+    id: 'entry-20260811-2216',
+    dateKey: 'August 11, 2026',
+    timeStr: '10:16 PM',
+    fullTimestamp: 'August 11, 2026 at 10:16 PM',
+    labels: ['NEW', 'UI', 'ENHANCE'],
+    title: 'Multi-Tier Champion Badges, Portfolios & Sticky Category Bar',
+    bullets: [
+      'Introduced Multi-Tier Champion Badges (Gold, Platinum, Legendary) tracking cumulative wins.',
+      'Added photographer portfolio views, winner victory filters, and enhanced photo share links.',
+      'Built a smooth slide-down sticky category bar that docks beneath the navbar during scrolling.',
+      'Enforced a 1-photo-per-user limit with existing submission preview and 1-click replacement.',
+    ],
     author: 'Damon',
-    date: 'Aug 10, 2026 at 9:51 PM',
   },
   {
-    id: 'release-20260809-1947',
-    version: 'v1.6.0',
-    title: 'Contest Setup Polish, DUSTFILE Scroll Animations & Minimal Notes',
-    category: 'Feature',
-    description: `• DUSTFILE Timeline & Scroll Animations: Added scroll reveals, hover tilt elevation, and sticky left timeline navigation.
-• Form Polish & Minimizable Admin Dock: Added contest title emoji selectors, danger zone styling, and minimizable bottom dock controls.`,
+    id: 'entry-20260810-2151',
+    dateKey: 'August 10, 2026',
+    timeStr: '9:51 PM',
+    fullTimestamp: 'August 10, 2026 at 9:51 PM',
+    labels: ['NEW', 'UI'],
+    title: 'DiceBear Avatar System & Fallback Engine',
+    bullets: [
+      'Added rich DiceBear avatar generation with instant fallbacks when Discord profile pictures are unavailable.',
+    ],
     author: 'Damon',
-    date: 'Aug 9, 2026 at 8:20 PM',
   },
   {
-    id: 'release-20260808-1855',
-    version: 'v1.5.0',
-    title: 'Aceternity Admin Sidebar, WebGL Shader Background & Contest Setup Polish',
-    category: 'Feature',
-    description: `• Aceternity Admin Sidebar & WebGL Background: Integrated collapsible dark glass navigation sidebar and FiveM Orange fluid canvas background.
-• Cinematic Lightbox & Creator Credit: Added photo inspection lightbox stage and prominent creator credit banner.`,
+    id: 'entry-20260809-2021',
+    dateKey: 'August 9, 2026',
+    timeStr: '8:21 PM',
+    fullTimestamp: 'August 9, 2026 at 8:21 PM',
+    labels: ['UI', 'ADMIN'],
+    title: '5 Co-Champion Winners Stage & Contest Setup Presets',
+    bullets: [
+      'Redesigned the winner announcement stage to celebrate 5 equal round co-champions.',
+      'Upgraded contest setup with preset templates, countdown calculators, and markdown previews.',
+    ],
     author: 'Damon',
-    date: 'Aug 8, 2026 at 6:55 PM',
   },
   {
-    id: 'init-4',
-    version: 'v1.3.0',
-    title: 'Sticky Category Bar & Header Dock',
-    category: 'UI/UX',
-    description: `• Sticky Category Bar: Added smooth sliding category switcher pill track.\n• Header Dock: Morphed top bar into floating glass dock on scroll.`,
+    id: 'entry-20260808-1855',
+    dateKey: 'August 8, 2026',
+    timeStr: '6:55 PM',
+    fullTimestamp: 'August 8, 2026 at 6:55 PM',
+    labels: ['UI', 'NEW', 'PERFORMANCE'],
+    title: 'Cinematic Lightbox, Spotlight Hero & Space Grotesk Typography',
+    bullets: [
+      'Built a cinematic photo Lightbox viewer with ambient backlighting and keyboard shortcuts.',
+      'Redesigned the homepage hero with interactive Spotlight beams and flip-word taglines.',
+      'Upgraded site-wide typography to Space Grotesk and Outfit fonts.',
+      'Added the platform Changelog system and Discord Bug Report modal.',
+    ],
     author: 'Damon',
-    date: 'Aug 8, 2026',
   },
   {
-    id: 'init-3',
-    version: 'v1.2.0',
-    title: 'RSA Key Encryption & Discord Role Security',
-    category: 'Security',
-    description: `• RSA Encryption: Client-side RSA keypair encryption for submission privacy.\n• Discord Verification: Discord guild membership and role verification.`,
+    id: 'entry-20260804-1928',
+    dateKey: 'August 4, 2026',
+    timeStr: '7:28 PM',
+    fullTimestamp: 'August 4, 2026 at 7:28 PM',
+    labels: ['SECURITY', 'PERFORMANCE'],
+    title: 'Discord Server Role Verification & Firestore Caching',
+    bullets: [
+      'Enforced automatic Vital RP Discord membership and Whitelisted role verification upon login.',
+      'Enabled persistent local caching to drastically reduce database reads and boost load times.',
+    ],
     author: 'Damon',
-    date: 'Aug 5, 2026',
   },
   {
-    id: 'init-2',
-    version: 'v1.1.0',
-    title: 'Voter Audit Inspector & Fraud Protection',
-    category: 'Feature',
-    description: `• Voter Audit Inspector: Admin tools to inspect vote activity and disqualify invalid votes.\n• Analytics Dashboard: Live voting velocity charts.`,
+    id: 'entry-20260803-1907',
+    dateKey: 'August 3, 2026',
+    timeStr: '7:07 PM',
+    fullTimestamp: 'August 3, 2026 at 7:07 PM',
+    labels: ['NEW', 'ADMIN', 'SECURITY'],
+    title: 'Interactive Voters Modal & Voter Audit Directory',
+    bullets: [
+      'Added an interactive Voters modal to view and search all community voters on any photo.',
+      'Built an Admin Voter Search directory with entry inspection, alt account flagging, and photo moderation.',
+    ],
     author: 'Damon',
-    date: 'Aug 2, 2026',
   },
   {
-    id: 'init-1',
-    version: 'v1.0.0',
-    title: 'Official Platform Launch',
-    category: 'Feature',
-    description: `• Official Release: Creation and launch of the Vital RP Photo Contest platform designed and built by Damon.`,
+    id: 'entry-20260803-1220',
+    dateKey: 'August 3, 2026',
+    timeStr: '12:20 PM',
+    fullTimestamp: 'August 3, 2026 at 12:20 PM',
+    labels: ['SECURITY', 'ENHANCE'],
+    title: 'Discord Authentication Requirement for Voting',
+    bullets: [
+      'Required Discord authentication for casting votes to prevent abuse and ensure fair community voting.',
+      'Added vote reset tools in the Admin Danger Zone and improved hover vote badges.',
+    ],
     author: 'Damon',
-    date: 'Jul 28, 2026',
+  },
+  {
+    id: 'entry-20260801-1806',
+    dateKey: 'August 1, 2026',
+    timeStr: '6:06 PM',
+    fullTimestamp: 'August 1, 2026 at 6:06 PM',
+    labels: ['ENHANCE'],
+    title: 'Public Contest Browsing Fallbacks',
+    bullets: [
+      'Allowed unauthenticated viewers to browse contest submissions and categories seamlessly.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260729-2114',
+    dateKey: 'July 29, 2026',
+    timeStr: '9:14 PM',
+    fullTimestamp: 'July 29, 2026 at 9:14 PM',
+    labels: ['NEW'],
+    title: 'Passwordless Email Authentication',
+    bullets: [
+      'Added email magic link passwordless sign-in option.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260718-2054',
+    dateKey: 'July 18, 2026',
+    timeStr: '8:54 PM',
+    fullTimestamp: 'July 18, 2026 at 8:54 PM',
+    labels: ['UI', 'ENHANCE'],
+    title: 'Visual Components Suite Upgrades',
+    bullets: [
+      'Enhanced landing visual components with border beams and ambient glow effects.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260716-1657',
+    dateKey: 'July 16, 2026',
+    timeStr: '4:57 PM',
+    fullTimestamp: 'July 16, 2026 at 4:57 PM',
+    labels: ['ADMIN', 'UI'],
+    title: 'Admin Panel Controls Modernization',
+    bullets: [
+      'Modernized admin panel switches, settings controls, and layout cards.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260707-1157',
+    dateKey: 'July 7, 2026',
+    timeStr: '11:57 AM',
+    fullTimestamp: 'July 7, 2026 at 11:57 AM',
+    labels: ['UI', 'MOBILE', 'ENHANCE'],
+    title: 'Compact Sticky Categories & Squircle Design Language',
+    bullets: [
+      'Introduced responsive category grids on desktop and centered category dropdown on mobile.',
+      'Applied rounded squircle design tokens and clean typography site-wide.',
+      'Fixed mobile category modal clipping and header stacking contexts.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260409-1647',
+    dateKey: 'April 9, 2026',
+    timeStr: '4:47 PM',
+    fullTimestamp: 'April 9, 2026 at 4:47 PM',
+    labels: ['ENHANCE', 'NEW'],
+    title: 'Winner Photo Downloads & Confetti Easter Egg',
+    bullets: [
+      'Added high-resolution winner photo download actions to admin settings.',
+      'Added an interactive confetti party mode easter egg when clicking the logo orb.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260404-1959',
+    dateKey: 'April 4, 2026',
+    timeStr: '7:59 PM',
+    fullTimestamp: 'April 4, 2026 at 7:59 PM',
+    labels: ['ADMIN', 'SECURITY'],
+    title: 'Admin Submissions Decryption Preview & Test Contest Manager',
+    bullets: [
+      'Added an admin-only submissions preview tool to inspect decrypted original photos before voting.',
+      'Added contest cleanup tools in the Admin Danger Zone to manage test contests.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260304-1733',
+    dateKey: 'March 4, 2026',
+    timeStr: '5:33 PM',
+    fullTimestamp: 'March 4, 2026 at 5:33 PM',
+    labels: ['UI', 'SECURITY'],
+    title: 'Signal Bar Navbar & Photo Delete Ownership',
+    bullets: [
+      'Redesigned the navigation bar with scroll-shrink physics, telemetry strip, and live status badge.',
+      'Enforced photo delete permissions so only the original uploader or admins can remove an entry.',
+      'Added a playful security modal for unauthorized permission attempts.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260302-2049',
+    dateKey: 'March 2, 2026',
+    timeStr: '8:49 PM',
+    fullTimestamp: 'March 2, 2026 at 8:49 PM',
+    labels: ['ADMIN', 'FIX'],
+    title: 'Contest Archive Engine & Emoji Picker Stacking Fix',
+    bullets: [
+      'Fixed contest archiving with automated winner recording and previous winners preservation.',
+      'Resolved stacking conflicts so emoji pickers always display cleanly above all dialogs.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260302-1431',
+    dateKey: 'March 2, 2026',
+    timeStr: '2:31 PM',
+    fullTimestamp: 'March 2, 2026 at 2:31 PM',
+    labels: ['SECURITY', 'NEW'],
+    title: 'Image Encryption & Hall of Fame Architecture',
+    bullets: [
+      'Built image encryption and pixelation to keep entries hidden until voting starts.',
+      'Added submitter anonymity during the submission phase to eliminate voting bias.',
+      'Created the initial Hall of Fame winner archive view.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260228-2140',
+    dateKey: 'February 28, 2026',
+    timeStr: '9:40 PM',
+    fullTimestamp: 'February 28, 2026 at 9:40 PM',
+    labels: ['FIX'],
+    title: 'Gradient Text Rendering Fix',
+    bullets: [
+      'Fixed text rendering issues with gradient clipping on certain web browsers.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260228-1830',
+    dateKey: 'February 28, 2026',
+    timeStr: '6:30 PM',
+    fullTimestamp: 'February 28, 2026 at 6:30 PM',
+    labels: ['ADMIN', 'UI', 'NEW'],
+    title: 'Contest Scheduling, Analytics Dashboard & 1080p Lightbox',
+    bullets: [
+      'Built automated contest scheduling and live winner announcement banners.',
+      'Added the Admin Analytics Dashboard with live charts and vote distribution telemetry.',
+      'Enforced strict 1920x1080 landscape resolution validation for photo submissions.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260227-2103',
+    dateKey: 'February 27, 2026',
+    timeStr: '9:03 PM',
+    fullTimestamp: 'February 27, 2026 at 9:03 PM',
+    labels: ['ADMIN', 'ENHANCE'],
+    title: 'Toggleable 1-Photo-Per-User Setting',
+    bullets: [
+      'Added an admin toggle to restrict users to a single photo entry per contest round.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260227-1955',
+    dateKey: 'February 27, 2026',
+    timeStr: '7:55 PM',
+    fullTimestamp: 'February 27, 2026 at 7:55 PM',
+    labels: ['UI', 'MOBILE', 'ENHANCE'],
+    title: 'Liquid Fill Vote Button, Particle Burst & Mobile Polish',
+    bullets: [
+      'Upgraded vote buttons with animated rolling counters, liquid fill animations, and particle bursts.',
+      'Added voter hover preview popups showing total category share.',
+      'Completed a full mobile responsiveness pass across all modals and submission grids.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260224-1839',
+    dateKey: 'February 24, 2026',
+    timeStr: '6:39 PM',
+    fullTimestamp: 'February 24, 2026 at 6:39 PM',
+    labels: ['UI', 'NEW', 'ENHANCE'],
+    title: 'Cinematic Landing Page, Sliding Category Tabs & Command Bar',
+    bullets: [
+      'Rebuilt the homepage into an immersive contest landing page with 2-column hero and live photo mosaic.',
+      'Upgraded category tabs with spring-animated sliding indicators, live entry counts, and progress bars.',
+      'Added the official Vital RP footer with "Website Created and Designed by Damon" credit.',
+      'Upgraded the top command bar navbar with floating glassmorphism styling.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260224-1314',
+    dateKey: 'February 24, 2026',
+    timeStr: '1:14 PM',
+    fullTimestamp: 'February 24, 2026 at 1:14 PM',
+    labels: ['NEW', 'ADMIN', 'UI'],
+    title: 'Fivemanage Photo Storage, Markdown Toolbar & 2-Column Admin Modal',
+    bullets: [
+      'Migrated photo storage to Fivemanage API for ultra-fast CDN delivery.',
+      'Enhanced the contest rules editor with rich markdown toolbars, text formatting, and emoji selectors.',
+      'Rebuilt the Admin Settings modal into a 2-column wide layout with custom themed scrollbars.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260223-1908',
+    dateKey: 'February 23, 2026',
+    timeStr: '7:08 PM',
+    fullTimestamp: 'February 23, 2026 at 7:08 PM',
+    labels: ['BACKEND', 'SECURITY', 'NEW'],
+    title: 'Firebase & Vercel Architecture with Discord OAuth',
+    bullets: [
+      'Migrated database and hosting to Firebase Firestore and Vercel.',
+      'Implemented Discord OAuth2 authentication with multi-strategy admin role authorization.',
+    ],
+    author: 'Damon',
+  },
+  {
+    id: 'entry-20260223-0938',
+    dateKey: 'February 23, 2026',
+    timeStr: '9:38 AM',
+    fullTimestamp: 'February 23, 2026 at 9:38 AM',
+    labels: ['NEW'],
+    title: 'Vital RP Photo Contest Platform Inception',
+    bullets: [
+      'Initial release and public launch of the Vital RP Photo Contest community platform.',
+    ],
+    author: 'Damon',
   },
 ];
 
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; icon: typeof Sparkles }> = {
-  Feature: { bg: 'bg-fivem-orange/15', text: 'text-fivem-orange', border: 'border-fivem-orange/30', icon: Sparkles },
-  'UI/UX': { bg: 'bg-cyan-500/15', text: 'text-cyan-400', border: 'border-cyan-500/30', icon: Zap },
-  Fix: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', icon: Wrench },
-  Security: { bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/30', icon: ShieldCheck },
-  Performance: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', icon: Zap },
-};
-
-function renderTextWithCodePills(text: string) {
-  const regex = /(`[^`]+`|\b[\w-]+\.(?:tsx|ts|js|css|json|md)\b|\([A-Za-z0-9_.-]+\.tsx\)|MagicCard|BorderBeam|NumberTicker|SparklesText|Particles|ShimmerButton|1ff166f|AGENTS\.md)/g;
-  const parts = text.split(regex);
-
-  return parts.map((part, i) => {
-    if (!part) return null;
-    const isCode = part.startsWith('`') && part.endsWith('`');
-    const cleanCode = isCode ? part.slice(1, -1) : part;
-    const isHighlightToken = isCode ||
-      /\b[\w-]+\.(?:tsx|ts|js|css|json|md)\b/.test(part) ||
-      /\([A-Za-z0-9_.-]+\.tsx\)/.test(part) ||
-      ['MagicCard', 'BorderBeam', 'NumberTicker', 'SparklesText', 'Particles', 'ShimmerButton', '1ff166f', 'AGENTS.md'].includes(part);
-
-    if (isHighlightToken) {
-      return (
-        <code
-          key={i}
-          className="mx-1 px-2 py-0.5 rounded-md bg-[#14141e] border border-fivem-orange/30 text-amber-300 font-mono text-[11px] font-semibold inline-flex items-center shadow-sm"
-        >
-          {cleanCode}
-        </code>
-      );
-    }
-    return part;
-  });
-}
-
-interface ChangelogBulletListProps {
-  description: string;
-  entryId: string;
-  isExpanded: boolean;
-  onToggle: (id: string) => void;
-  maxCollapsedItems?: number;
-}
-
-const ChangelogBulletList: React.FC<ChangelogBulletListProps> = ({
-  description,
-  entryId,
-  isExpanded,
-  onToggle,
-  maxCollapsedItems = 3,
-}) => {
-  const lines = description.split('\n').filter((l) => l.trim().length > 0);
-  const isBulleted = lines.some((l) => l.trim().startsWith('•') || l.trim().startsWith('-') || /^\d+\.\s/.test(l.trim()));
-
-  if (!isBulleted) {
-    return (
-      <div className="text-xs sm:text-sm text-white/80 leading-relaxed font-sans whitespace-pre-line mt-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
-        {renderTextWithCodePills(description)}
-      </div>
-    );
-  }
-
-  const shouldTruncate = lines.length > maxCollapsedItems;
-  const visibleLines = isExpanded || !shouldTruncate ? lines : lines.slice(0, maxCollapsedItems);
-  const hiddenCount = lines.length - maxCollapsedItems;
-
-  return (
-    <div className="space-y-2 mt-3 text-xs sm:text-sm font-sans leading-relaxed">
-      <div className="space-y-2">
-        {visibleLines.map((line, idx) => {
-          const cleanLine = line.replace(/^([•\-]|^\d+\.)\s*/, '').trim();
-          const parts = cleanLine.split(':');
-          const hasTitle = parts.length > 1;
-          const title = hasTitle ? parts[0].trim() : '';
-          const body = hasTitle ? parts.slice(1).join(':').trim() : cleanLine;
-
-          return (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0d0d12]/90 border border-white/5 hover:border-fivem-orange/30 transition-all shadow-sm group/bullet"
-            >
-              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fivem-orange shrink-0 shadow-[0_0_8px_rgba(234,88,12,0.8)] group-hover/bullet:scale-125 transition-transform" />
-              <div className="flex-1 min-w-0">
-                {hasTitle && (
-                  <strong className="font-bold text-white font-display text-xs sm:text-sm tracking-wide mr-1.5 inline-block">
-                    {renderTextWithCodePills(title)}:
-                  </strong>
-                )}
-                <span className="text-white/75">{renderTextWithCodePills(body)}</span>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {shouldTruncate && (
-        <button
-          type="button"
-          onClick={() => onToggle(entryId)}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 mt-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs font-bold text-white/70 hover:text-white transition-all cursor-pointer select-none group/expand active:scale-[0.99]"
-        >
-          <span>{isExpanded ? 'Show less highlights' : `Show ${hiddenCount} more highlights`}</span>
-          {isExpanded ? (
-            <ChevronUp size={14} className="text-fivem-orange transition-transform duration-200" />
-          ) : (
-            <ChevronDown size={14} className="text-fivem-orange transition-transform duration-200 group-hover/expand:translate-y-0.5" />
-          )}
-        </button>
-      )}
-    </div>
-  );
-};
-
 export function ChangelogTab() {
-  const [entries, setEntries] = useState<ChangelogEntry[]>(INITIAL_CHANGELOGS);
-  const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [entries, setEntries] = useState<ChangelogItem[]>(INITIAL_CHANGELOG_ENTRIES);
+  const [selectedLabelFilter, setSelectedLabelFilter] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
-  const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [isAllExpanded, setIsAllExpanded] = useState<boolean>(true);
 
-  // Form State
-  const [version, setVersion] = useState('v1.6.0');
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<'Feature' | 'UI/UX' | 'Fix' | 'Security' | 'Performance'>('Feature');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Form State for Admin New Entry Modal
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [newTitle, setNewTitle] = useState<string>('');
+  const [newLabels, setNewLabels] = useState<ChangelogLabel[]>(['NEW', 'UI']);
+  const [newBulletsText, setNewBulletsText] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Fetch Changelogs from Firestore
+  // Fetch Changelogs from Firestore (and merge with local seed data)
   useEffect(() => {
     const fetchChangelogs = async () => {
-      setLoading(true);
       try {
         const q = query(collection(db, 'changelogs'), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const dbEntries: ChangelogEntry[] = querySnapshot.docs.map((docSnap) => ({
+        const dbEntries: ChangelogItem[] = [];
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          // Support both new structured format and legacy format
+          const bullets = Array.isArray(data.bullets)
+            ? data.bullets
+            : (data.description || '')
+                .split('\n')
+                .map((l: string) => l.replace(/^•\s*/, '').trim())
+                .filter(Boolean);
+
+          const labels = Array.isArray(data.labels)
+            ? data.labels
+            : [data.category === 'UI/UX' ? 'UI' : data.category === 'Feature' ? 'NEW' : data.category === 'Fix' ? 'FIX' : 'ENHANCE'];
+
+          dbEntries.push({
             id: docSnap.id,
-            ...(docSnap.data() as Omit<ChangelogEntry, 'id'>),
-          }));
-          const seen = new Set<string>();
-          const merged: ChangelogEntry[] = [];
-          [...INITIAL_CHANGELOGS, ...dbEntries].forEach((entry) => {
-            const key = (entry.version || '') + '_' + (entry.title || '');
-            if (!seen.has(key)) {
-              seen.add(key);
-              merged.push(entry);
-            }
+            dateKey: data.dateKey || data.date || 'Recent Updates',
+            timeStr: data.timeStr || '',
+            fullTimestamp: data.fullTimestamp || data.date || '',
+            labels: labels as ChangelogLabel[],
+            title: data.title || 'Platform Update',
+            bullets: bullets.length > 0 ? bullets : ['Platform improvement and maintenance updates.'],
+            author: data.author || 'Damon',
+            createdAt: data.createdAt,
           });
-          setEntries(merged);
-        }
+        });
+
+        // Merge without duplicating IDs
+        const existingIds = new Set<string>();
+        const merged: ChangelogItem[] = [];
+
+        [...dbEntries, ...INITIAL_CHANGELOG_ENTRIES].forEach((entry) => {
+          const key = entry.id || `${entry.dateKey}-${entry.timeStr}-${entry.title}`;
+          if (!existingIds.has(key)) {
+            existingIds.add(key);
+            merged.push(entry);
+          }
+        });
+
+        setEntries(merged);
       } catch (err) {
-        console.warn('Using local fallback changelog history:', err);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching changelogs from Firestore:', err);
       }
     };
 
     fetchChangelogs();
   }, []);
 
-  const handleToggleEntry = (entryId: string) => {
+  const handleToggleEntry = (id: string) => {
     setExpandedEntries((prev) => {
       const next = new Set(prev);
-      if (next.has(entryId)) {
-        next.delete(entryId);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        next.add(entryId);
+        next.add(id);
       }
       return next;
     });
@@ -436,7 +668,10 @@ export function ChangelogTab() {
       setExpandedEntries(new Set());
       setIsAllExpanded(false);
     } else {
-      const allIds = new Set(entries.map((e) => e.id || e.version));
+      const allIds = new Set<string>();
+      entries.forEach((e) => {
+        allIds.add(e.id || `${e.dateKey}-${e.timeStr}`);
+      });
       setExpandedEntries(allIds);
       setIsAllExpanded(true);
     }
@@ -444,19 +679,30 @@ export function ChangelogTab() {
 
   const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description) {
-      toast.error('Please enter a title and description');
+    if (!newTitle.trim() || !newBulletsText.trim()) {
+      toast.error('Please fill in title and updates.');
       return;
     }
 
     setIsSubmitting(true);
-    const newEntry: ChangelogEntry = {
-      version: version || 'v1.6.0',
-      title,
-      category,
-      description,
+    const now = new Date();
+    const dateKey = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const fullTimestamp = `${dateKey} at ${timeStr}`;
+
+    const bullets = newBulletsText
+      .split('\n')
+      .map((l) => l.replace(/^[-•*]\s*/, '').trim())
+      .filter(Boolean);
+
+    const newEntry: ChangelogItem = {
+      dateKey,
+      timeStr,
+      fullTimestamp,
+      labels: newLabels.length > 0 ? newLabels : ['NEW'],
+      title: newTitle.trim(),
+      bullets: bullets.length > 0 ? bullets : [newTitle.trim()],
       author: 'Damon',
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       createdAt: serverTimestamp(),
     };
 
@@ -465,13 +711,14 @@ export function ChangelogTab() {
       setEntries((prev) => [{ ...newEntry, id: docRef.id }, ...prev]);
       toast.success('Changelog entry published!');
       setShowAddModal(false);
-      setTitle('');
-      setDescription('');
+      setNewTitle('');
+      setNewBulletsText('');
+      setNewLabels(['NEW', 'UI']);
     } catch (err) {
-      console.error('Failed to save to Firestore:', err);
+      console.error('Failed to save changelog to Firestore:', err);
       // Fallback add locally
       setEntries((prev) => [{ ...newEntry, id: `local-${Date.now()}` }, ...prev]);
-      toast.success('Changelog entry added!');
+      toast.success('Changelog entry added locally!');
       setShowAddModal(false);
     } finally {
       setIsSubmitting(false);
@@ -480,7 +727,7 @@ export function ChangelogTab() {
 
   const handleDeleteEntry = async (id: string) => {
     try {
-      if (!id.startsWith('init-') && !id.startsWith('local-')) {
+      if (!id.startsWith('entry-') && !id.startsWith('local-')) {
         await deleteDoc(doc(db, 'changelogs', id));
       }
       setEntries((prev) => prev.filter((item) => item.id !== id));
@@ -490,24 +737,54 @@ export function ChangelogTab() {
     }
   };
 
-  const filteredEntries = entries.filter((entry) => {
-    const matchesTag = selectedTagFilter === 'All' || entry.category === selectedTagFilter;
-    const matchesSearch =
-      entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.version.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTag && matchesSearch;
-  });
+  // Filtered Entries
+  const filteredEntries = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return entries.filter((entry) => {
+      const matchesLabel =
+        selectedLabelFilter === 'All' ||
+        entry.labels.some((l) => l.toUpperCase() === selectedLabelFilter.toUpperCase());
+
+      const matchesSearch =
+        !q ||
+        entry.title.toLowerCase().includes(q) ||
+        entry.dateKey.toLowerCase().includes(q) ||
+        entry.timeStr.toLowerCase().includes(q) ||
+        entry.labels.some((l) => l.toLowerCase().includes(q)) ||
+        entry.bullets.some((b) => b.toLowerCase().includes(q));
+
+      return matchesLabel && matchesSearch;
+    });
+  }, [entries, selectedLabelFilter, searchQuery]);
+
+  // Group filtered entries by dateKey (preserving chronological order)
+  const groupedByDate = useMemo(() => {
+    const groups: { dateKey: string; items: ChangelogItem[] }[] = [];
+    const map = new Map<string, ChangelogItem[]>();
+
+    for (const entry of filteredEntries) {
+      const key = entry.dateKey;
+      if (!map.has(key)) {
+        const list: ChangelogItem[] = [];
+        map.set(key, list);
+        groups.push({ dateKey: key, items: list });
+      }
+      map.get(key)!.push(entry);
+    }
+    return groups;
+  }, [filteredEntries]);
+
+  const allAvailableLabels: ChangelogLabel[] = ['NEW', 'UI', 'ENHANCE', 'FIX', 'MOBILE', 'ADMIN', 'SECURITY', 'PERFORMANCE', 'BACKEND'];
 
   return (
     <div className="space-y-8 relative">
       
       {/* ── TOP SECTION: Platform Changelog Header ── */}
       <AdminHeader
-        badge="VERSION HISTORY"
+        badge="PUBLIC UPDATES"
         badgeColor="bg-fivem-orange/15 text-fivem-orange border-fivem-orange/30"
         title="Platform Changelog"
-        subtitle="Live log of platform releases, performance upgrades, security patches, and feature updates."
+        subtitle="A clean, chronological record of product updates, visual enhancements, security patches, and performance upgrades."
         icon={<Layers size={20} className="text-fivem-orange" />}
         iconBg="bg-fivem-orange/15 border-fivem-orange/30"
         actions={
@@ -517,158 +794,247 @@ export function ChangelogTab() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 text-fivem-orange border border-fivem-orange/40 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
           >
             <Plus size={15} />
-            <span>New Release Entry</span>
+            <span>Publish Update</span>
           </button>
         }
       />
 
       {/* ── FILTER & SEARCH TOOLBAR ── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/10">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md">
         
-        {/* Category Pill Filters */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
-          {['All', 'Feature', 'UI/UX', 'Fix', 'Security', 'Performance'].map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setSelectedTagFilter(tag)}
-              className={cn(
-                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 border",
-                selectedTagFilter === tag
-                  ? "bg-white/15 text-white border-white/20 shadow-sm"
-                  : "bg-white/[0.02] text-white/40 border-transparent hover:text-white hover:bg-white/5"
-              )}
-            >
-              {tag}
-            </button>
-          ))}
+        {/* Label Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+          <button
+            type="button"
+            onClick={() => setSelectedLabelFilter('All')}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 border",
+              selectedLabelFilter === 'All'
+                ? "bg-white/15 text-white border-white/20 shadow-sm"
+                : "bg-white/[0.02] text-white/40 border-transparent hover:text-white hover:bg-white/5"
+            )}
+          >
+            All Updates
+          </button>
+
+          {allAvailableLabels.map((lbl) => {
+            const conf = LABEL_CONFIG[lbl];
+            const isSelected = selectedLabelFilter === lbl;
+            return (
+              <button
+                key={lbl}
+                type="button"
+                onClick={() => setSelectedLabelFilter(isSelected ? 'All' : lbl)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all cursor-pointer shrink-0 border",
+                  isSelected
+                    ? `${conf.bg} ${conf.text} ${conf.border} shadow-sm scale-105`
+                    : "bg-white/[0.02] text-white/40 border-transparent hover:text-white hover:bg-white/5"
+                )}
+              >
+                {lbl}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Search & Expand All Controls */}
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        {/* Search & Expand Controls */}
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={handleToggleAll}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white transition-all cursor-pointer shrink-0"
-            title={isAllExpanded ? "Collapse all release details" : "Expand all release details"}
+            title={isAllExpanded ? "Collapse all update details" : "Expand all update details"}
           >
             <ChevronsUpDown size={13} className="text-fivem-orange" />
-            <span className="hidden sm:inline">{isAllExpanded ? 'Collapse All' : 'Expand All'}</span>
+            <span>{isAllExpanded ? 'Collapse' : 'Expand All'}</span>
           </button>
 
           <div className="relative w-full sm:w-60">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
             <input
               type="text"
-              placeholder="Search changelogs..."
+              placeholder="Search updates..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-fivem-orange/50 transition-colors font-mono"
+              className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-8 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-fivem-orange/50 transition-colors font-mono"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── CHANGELOG TIMELINE LIST ── */}
-      <div className="relative space-y-8">
-        {/* Continuous Left Vertical Timeline Axis Line */}
-        <div className="absolute left-[3.25rem] sm:left-[4.5rem] md:left-[9.5rem] top-6 bottom-6 w-px bg-gradient-to-b from-fivem-orange/40 via-white/15 to-transparent pointer-events-none hidden md:block" />
+      {/* ── SUMMARY STATS BAR ── */}
+      <div className="flex items-center justify-between text-xs text-white/40 px-2 font-mono">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-fivem-orange animate-pulse" />
+          <span>Showing <strong>{filteredEntries.length}</strong> updates across <strong>{groupedByDate.length}</strong> release dates</span>
+        </div>
+        {selectedLabelFilter !== 'All' && (
+          <span className="text-fivem-orange font-bold">Filtered by {selectedLabelFilter}</span>
+        )}
+      </div>
 
-        {filteredEntries.map((entry, idx) => {
-          const CategoryInfo = CATEGORY_STYLES[entry.category] || CATEGORY_STYLES['Feature'];
-          const CategoryIcon = CategoryInfo.icon;
-          const entryKey = entry.id || entry.version;
-          const isExpanded = expandedEntries.has(entryKey) || isAllExpanded;
+      {/* ── CHANGELOG TIMELINE LIST (GROUPED BY DATE) ── */}
+      <div className="space-y-12 relative">
+        {groupedByDate.length === 0 ? (
+          <div className="text-center py-16 px-4 border border-dashed border-white/10 rounded-3xl bg-white/[0.01]">
+            <Layers className="mx-auto text-white/20 mb-3" size={32} />
+            <h4 className="text-base font-bold text-white font-display mb-1">No updates found</h4>
+            <p className="text-xs text-white/40 font-mono">Try adjusting your search query or label filter.</p>
+          </div>
+        ) : (
+          groupedByDate.map((group, gIdx) => (
+            <section key={group.dateKey} className="space-y-6">
+              
+              {/* ── DATE GROUP HEADER ── */}
+              <div className="sticky top-20 z-20 flex items-center gap-3 py-2 bg-[#09090b]/80 backdrop-blur-md border-y border-white/10 sm:border-y-0 sm:bg-transparent">
+                <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-white/[0.06] border border-white/15 text-white shadow-md">
+                  <Calendar size={13} className="text-fivem-orange" />
+                  <span className="text-xs font-bold font-display tracking-tight">{group.dateKey}</span>
+                </div>
+                <div className="h-px flex-1 bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
+                <span className="text-[10px] font-mono text-white/40 tracking-wider">
+                  {group.items.length} {group.items.length === 1 ? 'update' : 'updates'}
+                </span>
+              </div>
 
-          return (
-            <motion.div
-              key={entry.id || idx}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05, duration: 0.3 }}
-              className="relative flex flex-col md:flex-row items-start gap-4 sm:gap-6 md:gap-8 group"
-            >
-              {/* Left Column: Sticky Version Anchor & Timeline Node */}
-              <div className="md:w-36 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-2 shrink-0 md:sticky md:top-24 z-10 w-full">
+              {/* ── TIMELINE ENTRIES UNDER THIS DATE ── */}
+              <div className="relative pl-4 sm:pl-8 space-y-6">
                 
-                {/* Glowing Node Dot (Desktop) */}
-                <div className="hidden md:flex absolute right-[-2.25rem] top-2.5 w-4 h-4 rounded-full bg-[#09090b] border-2 border-fivem-orange items-center justify-center shadow-[0_0_12px_rgba(234,88,12,0.8)]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-fivem-orange" />
-                </div>
+                {/* Continuous Left Vertical Timeline Axis */}
+                <div className="absolute left-[7px] sm:left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-fivem-orange/50 via-white/15 to-transparent pointer-events-none" />
 
-                {/* Version Code Pill */}
-                <div className="flex flex-col items-start md:items-end leading-none gap-1">
-                  <span className="px-3 py-1 rounded-xl bg-white/[0.06] border border-white/15 text-white font-mono font-bold text-xs tracking-wider shadow-inner group-hover:border-fivem-orange/50 group-hover:text-fivem-orange transition-all">
-                    {entry.version}
-                  </span>
-                  <span className="text-[11px] font-mono text-white/50 whitespace-nowrap">
-                    {entry.date}
-                  </span>
-                </div>
+                {group.items.map((entry, eIdx) => {
+                  const entryKey = entry.id || `${entry.dateKey}-${entry.timeStr}-${eIdx}`;
+                  const isExpanded = expandedEntries.has(entryKey) || isAllExpanded;
+                  const isFirstToday = gIdx === 0 && eIdx === 0;
 
-                {/* Category Outlined Tag */}
-                <div className={cn("px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border flex items-center gap-1 mt-1", CategoryInfo.bg, CategoryInfo.text, CategoryInfo.border)}>
-                  <CategoryIcon size={11} />
-                  <span>{entry.category}</span>
-                </div>
-              </div>
-
-              {/* Right Column: Elevated Glass Content Card */}
-              <div className="flex-1 w-full min-w-0">
-                <motion.div
-                  whileHover={{ y: -2, transition: { duration: 0.15 } }}
-                  className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#09090d]/95 p-6 sm:p-8 transition-all hover:border-fivem-orange/40 shadow-xl group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
-                >
-                  {/* Card Header Row */}
-                  <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-white/10">
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      {/* Geometric Icon Box Container */}
-                      <div className="w-10 h-10 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange flex items-center justify-center shrink-0 shadow-inner mt-0.5">
-                        <FileCode size={20} />
+                  return (
+                    <motion.div
+                      key={entryKey}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: eIdx * 0.04, duration: 0.25 }}
+                      className="relative group"
+                    >
+                      {/* Timeline Node Icon */}
+                      <div className={cn(
+                        "absolute -left-[1.35rem] sm:-left-[2.35rem] top-3.5 w-3.5 h-3.5 rounded-full border-2 bg-[#09090b] flex items-center justify-center transition-all z-10",
+                        isFirstToday
+                          ? "border-fivem-orange shadow-[0_0_10px_rgba(234,88,12,0.8)] ring-2 ring-fivem-orange/30"
+                          : "border-white/30 group-hover:border-fivem-orange group-hover:shadow-[0_0_8px_rgba(234,88,12,0.5)]"
+                      )}>
+                        <div className={cn(
+                          "w-1 h-1 rounded-full",
+                          isFirstToday ? "bg-fivem-orange" : "bg-white/60 group-hover:bg-fivem-orange"
+                        )} />
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="text-lg sm:text-xl font-bold font-display text-white tracking-tight leading-snug">
-                          {renderTextWithCodePills(entry.title)}
-                        </h3>
-                        <div className="flex items-center gap-2 text-[10px] font-mono text-white/40 mt-1">
-                          <User size={11} className="text-fivem-orange" />
-                          <span>Author: <strong className="text-white/70">{entry.author || 'Damon'}</strong></span>
+
+                      {/* Glassmorphic Update Card */}
+                      <div className="rounded-2xl border border-white/10 bg-[#0c0c10]/95 hover:bg-[#101017]/95 p-5 sm:p-6 transition-all hover:border-fivem-orange/40 shadow-lg group-hover:shadow-2xl">
+                        
+                        {/* Header Row: Time + Labels + Delete */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Time Pill */}
+                            {entry.timeStr && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-white/70 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/10">
+                                <Clock size={11} className="text-fivem-orange" />
+                                {entry.timeStr}
+                              </span>
+                            )}
+
+                            {/* Change-Type Labels (1-3 max) */}
+                            {entry.labels.map((lbl) => {
+                              const conf = LABEL_CONFIG[lbl] || LABEL_CONFIG['NEW'];
+                              return (
+                                <span
+                                  key={lbl}
+                                  className={cn(
+                                    "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border",
+                                    conf.bg, conf.text, conf.border
+                                  )}
+                                >
+                                  {lbl}
+                                </span>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-white/30 hidden sm:inline">
+                              by {entry.author || 'Damon'}
+                            </span>
+                            {entry.id && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteEntry(entry.id!)}
+                                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20 text-white/30 hover:text-red-400 rounded-lg transition-all cursor-pointer"
+                                title="Delete Entry"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Title */}
+                        {entry.title && (
+                          <h3 className="text-sm sm:text-base font-bold text-white font-display mb-3 tracking-tight group-hover:text-amber-300/90 transition-colors">
+                            {entry.title}
+                          </h3>
+                        )}
+
+                        {/* Bulleted List */}
+                        <div className="space-y-2">
+                          <ul className="space-y-2 text-xs sm:text-sm text-white/80 leading-relaxed font-sans">
+                            {(isExpanded ? entry.bullets : entry.bullets.slice(0, 2)).map((bullet, bIdx) => (
+                              <li key={bIdx} className="flex items-start gap-2.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange/80 mt-2 shrink-0 shadow-[0_0_4px_rgba(234,88,12,0.6)]" />
+                                <span className="flex-1">{bullet}</span>
+                              </li>
+                            ))}
+                          </ul>
+
+                          {/* Show more/less if more than 2 bullets */}
+                          {entry.bullets.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleEntry(entryKey)}
+                              className="text-[11px] font-mono text-fivem-orange hover:text-amber-400 font-bold flex items-center gap-1 pt-1 cursor-pointer transition-colors"
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp size={12} />
+                                  <span>Show less</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown size={12} />
+                                  <span>+ {entry.bullets.length - 2} more improvements</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {entry.id && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteEntry(entry.id!)}
-                          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 text-white/30 hover:text-red-400 rounded-xl transition-all cursor-pointer border border-white/5"
-                          title="Delete Entry"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Section Title Header Block (WHAT'S NEW) */}
-                  <div className="text-[11px] font-mono font-bold text-fivem-orange uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <Terminal size={13} className="text-fivem-orange" />
-                    <span>WHAT'S NEW & IMPROVEMENTS</span>
-                  </div>
-
-                  {/* Formatted Description Items with Expandable Truncation */}
-                  <ChangelogBulletList
-                    description={entry.description}
-                    entryId={entryKey}
-                    isExpanded={isExpanded}
-                    onToggle={handleToggleEntry}
-                    maxCollapsedItems={3}
-                  />
-                </motion.div>
+                    </motion.div>
+                  );
+                })}
               </div>
-            </motion.div>
-          );
-        })}
+            </section>
+          ))
+        )}
       </div>
 
       {/* ── NEW ENTRY MODAL FORM ── */}
@@ -684,7 +1050,7 @@ export function ChangelogTab() {
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="text-fivem-orange" size={18} />
-                  <h3 className="text-base font-bold text-white font-display">New Release Changelog</h3>
+                  <h3 className="text-base font-bold text-white font-display">Publish Platform Update</h3>
                 </div>
                 <button
                   type="button"
@@ -696,55 +1062,68 @@ export function ChangelogTab() {
               </div>
 
               <form onSubmit={handleAddEntry} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">Version</label>
-                    <input
-                      type="text"
-                      value={version}
-                      onChange={(e) => setVersion(e.target.value)}
-                      placeholder="e.g. v1.6.0"
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">Category</label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as any)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange"
-                    >
-                      <option value="Feature">Feature</option>
-                      <option value="UI/UX">UI/UX</option>
-                      <option value="Fix">Fix</option>
-                      <option value="Security">Security</option>
-                      <option value="Performance">Performance</option>
-                    </select>
+                {/* Labels Selector */}
+                <div>
+                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1.5">
+                    Select Change Labels (1-3 max)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allAvailableLabels.map((lbl) => {
+                      const isSelected = newLabels.includes(lbl);
+                      const conf = LABEL_CONFIG[lbl];
+                      return (
+                        <button
+                          key={lbl}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setNewLabels(newLabels.filter((l) => l !== lbl));
+                            } else if (newLabels.length < 3) {
+                              setNewLabels([...newLabels, lbl]);
+                            } else {
+                              toast.info('Maximum 3 labels per update.');
+                            }
+                          }}
+                          className={cn(
+                            "px-2.5 py-1 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border transition-all cursor-pointer",
+                            isSelected
+                              ? `${conf.bg} ${conf.text} ${conf.border} shadow-sm`
+                              : "bg-white/[0.02] text-white/40 border-white/10 hover:text-white"
+                          )}
+                        >
+                          {lbl}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
+                {/* Release Title */}
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">Release Title</label>
+                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">
+                    Short Update Title
+                  </label>
                   <input
                     type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Loading Screen Showcase Redesign"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="e.g. 16:9 Vertical 3D Hero Carousel"
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange"
                     required
                   />
                 </div>
 
+                {/* Bullets */}
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">Bullet Changes (One per line)</label>
+                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">
+                    Bullet Improvements (One per line)
+                  </label>
                   <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="• Feature: Description..."
-                    rows={6}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange font-mono"
+                    value={newBulletsText}
+                    onChange={(e) => setNewBulletsText(e.target.value)}
+                    placeholder="• Upgraded hero showcase with 3D rolling physics&#10;• Added mouse wheel and swipe gestures&#10;• Streamlined navigation controls"
+                    rows={5}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange font-sans leading-relaxed"
                     required
                   />
                 </div>
@@ -762,7 +1141,7 @@ export function ChangelogTab() {
                     disabled={isSubmitting}
                     className="px-5 py-2.5 rounded-xl bg-fivem-orange hover:bg-amber-500 text-black font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Publishing...' : 'Publish Entry'}
+                    {isSubmitting ? 'Publishing...' : 'Publish Update'}
                   </button>
                 </div>
               </form>
