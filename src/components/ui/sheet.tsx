@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
-import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -15,19 +14,14 @@ const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
-  <SheetPrimitive.Overlay asChild {...props}>
-    <motion.div
-      ref={ref as any}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className={cn(
-        "fixed inset-0 z-[200] bg-black/80 backdrop-blur-md",
-        className
-      )}
-    />
-  </SheetPrimitive.Overlay>
+  <SheetPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      "sheet-overlay fixed inset-0 z-[200] bg-black/80 backdrop-blur-md",
+      className
+    )}
+    {...props}
+  />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
@@ -40,68 +34,37 @@ const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => {
-  const getMotionVariants = () => {
+  const getSideClass = () => {
     switch (side) {
       case "top":
-        return {
-          initial: { y: "-100%", opacity: 0 },
-          animate: { y: "0%", opacity: 1 },
-          exit: { y: "-100%", opacity: 0 },
-        };
+        return "sheet-panel-top inset-x-0 top-0 border-b";
       case "bottom":
-        return {
-          initial: { y: "100%", opacity: 0 },
-          animate: { y: "0%", opacity: 1 },
-          exit: { y: "100%", opacity: 0 },
-        };
+        return "sheet-panel-bottom inset-x-0 bottom-0 border-t";
       case "left":
-        return {
-          initial: { x: "-100%", opacity: 0 },
-          animate: { x: "0%", opacity: 1 },
-          exit: { x: "-100%", opacity: 0 },
-        };
+        return "sheet-panel-left inset-y-0 left-0 h-full w-full sm:w-[440px] md:w-[480px] border-r";
       case "right":
       default:
-        return {
-          initial: { x: "100%", opacity: 0.9 },
-          animate: { x: "0%", opacity: 1 },
-          exit: { x: "100%", opacity: 0 },
-        };
+        return "sheet-panel-right inset-y-0 right-0 h-full w-full sm:w-[440px] md:w-[480px] border-l";
     }
   };
-
-  const variants = getMotionVariants();
 
   return (
     <SheetPortal>
       <SheetOverlay />
-      <SheetPrimitive.Content asChild {...props}>
-        <motion.div
-          ref={ref as any}
-          initial={variants.initial}
-          animate={variants.animate}
-          exit={variants.exit}
-          transition={{
-            type: "spring",
-            stiffness: 340,
-            damping: 34,
-            mass: 0.8,
-          }}
-          className={cn(
-            "fixed z-[210] bg-[#09090d]/98 border-white/10 p-6 shadow-[0_0_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl flex flex-col text-white outline-none",
-            side === "top" && "inset-x-0 top-0 border-b",
-            side === "bottom" && "inset-x-0 bottom-0 border-t",
-            side === "left" && "inset-y-0 left-0 h-full w-full sm:w-[440px] md:w-[480px] border-r",
-            side === "right" && "inset-y-0 right-0 h-full w-full sm:w-[440px] md:w-[480px] border-l",
-            className
-          )}
-        >
-          {children}
-          <SheetPrimitive.Close className="absolute right-4 top-4 z-20 rounded-full p-2 bg-white/[0.05] hover:bg-white/15 border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer focus:outline-none active:scale-95">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
-        </motion.div>
+      <SheetPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed z-[210] bg-[#09090d]/98 border-white/10 p-6 shadow-[0_0_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl flex flex-col text-white outline-none will-change-transform",
+          getSideClass(),
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <SheetPrimitive.Close className="absolute right-4 top-4 z-20 rounded-full p-2 bg-white/[0.05] hover:bg-white/15 border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer focus:outline-none active:scale-95">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </SheetPrimitive.Close>
       </SheetPrimitive.Content>
     </SheetPortal>
   );

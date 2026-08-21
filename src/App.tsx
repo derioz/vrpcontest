@@ -70,7 +70,8 @@ import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, SheetContent } from './components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
+import { Sheet, SheetContent } from './components/ui/sheet';
 import { VoteButton, VotersButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 import { NumberTicker } from './components/ui/number-ticker';
@@ -2066,8 +2067,8 @@ export default function App() {
   }
 
   return (
-    <ShaderBackground className={cn("min-h-screen flex flex-col relative", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
-      <div className={cn("flex flex-col flex-1 transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
+    <ShaderBackground className={cn("min-h-screen flex flex-col relative w-full overflow-x-clip max-w-full", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
+      <div className={cn("flex flex-col flex-1 w-full max-w-full overflow-x-clip transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
         
         {/* ── 1. UNIFIED FIXED TOP NAVIGATION CONTAINER ── */}
         <div ref={topNavContainerRef} className="fixed top-0 sm:top-2.5 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl z-50 pointer-events-none flex flex-col gap-1 sm:gap-2 px-0">
@@ -2302,9 +2303,9 @@ export default function App() {
       )}
     </div>
 
-      {/* ── Mobile Bottom Sheet Navigation (Radix Dialog) ── */}
-      <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent>
+      {/* ── Mobile Side Sheet Navigation (Radix Sheet) ── */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md p-6 bg-[#09090d]/98 backdrop-blur-2xl">
           <div className="space-y-5">
 
             {/* ── Quick Actions Grid ── */}
@@ -2483,7 +2484,7 @@ export default function App() {
             </div>
           </div>
         </SheetContent>
-      </Dialog>
+      </Sheet>
 
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (
@@ -2536,7 +2537,7 @@ export default function App() {
               fill="rgba(234, 88, 12, 0.32)"
             />
             <Spotlight
-              className="top-10 left-full -translate-x-[75%] h-[80vh] w-[50vw]"
+              className="top-10 right-0 md:left-full md:-translate-x-[75%] h-[80vh] w-[50vw] max-w-full pointer-events-none"
               fill="rgba(251, 146, 60, 0.15)"
             />
 
