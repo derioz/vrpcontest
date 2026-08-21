@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Category, Photo } from '../../types';
 import { decryptUrl } from '../../lib/crypto';
 import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers, Ban, CheckCircle, Download } from 'lucide-react';
@@ -29,12 +29,11 @@ export default function AdminSubmissionsPreview({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disqualified'>('all');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const decryptedCacheRef = useRef<Map<string, string>>(new Map());
 
-  // Try to decrypt all photos using the local or remote private key
+  // Try to decrypt only newly uncached photos using the local or remote private key
   useEffect(() => {
     let cancelled = false;
-    setDecrypting(true);
-    setDecryptionFailedState(null);
 
     (async () => {
       let localPrivateKey = localStorage.getItem('vrp_private_key');
@@ -61,33 +60,30 @@ export default function AdminSubmissionsPreview({
         }
         return;
       }
-      const newMap = new Map<string, string>();
-      let anyDecrypted = false;
-      let anyEncryptedFound = false;
 
-      await Promise.all(
-        allPhotos.map(async (photo) => {
-          if (photo.encrypted_image_url) {
-            anyEncryptedFound = true;
-            try {
-              const clearUrl = await decryptUrl(photo.encrypted_image_url, localPrivateKey);
-              if (!cancelled) {
-                newMap.set(photo.id, clearUrl);
-                anyDecrypted = true;
-              }
-            } catch {
-              // Use existing image_url as fallback
-            }
-          }
-        })
+      const uncachedPhotos = allPhotos.filter(
+        (p) => p.encrypted_image_url && !decryptedCacheRef.current.has(p.id)
       );
 
+      if (uncachedPhotos.length > 0) {
+        setDecrypting(true);
+        await Promise.all(
+          uncachedPhotos.map(async (photo) => {
+            if (photo.encrypted_image_url && localPrivateKey) {
+              try {
+                const clearUrl = await decryptUrl(photo.encrypted_image_url, localPrivateKey);
+                decryptedCacheRef.current.set(photo.id, clearUrl);
+              } catch {
+                // Fallback
+              }
+            }
+          })
+        );
+      }
+
       if (!cancelled) {
-        setDecryptedPhotos(newMap);
+        setDecryptedPhotos(new Map(decryptedCacheRef.current));
         setDecrypting(false);
-        if (!anyDecrypted && anyEncryptedFound) {
-          setDecryptionFailedState('incorrect');
-        }
       }
     })();
 

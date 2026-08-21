@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -12,7 +14,7 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
     let animationFrameId: number;
@@ -23,6 +25,10 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
     let mouseY = height / 2;
     let targetMouseX = mouseX;
     let targetMouseY = mouseY;
+    let isRunning = true;
+
+    // Check prefers-reduced-motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const handleResize = () => {
       if (!canvas) return;
@@ -35,8 +41,21 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
       targetMouseY = e.clientY;
     };
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('mousemove', handleMouseMove);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isRunning = false;
+        cancelAnimationFrame(animationFrameId);
+      } else {
+        if (!isRunning) {
+          isRunning = true;
+          render();
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize, { passive: true });
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Orbs / Wave nodes
     const nodes = [
@@ -49,40 +68,38 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
     let time = 0;
 
     const render = () => {
-      time += 0.015;
+      if (!isRunning) return;
+
+      time += prefersReducedMotion ? 0.002 : 0.015;
 
       // Smooth mouse lerp
       mouseX += (targetMouseX - mouseX) * 0.05;
       mouseY += (targetMouseY - mouseY) * 0.05;
 
-      ctx.clearRect(0, 0, width, height);
-
-      // Dark background gradient base
-      const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-      bgGrad.addColorStop(0, '#060608');
-      bgGrad.addColorStop(0.5, '#08080c');
-      bgGrad.addColorStop(1, '#050507');
-      ctx.fillStyle = bgGrad;
+      // Dark background base
+      ctx.fillStyle = '#07070a';
       ctx.fillRect(0, 0, width, height);
 
       // Render fluid radial shader nodes
       nodes.forEach((node, idx) => {
-        node.x += Math.sin(time + idx) * node.vx * 1.5;
-        node.y += Math.cos(time + idx) * node.vy * 1.5;
+        if (!prefersReducedMotion) {
+          node.x += Math.sin(time + idx) * node.vx * 1.5;
+          node.y += Math.cos(time + idx) * node.vy * 1.5;
 
-        // Interactive mouse influence
-        const dx = mouseX - node.x;
-        const dy = mouseY - node.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 400) {
-          node.x -= (dx / dist) * 0.8;
-          node.y -= (dy / dist) * 0.8;
+          // Interactive mouse influence
+          const dx = mouseX - node.x;
+          const dy = mouseY - node.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 400) {
+            node.x -= (dx / dist) * 0.6;
+            node.y -= (dy / dist) * 0.6;
+          }
         }
 
         const radGrad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.radius);
         radGrad.addColorStop(0, node.color);
         radGrad.addColorStop(0.6, node.color.replace('0.15', '0.04').replace('0.18', '0.05').replace('0.12', '0.03'));
-        radGrad.addColorStop(1, 'transparent');
+        radGrad.addColorStop(1, 'rgba(7, 7, 10, 0)');
 
         ctx.fillStyle = radGrad;
         ctx.beginPath();
@@ -90,31 +107,16 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
         ctx.fill();
       });
 
-      // Subtle ambient overlay grid mesh
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
-      ctx.lineWidth = 1;
-      const gridSize = 80;
-      for (let x = 0; x < width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-
       animationFrameId = requestAnimationFrame(render);
     };
 
     render();
 
     return () => {
+      isRunning = false;
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
@@ -129,3 +131,5 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
     </div>
   );
 }
+
+export default ShaderBackground;

@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260820-2049',
+    id: 'entry-20260820-2105',
     dateKey: 'August 20, 2026',
-    timeStr: '8:49 PM',
-    fullTimestamp: 'August 20, 2026 at 8:49 PM',
-    labels: ['UI', 'ENHANCE', 'ADMIN'],
-    title: 'Desktop Hover Submenu Navigation & Mobile Touch Polish',
+    timeStr: '9:05 PM',
+    fullTimestamp: 'August 20, 2026 at 9:05 PM',
+    labels: ['PERFORMANCE', 'UI', 'ENHANCE'],
+    title: 'Site-Wide Performance & UX Optimization Pass',
     bullets: [
-      'Added smooth hover-based submenu opening for desktop Admin navigation with intentional first-hover delay and instant category switching.',
-      'Fixed mobile Admin navigation category taps so submenus open immediately without clipping or requiring double taps.',
-      'Refined the Contest Overview sidebar with a clean header, streamlined metrics, and clear contest-wide submission status guidance.',
-      'Optimized the Profile Sheet with matching Skeleton placeholders for instant, zero-lag opening and mirrored exit animations.',
-      'Added smooth touch-pan and momentum scrolling to the horizontal Admin top navigation on mobile with active category auto-centering.',
+      'Extracted memoized PhotoCard with skeleton shimmer loaders, asynchronous decoding, and aspect ratio reservation to eliminate layout shift.',
+      'Optimized shader canvas background with tab visibility pausing and reduced motion support, slashing idle CPU/GPU usage.',
+      'Precomputed category submission counts and cached decrypted photo assets for instant, stutter-free interactions.',
+      'Added smooth hover-based submenu navigation for desktop Admin panel with intentional first-hover delay and instant category switching.',
+      'Optimized Admin voter directory search with memoized data aggregation for instant search filtering without input lag.',
     ],
     author: 'Damon',
   },

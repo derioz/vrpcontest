@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search, UserCheck, Heart, Image as ImageIcon, Sparkles, ExternalLink, Calendar,
@@ -387,103 +387,107 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   categories.forEach((c) => categoryMap.set(c.id, c.name));
 
   // Aggregate votes by voter UID
-  const voterSummariesMap = new Map<string, VoterSummary>();
+  // Memoize all voter summaries aggregation across active votes, historical stats & flagged accounts
+  const allVotersList = useMemo(() => {
+    const voterSummariesMap = new Map<string, VoterSummary>();
 
-  // 1. Process all actual votes (current contest + archived rounds)
-  votes.forEach((vote) => {
-    // Exclude generic placeholder "Discord User" with no real name/UID
-    if (vote.voterDiscord === 'Discord User' && vote.voterName === 'Discord User') return;
+    // 1. Process all actual votes (current contest + archived rounds)
+    votes.forEach((vote) => {
+      if (vote.voterDiscord === 'Discord User' && vote.voterName === 'Discord User') return;
 
-    const rawName = (vote.voterDiscord || vote.voterName || vote.voterUid || '').trim();
-    if (!rawName || rawName.toLowerCase() === 'discord user') return;
+      const rawName = (vote.voterDiscord || vote.voterName || vote.voterUid || '').trim();
+      if (!rawName || rawName.toLowerCase() === 'discord user') return;
 
-    const key = rawName.toLowerCase();
-    if (!voterSummariesMap.has(key)) {
-      voterSummariesMap.set(key, {
-        id: key,
-        voterUid: vote.voterUid || key,
-        displayName: vote.voterDiscord || vote.voterName || rawName,
-        voterDiscord: vote.voterDiscord || vote.voterName || rawName,
-        voteCount: 0,
-        votes: [],
-      });
-    }
-    const summary = voterSummariesMap.get(key)!;
-    summary.voteCount += 1;
-    summary.votes.push(vote);
-  });
-
-  // 2. Overlay cumulative archived stats from previous contests
-  archivedUserStats.forEach((pastVotes, discordKey) => {
-    const rawKey = discordKey.trim();
-    if (!rawKey || rawKey.toLowerCase() === 'discord user') return;
-    const key = rawKey.toLowerCase();
-
-    if (!voterSummariesMap.has(key)) {
-      voterSummariesMap.set(key, {
-        id: key,
-        voterUid: rawKey,
-        displayName: rawKey,
-        voterDiscord: rawKey,
-        voteCount: pastVotes,
-        votes: [],
-      });
-    } else {
-      const summary = voterSummariesMap.get(key)!;
-      summary.voteCount = Math.max(summary.voteCount, summary.votes.length, pastVotes);
-    }
-  });
-
-  // 3. Overlay all flagged alt accounts from Firestore (guaranteed persistent)
-  flaggedVoters.forEach((fv, uid) => {
-    const key = (fv.voterName || uid).toLowerCase().trim();
-    if (!voterSummariesMap.has(key) && !voterSummariesMap.has(uid.toLowerCase())) {
-      const targetKey = uid.toLowerCase();
-      voterSummariesMap.set(targetKey, {
-        id: targetKey,
-        voterUid: uid,
-        displayName: fv.voterName || uid,
-        voterDiscord: fv.voterName || uid,
-        voteCount: 0,
-        votes: [],
-      });
-    } else {
-      const targetKey = voterSummariesMap.has(key) ? key : uid.toLowerCase();
-      const summary = voterSummariesMap.get(targetKey)!;
-      if (fv.voterName && (!summary.displayName || summary.displayName.toLowerCase() === 'discord user')) {
-        summary.displayName = fv.voterName;
-        summary.voterDiscord = fv.voterName;
+      const key = rawName.toLowerCase();
+      if (!voterSummariesMap.has(key)) {
+        voterSummariesMap.set(key, {
+          id: key,
+          voterUid: vote.voterUid || key,
+          displayName: vote.voterDiscord || vote.voterName || rawName,
+          voterDiscord: vote.voterDiscord || vote.voterName || rawName,
+          voteCount: 0,
+          votes: [],
+        });
       }
-    }
-  });
-
-  // Filter out any entries that are empty/placeholder "Discord User" with 0 votes and not flagged
-  const allVotersList = Array.from(voterSummariesMap.values())
-    .filter((v) => {
-      const isAlt = flaggedVoters.has(v.voterUid) || (Array.from(flaggedVoters.values()) as FlaggedVoter[]).some((f) => f.voterName.toLowerCase() === v.displayName.toLowerCase());
-      const isPlaceholder = v.displayName.toLowerCase() === 'discord user' || v.voterDiscord.toLowerCase() === 'discord user';
-      if (isPlaceholder && !isAlt) return false;
-      return v.voteCount > 0 || isAlt;
-    })
-    .sort((a, b) => {
-      const aAlt = flaggedVoters.has(a.voterUid);
-      const bAlt = flaggedVoters.has(b.voterUid);
-      if (aAlt && !bAlt) return -1;
-      if (!aAlt && bAlt) return 1;
-      return b.voteCount - a.voteCount;
+      const summary = voterSummariesMap.get(key)!;
+      summary.voteCount += 1;
+      summary.votes.push(vote);
     });
 
-  // Filter voters by search query and flagged filter
+    // 2. Overlay cumulative archived stats from previous contests
+    archivedUserStats.forEach((pastVotes, discordKey) => {
+      const rawKey = discordKey.trim();
+      if (!rawKey || rawKey.toLowerCase() === 'discord user') return;
+      const key = rawKey.toLowerCase();
+
+      if (!voterSummariesMap.has(key)) {
+        voterSummariesMap.set(key, {
+          id: key,
+          voterUid: rawKey,
+          displayName: rawKey,
+          voterDiscord: rawKey,
+          voteCount: pastVotes,
+          votes: [],
+        });
+      } else {
+        const summary = voterSummariesMap.get(key)!;
+        summary.voteCount = Math.max(summary.voteCount, summary.votes.length, pastVotes);
+      }
+    });
+
+    // 3. Overlay all flagged alt accounts from Firestore (guaranteed persistent)
+    flaggedVoters.forEach((fv, uid) => {
+      const key = (fv.voterName || uid).toLowerCase().trim();
+      if (!voterSummariesMap.has(key) && !voterSummariesMap.has(uid.toLowerCase())) {
+        const targetKey = uid.toLowerCase();
+        voterSummariesMap.set(targetKey, {
+          id: targetKey,
+          voterUid: uid,
+          displayName: fv.voterName || uid,
+          voterDiscord: fv.voterName || uid,
+          voteCount: 0,
+          votes: [],
+        });
+      } else {
+        const targetKey = voterSummariesMap.has(key) ? key : uid.toLowerCase();
+        const summary = voterSummariesMap.get(targetKey)!;
+        if (fv.voterName && (!summary.displayName || summary.displayName.toLowerCase() === 'discord user')) {
+          summary.displayName = fv.voterName;
+          summary.voterDiscord = fv.voterName;
+        }
+      }
+    });
+
+    // Filter out any entries that are empty/placeholder "Discord User" with 0 votes and not flagged
+    return Array.from(voterSummariesMap.values())
+      .filter((v) => {
+        const isAlt = flaggedVoters.has(v.voterUid) || (Array.from(flaggedVoters.values()) as FlaggedVoter[]).some((f) => f.voterName.toLowerCase() === v.displayName.toLowerCase());
+        const isPlaceholder = v.displayName.toLowerCase() === 'discord user' || v.voterDiscord.toLowerCase() === 'discord user';
+        if (isPlaceholder && !isAlt) return false;
+        return v.voteCount > 0 || isAlt;
+      })
+      .sort((a, b) => {
+        const aAlt = flaggedVoters.has(a.voterUid);
+        const bAlt = flaggedVoters.has(b.voterUid);
+        if (aAlt && !bAlt) return -1;
+        if (!aAlt && bAlt) return 1;
+        return b.voteCount - a.voteCount;
+      });
+  }, [votes, archivedUserStats, flaggedVoters]);
+
+  // Memoize filtered voters by search query and flagged filter
   const searchTrimmed = searchQuery.toLowerCase().trim();
-  const matchingVoters = allVotersList.filter((v) => {
-    if (showFlaggedOnly && !flaggedVoters.has(v.voterUid)) return false;
-    if (!searchTrimmed) return true;
-    return (
-      v.displayName.toLowerCase().includes(searchTrimmed) ||
-      v.voterDiscord.toLowerCase().includes(searchTrimmed) ||
-      v.voterUid.toLowerCase().includes(searchTrimmed)
-    );
-  });
+  const matchingVoters = useMemo(() => {
+    return allVotersList.filter((v) => {
+      if (showFlaggedOnly && !flaggedVoters.has(v.voterUid)) return false;
+      if (!searchTrimmed) return true;
+      return (
+        v.displayName.toLowerCase().includes(searchTrimmed) ||
+        v.voterDiscord.toLowerCase().includes(searchTrimmed) ||
+        v.voterUid.toLowerCase().includes(searchTrimmed)
+      );
+    });
+  }, [allVotersList, searchTrimmed, showFlaggedOnly, flaggedVoters]);
 
   // Determine active voter selection flexibly by ID, UID, or Display Name
   const activeVoter = selectedVoterId

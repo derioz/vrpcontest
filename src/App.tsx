@@ -65,6 +65,7 @@ import { DiscordRequirementsModal } from './components/DiscordRequirementsModal'
 import { BugReportModal } from './components/BugReportModal';
 import { ChampionBadge } from './components/ChampionBadge';
 import { ProfileSheet } from './components/ProfileSheet';
+import { PhotoCard } from './components/PhotoCard';
 import { ShaderBackground } from './components/ui/shader-background';
 import { ShimmeringText } from './components/ui/shimmering-text';
 import { Orb } from './components/ui/orb';
@@ -543,6 +544,13 @@ export default function App() {
     return map;
   }, [archivedWinners]);
 
+  const [storedPlayerName] = useState(() => {
+    try { return localStorage.getItem('fivem_player_name'); } catch { return null; }
+  });
+  const [storedDiscordName] = useState(() => {
+    try { return localStorage.getItem('fivem_discord_name'); } catch { return null; }
+  });
+
   const getUserWinCount = useCallback((discordName?: string, userId?: string, playerName?: string): number => {
     let count = 0;
     if (discordName) {
@@ -554,16 +562,14 @@ export default function App() {
     if (playerName) {
       count = Math.max(count, winnerCountsMap.get(playerName.toLowerCase().trim()) || 0);
     }
-    const storedPlayer = localStorage.getItem('fivem_player_name');
-    if (storedPlayer) {
-      count = Math.max(count, winnerCountsMap.get(storedPlayer.toLowerCase().trim()) || 0);
+    if (storedPlayerName) {
+      count = Math.max(count, winnerCountsMap.get(storedPlayerName.toLowerCase().trim()) || 0);
     }
-    const storedDiscord = localStorage.getItem('fivem_discord_name');
-    if (storedDiscord) {
-      count = Math.max(count, winnerCountsMap.get(storedDiscord.toLowerCase().trim()) || 0);
+    if (storedDiscordName) {
+      count = Math.max(count, winnerCountsMap.get(storedDiscordName.toLowerCase().trim()) || 0);
     }
     return count;
-  }, [winnerCountsMap]);
+  }, [winnerCountsMap, storedPlayerName, storedDiscordName]);
 
   const sortedPhotos = useMemo(() => {
     return [...photos].sort((a, b) => {
@@ -2863,164 +2869,44 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
                 >
-                  {sortedPhotos.map((photo, index) => {
-                    const rankEmoji = sortBy === 'top' ? (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null) : null;
-                    return (
-                      <BlurFade key={photo.id} delay={index * 0.04} duration={0.35} className={cn(sortBy === 'top' && index === 0 ? "md:col-span-2" : "")}>
-                        <MagicCard
-                          active={sortBy === 'top' && index === 0}
-                          borderBeamProps={{ size: 280, duration: 10, colorFrom: "#ea580c", colorTo: "#fcd34d", borderWidth: 2 }}
-                          gradientColor="rgba(234, 88, 12, 0.16)"
-                          className={cn(
-                            "relative group bg-fivem-card rounded-2xl border transition-all h-full group-hover:z-30",
-                            photo.is_disqualified
-                              ? "ring-2 ring-red-500/80 border-red-500/50"
-                              : sortBy === 'top' && index === 0
-                                ? "ring-2 ring-fivem-orange/50 shadow-2xl shadow-fivem-orange/10 border-fivem-orange/30"
-                                : "border-white/5 hover:border-fivem-orange/30"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    {sortedPhotos.map((photo, index) => {
+                      const totalVotes = photos.reduce((sum, p) => sum + (p.vote_count || 0), 0);
+                      const sharePct = totalVotes > 0 ? Math.round(((photo.vote_count || 0) / totalVotes) * 100) : 0;
+                      return (
+                        <PhotoCard
+                          key={photo.id}
+                          photo={photo}
+                          index={index}
+                          sortBy={sortBy}
+                          censorSubmissions={censorSubmissions}
+                          votingOpen={votingOpen}
+                          isVotingOpen={isVotingOpen}
+                          privateKey={privateKey}
+                          isAdmin={isAdmin}
+                          user={user}
+                          winCount={getUserWinCount(photo.discord_name, photo.user_id || photo.uploader_uid)}
+                          userAvatarUrl={getProfileAvatar(
+                            (photo as any).user_photo_url,
+                            (photo as any).avatar_seed || (photo as any).user_id || photo.discord_name,
+                            (photo as any).avatar_style
                           )}
-                        >
-                          <div className={cn("relative cursor-pointer", sortBy === 'top' && index === 0 ? "aspect-[21/9]" : "aspect-video")} onClick={() => setLightboxPhoto(photo)}>
-                          <div className="absolute inset-0 overflow-hidden rounded-t-2xl">
-                            <img
-                              src={photo.image_url}
-                              alt={photo.caption}
-                              className={cn(
-                                "w-full h-full object-cover transition-transform duration-700 group-hover:scale-105",
-                                photo.is_disqualified && "grayscale-[40%] opacity-80"
-                              )}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
-                          </div>
-
-                          {/* Pixelated / Censored Indicator */}
-                          {censorSubmissions && !votingOpen && (
-                            <div className="absolute bottom-3 left-3 bg-amber-500/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 text-[9px] font-mono text-amber-300 font-bold z-10 shadow-sm">
-                              <EyeOff size={10} />
-                              <span>Pixelated until voting</span>
-                            </div>
-                          )}
-
-                          {/* DISQUALIFIED Permanent Banner */}
-                          {photo.is_disqualified && (
-                            <div className="absolute top-0 inset-x-0 bg-red-600/95 text-white font-black text-xs uppercase tracking-widest py-1.5 px-3 flex items-center justify-center gap-1.5 z-30 shadow-lg border-b border-red-400/40">
-                              <Ban size={14} className="stroke-[2.5]" />
-                              <span>DISQUALIFIED</span>
-                              {photo.disqualification_reason && (
-                                <span className="font-normal text-[10px] opacity-90 truncate max-w-[150px] font-mono">
-                                  ({photo.disqualification_reason})
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Top-left: rank badge + player avatar + name in one row */}
-                          <div className={cn("absolute left-3 flex items-center gap-2 z-10", photo.is_disqualified ? "top-9" : "top-3")}>
-                            {rankEmoji && (
-                              <span className="text-2xl drop-shadow-lg leading-none">{rankEmoji}</span>
-                            )}
-                            <div className="bg-black/70 backdrop-blur-md pl-1 pr-2.5 py-1 rounded-full border border-white/15 flex items-center gap-1.5 max-w-[200px] shadow-lg">
-                              <img
-                                src={getProfileAvatar((photo as any).user_photo_url, (photo as any).avatar_seed || (photo as any).user_id || photo.discord_name, (photo as any).avatar_style)}
-                                alt=""
-                                className="w-4 h-4 rounded-full object-cover border border-fivem-orange/50 shrink-0"
-                              />
-                              <span className="text-[10px] font-bold uppercase tracking-wider truncate text-white">
-                                {privateKey ? photo.player_name : "Anonymous"}
-                              </span>
-                            </div>
-                            {getUserWinCount(photo.discord_name, photo.user_id || photo.uploader_uid) > 0 && (
-                              <ChampionBadge winCount={getUserWinCount(photo.discord_name, photo.user_id || photo.uploader_uid)} size="sm" showLabel={false} />
-                            )}
-                          </div>
-
-                          {/* Top-right: action buttons (hover) */}
-                          <div className={cn("absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10", photo.is_disqualified ? "top-9" : "top-3")}>
-                            {isAdmin && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (photo.is_disqualified) {
-                                    handleToggleDisqualifyPhoto(photo.id, false);
-                                  } else {
-                                    const reason = window.prompt("Reason for disqualifying this photo (optional):");
-                                    if (reason !== null) {
-                                      handleToggleDisqualifyPhoto(photo.id, true, reason || undefined);
-                                    }
-                                  }
-                                }}
-                                className={cn(
-                                  "bg-black/60 backdrop-blur-md p-2 rounded-full border transition-colors cursor-pointer",
-                                  photo.is_disqualified
-                                    ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white"
-                                    : "border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white"
-                                )}
-                                title={photo.is_disqualified ? "Re-qualify Photo" : "Disqualify Photo"}
-                              >
-                                {photo.is_disqualified ? <CheckCircle size={14} /> : <Ban size={14} />}
-                              </button>
-                            )}
-                            {(isAdmin || (user && (user.displayName === photo.discord_name || user.providerData.some(p => p.displayName === photo.discord_name)))) && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id, photo.discord_name); }}
-                                className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
-                                title="Delete Photo"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleShare(photo); }}
-                              className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-fivem-orange transition-colors"
-                            >
-                              <Share2 size={14} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setLightboxPhoto(photo); }}
-                              className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-white/20 transition-colors"
-                            >
-                              <Maximize2 size={14} />
-                            </button>
-                          </div>
-
-                          <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5">
-                            <VotersButton
-                              photoId={photo.id}
-                              photoCaption={photo.caption}
-                              voteCount={photo.vote_count || 0}
-                            />
-                            <VoteButton
-                              photoId={photo.id}
-                              photoCaption={photo.caption}
-                              voteCount={photo.vote_count || 0}
-                              hasVoted={votedPhotoIds.has(photo.id)}
-                              votingOpen={isVotingOpen}
-                              isDisqualified={photo.is_disqualified}
-                              categorySharePct={(() => {
-                                const total = photos.reduce((s, p) => s + (p.vote_count || 0), 0);
-                                return total > 0 ? Math.round(((photo.vote_count || 0) / total) * 100) : 0;
-                              })()}
-                              onVote={() => {
-                                setVotingPhotoId(photo.id);
-                                setTimeout(() => setVotingPhotoId(null), 700);
-                                handleVote(photo.id);
-                              }}
-                            />
-                          </div>
-
-                        </div>
-                        <div className="p-4 pr-32 bg-fivem-card/90 backdrop-blur-md absolute bottom-0 left-0 right-0 border-t border-white/5 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
-                          <p className="text-sm font-medium line-clamp-2 text-white">{photo.caption || "No caption provided"}</p>
-                          <p className="text-[10px] text-white/40 font-mono mt-2 uppercase tracking-widest">
-                            {new Date(photo.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </MagicCard>
-                    </BlurFade>
-                  );
-                })}
+                          hasVoted={votedPhotoIds.has(photo.id)}
+                          categorySharePct={sharePct}
+                          onLightbox={setLightboxPhoto}
+                          onVote={(photoId) => {
+                            setVotingPhotoId(photoId);
+                            setTimeout(() => setVotingPhotoId(null), 700);
+                            handleVote(photoId);
+                          }}
+                          onShare={handleShare}
+                          onDelete={handleDeletePhoto}
+                          onToggleDisqualify={handleToggleDisqualifyPhoto}
+                        />
+                      );
+                    })}
+                  </div>
                 </motion.div>
               </AnimatePresence>
             )}

@@ -79,10 +79,21 @@ export function AvatarPicker({
     }
   }, [currentDisplayName, currentAvatarStyle, currentAvatarSeed, currentPhotoURL, discordPhotoURL, currentAvatarSource]);
 
+  // Memoize style thumbnails mapping to avoid repeated URL generation
+  const styleThumbUrls = React.useMemo(() => {
+    const map = new Map<DiceBearStyleName, string>();
+    AVAILABLE_DICEBEAR_STYLES.forEach((s) => {
+      map.set(s.id, getDiceBearAvatarUrl(avatarSeed, s.id));
+    });
+    return map;
+  }, [avatarSeed]);
+
   // Generate live preview URL based on selected avatarSource
-  const previewUrl = avatarSource === 'discord' && resolvedDiscordPhoto
-    ? resolvedDiscordPhoto
-    : getDiceBearAvatarUrl(avatarSeed, selectedStyle);
+  const previewUrl = React.useMemo(() => {
+    return avatarSource === 'discord' && resolvedDiscordPhoto
+      ? resolvedDiscordPhoto
+      : getDiceBearAvatarUrl(avatarSeed, selectedStyle);
+  }, [avatarSource, resolvedDiscordPhoto, avatarSeed, selectedStyle]);
 
   const handleShuffleSeed = () => {
     const newSeed = Math.random().toString(36).substring(2, 10);
@@ -276,7 +287,7 @@ export function AvatarPicker({
         <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5 max-h-40 overflow-y-auto p-1 custom-scrollbar">
           {AVAILABLE_DICEBEAR_STYLES.map((style) => {
             const isSelected = avatarSource === 'dicebear' && selectedStyle === style.id;
-            const thumbUrl = getDiceBearAvatarUrl(avatarSeed, style.id);
+            const thumbUrl = styleThumbUrls.get(style.id) || getDiceBearAvatarUrl(avatarSeed, style.id);
 
             return (
               <motion.button

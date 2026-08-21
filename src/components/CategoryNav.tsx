@@ -10,7 +10,7 @@
  * - High-End Dark Glassmorphism with ambient FiveM orange accents
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { Sparkles, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -86,7 +86,7 @@ const CATEGORY_GRADIENTS = [
   'radial-gradient(circle, rgba(236,72,153,0.25) 0%, rgba(219,39,119,0.1) 50%, rgba(190,24,93,0) 100%)',
 ];
 
-export function CategoryNav({
+export const CategoryNav = React.memo(function CategoryNav({
   categories,
   selectedCategory,
   onSelectCategory,
@@ -97,10 +97,20 @@ export function CategoryNav({
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isStatsToggled, setIsStatsToggled] = useState(false);
 
-  // Compute category entry counts from memory
-  const getCategoryCount = useCallback((catId: string) => {
-    return allPhotos.filter(p => p.category_id === catId).length;
+  // Precompute category entry counts for O(1) instant memory lookups
+  const entriesPerCategoryMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of allPhotos) {
+      if (p.category_id) {
+        map.set(p.category_id, (map.get(p.category_id) || 0) + 1);
+      }
+    }
+    return map;
   }, [allPhotos]);
+
+  const getCategoryCount = useCallback((catId: string) => {
+    return entriesPerCategoryMap.get(catId) || 0;
+  }, [entriesPerCategoryMap]);
 
   const totalPhotosCount = allPhotos.length;
 
@@ -344,6 +354,6 @@ export function CategoryNav({
       </div>
     </nav>
   );
-}
+});
 
 export default CategoryNav;
