@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260820-1959',
+    id: 'entry-20260820-2012',
     dateKey: 'August 20, 2026',
-    timeStr: '7:59 PM',
-    fullTimestamp: 'August 20, 2026 at 7:59 PM',
-    labels: ['ADMIN', 'UI', 'ENHANCE'],
-    title: 'Admin Breadcrumb Navigation, Sortable Sidebar & Auth Skeleton States',
+    timeStr: '8:12 PM',
+    fullTimestamp: 'August 20, 2026 at 8:12 PM',
+    labels: ['ADMIN', 'UI', 'NEW'],
+    title: 'Top Horizontal Navigation Dock, Breadcrumbs & Dropdown Sub-Menus',
     bullets: [
-      'Implemented Shadcn Studio Breadcrumb navigation across the Admin Console with dynamic pathing and one-click back navigation.',
-      'Upgraded the Admin sidebar with smooth drag-and-drop sortable navigation, allowing each administrator to customize and save their own menu order.',
-      'Added per-user sidebar order persistence to Firestore with local caching and a 1-click Reset Menu Order option.',
-      'Eliminated account loading flashes by deploying Shadcn Skeleton placeholders across navbar profile buttons and mobile drawer accounts while authentication initializes.',
-      'Upgraded the homepage hero section with a vertical 3D rotating cylinder showcase for 16:9 widescreen contest photography.',
+      'Replaced the vertical Admin sidebar with a floating, top-centered horizontal navigation dock inspired by 21st.dev with smooth active sliding pills.',
+      'Organized Admin tools into direct destinations and interactive floating dropdown popups with click-outside and Escape key support.',
+      'Integrated sticky header scroll behavior with dynamic backdrop-blur transitions that keep controls permanently accessible.',
+      'Implemented Shadcn Studio Breadcrumb navigation with hierarchical pathing (Vital RP / Admin Console / Section / Page).',
+      'Eliminated account loading flashes with Shadcn Skeleton placeholders across navbar and profile accounts.',
     ],
     author: 'Damon',
   },
