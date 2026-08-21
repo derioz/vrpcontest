@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Home,
   Check,
+  X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
@@ -212,7 +213,11 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const headerRef = useRef<HTMLElement>(null);
   const navContainerRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Touch tracking for swipe vs tap discrimination on mobile
   const touchStartXRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
@@ -226,10 +231,15 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Click-outside and Escape key dismissal for open dropdowns
+  // Click-outside and Escape key dismissal for open dropdowns (desktop and mobile touch)
   useEffect(() => {
-    const handlePointerDown = (e: MouseEvent) => {
-      if (navContainerRef.current && !navContainerRef.current.contains(e.target as Node)) {
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        headerRef.current &&
+        !headerRef.current.contains(target) &&
+        (!mobileMenuRef.current || !mobileMenuRef.current.contains(target))
+      ) {
         setOpenDropdownId(null);
       }
     };
@@ -240,9 +250,11 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
     };
 
     document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown, { passive: true });
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
@@ -255,6 +267,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   }) || ADMIN_NAV_CATEGORIES[0];
 
   const activeSubItem = activeCategory.subsections?.find((sub) => sub.id === currentTab);
+  const openCategory = ADMIN_NAV_CATEGORIES.find((cat) => cat.id === openDropdownId);
 
   // Smoothly center active category item in mobile scroll container
   useEffect(() => {
@@ -267,7 +280,10 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   }, [activeCategory.id]);
 
   const handleCategoryClick = (category: AdminNavCategory) => {
-    if (isSwipingRef.current) return;
+    if (isSwipingRef.current) {
+      isSwipingRef.current = false;
+      return;
+    }
     if (category.directTab) {
       onNavigateTab(category.directTab);
       setOpenDropdownId(null);
@@ -290,7 +306,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   const handleTouchMove = (e: React.TouchEvent) => {
     const deltaX = Math.abs(e.touches[0].clientX - touchStartXRef.current);
     const deltaY = Math.abs(e.touches[0].clientY - touchStartYRef.current);
-    if (deltaX > 8 || deltaY > 8) {
+    if (deltaX > 10 || deltaY > 10) {
       isSwipingRef.current = true;
     }
   };
@@ -303,6 +319,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
 
       {/* ── STICKY TOP HEADER WITH HORIZONTAL CENTERED NAVIGATION ── */}
       <header
+        ref={headerRef}
         className={cn(
           "sticky top-0 z-40 w-full max-w-full transition-all duration-300 border-b",
           isScrolled
@@ -338,7 +355,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
             ref={navContainerRef}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            className="flex items-center justify-start md:justify-center flex-1 min-w-0 max-w-full overflow-x-auto no-scrollbar touch-pan-x py-1 px-1 relative z-50 scroll-smooth"
+            className="flex items-center justify-start md:justify-center flex-1 min-w-0 max-w-full overflow-x-auto md:overflow-visible no-scrollbar touch-pan-x py-1 px-1 relative z-50 scroll-smooth"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <nav className="flex items-center gap-1 p-1 sm:p-1.5 rounded-full bg-[#0c0c14]/90 border border-white/12 shadow-2xl backdrop-blur-2xl shrink-0 mx-auto">
@@ -425,7 +442,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                       )}
                     </button>
 
-                    {/* ── FLOATING POPUP DROPDOWN FOR SUBSECTIONS ── */}
+                    {/* ── DESKTOP FLOATING POPUP DROPDOWN (Untouched Desktop Behavior) ── */}
                     <AnimatePresence>
                       {hasSubsections && isDropdownOpen && (
                         <motion.div
@@ -433,7 +450,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.96 }}
                           transition={{ duration: 0.16, ease: "easeOut" }}
-                          className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 min-w-[260px] max-w-[calc(100vw-2rem)]"
+                          className="hidden md:block absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 min-w-[260px]"
                         >
                           <div className="relative rounded-2xl bg-[#09090e]/98 backdrop-blur-2xl border border-white/15 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.85)] ring-1 ring-white/5">
                             
@@ -536,6 +553,89 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
           </div>
 
         </div>
+
+        {/* ── MOBILE SUBMENU POPUP (Unclipped & Positioned Directly Below Header) ── */}
+        <AnimatePresence>
+          {openCategory?.subsections && openDropdownId && (
+            <div
+              ref={mobileMenuRef}
+              className="md:hidden fixed top-[74px] left-0 right-0 z-[100] px-3 flex justify-center pointer-events-auto"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="w-full max-w-sm rounded-2xl bg-[#09090e]/98 backdrop-blur-2xl border border-white/15 p-2.5 shadow-[0_20px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/10"
+              >
+                <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-white/[0.08]">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-fivem-orange flex items-center gap-1.5">
+                    {openCategory.label} Menu
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdownId(null)}
+                    className="p-1 rounded-lg text-white/40 hover:text-white bg-white/[0.04] active:scale-95 transition-all"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  {openCategory.subsections.map((sub) => {
+                    const SubIcon = sub.icon;
+                    const isSubActive = currentTab === sub.id;
+
+                    return (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => handleSubItemClick(sub.id)}
+                        className={cn(
+                          "w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer group active:scale-[0.98]",
+                          isSubActive
+                            ? sub.isDanger
+                              ? "bg-red-500/15 text-red-300 border border-red-500/30 shadow-md"
+                              : "bg-fivem-orange/15 text-white border border-fivem-orange/35 shadow-[0_0_15px_rgba(234,88,12,0.2)]"
+                            : sub.isDanger
+                              ? "hover:bg-red-500/10 text-red-400/80 hover:text-red-300 border border-transparent"
+                              : "hover:bg-white/[0.05] text-white/70 hover:text-white border border-transparent"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-transform",
+                            isSubActive
+                              ? sub.isDanger
+                                ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                : "bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30"
+                              : "bg-white/[0.04] text-white/50 border border-white/10"
+                          )}
+                        >
+                          <SubIcon size={15} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs font-bold font-display tracking-tight truncate">
+                              {sub.label}
+                            </span>
+                            {isSubActive && (
+                              <Check size={13} className={sub.isDanger ? "text-red-400" : "text-fivem-orange"} />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-white/40 leading-snug line-clamp-1 mt-0.5 font-sans">
+                            {sub.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ── MAIN STAGE ── */}

@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260820-2034',
+    id: 'entry-20260820-2041',
     dateKey: 'August 20, 2026',
-    timeStr: '8:34 PM',
-    fullTimestamp: 'August 20, 2026 at 8:34 PM',
-    labels: ['UI', 'PERFORMANCE', 'MOBILE'],
-    title: 'Contest Overview Sidebar, Profile Skeletons & Mobile Touch Navigation',
+    timeStr: '8:41 PM',
+    fullTimestamp: 'August 20, 2026 at 8:41 PM',
+    labels: ['UI', 'MOBILE', 'FIX'],
+    title: 'Mobile Admin Submenu Fix & Navigation Polish',
     bullets: [
+      'Fixed mobile Admin navigation category taps so submenus open immediately without clipping or requiring double taps.',
       'Refined the Contest Overview sidebar with a clean header, streamlined metrics, and clear contest-wide submission status guidance.',
       'Optimized the Profile Sheet with matching Skeleton placeholders for instant, zero-lag opening and mirrored exit animations.',
       'Added smooth touch-pan and momentum scrolling to the horizontal Admin top navigation on mobile with active category auto-centering.',
       'Eliminated mobile horizontal overflow and grey side space across all device widths (320px–430px+).',
-      'Replaced the vertical Admin sidebar with a floating top-centered horizontal navigation dock and interactive dropdown sub-menus.',
     ],
     author: 'Damon',
   },
