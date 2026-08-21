@@ -2726,7 +2726,7 @@ export default function App() {
                   />
                   <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/40 tracking-wider mt-1 select-none">
                     <Sparkles size={11} className="text-fivem-orange animate-pulse" />
-                    <span>Arrow keys or drag to rotate · Click active slide to inspect</span>
+                    <span>Scroll, drag, or arrow keys to rotate · Click active slide to inspect</span>
                   </div>
                 </motion.div>
               )}

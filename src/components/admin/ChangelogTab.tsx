@@ -28,15 +28,15 @@ const INITIAL_CHANGELOGS: ChangelogEntry[] = [
   {
     id: 'release-20260820-1915',
     version: 'v2.1.0',
-    title: '16:9 Radial 3D Hero Carousel, Cross-Category Submissions Showcase & Pixelation Safeguards',
+    title: '16:9 Vertical 3D Hero Carousel, Cross-Category Submissions Showcase & Pixelation Safeguards',
     category: 'UI/UX',
-    description: `• 16:9 Widescreen Radial 3D Hero Carousel: Upgraded the hero stage with the official Shadcn Studio Radial Carousel (carousel-12), featuring customized 3D cylinder arc geometry (R = 340px, θ = 30°) calibrated specifically for widescreen 16:9 in-game photography.
+    description: `• 16:9 Vertical 3D Cylinder Carousel: Transformed the hero showcase into a vertical 3D rolling carousel with customized pitch angle (θ = 24°) and vertical offset physics (115px) calibrated for widescreen 16:9 in-game photography.
 • Contest-Wide Cross-Category Showcase: Sourced submissions dynamically from all active contest categories into the hero showcase, pairing each slide with its authentic category badge, photographer title, and live vote counts.
 • Closed-Voting Pixelation Safeguards: Maintained strict platform censoring rules across the hero carousel—automatically rendering pixelated thumbnails and amber 'Pixelated until voting' indicator badges whenever voting is closed.
 • Seamless Full-Resolution Inspection: Wired 3D carousel slides directly to the platform's high-resolution Lightbox modal for one-click deep-dive inspections with full photographer telemetry.
-• Multi-Modal Navigation & Perfectly Centered Controls: Integrated interactive keyboard arrow navigation, drag/swipe physics with Framer Motion spring dampening, card-level floating flanking arrows, and a perfectly centered bottom control bar with indicator dots.`,
+• Multi-Modal Vertical Navigation: Integrated mouse wheel scrolling with debounced flip physics, vertical drag/swipe gestures with Framer Motion spring damping, floating top/bottom chevrons, and centered arrow controls.`,
     author: 'Damon',
-    date: 'Aug 20, 2026 at 7:20 PM',
+    date: 'Aug 20, 2026 at 7:28 PM',
   },
   {
     id: 'release-20260819-2035',

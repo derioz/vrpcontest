@@ -1,9 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { motion, AnimatePresence, PanInfo } from 'motion/react'
-import { EyeOff, Sparkles, Trophy, ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion, PanInfo } from 'motion/react'
+import { EyeOff, Sparkles, Trophy, ChevronUp, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Carousel, CarouselNext, CarouselPrevious } from '../../ui/carousel'
+import { Button } from '../../ui/button'
 import { cn } from '../../../lib/utils'
 
 export interface RadialCarouselItem {
@@ -56,21 +57,20 @@ const Images: RadialCarouselItem[] = [
   }
 ]
 
-// 16:9 cylinder arc parameters calibrated for widescreen landscape cards
-const R = 340 // cylinder radius (px)
-const THETA = 30 // angular step between neighbours (degrees)
+// 16:9 vertical 3D cylinder arc parameters
+const VERTICAL_STEP_Y = 115 // vertical pixel offset per step
+const THETA_X = 24 // angular pitch step around X-axis (degrees)
 
 const SPRING = { type: 'spring' as const, stiffness: 280, damping: 26, mass: 0.85 }
 
 function arcStyle(offset: number) {
-  const rad = (offset * THETA * Math.PI) / 180
   const abs = Math.abs(offset)
 
   return {
-    x: R * Math.sin(rad),
-    rotateY: -offset * THETA,
-    scale: Math.max(0.52, 1 - abs * 0.15),
-    opacity: abs > 2 ? 0 : Math.max(0.15, 1 - abs * 0.35),
+    y: offset * VERTICAL_STEP_Y,
+    rotateX: -offset * THETA_X,
+    scale: Math.max(0.62, 1 - abs * 0.14),
+    opacity: abs > 2 ? 0 : Math.max(0.18, 1 - abs * 0.38),
     zIndex: 20 - abs
   }
 }
@@ -94,6 +94,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
   const total = slides.length
   const [active, setActive] = React.useState(0)
   const isDragging = React.useRef(false)
+  const lastWheelTime = React.useRef(0)
 
   // Keep active index in bounds if slides length changes
   React.useEffect(() => {
@@ -110,26 +111,31 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
     [total]
   )
 
-  // Keyboard navigation
+  // Keyboard navigation (Supports Up/Down as primary and Left/Right as fallback)
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Don't intercept if typing in an input/textarea
       const target = e.target as HTMLElement
       if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return
 
-      if (e.key === 'ArrowLeft') go(-1)
-      else if (e.key === 'ArrowRight') go(1)
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault()
+        go(-1)
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        go(1)
+      }
     }
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [go])
 
+  // Vertical drag swipe
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 40
-    if (info.offset.x > threshold) {
+    const threshold = 35
+    if (info.offset.y > threshold) {
       go(-1)
-    } else if (info.offset.x < -threshold) {
+    } else if (info.offset.y < -threshold) {
       go(1)
     }
     setTimeout(() => {
@@ -137,20 +143,33 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
     }, 50)
   }
 
+  // Smooth mouse wheel navigation with debounce
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const now = Date.now()
+    if (now - lastWheelTime.current < 260) return
+    if (Math.abs(e.deltaY) > 25) {
+      lastWheelTime.current = now
+      go(e.deltaY > 0 ? 1 : -1)
+    }
+  }
+
   if (total === 0) return null
 
   return (
-    <Carousel className={cn('flex w-full flex-col items-center gap-4 py-2 select-none relative', className)}>
-      {/* 3D Perspective Viewport */}
+    <Carousel
+      className={cn('flex w-full flex-col items-center gap-3 py-2 select-none relative', className)}
+    >
+      {/* 3D Vertical Perspective Viewport */}
       <div
-        className="relative w-full h-[220px] sm:h-[260px] md:h-[290px] flex items-center justify-center overflow-visible"
+        className="relative w-full h-[360px] sm:h-[420px] md:h-[450px] flex items-center justify-center overflow-visible"
         style={{ perspective: 1100 }}
+        onWheel={handleWheel}
       >
         {slides.map((slide, i) => {
           // Shortest signed offset around the loop
           const raw = (i - active + total) % total
           const offset = raw > total / 2 ? raw - total : raw
-          const { x, rotateY, scale, opacity, zIndex } = arcStyle(offset)
+          const { y, rotateX, scale, opacity, zIndex } = arcStyle(offset)
           const isCenter = offset === 0
 
           const isPixelated = slide.isPixelated ?? (censorSubmissions && !isVotingOpen)
@@ -158,18 +177,17 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
           return (
             <motion.div
               key={slide.id || i}
-              className="absolute top-1/2 left-1/2 -translate-y-1/2 cursor-pointer select-none touch-none"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none touch-none"
               style={{
-                width: 'clamp(280px, 42vw, 420px)',
-                marginLeft: 'calc(-1 * clamp(280px, 42vw, 420px) / 2)',
+                width: 'clamp(280px, 42vw, 440px)',
                 zIndex,
                 transformStyle: 'preserve-3d'
               }}
-              animate={{ x, rotateY, scale, opacity }}
+              animate={{ y, rotateX, scale, opacity }}
               transition={SPRING}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.25}
               onDragStart={() => {
                 isDragging.current = true
               }}
@@ -193,8 +211,8 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
                 className={cn(
                   'relative w-full aspect-[16/9] overflow-hidden rounded-2xl transition-all duration-300',
                   isCenter
-                    ? 'shadow-[0_16px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(234,88,12,0.3)] ring-2 ring-fivem-orange/70 border border-white/20'
-                    : 'shadow-lg border border-white/10 opacity-80 hover:opacity-100 hover:border-white/25'
+                    ? 'shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(234,88,12,0.35)] ring-2 ring-fivem-orange/70 border border-white/20'
+                    : 'shadow-xl border border-white/10 opacity-75 hover:opacity-100 hover:border-white/25'
                 )}
               >
                 {/* 16:9 Image */}
@@ -265,26 +283,38 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
           )
         })}
 
-        {/* Side Flanking Arrows for direct card level navigation */}
-        <CarouselPrevious
-          className="absolute left-0 sm:left-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
+        {/* Top and Bottom Floating Navigation Chevrons */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-2 left-1/2 -translate-x-1/2 h-8 w-8 rounded-full bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
           onClick={() => go(-1)}
-          disabled={false}
-        />
-        <CarouselNext
-          className="absolute right-0 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
+          aria-label="Previous slide up"
+        >
+          <ChevronUp className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 h-8 w-8 rounded-full bg-black/75 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-2xl z-30 cursor-pointer transition-all active:scale-95"
           onClick={() => go(1)}
-          disabled={false}
-        />
+          aria-label="Next slide down"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Perfectly Centered Bottom Navigation Controls and Indicator Dots */}
-      <div className="flex items-center justify-center gap-3.5 w-full pt-2 z-30">
-        <CarouselPrevious
-          className="static top-auto left-auto translate-y-0 h-8 w-8 bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
+      <div className="flex items-center justify-center gap-3.5 w-full pt-1 z-30">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 rounded-full bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
           onClick={() => go(-1)}
-          disabled={false}
-        />
+          aria-label="Previous slide"
+        >
+          <ArrowUp className="h-3.5 w-3.5" />
+        </Button>
 
         {/* Dynamic Dot Indicators */}
         <div className="flex items-center justify-center gap-1.5 py-1 px-1">
@@ -294,21 +324,25 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
               type="button"
               onClick={() => setActive(idx)}
               className={cn(
-                'h-1.5 rounded-full transition-all duration-300 cursor-pointer',
+                'rounded-full transition-all duration-300 cursor-pointer',
                 idx === active
-                  ? 'w-6 bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.7)]'
-                  : 'w-1.5 bg-white/25 hover:bg-white/50'
+                  ? 'h-1.5 w-6 bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.7)]'
+                  : 'h-1.5 w-1.5 bg-white/25 hover:bg-white/50'
               )}
               aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
         </div>
 
-        <CarouselNext
-          className="static top-auto right-auto translate-y-0 h-8 w-8 bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 rounded-full bg-black/70 hover:bg-fivem-orange hover:text-white border border-white/20 text-white shadow-md cursor-pointer transition-all active:scale-95"
           onClick={() => go(1)}
-          disabled={false}
-        />
+          aria-label="Next slide"
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+        </Button>
       </div>
     </Carousel>
   )
