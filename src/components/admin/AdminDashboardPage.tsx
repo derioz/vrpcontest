@@ -216,11 +216,20 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   const headerRef = useRef<HTMLElement>(null);
   const navContainerRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Desktop intentional hover timers
+  const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Touch tracking for swipe vs tap discrimination on mobile
   const touchStartXRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
+
+  const isDesktop = () => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth >= 768 && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  };
 
   // Monitor scroll for smooth backdrop blur interpolation
   useEffect(() => {
@@ -240,11 +249,15 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
         !headerRef.current.contains(target) &&
         (!mobileMenuRef.current || !mobileMenuRef.current.contains(target))
       ) {
+        if (openTimerRef.current) clearTimeout(openTimerRef.current);
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
         setOpenDropdownId(null);
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (openTimerRef.current) clearTimeout(openTimerRef.current);
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
         setOpenDropdownId(null);
       }
     };
@@ -256,6 +269,14 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('touchstart', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (openTimerRef.current) clearTimeout(openTimerRef.current);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
   }, []);
 
@@ -279,11 +300,90 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
     }
   }, [activeCategory.id]);
 
+  // ── DESKTOP HOVER BEHAVIOR ──
+  const handleCategoryMouseEnter = (category: AdminNavCategory) => {
+    if (!isDesktop()) return;
+
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    setHoveredCategoryId(category.id);
+
+    if (category.subsections) {
+      if (openDropdownId !== null && openDropdownId !== category.id) {
+        // Submenu is ALREADY open + hover another category with submenu -> switch immediately (0ms delay)
+        if (openTimerRef.current) clearTimeout(openTimerRef.current);
+        setOpenDropdownId(category.id);
+      } else if (openDropdownId === null) {
+        // No submenu open + hover category -> intentional short delay (180ms)
+        if (openTimerRef.current) clearTimeout(openTimerRef.current);
+        openTimerRef.current = setTimeout(() => {
+          setOpenDropdownId(category.id);
+        }, 180);
+      }
+    } else {
+      // Category without submenu (Overview, Submissions)
+      if (openTimerRef.current) clearTimeout(openTimerRef.current);
+      if (openDropdownId !== null) {
+        closeTimerRef.current = setTimeout(() => {
+          setOpenDropdownId(null);
+        }, 150);
+      }
+    }
+  };
+
+  const handleCategoryMouseLeave = (category: AdminNavCategory) => {
+    if (!isDesktop()) return;
+
+    if (openTimerRef.current) {
+      clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+
+    setHoveredCategoryId(null);
+
+    if (openDropdownId === category.id) {
+      // Moving mouse away from category trigger -> short close delay (180ms)
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = setTimeout(() => {
+        setOpenDropdownId(null);
+      }, 180);
+    }
+  };
+
+  const handleSubmenuMouseEnter = () => {
+    if (!isDesktop()) return;
+    // Moving cursor into the submenu keeps it open
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (openTimerRef.current) {
+      clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+  };
+
+  const handleSubmenuMouseLeave = () => {
+    if (!isDesktop()) return;
+    // Moving cursor out of the submenu closes it after short delay (180ms)
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      setOpenDropdownId(null);
+    }, 180);
+  };
+
   const handleCategoryClick = (category: AdminNavCategory) => {
+    if (openTimerRef.current) clearTimeout(openTimerRef.current);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+
     if (isSwipingRef.current) {
       isSwipingRef.current = false;
       return;
     }
+
     if (category.directTab) {
       onNavigateTab(category.directTab);
       setOpenDropdownId(null);
@@ -293,6 +393,8 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   };
 
   const handleSubItemClick = (tabId: AdminRouteTab) => {
+    if (openTimerRef.current) clearTimeout(openTimerRef.current);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     onNavigateTab(tabId);
     setOpenDropdownId(null);
   };
@@ -371,12 +473,16 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                 const showLockedBadge = category.id === 'contest' && siteClosed;
 
                 return (
-                  <div key={category.id} data-category-id={category.id} className="relative shrink-0">
+                  <div
+                    key={category.id}
+                    data-category-id={category.id}
+                    className="relative shrink-0"
+                    onMouseEnter={() => handleCategoryMouseEnter(category)}
+                    onMouseLeave={() => handleCategoryMouseLeave(category)}
+                  >
                     <button
                       type="button"
                       onClick={() => handleCategoryClick(category)}
-                      onMouseEnter={() => setHoveredCategoryId(category.id)}
-                      onMouseLeave={() => setHoveredCategoryId(null)}
                       className={cn(
                         "relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-display font-bold transition-all duration-200 cursor-pointer select-none outline-none whitespace-nowrap",
                         isActive
@@ -442,7 +548,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                       )}
                     </button>
 
-                    {/* ── DESKTOP FLOATING POPUP DROPDOWN (Untouched Desktop Behavior) ── */}
+                    {/* ── DESKTOP FLOATING POPUP DROPDOWN (Enhanced Hover Interaction) ── */}
                     <AnimatePresence>
                       {hasSubsections && isDropdownOpen && (
                         <motion.div
@@ -451,6 +557,8 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
                           exit={{ opacity: 0, y: 6, scale: 0.96 }}
                           transition={{ duration: 0.16, ease: "easeOut" }}
                           className="hidden md:block absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 min-w-[260px]"
+                          onMouseEnter={handleSubmenuMouseEnter}
+                          onMouseLeave={handleSubmenuMouseLeave}
                         >
                           <div className="relative rounded-2xl bg-[#09090e]/98 backdrop-blur-2xl border border-white/15 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.85)] ring-1 ring-white/5">
                             
