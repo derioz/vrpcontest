@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { Clock, Calendar, Sparkles, Trophy, Zap, Info } from 'lucide-react';
+import { Calendar, Sparkles } from 'lucide-react';
 
 export interface CountdownClockProps {
   targetDate?: Date | string | number;
@@ -26,40 +26,38 @@ interface TimeLeft {
 // Target: Friday, August 28th, 2026 at 5:59 PM Eastern Time (EDT = UTC-4)
 const DEFAULT_TARGET_TIMESTAMP = new Date('2026-08-28T17:59:00-04:00').getTime();
 
-/* ── Web Audio API Mechanical Sound Synthesizer (Zero Dependencies) ── */
-function playMechanicalFlipSound(type: 'single' | 'cascade' = 'single') {
+/* ── Web Audio API Mechanical Sound Synthesizer ── */
+function playMechanicalSound(type: 'tick' | 'cascade' = 'tick') {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
 
-    if (type === 'single') {
-      // Subtle mechanical relay click
+    if (type === 'tick') {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(140, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.04);
-      gain.gain.setValueAtTime(0.04, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.03);
+      gain.gain.setValueAtTime(0.02, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.03);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.04);
+      osc.stop(ctx.currentTime + 0.03);
     } else {
-      // Cascade rapid clatter
-      for (let i = 0; i < 8; i++) {
-        const time = ctx.currentTime + i * 0.06;
+      for (let i = 0; i < 7; i++) {
+        const time = ctx.currentTime + i * 0.07;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(160 + (i % 3) * 40, time);
+        osc.frequency.setValueAtTime(140 + (i % 3) * 30, time);
         osc.frequency.exponentialRampToValueAtTime(30, time + 0.035);
-        gain.gain.setValueAtTime(0.05, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
+        gain.gain.setValueAtTime(0.035, time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.035);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(time);
@@ -67,11 +65,11 @@ function playMechanicalFlipSound(type: 'single' | 'cascade' = 'single') {
       }
     }
   } catch {
-    // AudioContext blocked or not allowed — silently ignore
+    // AudioContext silently ignored if blocked by browser policy
   }
 }
 
-/* ── Single Split-Flap Digit Half View ── */
+/* ── Single Split-Flap Face Layer ── */
 interface FlapFaceProps {
   value: string;
   type: 'top' | 'bottom';
@@ -88,8 +86,8 @@ const FlapFace = React.memo(({ value, type, className, children }: FlapFaceProps
         'absolute inset-x-0 w-full overflow-hidden select-none',
         isTop ? 'top-0 h-1/2 rounded-t-lg sm:rounded-t-xl' : 'bottom-0 h-1/2 rounded-b-lg sm:rounded-b-xl',
         isTop
-          ? 'bg-gradient-to-b from-[#1c1d22] via-[#15161a] to-[#101114] border-t border-x border-white/[0.12]'
-          : 'bg-gradient-to-b from-[#0c0d10] via-[#121316] to-[#17181d] border-b border-x border-white/[0.08]',
+          ? 'bg-gradient-to-b from-[#1c1d22] via-[#141518] to-[#0f1013] border-t border-x border-white/[0.12]'
+          : 'bg-gradient-to-b from-[#0b0c0e] via-[#111215] to-[#16171a] border-b border-x border-white/[0.08]',
         className
       )}
       style={{
@@ -98,13 +96,13 @@ const FlapFace = React.memo(({ value, type, className, children }: FlapFaceProps
           : 'inset 0 4px 8px rgba(0,0,0,0.8), inset 0 -1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      {/* Subtle textured paper / card grain overlay */}
+      {/* Texture grain */}
       <div
         className={cn(
-          'absolute inset-0 pointer-events-none opacity-30',
+          'absolute inset-0 pointer-events-none opacity-25',
           isTop
             ? 'bg-[linear-gradient(to_bottom,rgba(255,255,255,0.06),transparent_70%)]'
-            : 'bg-[linear-gradient(to_bottom,rgba(0,0,0,0.6),transparent_60%)]'
+            : 'bg-[linear-gradient(to_bottom,rgba(0,0,0,0.5),transparent_60%)]'
         )}
       />
 
@@ -117,8 +115,8 @@ const FlapFace = React.memo(({ value, type, className, children }: FlapFaceProps
       >
         <span
           className={cn(
-            'font-mono font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]',
-            'text-[1.85rem] xs:text-[2.25rem] sm:text-[3rem] md:text-[3.5rem] lg:text-[4rem]'
+            'font-mono font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]',
+            'text-[1.75rem] xs:text-[2.1rem] sm:text-[2.75rem] md:text-[3.25rem] lg:text-[3.6rem]'
           )}
         >
           {value}
@@ -143,35 +141,35 @@ interface MechanicalFlipCardProps {
 const colorThemeMap = {
   orange: {
     accent: '#ea580c',
-    glow: 'rgba(234, 88, 12, 0.25)',
-    border: 'border-orange-500/30 group-hover:border-orange-500/60',
-    labelBg: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    indicator: 'bg-orange-500',
-    topSheen: 'from-orange-500/30 via-amber-500/10 to-transparent',
+    glow: 'rgba(234, 88, 12, 0.15)',
+    borderHover: 'group-hover:border-orange-500/40',
+    labelDot: 'bg-orange-500',
+    labelText: 'text-orange-400/80',
+    sheen: 'from-orange-500/20 via-amber-500/5 to-transparent',
   },
   amber: {
     accent: '#f59e0b',
-    glow: 'rgba(245, 158, 11, 0.25)',
-    border: 'border-amber-500/30 group-hover:border-amber-500/60',
-    labelBg: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-    indicator: 'bg-amber-400',
-    topSheen: 'from-amber-500/30 via-yellow-500/10 to-transparent',
+    glow: 'rgba(245, 158, 11, 0.15)',
+    borderHover: 'group-hover:border-amber-500/40',
+    labelDot: 'bg-amber-400',
+    labelText: 'text-amber-400/80',
+    sheen: 'from-amber-500/20 via-yellow-500/5 to-transparent',
   },
   cyan: {
     accent: '#38bdf8',
-    glow: 'rgba(56, 189, 248, 0.25)',
-    border: 'border-sky-500/30 group-hover:border-sky-500/60',
-    labelBg: 'bg-sky-500/10 text-sky-300 border-sky-500/20',
-    indicator: 'bg-sky-400',
-    topSheen: 'from-sky-500/30 via-blue-500/10 to-transparent',
+    glow: 'rgba(56, 189, 248, 0.15)',
+    borderHover: 'group-hover:border-sky-500/40',
+    labelDot: 'bg-sky-400',
+    labelText: 'text-sky-400/80',
+    sheen: 'from-sky-500/20 via-blue-500/5 to-transparent',
   },
   emerald: {
     accent: '#10b981',
-    glow: 'rgba(16, 185, 129, 0.25)',
-    border: 'border-emerald-500/30 group-hover:border-emerald-500/60',
-    labelBg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-    indicator: 'bg-emerald-400',
-    topSheen: 'from-emerald-500/30 via-teal-500/10 to-transparent',
+    glow: 'rgba(16, 185, 129, 0.15)',
+    borderHover: 'group-hover:border-emerald-500/40',
+    labelDot: 'bg-emerald-400',
+    labelText: 'text-emerald-400/80',
+    sheen: 'from-emerald-500/20 via-teal-500/5 to-transparent',
   },
 };
 
@@ -201,31 +199,32 @@ const MechanicalFlipCard = React.memo(({ value, label, colorScheme, isOverdrive 
   }, [formattedValue, currentVal]);
 
   return (
-    <div className="group flex flex-col items-center gap-2 sm:gap-3 flex-1 min-w-0">
-      {/* Outer Mechanical Bezel & Housing */}
+    <div className="group flex flex-col items-center gap-1.5 sm:gap-2.5 flex-1 min-w-0">
+      {/* Flip Card Chassis */}
       <div
         className={cn(
-          'relative w-full aspect-[1/1.18] max-w-[80px] xs:max-w-[94px] sm:max-w-[114px] md:max-w-[128px] lg:max-w-[140px]',
-          'rounded-xl sm:rounded-2xl p-[3px] sm:p-1.5',
-          'bg-gradient-to-b from-[#24262e] via-[#15161b] to-[#0a0b0e]',
-          'border border-white/10 shadow-[0_16px_36px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.15)]',
+          'relative w-full aspect-[1/1.16] max-w-[72px] xs:max-w-[84px] sm:max-w-[104px] md:max-w-[118px] lg:max-w-[128px]',
+          'rounded-xl sm:rounded-2xl p-[2px] sm:p-1',
+          'bg-gradient-to-b from-[#202128] via-[#131418] to-[#090a0d]',
+          'border border-white/10 shadow-[0_12px_28px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.12)]',
           'transition-all duration-300 group-hover:-translate-y-1',
-          isOverdrive && 'ring-2 ring-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.4)]'
+          theme.borderHover,
+          isOverdrive && 'ring-2 ring-orange-500/50 shadow-[0_0_24px_rgba(234,88,12,0.35)]'
         )}
         style={{
-          boxShadow: `0 12px 32px rgba(0,0,0,0.7), 0 0 20px ${theme.glow}`,
+          boxShadow: `0 8px 24px rgba(0,0,0,0.6), 0 0 16px ${theme.glow}`,
         }}
       >
-        {/* Chassis Corner Rivets / Fasteners */}
-        <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-zinc-600 border border-zinc-400/40 shadow-inner" />
-        <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-zinc-600 border border-zinc-400/40 shadow-inner" />
-        <div className="absolute bottom-1 left-1 sm:bottom-1.5 sm:left-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-zinc-600 border border-zinc-400/40 shadow-inner" />
-        <div className="absolute bottom-1 right-1 sm:bottom-1.5 sm:right-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-zinc-600 border border-zinc-400/40 shadow-inner" />
+        {/* Corner Rivet Fasteners */}
+        <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
+        <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
+        <div className="absolute bottom-1 left-1 sm:bottom-1.5 sm:left-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
+        <div className="absolute bottom-1 right-1 sm:bottom-1.5 sm:right-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
 
-        {/* Dynamic Specular Top Accent Sheen */}
-        <div className={cn('absolute inset-x-3 -top-px h-[2px] bg-gradient-to-r rounded-full opacity-70', theme.topSheen)} />
+        {/* Dynamic Top Sheen */}
+        <div className={cn('absolute inset-x-2 -top-px h-px bg-gradient-to-r rounded-full opacity-60', theme.sheen)} />
 
-        {/* 3D Perspective Card Arena */}
+        {/* 3D Flap Arena */}
         <div
           className="relative w-full h-full rounded-lg sm:rounded-xl overflow-hidden bg-black/80"
           style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
@@ -236,7 +235,7 @@ const MechanicalFlipCard = React.memo(({ value, label, colorScheme, isOverdrive 
           {/* Layer 2: Static Bottom (Shows Old Value until covered) */}
           <FlapFace value={previousVal} type="bottom" />
 
-          {/* Layer 3 & 4: Animated Flipping Flaps (Active during transition) */}
+          {/* Layer 3 & 4: Animated Flipping Flaps */}
           {isFlipping && (
             <React.Fragment key={flipId}>
               {/* Front Top Flap (Folds down from 0 to -90 deg) */}
@@ -251,26 +250,20 @@ const MechanicalFlipCard = React.memo(({ value, label, colorScheme, isOverdrive 
             </React.Fragment>
           )}
 
-          {/* Mechanical Split Seam Line & Central Axis Rivets */}
-          <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-[1.5px] sm:h-[2px] bg-black/95 shadow-[0_1px_0_rgba(255,255,255,0.08),0_-1px_0_rgba(0,0,0,0.9)] z-40">
+          {/* Center Seam Line & Axle Hinges */}
+          <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-[1.5px] bg-black/95 shadow-[0_1px_0_rgba(255,255,255,0.06),0_-1px_0_rgba(0,0,0,0.85)] z-40">
             {/* Center axle hinge pin - Left */}
-            <div className="absolute left-[-2px] sm:left-[-3px] top-1/2 -translate-y-1/2 w-1.5 sm:w-2 h-3 sm:h-3.5 rounded-r bg-gradient-to-r from-zinc-800 via-zinc-400 to-zinc-700 shadow-md border-y border-r border-zinc-950" />
+            <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-1.5 h-2.5 rounded-r bg-gradient-to-r from-zinc-800 via-zinc-400 to-zinc-700 shadow-sm border-y border-r border-zinc-950" />
             {/* Center axle hinge pin - Right */}
-            <div className="absolute right-[-2px] sm:right-[-3px] top-1/2 -translate-y-1/2 w-1.5 sm:w-2 h-3 sm:h-3.5 rounded-l bg-gradient-to-l from-zinc-800 via-zinc-400 to-zinc-700 shadow-md border-y border-l border-zinc-950" />
+            <div className="absolute right-[-2px] top-1/2 -translate-y-1/2 w-1.5 h-2.5 rounded-l bg-gradient-to-l from-zinc-800 via-zinc-400 to-zinc-700 shadow-sm border-y border-l border-zinc-950" />
           </div>
         </div>
       </div>
 
-      {/* Unit Sub-Label Badge */}
-      <div
-        className={cn(
-          'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg border backdrop-blur-sm',
-          'transition-all duration-300',
-          theme.labelBg
-        )}
-      >
-        <div className={cn('w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full animate-pulse', theme.indicator)} />
-        <span className="text-[9px] xs:text-[10px] sm:text-xs font-mono font-black uppercase tracking-[0.18em]">
+      {/* Under-Card Minimalist Label */}
+      <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className={cn('w-1 h-1 rounded-full opacity-80', theme.labelDot)} />
+        <span className={cn('text-[9px] xs:text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-[0.2em]', theme.labelText)}>
           {label}
         </span>
       </div>
@@ -281,11 +274,15 @@ const MechanicalFlipCard = React.memo(({ value, label, colorScheme, isOverdrive 
 MechanicalFlipCard.displayName = 'MechanicalFlipCard';
 
 /* ── Split Separator / Colon Divider ── */
-const ClockDivider = React.memo(() => {
+const ClockDivider = React.memo(({ onClick }: { onClick?: () => void }) => {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 sm:gap-3.5 pb-6 sm:pb-8 px-0.5 sm:px-1 select-none">
-      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gradient-to-br from-white to-zinc-400 shadow-[0_0_8px_rgba(255,255,255,0.6)] animate-mechanical-tick" />
-      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gradient-to-br from-white to-zinc-400 shadow-[0_0_8px_rgba(255,255,255,0.6)] animate-mechanical-tick" />
+    <div
+      onClick={onClick}
+      className="flex flex-col items-center justify-center gap-1.5 sm:gap-2.5 pb-4 sm:pb-6 px-0.5 sm:px-1 select-none cursor-pointer group"
+      title="Click for mechanical pulse"
+    >
+      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white/45 group-hover:bg-orange-400 group-hover:shadow-[0_0_8px_rgba(234,88,12,0.8)] transition-all animate-mechanical-tick" />
+      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white/45 group-hover:bg-orange-400 group-hover:shadow-[0_0_8px_rgba(234,88,12,0.8)] transition-all animate-mechanical-tick" />
     </div>
   );
 });
@@ -336,7 +333,7 @@ export function CountdownClock({
   const tiltRafRef = useRef<number | null>(null);
 
   // Mouse Tilt Parallax State
-  const [tilt, setTilt] = useState({ x: 0, y: 0, mouseX: '50%', mouseY: '50%' });
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   /* ── 1-Second Master Wall-Clock Synchronized Loop ── */
   useEffect(() => {
@@ -371,9 +368,8 @@ export function CountdownClock({
     };
   }, [calculateTimeLeft, onComplete]);
 
-  /* ── Mouse Parallax & Dynamic Light Reflector (RAF Optimized) ── */
+  /* ── Mouse Parallax on Cards (RAF Optimized) ── */
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    // Check prefers-reduced-motion
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     if (!clockContainerRef.current) return;
 
@@ -385,29 +381,23 @@ export function CountdownClock({
     const py = (e.clientY - rect.top) / rect.height;
 
     tiltRafRef.current = requestAnimationFrame(() => {
-      const tiltX = (py - 0.5) * -8; // Up/down tilt (+/- 4deg)
-      const tiltY = (px - 0.5) * 8;  // Left/right tilt (+/- 4deg)
-      setTilt({
-        x: tiltX,
-        y: tiltY,
-        mouseX: `${(px * 100).toFixed(1)}%`,
-        mouseY: `${(py * 100).toFixed(1)}%`,
-      });
+      const tiltX = (py - 0.5) * -5; // Subtle up/down tilt (+/- 2.5deg)
+      const tiltY = (px - 0.5) * 5;  // Subtle left/right tilt (+/- 2.5deg)
+      setTilt({ x: tiltX, y: tiltY });
     });
   }, []);
 
   const handlePointerLeave = useCallback(() => {
     if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
-    setTilt({ x: 0, y: 0, mouseX: '50%', mouseY: '50%' });
+    setTilt({ x: 0, y: 0 });
   }, []);
 
   /* ── Secret Easter Egg: Split-Flap Time Warp Cascade ── */
   const triggerEasterEgg = useCallback(() => {
     if (easterEggActive) return;
     setEasterEggActive(true);
-    playMechanicalFlipSound('cascade');
+    playMechanicalSound('cascade');
 
-    // Sequence 1: Matrix cyber cascade scramble
     const scrambleFrames = [
       { days: '88', hours: '88', mins: '88', secs: '88' },
       { days: '77', hours: '42', mins: '19', secs: '66' },
@@ -427,15 +417,15 @@ export function CountdownClock({
       }
     }, 220);
 
-    setEasterEggMessage('⚡ OVERDRIVE FLIP CASCADE • TARGET: AUG 28 • LOS SANTOS LEGEND');
+    setEasterEggMessage('THE CLOCK IS TICKING... SUBMIT YOUR SHOT');
 
-    // Settle back to live countdown after 3.2s
+    // Settle back to live countdown after 2.8s
     setTimeout(() => {
       setEasterEggOverrideVals(null);
       setEasterEggActive(false);
       setEasterEggMessage('');
-      playMechanicalFlipSound('single');
-    }, 3200);
+      playMechanicalSound('tick');
+    }, 2800);
   }, [easterEggActive]);
 
   const displayValues = useMemo(() => {
@@ -474,169 +464,117 @@ export function CountdownClock({
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
       className={cn(
-        'relative w-full max-w-2xl mx-auto flex flex-col items-center gap-4 sm:gap-6 p-4 sm:p-7 rounded-2xl sm:rounded-3xl',
-        'bg-gradient-to-b from-[#16171d]/90 via-[#0e0f13]/95 to-[#08090b]/98',
-        'border border-white/10 backdrop-blur-xl',
-        'shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.12)]',
-        'transition-transform duration-200 ease-out select-none',
+        'relative w-full flex flex-col items-start gap-3 sm:gap-4 select-none bg-transparent border-none p-0',
         className
       )}
       style={{
-        transform: `perspective(1200px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        transition: 'transform 0.2s ease-out',
       }}
     >
-      {/* Dynamic Specular Light Glare moving across the clock frame */}
-      <div
-        className="absolute inset-0 rounded-2xl sm:rounded-3xl pointer-events-none transition-opacity duration-300 opacity-60"
-        style={{
-          background: `radial-gradient(600px circle at ${tilt.mouseX} ${tilt.mouseY}, rgba(255,255,255,0.06), transparent 70%)`,
-        }}
-      />
-
-      {/* ── Top Plaque: Full Event Date & Official Status ── */}
+      {/* ── Integrated Event Date Header Row ── */}
       <div
         onClick={triggerEasterEgg}
-        title="Click to trigger mechanical diagnostic cascade"
-        className="relative group cursor-pointer w-full flex flex-col items-center gap-2"
+        className="w-full flex flex-wrap items-center gap-2 sm:gap-3 cursor-pointer group"
+        title="Click to trigger mechanical diagnostic"
       >
-        <div
-          className={cn(
-            'flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl',
-            'bg-white/[0.03] border border-white/10 hover:border-orange-500/40',
-            'shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]',
-            'transition-all duration-300 hover:scale-[1.01]',
-            easterEggActive && 'border-orange-500/60 shadow-[0_0_24px_rgba(234,88,12,0.35)]'
-          )}
-        >
-          {/* Status Dot / Ping */}
-          <div className="flex items-center gap-1.5">
-            <span className="relative flex h-2 w-2">
-              <span
-                className={cn(
-                  'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
-                  isCompleted ? 'bg-red-400' : 'bg-orange-400'
-                )}
-              />
-              <span
-                className={cn(
-                  'relative inline-flex rounded-full h-2 w-2',
-                  isCompleted ? 'bg-red-500' : 'bg-orange-500'
-                )}
-              />
-            </span>
-            <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-[0.18em] text-orange-400">
-              {isCompleted ? 'DEADLINE REACHED' : label}
-            </span>
-          </div>
-
-          <div className="h-3 w-px bg-white/20 hidden xs:block" />
-
-          {/* Full Integrated Event Date */}
-          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-display font-black tracking-wide text-white uppercase drop-shadow-sm">
-            <Calendar size={13} className="text-orange-400/90 shrink-0" />
-            <span>FRIDAY, AUGUST 28, 2026</span>
-            <span className="text-orange-400 font-bold">•</span>
-            <span className="text-orange-300 font-mono font-bold">5:59 PM</span>
-            <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 font-mono font-bold">
-              ET
-            </span>
-          </div>
-
-          <Zap size={12} className="text-white/30 group-hover:text-orange-400 transition-colors hidden sm:block" />
+        {/* Live Status Indicator */}
+        <div className="flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2">
+            <span
+              className={cn(
+                'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
+                isCompleted ? 'bg-red-400' : 'bg-orange-400'
+              )}
+            />
+            <span
+              className={cn(
+                'relative inline-flex rounded-full h-2 w-2',
+                isCompleted ? 'bg-red-500' : 'bg-orange-500'
+              )}
+            />
+          </span>
+          <span className="text-[11px] sm:text-xs font-mono font-black uppercase tracking-[0.18em] text-orange-400">
+            {isCompleted ? 'DEADLINE REACHED' : label}
+          </span>
         </div>
 
-        {/* Easter Egg Dynamic Message Bar */}
+        <span className="text-white/20 hidden xs:inline">•</span>
+
+        {/* Full Event Date */}
+        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-display font-black tracking-wide text-white/90 uppercase">
+          <Calendar size={13} className="text-orange-400/90 shrink-0" />
+          <span>FRIDAY, AUGUST 28, 2026</span>
+          <span className="text-orange-400 font-bold">•</span>
+          <span className="text-orange-300 font-mono font-bold">5:59 PM</span>
+          <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-300 border border-orange-500/25 font-mono font-bold">
+            ET
+          </span>
+        </div>
+
+        {/* Easter Egg Message */}
         <AnimatePresence>
           {easterEggMessage && (
             <motion.div
-              initial={{ opacity: 0, y: -6, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.95 }}
-              className="flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] sm:text-xs font-mono font-bold tracking-wider animate-pulse"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-bold text-orange-400 animate-pulse ml-auto"
             >
-              <Sparkles size={12} className="text-orange-400" />
+              <Sparkles size={11} />
               <span>{easterEggMessage}</span>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── Mechanical Flip Clock Display Arena ── */}
-      {!isCompleted ? (
-        <div className="w-full flex items-center justify-between gap-1 xs:gap-2 sm:gap-3 px-1 sm:px-2">
-          {/* Days */}
-          <MechanicalFlipCard
-            value={displayValues.days}
-            label={displayValues.labels.days}
-            colorScheme="orange"
-            isOverdrive={easterEggActive}
-          />
+      {/* ── Mechanical Flip Clock Display Units ── */}
+      <div className="w-full flex items-center justify-between gap-1 xs:gap-2 sm:gap-3">
+        {/* Days */}
+        <MechanicalFlipCard
+          value={displayValues.days}
+          label={displayValues.labels.days}
+          colorScheme="orange"
+          isOverdrive={easterEggActive}
+        />
 
-          <ClockDivider />
+        <ClockDivider onClick={triggerEasterEgg} />
 
-          {/* Hours */}
-          <MechanicalFlipCard
-            value={displayValues.hours}
-            label={displayValues.labels.hours}
-            colorScheme="amber"
-            isOverdrive={easterEggActive}
-          />
+        {/* Hours */}
+        <MechanicalFlipCard
+          value={displayValues.hours}
+          label={displayValues.labels.hours}
+          colorScheme="amber"
+          isOverdrive={easterEggActive}
+        />
 
-          <ClockDivider />
+        <ClockDivider onClick={triggerEasterEgg} />
 
-          {/* Minutes */}
-          <MechanicalFlipCard
-            value={displayValues.minutes}
-            label={displayValues.labels.mins}
-            colorScheme="cyan"
-            isOverdrive={easterEggActive}
-          />
+        {/* Minutes */}
+        <MechanicalFlipCard
+          value={displayValues.minutes}
+          label={displayValues.labels.mins}
+          colorScheme="cyan"
+          isOverdrive={easterEggActive}
+        />
 
-          <ClockDivider />
+        <ClockDivider onClick={triggerEasterEgg} />
 
-          {/* Seconds */}
-          <MechanicalFlipCard
-            value={displayValues.seconds}
-            label={displayValues.labels.secs}
-            colorScheme="emerald"
-            isOverdrive={easterEggActive}
-          />
-        </div>
-      ) : (
-        /* ── Completion Showcase Sequence ── */
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full flex flex-col items-center gap-4 py-6 px-4 rounded-2xl bg-gradient-to-b from-amber-500/10 via-zinc-900 to-black border border-amber-500/30 text-center"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.4)]">
-            <Trophy size={24} />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg sm:text-xl font-black font-display text-white uppercase tracking-wide">
-              Submissions Closed • Judging Underway
-            </h3>
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
-              The submission window has officially closed. Community voting and final judging are currently active. Thank you to all participants!
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-[11px] font-mono uppercase font-bold tracking-widest text-amber-400 bg-amber-500/10 px-4 py-1.5 rounded-full border border-amber-500/30">
-            <Clock size={12} />
-            Final Lock: August 28, 2026 • 5:59 PM EDT
-          </div>
-        </motion.div>
-      )}
-
-      {/* ── Subtitle / Footer Plaque ── */}
-      <div className="w-full flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5 text-[10px] sm:text-xs font-mono text-zinc-400/80">
-        <div className="flex items-center gap-1.5">
-          <Info size={11} className="text-orange-400/70 shrink-0" />
-          <span>Locked to America/New_York (EDT) Timezone</span>
-        </div>
-        <div className="flex items-center gap-1 text-white/40 hover:text-white/70 transition-colors">
-          <span>Mechanical Split-Flap System</span>
-        </div>
+        {/* Seconds */}
+        <MechanicalFlipCard
+          value={displayValues.seconds}
+          label={displayValues.labels.secs}
+          colorScheme="emerald"
+          isOverdrive={easterEggActive}
+        />
       </div>
+
+      {/* Completed Subtle Notice */}
+      {isCompleted && (
+        <div className="w-full pt-1 flex items-center gap-2 text-xs font-mono font-bold text-amber-400">
+          <span>⚠️ Official deadline has arrived. Submissions closed. Community voting underway.</span>
+        </div>
+      )}
     </div>
   );
 }
