@@ -468,6 +468,110 @@ body,
 }
 
 /* ═══════════════════════════════════════════════════════
+   Mechanical Split-Flap 3D Clock Animations
+   ═══════════════════════════════════════════════════════ */
+
+@keyframes flip-top-fold {
+  0% {
+    transform: rotateX(0deg);
+    filter: brightness(1);
+  }
+  100% {
+    transform: rotateX(-90deg);
+    filter: brightness(0.4);
+  }
+}
+
+@keyframes flip-bottom-unfold {
+  0% {
+    transform: rotateX(90deg);
+    filter: brightness(1.4);
+  }
+  70% {
+    transform: rotateX(-5deg);
+    filter: brightness(1.05);
+  }
+  88% {
+    transform: rotateX(2deg);
+    filter: brightness(1);
+  }
+  100% {
+    transform: rotateX(0deg);
+    filter: brightness(1);
+  }
+}
+
+@keyframes flip-shadow-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes flip-highlight-out {
+  0% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mechanical-tick {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(234, 88, 12, 0.8));
+  }
+}
+
+@keyframes plaque-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-flip-top {
+  animation: flip-top-fold 280ms cubic-bezier(0.4, 0, 0.7, 1) forwards;
+  transform-origin: bottom center;
+  backface-visibility: hidden;
+  will-change: transform, filter;
+}
+
+.animate-flip-bottom {
+  animation: flip-bottom-unfold 320ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 270ms forwards;
+  transform-origin: top center;
+  backface-visibility: hidden;
+  will-change: transform, filter;
+}
+
+.animate-flip-shadow {
+  animation: flip-shadow-in 280ms cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
+.animate-flip-highlight {
+  animation: flip-highlight-out 320ms cubic-bezier(0.2, 0.9, 0.3, 1) 270ms forwards;
+}
+
+.animate-mechanical-tick {
+  animation: mechanical-tick 1s ease-in-out infinite;
+}
+
+.animate-plaque-shimmer {
+  background-size: 200% 100%;
+  animation: plaque-shimmer 4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════
    Reduced Motion — Accessibility
    ═══════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
@@ -477,11 +581,18 @@ body,
   .sheet-panel-right,
   .sheet-panel-left,
   .sheet-panel-bottom,
-  .sheet-panel-top {
+  .sheet-panel-top,
+  .animate-flip-top,
+  .animate-flip-bottom,
+  .animate-flip-shadow,
+  .animate-flip-highlight,
+  .animate-mechanical-tick,
+  .animate-plaque-shimmer {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 
   .animate-pulse {
     animation: none !important;
   }
-}
+}

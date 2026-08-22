@@ -128,6 +128,22 @@ export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
     author: 'Damon',
   },
   {
+    id: 'entry-20260822-1420',
+    dateKey: 'August 22, 2026',
+    timeStr: '2:20 PM',
+    fullTimestamp: 'August 22, 2026 at 2:20 PM',
+    labels: ['NEW', 'UI', 'PERFORMANCE'],
+    title: 'Centerpiece Mechanical Split-Flap Countdown Clock & Time Warp Cascade',
+    bullets: [
+      'Engineered a retro split-flap mechanical countdown clock with realistic 3D top and bottom folding physics.',
+      'Locked countdown to Friday, August 28, 2026 at 5:59 PM EDT with drift-free wall-clock synchronization across all timezones.',
+      'Added interactive cursor tracking with dynamic 3D tilt and specular lighting across the clock frame.',
+      'Created a hidden "Time Warp" easter egg with rapid airport split-flap cascade animations.',
+      'Built a seamless completion sequence that transitions into official judging when the timer hits zero.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260818-2057',
     dateKey: 'August 18, 2026',
     timeStr: '8:57 PM',

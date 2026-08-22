@@ -2636,10 +2636,10 @@ export default function App() {
                   <GlowLine color="orange" />
                 </motion.div>
 
-                {/* Animated Countdown Clock */}
-                <motion.div variants={heroItemVariants} className="mb-8">
+                {/* Animated Mechanical Flip Countdown Clock */}
+                <motion.div variants={heroItemVariants} className="mb-8 w-full max-w-xl">
                   <CountdownClock
-                    targetDate={new Date('2026-08-28T17:59:00-05:00')}
+                    targetDate="2026-08-28T17:59:00-04:00"
                     label="Submissions Close In"
                   />
                 </motion.div>
