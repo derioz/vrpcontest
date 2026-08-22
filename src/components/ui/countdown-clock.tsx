@@ -463,20 +463,21 @@ export function CountdownClock({
       ref={clockContainerRef}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
+      aria-label="Contest Submission Countdown Clock"
       className={cn(
         'relative w-full flex flex-col items-start gap-3 sm:gap-4 select-none bg-transparent border-none p-0',
         className
       )}
       style={{
         transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-        transition: 'transform 0.2s ease-out',
+        transition: 'transform 0.25s cubic-bezier(0.2, 0.8, 0.4, 1)',
       }}
     >
       {/* ── Integrated Event Date Header Row ── */}
       <div
         onClick={triggerEasterEgg}
-        className="w-full flex flex-wrap items-center gap-2 sm:gap-3 cursor-pointer group"
-        title="Click to trigger mechanical diagnostic"
+        className="w-full flex flex-wrap items-center gap-2 sm:gap-3 cursor-pointer group transition-opacity hover:opacity-95"
+        title="Interactive Countdown • Click to cycle mechanical cascade"
       >
         {/* Live Status Indicator */}
         <div className="flex items-center gap-1.5">
