@@ -33,10 +33,18 @@ export interface UserProfileDropdownProps {
     photoURL?: string | null;
     avatarSeed?: string;
     avatarStyle?: DiceBearStyleName;
+    avatarSource?: 'discord' | 'dicebear';
+    discordPhotoURL?: string | null;
   };
   isAdmin: boolean;
   getUserWinCount: (displayName?: string | null, uid?: string) => number;
-  getProfileAvatar: (photoURL?: string | null, seed?: string, style?: DiceBearStyleName) => string;
+  getProfileAvatar: (
+    photoURL?: string | null,
+    seed?: string,
+    style?: DiceBearStyleName,
+    avatarSource?: 'discord' | 'dicebear' | null,
+    discordPhotoURL?: string | null
+  ) => string;
   getDiceBearAvatarUrl: (seed: string, style?: DiceBearStyleName) => string;
   availableDiceBearStyles: { id: DiceBearStyleName; label: string }[];
   onChangeAvatarStyle: (style: DiceBearStyleName) => void;
@@ -70,7 +78,13 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
   className,
 }) => {
   const winCount = getUserWinCount(user.displayName, user.uid);
-  const avatarUrl = getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle);
+  const avatarUrl = getProfileAvatar(
+    user.photoURL,
+    user.avatarSeed || user.uid,
+    user.avatarStyle,
+    user.avatarSource,
+    user.discordPhotoURL
+  );
   const fallbackUrl = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
 
   const displayName = user.displayName || user.email?.split('@')[0] || 'Community Member';

@@ -301,17 +301,14 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
     return winner.player_name || winner.discord_name || 'Photographer';
   }, []);
 
-  // Resolution helper: Priority to winner's direct photo, then deterministic DiceBear avatar
-  const resolveAvatarUrl = useCallback((winner: ArchivedWinner) => {
-    if (winner.user_photo_url && winner.user_photo_url.trim()) {
-      return winner.user_photo_url;
-    }
-    return getProfileAvatar(
-      winner.user_photo_url,
-      winner.avatar_seed || winner.discord_name || winner.player_name || winner.user_id,
-      (winner.avatar_style as any) || 'botttsNeutral'
-    );
-  }, []);
+  // Respect the saved avatar choice, preferring Discord unless DiceBear was explicitly selected.
+  const resolveAvatarUrl = useCallback((winner: ArchivedWinner) => getProfileAvatar(
+    winner.user_photo_url,
+    winner.avatar_seed || winner.discord_name || winner.player_name || winner.user_id,
+    (winner.avatar_style as any) || 'botttsNeutral',
+    winner.avatar_source,
+    winner.discord_avatar_url
+  ), []);
 
   // Parse contest titles cleanly into edition and theme
   const parseVaultTitle = useCallback((raw: string) => {

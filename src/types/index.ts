@@ -15,6 +15,8 @@ export interface Photo {
     user_photo_url?: string;
     avatar_seed?: string;
     avatar_style?: string;
+    avatar_source?: 'discord' | 'dicebear';
+    discord_avatar_url?: string;
     image_url: string; // This remains for backwards compatibility and for the decrypted state on the client
     censored_image_url?: string; // Pixelated version visible before voting
     encrypted_image_url?: string; // RSA-encrypted original URL
@@ -35,6 +37,8 @@ export interface ArchivedWinner {
     user_photo_url?: string;
     avatar_seed?: string;
     avatar_style?: string;
+    avatar_source?: 'discord' | 'dicebear';
+    discord_avatar_url?: string;
     image_url: string;
     caption: string;
     vote_count: number;
@@ -101,6 +105,8 @@ export interface CategorySuggestion {
     discord_name?: string;
     avatar_seed?: string;
     avatar_style?: string;
+    avatar_source?: 'discord' | 'dicebear';
+    discord_avatar_url?: string;
     is_admin_author?: boolean;
     status?: SuggestionStatus | string;
     score: number;
@@ -137,6 +143,8 @@ export interface CreateSuggestionInput {
     discord_name?: string;
     avatar_seed?: string;
     avatar_style?: string;
+    avatar_source?: 'discord' | 'dicebear';
+    discord_avatar_url?: string;
     is_admin_author?: boolean;
     status?: SuggestionStatus | string;
 }

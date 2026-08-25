@@ -64,10 +64,19 @@ export function getDiceBearAvatarUrl(seed: string, style: DiceBearStyleName = 'b
 export function getProfileAvatar(
   photoURL?: string | null,
   seed?: string | null,
-  style: DiceBearStyleName = 'botttsNeutral'
+  style: DiceBearStyleName = 'botttsNeutral',
+  avatarSource?: 'discord' | 'dicebear' | null,
+  discordPhotoURL?: string | null
 ): string {
-  if (photoURL && typeof photoURL === 'string' && photoURL.trim().length > 0) {
-    return photoURL;
-  }
-  return getDiceBearAvatarUrl(seed || 'vital-user', style);
+  const diceBearAvatar = getDiceBearAvatarUrl(seed || 'vital-user', style);
+
+  if (avatarSource === 'dicebear') return diceBearAvatar;
+
+  const discordAvatar = discordPhotoURL?.trim();
+  if (discordAvatar) return discordAvatar;
+
+  const savedAvatar = photoURL?.trim();
+  if (savedAvatar) return savedAvatar;
+
+  return diceBearAvatar;
 }

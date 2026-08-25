@@ -33,7 +33,13 @@ export function ContestClosedModal({
   onOpenAdminPanel
 }: ContestClosedModalProps) {
   const [isWiggling, setIsWiggling] = useState(false);
-  const userAvatar = user ? getProfileAvatar(user) : null;
+  const userAvatar = user ? getProfileAvatar(
+    user.photoURL,
+    user.avatarSeed || user.uid,
+    user.avatarStyle,
+    user.avatarSource,
+    user.discordPhotoURL
+  ) : null;
   const userDisplayName = user?.displayName || user?.user_metadata?.custom_display_name || user?.user_metadata?.full_name || 'Verified Member';
 
   return (

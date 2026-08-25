@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { getProfileAvatar } from '../../lib/dicebear';
 import { Category, Photo } from '../../types';
 import { Skeleton } from '../ui/skeleton';
 import {
@@ -649,8 +650,13 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
               >
                 <img
                   src={
-                    user?.photoURL ||
-                    'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=admin'
+                    getProfileAvatar(
+                      user?.photoURL,
+                      user?.avatarSeed || user?.uid || 'admin',
+                      user?.avatarStyle,
+                      user?.avatarSource,
+                      user?.discordPhotoURL
+                    )
                   }
                   alt="Admin"
                   className="w-full h-full rounded-lg object-cover"

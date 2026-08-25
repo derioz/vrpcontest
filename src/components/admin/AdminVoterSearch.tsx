@@ -9,7 +9,7 @@ import { db } from '../../lib/firebase';
 import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
 import { toast } from '../ui/toast';
-import { getDiceBearAvatarUrl } from '../../lib/dicebear';
+import { getProfileAvatar, type DiceBearStyleName } from '../../lib/dicebear';
 import { Skeleton } from '../ui/skeleton';
 
 interface AdminVoterSearchProps {
@@ -48,10 +48,15 @@ interface RegisteredUser {
   discordName?: string;
   discordId?: string;
   avatarUrl?: string;
+  discordAvatarUrl?: string;
+  avatarSeed?: string;
+  avatarStyle?: DiceBearStyleName;
+  avatarSource?: 'discord' | 'dicebear';
 }
 
 export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProps) {
   const [votes, setVotes] = useState<VoteRecord[]>([]);
+  const [registeredUsers, setRegisteredUsers] = useState<Map<string, RegisteredUser>>(new Map());
   const [archivedUserStats, setArchivedUserStats] = useState<Map<string, number>>(new Map());
   const [flaggedVoters, setFlaggedVoters] = useState<Map<string, FlaggedVoter>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +77,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
     setIsLoading(true);
     try {
       const allFetchedVotes: VoteRecord[] = [];
+      const usersPromise = getDocs(collection(db, 'users'));
 
       // 1. Fetch active votes for current contest
       const votesQuery = query(collection(db, 'votes'));
@@ -111,6 +117,33 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
       }
 
       setVotes(allFetchedVotes);
+
+      // Resolve voter avatars from their saved Discord/DiceBear profile preference.
+      try {
+        const usersSnap = await usersPromise;
+        const usersMap = new Map<string, RegisteredUser>();
+        usersSnap.docs.forEach((userDoc) => {
+          const data = userDoc.data();
+          const profile: RegisteredUser = {
+            uid: String(data.uid || userDoc.id),
+            displayName: String(data.custom_display_name || data.default_discord_name || data.discord_name || 'Discord User'),
+            discordName: data.default_discord_name || data.discord_name,
+            discordId: data.discord_id ? String(data.discord_id) : undefined,
+            avatarUrl: data.photo_url || data.avatar_url || undefined,
+            discordAvatarUrl: data.discord_avatar_url || undefined,
+            avatarSeed: data.avatar_seed || String(data.uid || userDoc.id),
+            avatarStyle: data.avatar_style as DiceBearStyleName | undefined,
+            avatarSource: data.avatar_source as 'discord' | 'dicebear' | undefined,
+          };
+          usersMap.set(profile.uid, profile);
+          if (profile.discordId) usersMap.set(profile.discordId, profile);
+          usersMap.set(profile.displayName.toLowerCase(), profile);
+          if (profile.discordName) usersMap.set(profile.discordName.toLowerCase(), profile);
+        });
+        setRegisteredUsers(usersMap);
+      } catch (usersErr) {
+        console.warn('users avatar query info:', usersErr);
+      }
 
       // 3. Fetch cumulative user_stats from all previous contests
       try {
@@ -386,6 +419,18 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const categoryMap = new Map<string, string>();
   categories.forEach((c) => categoryMap.set(c.id, c.name));
 
+
+  const resolveVoterAvatar = (uid?: string, displayName?: string) => {
+    const profile = registeredUsers.get(uid || '') || registeredUsers.get((displayName || '').toLowerCase());
+    return getProfileAvatar(
+      profile?.avatarUrl,
+      profile?.avatarSeed || uid || displayName || 'vital-user',
+      profile?.avatarStyle,
+      profile?.avatarSource,
+      profile?.discordAvatarUrl
+    );
+  };
+
   // Aggregate votes by voter UID
   // Memoize all voter summaries aggregation across active votes, historical stats & flagged accounts
   const allVotersList = useMemo(() => {
@@ -602,7 +647,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <img
-                    src={getDiceBearAvatarUrl(fv.voterUid || fv.voterName)}
+                    src={resolveVoterAvatar(fv.voterUid, fv.voterName)}
                     alt=""
                     className="w-7 h-7 rounded-lg border border-red-500/40 object-cover shrink-0"
                   />
@@ -695,7 +740,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                     }`}
                   >
                     <img
-                      src={getDiceBearAvatarUrl(voter.voterUid || voter.displayName)}
+                      src={resolveVoterAvatar(voter.voterUid, voter.displayName)}
                       alt=""
                       className="w-4 h-4 rounded-full border border-white/20 object-cover shrink-0"
                     />
@@ -751,7 +796,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           >
             <div className="flex items-center gap-3">
               <img
-                src={getDiceBearAvatarUrl(activeVoter.voterUid || activeVoter.displayName)}
+                src={resolveVoterAvatar(activeVoter.voterUid, activeVoter.displayName)}
                 alt=""
                 className={`w-12 h-12 rounded-2xl border object-cover shadow-lg ${
                   flaggedVoters.has(activeVoter.voterUid)

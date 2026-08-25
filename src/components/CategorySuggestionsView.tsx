@@ -1111,7 +1111,7 @@ export function CategorySuggestionsView({
           {currentUser && (
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] border border-white/5 my-2">
               <img
-                src={getProfileAvatar(currentUser.photoURL, currentUser.uid, currentUser.avatarStyle)}
+                src={getProfileAvatar(currentUser.photoURL, currentUser.avatarSeed || currentUser.uid, currentUser.avatarStyle, currentUser.avatarSource, currentUser.discordPhotoURL)}
                 alt=""
                 className="w-8 h-8 rounded-full object-cover border border-white/10"
               />

@@ -1440,6 +1440,8 @@ export default function App() {
         author_avatar_url: user?.photoURL || null,
         avatar_seed: user?.avatarSeed || null,
         avatar_style: user?.avatarStyle || null,
+        avatar_source: user?.avatarSource || (user?.discordPhotoURL ? 'discord' : 'dicebear'),
+        discord_avatar_url: user?.discordPhotoURL || null,
         image_url: publicKey ? censoredURL : downloadURL,
         censored_image_url: censoredURL,
         encrypted_image_url: encryptedURL,
@@ -1618,51 +1620,22 @@ export default function App() {
 
   const handleChangeAvatarStyle = async (newStyle: DiceBearStyleName) => {
     if (!user || user.isAnonymous) return;
-    const seed = user.avatarSeed || user.uid;
-    const newAvatarUrl = getDiceBearAvatarUrl(seed, newStyle);
-    
-    // Update local user state
-    setUser((prev: any) => prev ? { 
-      ...prev, 
-      avatarStyle: newStyle, 
-      photoURL: prev.hasCustomOAuthAvatar ? prev.photoURL : newAvatarUrl 
-    } : null);
-
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, { avatar_style: newStyle, updated_at: new Date().toISOString() }, { merge: true });
-      const matchedStyle = AVAILABLE_DICEBEAR_STYLES.find(s => s.id === newStyle);
-      toast.success(`Avatar style updated to ${matchedStyle?.label || newStyle}!`);
-    } catch (err) {
-      console.error('Failed to update avatar style:', err);
-      toast.error('Failed to update avatar style');
-    }
+    await handleSaveProfile({
+      displayName: user.displayName || 'Discord User',
+      avatarStyle: newStyle,
+      avatarSeed: user.avatarSeed || user.uid,
+      avatarSource: 'dicebear',
+    });
   };
-
   const handleShuffleAvatarSeed = async () => {
     if (!user || user.isAnonymous) return;
-    const newSeed = Math.random().toString(36).substring(2, 10);
-    const style = user.avatarStyle || 'botttsNeutral';
-    const newAvatarUrl = getDiceBearAvatarUrl(newSeed, style);
-
-    // Update local user state
-    setUser((prev: any) => prev ? { 
-      ...prev, 
-      avatarSeed: newSeed, 
-      photoURL: newAvatarUrl,
-      hasCustomOAuthAvatar: false 
-    } : null);
-
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, { avatar_seed: newSeed, updated_at: new Date().toISOString() }, { merge: true });
-      toast.success('Generated a new random DiceBear avatar!');
-    } catch (err) {
-      console.error('Failed to shuffle avatar:', err);
-      toast.error('Failed to randomize avatar');
-    }
+    await handleSaveProfile({
+      displayName: user.displayName || 'Discord User',
+      avatarStyle: user.avatarStyle || 'botttsNeutral',
+      avatarSeed: Math.random().toString(36).substring(2, 10),
+      avatarSource: 'dicebear',
+    });
   };
-
   const handleRetryDiscordAvatar = async () => {
     if (!user || user.isAnonymous) {
       toast.error('Please sign in to pull your Discord photo.');
@@ -1743,6 +1716,8 @@ export default function App() {
                 user_photo_url: freshAvatarUrl,
                 author_avatar_url: freshAvatarUrl,
                 submitter_avatar: freshAvatarUrl,
+                avatar_source: 'discord',
+                discord_avatar_url: freshAvatarUrl,
               });
             });
             await batch.commit();
@@ -1791,7 +1766,7 @@ export default function App() {
           setAllPhotos((prev) =>
             prev.map((p) =>
               p.user_id === user.uid || (p as any).uploader_uid === user.uid
-                ? { ...p, user_photo_url: freshAvatarUrl, author_avatar_url: freshAvatarUrl }
+                ? { ...p, user_photo_url: freshAvatarUrl, author_avatar_url: freshAvatarUrl, avatar_source: 'discord', discord_avatar_url: freshAvatarUrl }
                 : p
             )
           );
@@ -1855,6 +1830,7 @@ export default function App() {
         avatarStyle: newStyle,
         avatarSeed: newSeed,
         photoURL: resolvedPhotoUrl,
+        discordPhotoURL: newSource === 'discord' ? resolvedPhotoUrl : prev.discordPhotoURL,
         hasCustomOAuthAvatar: newSource === 'discord',
       } : null);
       setPlayerName(cleanName);
@@ -1904,16 +1880,51 @@ export default function App() {
               user_photo_url: resolvedPhotoUrl,
               author_avatar_url: resolvedPhotoUrl,
               submitter_avatar: resolvedPhotoUrl,
+              avatar_source: newSource,
+              discord_avatar_url: newSource === 'discord' ? resolvedPhotoUrl : (user.discordPhotoURL || null),
             });
           });
           await batch.commit();
+        }
+
+        const suggestionsSnap = await getDocs(collection(db, 'category_suggestions'));
+        if (!suggestionsSnap.empty) {
+          const batch = writeBatch(db);
+          let hasChanges = false;
+          suggestionsSnap.docs.forEach((sDoc) => {
+            const data = sDoc.data();
+            const isAuthor = data.user_id === user.uid || (user.discordId && data.discord_id === user.discordId);
+            const votes = Array.isArray(data.admin_votes) ? data.admin_votes : [];
+            const updatedVotes = votes.map((vote: any) => {
+              const isMyVote = vote.adminId === user.uid ||
+                (user.discordId && vote.adminId === user.discordId) ||
+                (vote.adminName && user.displayName && vote.adminName.toLowerCase() === user.displayName.toLowerCase());
+              return isMyVote ? { ...vote, adminAvatarUrl: resolvedPhotoUrl } : vote;
+            });
+            const hasMyVote = updatedVotes.some((vote: any, index: number) => vote !== votes[index]);
+
+            if (isAuthor || hasMyVote) {
+              hasChanges = true;
+              batch.update(sDoc.ref, {
+                ...(isAuthor ? {
+                  author_avatar_url: resolvedPhotoUrl,
+                  avatar_source: newSource,
+                  discord_avatar_url: newSource === 'discord' ? resolvedPhotoUrl : (user.discordPhotoURL || null),
+                  avatar_seed: newSeed,
+                  avatar_style: newStyle,
+                } : {}),
+                ...(hasMyVote ? { admin_votes: updatedVotes } : {}),
+              });
+            }
+          });
+          if (hasChanges) await batch.commit();
         }
 
         // Update local gallery state
         setAllPhotos((prev) =>
           prev.map((p) =>
             p.user_id === user.uid || (p as any).uploader_uid === user.uid
-              ? { ...p, discord_name: cleanName, user_photo_url: resolvedPhotoUrl, author_avatar_url: resolvedPhotoUrl }
+              ? { ...p, discord_name: cleanName, user_photo_url: resolvedPhotoUrl, author_avatar_url: resolvedPhotoUrl, avatar_source: newSource, discord_avatar_url: newSource === 'discord' ? resolvedPhotoUrl : (user.discordPhotoURL || null) }
               : p
           )
         );
@@ -2260,7 +2271,7 @@ export default function App() {
                 aria-label="Open Account & Profile Menu"
               >
                 <img
-                  src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                  src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle, user.avatarSource, user.discordPhotoURL)}
                   alt="Profile Avatar"
                   onError={(e) => {
                     const target = e.currentTarget;
@@ -2433,7 +2444,7 @@ export default function App() {
                 >
                   <div className="relative shrink-0">
                     <img
-                      src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle)}
+                      src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle, user.avatarSource, user.discordPhotoURL)}
                       alt=""
                       onError={(e) => {
                         const target = e.currentTarget;
@@ -2890,7 +2901,9 @@ export default function App() {
                           userAvatarUrl={getProfileAvatar(
                             (photo as any).user_photo_url,
                             (photo as any).avatar_seed || (photo as any).user_id || photo.discord_name,
-                            (photo as any).avatar_style
+                            (photo as any).avatar_style,
+                            (photo as any).avatar_source,
+                            (photo as any).discord_avatar_url
                           )}
                           hasVoted={votedPhotoIds.has(photo.id)}
                           categorySharePct={sharePct}
