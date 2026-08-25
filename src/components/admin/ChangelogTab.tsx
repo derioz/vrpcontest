@@ -85,6 +85,20 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260825-0019',
+    dateKey: 'August 25, 2026',
+    timeStr: '12:19 AM',
+    fullTimestamp: 'August 25, 2026 at 12:19 AM',
+    labels: ['UI', 'ENHANCE', 'SECURITY'],
+    title: 'Cleaner Countdown & Secure Changelog Publishing',
+    bullets: [
+      'Unified the countdown cards around the contest orange accent for a calmer, more cohesive presentation.',
+      'Removed the constantly pulsing separators while preserving subtle hover feedback and the signature flip animation.',
+      'Restricted changelog publishing to authenticated contest administrators while keeping updates visible to everyone.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260822-1701',
     dateKey: 'August 22, 2026',
     timeStr: '5:01 PM',

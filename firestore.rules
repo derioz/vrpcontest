@@ -137,7 +137,8 @@ service cloud.firestore {
 
     // Changelogs
     match /changelogs/{docId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update, delete: if isContestAdmin();
     }
 
     // Default deny
