@@ -281,8 +281,8 @@ const ClockDivider = React.memo(({ onClick }: { onClick?: () => void }) => {
       className="flex flex-col items-center justify-center gap-1.5 sm:gap-2.5 pb-4 sm:pb-6 px-0.5 sm:px-1 select-none cursor-pointer group"
       title="Click for mechanical pulse"
     >
-      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white/45 group-hover:bg-orange-400 group-hover:shadow-[0_0_8px_rgba(234,88,12,0.8)] transition-all animate-mechanical-tick" />
-      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white/45 group-hover:bg-orange-400 group-hover:shadow-[0_0_8px_rgba(234,88,12,0.8)] transition-all animate-mechanical-tick" />
+      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white/35 group-hover:bg-orange-400/80 transition-colors" />
+      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white/35 group-hover:bg-orange-400/80 transition-colors" />
     </div>
   );
 });
@@ -545,7 +545,7 @@ export function CountdownClock({
         <MechanicalFlipCard
           value={displayValues.hours}
           label={displayValues.labels.hours}
-          colorScheme="amber"
+          colorScheme="orange"
           isOverdrive={easterEggActive}
         />
 
@@ -555,7 +555,7 @@ export function CountdownClock({
         <MechanicalFlipCard
           value={displayValues.minutes}
           label={displayValues.labels.mins}
-          colorScheme="cyan"
+          colorScheme="orange"
           isOverdrive={easterEggActive}
         />
 
@@ -565,7 +565,7 @@ export function CountdownClock({
         <MechanicalFlipCard
           value={displayValues.seconds}
           label={displayValues.labels.secs}
-          colorScheme="emerald"
+          colorScheme="orange"
           isOverdrive={easterEggActive}
         />
       </div>
