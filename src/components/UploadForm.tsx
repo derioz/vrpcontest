@@ -51,6 +51,7 @@ export default function UploadForm({
   const [formPlayerName, setFormPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletedExistingId, setDeletedExistingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialCategoryId) {
@@ -153,8 +154,16 @@ export default function UploadForm({
     if (!existingPhoto || !onDeleteExisting) return;
     setIsDeleting(true);
     try {
-      const success = await onDeleteExisting(existingPhoto.id, existingPhoto.discord_name);
+      const photoId = existingPhoto.id;
+      const success = await onDeleteExisting(photoId, existingPhoto.discord_name);
       if (success) {
+        setDeletedExistingId(photoId);
+        if (existingPhoto.player_name && !formPlayerName) {
+          setFormPlayerName(existingPhoto.player_name);
+        }
+        if (existingPhoto.category_id) {
+          setSelectedCategoryId(existingPhoto.category_id);
+        }
         toast.success('Your previous entry was deleted. You can now submit a new photo!');
       }
     } catch (err) {
@@ -164,13 +173,17 @@ export default function UploadForm({
     }
   };
 
+  const hasActiveExistingPhoto = Boolean(
+    onePhotoPerUser && existingPhoto && existingPhoto.id !== deletedExistingId
+  );
+
   const handleSubmit = async () => {
     if (!submissionsOpen) {
       toast.error('Submissions are currently closed for this contest.');
       return;
     }
 
-    if (onePhotoPerUser && existingPhoto) {
+    if (hasActiveExistingPhoto) {
       toast.error('Limit 1 photo per user enforced. Please delete your current photo first.');
       return;
     }
@@ -209,7 +222,7 @@ export default function UploadForm({
 
   // Determine submit button state & label
   const isResolutionValid = imageMeta ? (imageMeta.width >= 1920 && imageMeta.height >= 1080) : false;
-  const isFormValid = image && isResolutionValid && selectedCategoryId && formPlayerName.trim() && submissionsOpen && (!onePhotoPerUser || !existingPhoto);
+  const isFormValid = image && isResolutionValid && selectedCategoryId && formPlayerName.trim() && submissionsOpen && !hasActiveExistingPhoto;
 
   return (
     <div className="space-y-5 text-white">
@@ -225,7 +238,7 @@ export default function UploadForm({
       )}
 
       {/* ── 1 Photo Per User Reached View ── */}
-      {onePhotoPerUser && existingPhoto ? (
+      {hasActiveExistingPhoto && existingPhoto ? (
         <div className="p-5 bg-gradient-to-b from-amber-500/10 via-red-500/10 to-[#121218] border border-amber-500/30 rounded-3xl space-y-4 shadow-xl">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 text-amber-400">
@@ -270,7 +283,9 @@ export default function UploadForm({
           {/* Delete Option to Submit New Entry */}
           <div className="p-3.5 bg-red-500/15 border border-red-500/30 rounded-2xl space-y-3">
             <p className="text-xs text-red-200 font-medium leading-relaxed">
-              Want to replace this submission with a new photo? Delete your current photo below to unlock a new submission.
+              {submissionsOpen
+                ? 'Want to replace this submission with a new photo? Delete your current photo below to unlock a new submission.'
+                : 'Submissions are currently closed. You can remove your entry if desired, but new entries cannot be submitted until submissions reopen.'}
             </p>
 
             <Button
@@ -284,7 +299,7 @@ export default function UploadForm({
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <Trash2 size={16} /> Delete Current Submission & Upload New Photo
+                  <Trash2 size={16} /> {submissionsOpen ? 'Delete Current Submission & Upload New Photo' : 'Delete Current Submission'}
                 </span>
               )}
             </Button>
@@ -534,7 +549,7 @@ export default function UploadForm({
             Cancel
           </Button>
 
-          {(!onePhotoPerUser || !existingPhoto) && (
+          {!hasActiveExistingPhoto && (
             <Button
               onClick={handleSubmit}
               disabled={!isFormValid || isUploading}

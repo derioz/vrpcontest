@@ -85,6 +85,21 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260828-1605',
+    dateKey: 'August 28, 2026',
+    timeStr: '4:05 PM',
+    fullTimestamp: 'August 28, 2026 at 4:05 PM',
+    labels: ['UI', 'ENHANCE', 'FIX'],
+    title: 'Photo Resubmission & Entry Management for 1-Photo Contests',
+    bullets: [
+      'Restored the ability to replace contest submissions when the 1-photo-per-user limit is active, allowing participants to view their current entry and remove it to upload a new one.',
+      'Added dedicated "Manage Your Entry" actions across the contest sidebar and hero banners so participants can directly access and manage their existing submissions.',
+      'Updated the upload modal to instantly transition into the fresh submission form upon deleting an entry without requiring page reloads.',
+      'Fixed an issue where previous contest participation could erroneously prevent users from submitting photos in new contests.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260825-0019',
     dateKey: 'August 25, 2026',
     timeStr: '12:44 AM',

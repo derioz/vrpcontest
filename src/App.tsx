@@ -417,15 +417,19 @@ export default function App() {
     return allPhotos.filter(p => p.category_id === selectedCategory.id);
   }, [allPhotos, selectedCategory]);
 
-  // Current logged-in user's photo submission for this contest
-  const currentUserPhoto = useMemo(() => {
-    if (!user || user.isAnonymous || !allPhotos.length) return null;
-    return allPhotos.find(p =>
+  // Photos submitted by current logged-in user in the ACTIVE contest
+  const currentUserContestPhotos = useMemo(() => {
+    if (!user || user.isAnonymous || !allPhotos.length) return [];
+    return allPhotos.filter(p =>
       (user.uid && (p.user_id === user.uid || p.uploader_uid === user.uid)) ||
       (user.displayName && p.discord_name === user.displayName) ||
+      (user.email && p.discord_name === user.email) ||
       (user.providerData && user.providerData.some((pd: any) => pd.displayName === p.discord_name))
-    ) || null;
+    );
   }, [user, allPhotos]);
+
+  const currentUserPhoto = currentUserContestPhotos[0] || null;
+  const userContestSubmissionCount = currentUserContestPhotos.length;
 
   // Photos across ALL categories for the Hero 16:9 Radial Carousel
   const heroCarouselItems: RadialCarouselItem[] = useMemo(() => {
@@ -1351,6 +1355,7 @@ export default function App() {
       (targetPhoto?.user_id && targetPhoto.user_id === user.uid) ||
       (targetPhoto?.uploader_uid && targetPhoto.uploader_uid === user.uid) ||
       (user.displayName && photoDiscordName && user.displayName === photoDiscordName) ||
+      (user.email && photoDiscordName && user.email === photoDiscordName) ||
       (user.providerData && user.providerData.some((p: any) => p.displayName === photoDiscordName))
     );
     if (!isAdmin && !isOwner) {
@@ -1368,7 +1373,9 @@ export default function App() {
           cached.photos = cached.photos.filter(p => p.id !== photoId);
         }
       }
-      toast.success('Photo deleted successfully!');
+      if (!skipConfirm) {
+        toast.success('Photo deleted successfully!');
+      }
       return true;
     } catch (error) {
       console.error("Delete Error:", error);
@@ -1383,8 +1390,8 @@ export default function App() {
       return;
     }
     // Enforce 1-photo-per-user limit server-side guard
-    if (onePhotoPerUser && userSubmissionCount >= 1) {
-      toast.error('Only 1 submission per user is allowed.');
+    if (onePhotoPerUser && userContestSubmissionCount >= 1) {
+      toast.error('Only 1 submission per user is allowed in this contest. Please remove your existing entry first.');
       return;
     }
     if (!categoryId || !formPlayerName || !discordName) return;
@@ -1995,12 +2002,8 @@ export default function App() {
   };
 
   const handleUploadClick = async () => {
-    if (!isSubmissionsOpen) {
+    if (!isSubmissionsOpen && !(onePhotoPerUser && currentUserPhoto)) {
       toast.error('Submissions are currently closed');
-      return;
-    }
-    if (onePhotoPerUser && userSubmissionCount >= 1) {
-      toast.error('You have already submitted a photo. Only 1 submission per user is allowed.');
       return;
     }
 
@@ -2660,7 +2663,7 @@ export default function App() {
                   "flex flex-wrap gap-3.5 mb-10",
                   !hasHeroItems && "justify-center"
                 )}>
-                  {isSubmissionsOpen ? (
+                  {isSubmissionsOpen || (onePhotoPerUser && currentUserPhoto) ? (
                     <ShimmerButton
                       onClick={handleUploadClick}
                       shimmerColor="#fb923c"
@@ -2673,7 +2676,7 @@ export default function App() {
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
-                      Submit Photo Entry
+                      {onePhotoPerUser && currentUserPhoto ? 'Manage Photo Entry' : 'Submit Photo Entry'}
                     </ShimmerButton>
                   ) : (
                     <button
@@ -2868,7 +2871,7 @@ export default function App() {
                     onClick={handleUploadClick}
                     className="mt-6 flex items-center gap-2 bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-fivem-orange hover:text-white transition-all cursor-pointer"
                   >
-                    <Upload size={16} /> Submit Entry
+                    <Upload size={16} /> {onePhotoPerUser && currentUserPhoto ? 'Manage Entry' : 'Submit Entry'}
                   </button>
                 )}
               </motion.div>
@@ -2938,7 +2941,7 @@ export default function App() {
             allPhotos={allPhotos}
             user={user}
             currentUserPhoto={currentUserPhoto}
-            userSubmissionCount={userSubmissionCount}
+            userSubmissionCount={userContestSubmissionCount}
             onePhotoPerUser={onePhotoPerUser}
             archivedWinners={archivedWinners}
             onUploadClick={handleUploadClick}
@@ -2953,7 +2956,7 @@ export default function App() {
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-black flex items-center gap-2">
               <Sparkles className="text-fivem-orange" size={20} />
-              Submit Contest Entry
+              {onePhotoPerUser && currentUserPhoto ? 'Manage Contest Entry' : 'Submit Contest Entry'}
             </DialogTitle>
           </DialogHeader>
           <ErrorBoundary fallbackTitle="Submission Form Error" onReset={() => setShowUploadModal(false)}>

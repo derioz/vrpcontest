@@ -282,16 +282,16 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
                 type="button"
                 onClick={onUploadClick}
                 disabled={!submissionsOpen && !(onePhotoPerUser && hasUserSubmitted)}
-                whileHover={{ scale: submissionsOpen ? 1.02 : 1 }}
-                whileTap={{ scale: submissionsOpen ? 0.98 : 1 }}
+                whileHover={{ scale: (submissionsOpen || (onePhotoPerUser && hasUserSubmitted)) ? 1.02 : 1 }}
+                whileTap={{ scale: (submissionsOpen || (onePhotoPerUser && hasUserSubmitted)) ? 0.98 : 1 }}
                 className={cn(
-                  "w-full group relative overflow-hidden font-display font-black text-xs uppercase tracking-wider py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xl",
-                  submissionsOpen
-                    ? "bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white shadow-orange-500/25 hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] border border-orange-400/30"
+                  "w-full group relative overflow-hidden font-display font-black text-xs uppercase tracking-wider py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl",
+                  (submissionsOpen || (onePhotoPerUser && hasUserSubmitted))
+                    ? "bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white shadow-orange-500/25 hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] border border-orange-400/30 cursor-pointer"
                     : "bg-white/5 text-white/30 border border-white/10 cursor-not-allowed"
                 )}
               >
-                {submissionsOpen ? (
+                {submissionsOpen || (onePhotoPerUser && hasUserSubmitted) ? (
                   <>
                     <Upload
                       size={15}
