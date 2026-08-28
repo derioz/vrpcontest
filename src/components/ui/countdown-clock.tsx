@@ -13,6 +13,10 @@ export interface CountdownClockProps {
   label?: string;
   className?: string;
   onComplete?: () => void;
+  eventDateLabel?: string;
+  eventTimeLabel?: string;
+  eventTzLabel?: string;
+  completedMessage?: string;
 }
 
 interface TimeLeft {
@@ -295,6 +299,10 @@ export function CountdownClock({
   label = 'Submissions Close In',
   className,
   onComplete,
+  eventDateLabel,
+  eventTimeLabel,
+  eventTzLabel = 'EST',
+  completedMessage,
 }: CountdownClockProps) {
   const targetTimestamp = useMemo(() => {
     if (typeof targetDate === 'number') return targetDate;
@@ -316,8 +324,50 @@ export function CountdownClock({
     };
   }, [targetTimestamp]);
 
+  const formattedEventDate = useMemo(() => {
+    if (eventDateLabel && eventTimeLabel) {
+      return {
+        dateStr: eventDateLabel,
+        timeStr: eventTimeLabel,
+        tzStr: eventTzLabel || 'EST',
+      };
+    }
+
+    try {
+      const d = new Date(targetTimestamp);
+      if (isNaN(d.getTime())) throw new Error('Invalid date');
+
+      const datePart = d.toLocaleDateString('en-US', {
+        timeZone: 'America/New_York',
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }).toUpperCase();
+
+      const timePart = d.toLocaleTimeString('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      return {
+        dateStr: eventDateLabel || datePart,
+        timeStr: eventTimeLabel || timePart,
+        tzStr: eventTzLabel || 'EST',
+      };
+    } catch {
+      return {
+        dateStr: eventDateLabel || 'SUNDAY, AUGUST 30, 2026',
+        timeStr: eventTimeLabel || '11:59 PM',
+        tzStr: eventTzLabel || 'EST',
+      };
+    }
+  }, [targetTimestamp, eventDateLabel, eventTimeLabel, eventTzLabel]);
+
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(() => calculateTimeLeft().totalMs <= 0);
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [easterEggMessage, setEasterEggMessage] = useState('');
   const [easterEggOverrideVals, setEasterEggOverrideVals] = useState<{
@@ -335,16 +385,28 @@ export function CountdownClock({
   // Mouse Tilt Parallax State
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
+  // Reset completion state whenever target date changes
+  useEffect(() => {
+    completedCallbackRef.current = false;
+    const tl = calculateTimeLeft();
+    setTimeLeft(tl);
+    setIsCompleted(tl.totalMs <= 0);
+  }, [targetTimestamp, calculateTimeLeft]);
+
   /* ── 1-Second Master Wall-Clock Synchronized Loop ── */
   useEffect(() => {
     const updateCountdown = () => {
       const tl = calculateTimeLeft();
       setTimeLeft(tl);
 
-      if (tl.totalMs <= 0 && !completedCallbackRef.current) {
-        completedCallbackRef.current = true;
-        setIsCompleted(true);
-        onComplete?.();
+      if (tl.totalMs <= 0) {
+        if (!completedCallbackRef.current) {
+          completedCallbackRef.current = true;
+          setIsCompleted(true);
+          onComplete?.();
+        }
+      } else {
+        setIsCompleted(false);
       }
     };
 
@@ -505,11 +567,11 @@ export function CountdownClock({
         {/* Full Event Date */}
         <div className="flex items-center gap-1.5 text-xs sm:text-sm font-display font-black tracking-wide text-white/90 uppercase">
           <Calendar size={13} className="text-orange-400/90 shrink-0" />
-          <span>FRIDAY, AUGUST 28, 2026</span>
+          <span>{formattedEventDate.dateStr}</span>
           <span className="text-orange-400 font-bold">•</span>
-          <span className="text-orange-300 font-mono font-bold">5:59 PM</span>
+          <span className="text-orange-300 font-mono font-bold">{formattedEventDate.timeStr}</span>
           <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-300 border border-orange-500/25 font-mono font-bold">
-            ET
+            {formattedEventDate.tzStr}
           </span>
         </div>
 
@@ -573,7 +635,11 @@ export function CountdownClock({
       {/* Completed Subtle Notice */}
       {isCompleted && (
         <div className="w-full pt-1 flex items-center gap-2 text-xs font-mono font-bold text-amber-400">
-          <span>⚠️ Official deadline has arrived. Submissions closed. Community voting underway.</span>
+          <span>
+            {completedMessage || (label.toLowerCase().includes('voting')
+              ? '⚠️ Official deadline has arrived. Voting has concluded. Winners will be announced soon!'
+              : '⚠️ Official deadline has arrived. Submissions closed. Community voting underway.')}
+          </span>
         </div>
       )}
     </div>

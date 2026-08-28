@@ -85,6 +85,20 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260828-1710',
+    dateKey: 'August 28, 2026',
+    timeStr: '5:10 PM',
+    fullTimestamp: 'August 28, 2026 at 5:10 PM',
+    labels: ['UI', 'ENHANCE'],
+    title: 'Dynamic Voting Phase Mechanical Countdown Clock',
+    bullets: [
+      'Updated the mechanical split-flap countdown clock to seamlessly transition from the submissions deadline to the community voting deadline.',
+      'Locked active voting countdown to Sunday, August 30, 2026 at 11:59 PM EST with synchronized multi-timezone support.',
+      'Added dynamic event dates and phase-specific completion messaging for voting and submission phases.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260828-1605',
     dateKey: 'August 28, 2026',
     timeStr: '4:05 PM',

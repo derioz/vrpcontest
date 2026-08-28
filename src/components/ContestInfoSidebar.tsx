@@ -75,14 +75,18 @@ export const ContestInfoSidebar: React.FC<ContestInfoSidebarProps> = ({
     {
       id: 2,
       title: 'Community Voting',
-      subtitle: votingOpen ? 'Live ballots open to public' : 'Starts after submissions',
+      subtitle: votingOpen
+        ? 'Live ballots open to public'
+        : (!submissionsOpen ? 'Community voting concluded' : 'Starts after submissions'),
       icon: Vote,
       isActive: votingOpen,
-      isCompleted: false,
-      badge: votingOpen ? 'VOTING LIVE' : 'LOCKED',
+      isCompleted: !votingOpen && !submissionsOpen,
+      badge: votingOpen
+        ? 'VOTING LIVE'
+        : (!submissionsOpen ? 'CONCLUDED' : 'LOCKED'),
       badgeColor: votingOpen
         ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
-        : 'bg-white/5 text-white/30 border-white/5',
+        : (!submissionsOpen ? 'bg-white/10 text-white/40 border-white/10' : 'bg-white/5 text-white/30 border-white/5'),
     },
   ];
 

@@ -431,6 +431,43 @@ export default function App() {
   const currentUserPhoto = currentUserContestPhotos[0] || null;
   const userContestSubmissionCount = currentUserContestPhotos.length;
 
+  // Dynamic Countdown Clock configuration based on contest phase
+  const countdownConfig = useMemo(() => {
+    // Phase 1: Submissions Open -> count down to Friday, Aug 28, 2026 at 5:59 PM EDT
+    if (isSubmissionsOpen) {
+      return {
+        targetDate: activeContest?.submissions_close_date || '2026-08-28T17:59:00-04:00',
+        label: 'Submissions Close In',
+        eventDateLabel: 'FRIDAY, AUGUST 28, 2026',
+        eventTimeLabel: '5:59 PM',
+        eventTzLabel: 'EST',
+        completedMessage: '⚠️ Official deadline has arrived. Submissions closed. Community voting underway.',
+      };
+    }
+
+    // Phase 2: Submissions Closed & Voting Open -> count down to Sunday, Aug 30, 2026 at 11:59 PM EST
+    if (isVotingOpen) {
+      return {
+        targetDate: activeContest?.voting_end_date || '2026-08-30T23:59:00-04:00',
+        label: 'Voting Closes In',
+        eventDateLabel: 'SUNDAY, AUGUST 30, 2026',
+        eventTimeLabel: '11:59 PM',
+        eventTzLabel: 'EST',
+        completedMessage: '⚠️ Voting has officially closed. Community results and winners will be announced shortly!',
+      };
+    }
+
+    // Phase 3: Both Closed (Voting Concluded)
+    return {
+      targetDate: activeContest?.voting_end_date || '2026-08-30T23:59:00-04:00',
+      label: 'Voting Concluded',
+      eventDateLabel: 'SUNDAY, AUGUST 30, 2026',
+      eventTimeLabel: '11:59 PM',
+      eventTzLabel: 'EST',
+      completedMessage: '⚠️ The contest has concluded. Stay tuned for winner announcements in the Hall of Fame!',
+    };
+  }, [isSubmissionsOpen, isVotingOpen, activeContest?.submissions_close_date, activeContest?.voting_end_date]);
+
   // Photos across ALL categories for the Hero 16:9 Radial Carousel
   const heroCarouselItems: RadialCarouselItem[] = useMemo(() => {
     if (allPhotos && allPhotos.length > 0) {
@@ -2653,8 +2690,12 @@ export default function App() {
                 {/* Animated Mechanical Flip Countdown Clock */}
                 <motion.div variants={heroItemVariants} className="mb-8 w-full max-w-xl">
                   <CountdownClock
-                    targetDate="2026-08-28T17:59:00-04:00"
-                    label="Submissions Close In"
+                    targetDate={countdownConfig.targetDate}
+                    label={countdownConfig.label}
+                    eventDateLabel={countdownConfig.eventDateLabel}
+                    eventTimeLabel={countdownConfig.eventTimeLabel}
+                    eventTzLabel={countdownConfig.eventTzLabel}
+                    completedMessage={countdownConfig.completedMessage}
                   />
                 </motion.div>
 
