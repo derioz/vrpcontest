@@ -2287,7 +2287,7 @@ export default function App() {
                     gradient: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
                     iconColor: 'group-hover:text-purple-400 text-purple-400',
                     onClick: () => {
-                      navigateTo('/admin/suggestions');
+                      setShowCategorySuggestions(true);
                     }
                   },
                   {
@@ -2442,7 +2442,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    navigateTo('/admin/suggestions');
+                    setShowCategorySuggestions(true);
                   }}
                   className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] active:bg-white/[0.06] transition-all cursor-pointer"
                 >
@@ -2763,7 +2763,7 @@ export default function App() {
                   {isAdmin && (
                     <button
                       type="button"
-                      onClick={() => navigateTo('/admin/suggestions')}
+                      onClick={() => setShowCategorySuggestions(true)}
                       className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-fivem-orange/15 border border-white/15 hover:border-fivem-orange/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
                     >
                       <Sparkles size={14} className="text-amber-400" />
@@ -3605,7 +3605,7 @@ export default function App() {
         onSaveProfile={handleSaveProfile}
         onRetryDiscordAvatar={handleRetryDiscordAvatar}
         onOpenAdminModal={() => navigateTo('/admin')}
-        onOpenCategorySuggestions={() => navigateTo('/admin/suggestions')}
+        onOpenCategorySuggestions={() => setShowCategorySuggestions(true)}
         onOpenBugModal={() => setShowBugModal(true)}
         onSignOut={handleSignOut}
       />

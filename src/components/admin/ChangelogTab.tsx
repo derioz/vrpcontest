@@ -87,13 +87,13 @@ export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
     id: 'entry-20260830-1815',
     dateKey: 'August 30, 2026',
-    timeStr: '6:15 PM',
-    fullTimestamp: 'August 30, 2026 at 6:15 PM',
-    labels: ['ADMIN', 'SECURITY', 'PERFORMANCE'],
+    timeStr: '6:18 PM',
+    fullTimestamp: 'August 30, 2026 at 6:18 PM',
+    labels: ['ADMIN', 'SECURITY', 'PERFORMANCE', 'UI'],
     title: 'Suggestion Categories Access Lockdown & Real-Time Voting Optimization',
     bullets: [
+      'Configured the "Suggestion Categories" navigation button, mobile drawer, and hero action to open the dedicated full-screen Suggestion Categories interactive view directly for staff members.',
       'Strictly restricted Suggestion Categories to verified administrators across the desktop navigation bar, mobile menu, hero section, and direct URL queries.',
-      'Updated the desktop navbar label to "Suggestion Categories" with a dedicated Staff indicator badge.',
       'Added in-flight request deduplication and concurrency coalescing to prevent duplicate votes and eliminate database flooding during rapid voting activity.',
       'Optimized voting animations and rank stability engine for buttery-smooth card transitions with zero jumping or duplicate re-renders.',
     ],
