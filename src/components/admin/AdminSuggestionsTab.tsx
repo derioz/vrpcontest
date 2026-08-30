@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
-import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote } from '../../types';
+import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote, SuggestionBetaTester } from '../../types';
 import {
   fetchCategorySuggestions,
   deleteCategorySuggestion,
@@ -41,7 +41,10 @@ import {
   toggleAdminSuggestionVote,
   fetchSuggestionVoters,
   SuggestionVoter,
-  sortSuggestions
+  sortSuggestions,
+  addBetaTester,
+  removeBetaTester,
+  subscribeBetaTesters
 } from '../../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../../lib/dicebear';
 import { AdminHeader } from './AdminHeader';
@@ -144,7 +147,23 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
   const [orderedIds, setOrderedIds] = useState<string[]>([]);
   const [autoReorder, setAutoReorder] = useState(false);
 
+  // ── Beta Testers Whitelist State ──
+  const [betaTesters, setBetaTesters] = useState<SuggestionBetaTester[]>([]);
+  const [isBetaModalOpen, setIsBetaModalOpen] = useState(false);
+  const [newTesterDiscordId, setNewTesterDiscordId] = useState('');
+  const [newTesterNotes, setNewTesterNotes] = useState('');
+  const [isAddingTester, setIsAddingTester] = useState(false);
+  const [revokingTesterId, setRevokingTesterId] = useState<string | null>(null);
+
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
+
+  // Real-time listener for Beta Testers Whitelist
+  useEffect(() => {
+    const unsubscribe = subscribeBetaTesters((testers) => {
+      setBetaTesters(testers);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // On-demand load from Cloud Firestore (no continuous realtime listener across admin sessions)
   const loadData = useCallback(async (isInitial = false) => {
@@ -436,6 +455,47 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     toast.success('Copied suggestion details to clipboard!');
   };
 
+  // ── Beta Testers Whitelist Handlers ──
+  const handleAddBetaTester = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanId = newTesterDiscordId.trim().replace(/\D/g, '');
+    if (!cleanId || cleanId.length < 15) {
+      toast.error('Invalid Discord ID', {
+        description: 'Please enter a valid numeric Discord ID (17-20 digits).'
+      });
+      return;
+    }
+
+    setIsAddingTester(true);
+    try {
+      const adminName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Admin';
+      await addBetaTester(cleanId, newTesterNotes, adminName);
+      toast.success('Beta Tester Added!', {
+        description: `Discord ID ${cleanId} can now access the Suggestion Categories feature.`
+      });
+      setNewTesterDiscordId('');
+      setNewTesterNotes('');
+    } catch (err: any) {
+      toast.error('Failed to add beta tester', { description: err.message });
+    } finally {
+      setIsAddingTester(false);
+    }
+  };
+
+  const handleRemoveBetaTester = async (discordId: string) => {
+    setRevokingTesterId(discordId);
+    try {
+      await removeBetaTester(discordId);
+      toast.success('Beta Access Revoked', {
+        description: `Discord ID ${discordId} no longer has access to Suggestion Categories.`
+      });
+    } catch (err: any) {
+      toast.error('Failed to revoke access', { description: err.message });
+    } finally {
+      setRevokingTesterId(null);
+    }
+  };
+
   // Computed status counts for filter tabs
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -563,7 +623,21 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         icon={<Sparkles size={20} className="text-orange-400" />}
         iconBg="bg-orange-500/15 border-orange-500/30"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            {/* Beta Whitelist Management Trigger */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsBetaModalOpen(true)}
+              className="group relative px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all duration-300 cursor-pointer flex items-center gap-2 overflow-hidden select-none border bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30 hover:border-amber-500/50 shadow-sm"
+            >
+              <Users size={14} className="text-amber-400" />
+              <span>Beta Testers</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500/25 text-[10px] font-mono text-amber-200 border border-amber-500/40">
+                {betaTesters.length}
+              </span>
+            </motion.button>
+
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
@@ -1140,6 +1214,145 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
               ) : (
                 <span>Confirm Delete</span>
               )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Beta Tester Whitelist Management Dialog ── */}
+      <Dialog open={isBetaModalOpen} onOpenChange={setIsBetaModalOpen}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl bg-[#0c0c14] border-amber-500/30 text-white p-6 rounded-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 border border-amber-500/30 uppercase mb-1">
+                  BETA ACCESS CONTROL
+                </div>
+                <DialogTitle className="text-lg font-black font-display">
+                  Suggestion Categories Beta Whitelist
+                </DialogTitle>
+              </div>
+            </div>
+            <DialogDescription className="text-xs text-white/60 leading-relaxed">
+              Add Discord IDs of trusted members to grant them private access to view, submit, and vote on Suggestion Categories ahead of the public rollout.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Add Tester Form */}
+          <form onSubmit={handleAddBetaTester} className="mt-4 p-4 rounded-2xl bg-black/40 border border-white/10 space-y-3">
+            <div className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <Plus size={14} />
+              <span>Grant Beta Access by Discord ID</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-mono uppercase text-white/50 block mb-1">Discord ID (Required)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 314221199341584384"
+                  value={newTesterDiscordId}
+                  onChange={(e) => setNewTesterDiscordId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/20 text-xs font-mono focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/30"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-mono uppercase text-white/50 block mb-1">Notes / Member Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Staff Moderator / VIP Tester"
+                  value={newTesterNotes}
+                  onChange={(e) => setNewTesterNotes(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/20 text-xs focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/30"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="submit"
+                disabled={isAddingTester || !newTesterDiscordId.trim()}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+              >
+                {isAddingTester ? (
+                  <>
+                    <RefreshCw size={13} className="animate-spin" />
+                    <span>Authorizing...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck size={14} />
+                    <span>Authorize Beta Tester</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Active Beta Testers Whitelist List */}
+          <div className="mt-5 space-y-2">
+            <div className="flex items-center justify-between text-xs font-mono text-white/50 px-1">
+              <span>AUTHORIZED TESTERS ({betaTesters.length})</span>
+              <span>ROLE</span>
+            </div>
+
+            {betaTesters.length === 0 ? (
+              <div className="text-center py-8 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
+                <p className="text-xs text-white/40">No external beta testers authorized yet.</p>
+                <p className="text-[11px] text-white/25 mt-1">Verified administrators always have automatic access.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {betaTesters.map((tester) => (
+                  <div
+                    key={tester.discordId}
+                    className="p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold text-white/90 select-all">
+                          {tester.discordId}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 uppercase border border-amber-500/30">
+                          BETA
+                        </span>
+                      </div>
+                      {tester.notes && (
+                        <p className="text-[11px] text-white/50 truncate mt-0.5">{tester.notes}</p>
+                      )}
+                      <p className="text-[9px] font-mono text-white/30 mt-0.5">
+                        Added by {tester.addedBy || 'Admin'} • {new Date(tester.addedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handleRemoveBetaTester(tester.discordId)}
+                      disabled={revokingTesterId === tester.discordId}
+                      className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 transition-all cursor-pointer shrink-0"
+                      title="Revoke Beta Access"
+                    >
+                      {revokingTesterId === tester.discordId ? (
+                        <RefreshCw size={13} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 pt-3 border-t border-white/10 flex justify-end">
+            <button
+              onClick={() => setIsBetaModalOpen(false)}
+              className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Done
             </button>
           </div>
         </DialogContent>

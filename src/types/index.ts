@@ -149,3 +149,10 @@ export interface CreateSuggestionInput {
     status?: SuggestionStatus | string;
 }
 
+export interface SuggestionBetaTester {
+    discordId: string;
+    discordName?: string;
+    notes?: string;
+    addedBy?: string;
+    addedAt: string;
+}

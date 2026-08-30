@@ -125,6 +125,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Category Suggestion Beta Testers Whitelist
+    match /suggestion_beta_testers/{discordId} {
+      allow read, write: if true;
+    }
+
     // Flagged alt accounts (blacklist)
     match /flagged_voters/{docId} {
       allow read, write: if true;

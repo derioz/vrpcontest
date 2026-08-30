@@ -109,6 +109,7 @@ import UploadForm from './components/UploadForm';
 import { ContestInfoSidebar } from './components/ContestInfoSidebar';
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView'));
+import { checkIsBetaTester } from './lib/suggestionsService';
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 import AdminPanel from './components/admin/AdminPanel';
@@ -266,6 +267,7 @@ export default function App() {
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isBetaTester, setIsBetaTester] = useState(false);
   const [user, setUser] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -525,10 +527,10 @@ export default function App() {
         // Wait for auth verification to complete before acting
         return;
       }
-      if (isAdmin) {
+      if (isAdmin || isBetaTester) {
         setShowCategorySuggestions(true);
       } else {
-        // Access denied for non-admins: sanitize URL parameters and warn
+        // Access denied for non-authorized users: sanitize URL parameters and warn
         params.delete('tab');
         params.delete('view');
         params.delete('suggestion');
@@ -536,8 +538,8 @@ export default function App() {
         localStorage.removeItem('active_view');
         const newSearch = params.toString();
         window.history.replaceState(null, '', newSearch ? `?${newSearch}` : window.location.pathname);
-        toast.error('Admin Access Required', {
-          description: 'Suggestion Categories are strictly restricted to verified staff administrators.'
+        toast.error('Beta Access Required', {
+          description: 'Suggestion Categories is currently in private Beta testing for staff and whitelisted testers.'
         });
       }
     } else if (archiveId || photoId) {
@@ -554,7 +556,7 @@ export default function App() {
         }
       }
     }
-  }, [allPhotos, isAdmin, isAuthLoading]);
+  }, [allPhotos, isAdmin, isBetaTester, isAuthLoading]);
 
   // Sync Category Suggestions state to localStorage and URL for seamless browser refresh persistence
   useEffect(() => {
@@ -702,6 +704,7 @@ export default function App() {
       if (!currentUser) {
         setUser(null);
         setIsAdmin(false);
+        setIsBetaTester(false);
         setIsAuthLoading(false);
         return;
       }
@@ -857,15 +860,21 @@ export default function App() {
           }
         }
 
-        if (!firestoreChecked) {
-          console.warn('⚠️ All Firestore admin lookups failed (rules may not be deployed). Add your Discord ID to VITE_ADMIN_DISCORD_IDS env var.');
+        // 5. Check if user is an authorized suggestion beta tester
+        const isTester = await checkIsBetaTester([...idsToCheck]);
+        if (isTester) {
+          console.log('✅ Authorized Suggestion Category Beta Tester matched for user:', [...idsToCheck]);
+          setIsBetaTester(true);
+        } else {
+          setIsBetaTester(false);
         }
 
         console.log('❌ No admin match. Add one of these IDs to VITE_ADMIN_DISCORD_IDS or the Firestore "admins" collection:', [...idsToCheck]);
         setIsAdmin(false);
       } catch (error) {
-        console.error("Error checking admin status:", error);
+        console.error("Error checking admin or beta tester status:", error);
         setIsAdmin(false);
+        setIsBetaTester(false);
       } finally {
         setIsAuthLoading(false);
       }
@@ -2277,19 +2286,21 @@ export default function App() {
                     setShowArchivedWinners(true);
                   }
                 },
-                ...(isAdmin ? [
+                ...((isAdmin || isBetaTester) ? [
                   {
                     id: 'suggest',
                     icon: <Sparkles className="h-4 w-4" />,
                     label: 'Suggestion Categories',
-                    badge: 'Staff',
-                    badgeClassName: 'bg-purple-500/25 text-purple-300 border border-purple-500/40 font-bold',
-                    gradient: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
-                    iconColor: 'group-hover:text-purple-400 text-purple-400',
+                    badge: 'BETA',
+                    badgeClassName: 'bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold',
+                    gradient: 'radial-gradient(circle, rgba(245,158,11,0.25) 0%, rgba(217,119,6,0.1) 50%, rgba(180,83,9,0) 100%)',
+                    iconColor: 'group-hover:text-amber-400 text-amber-400',
                     onClick: () => {
                       setShowCategorySuggestions(true);
                     }
-                  },
+                  }
+                ] : []),
+                ...(isAdmin ? [
                   {
                     id: 'admin',
                     icon: <ShieldCheck className="h-4 w-4" />,
@@ -2437,8 +2448,8 @@ export default function App() {
                 <ChevronRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
               </button>
 
-              {/* Suggest Category (Admin Only) */}
-              {isAdmin && (
+              {/* Suggest Category (Admin or Beta Tester) */}
+              {(isAdmin || isBetaTester) && (
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
@@ -2446,15 +2457,15 @@ export default function App() {
                   }}
                   className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] active:bg-white/[0.06] transition-all cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                    <Sparkles size={18} className="text-violet-400" />
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <Sparkles size={18} className="text-amber-400" />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-white/80 block">Suggestion Categories</span>
-                      <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-[9px] font-mono font-bold text-purple-300 uppercase">Staff</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 uppercase border border-amber-500/30">BETA</span>
                     </div>
-                    <span className="text-[10px] text-white/35 font-mono">Manage & vote on themes</span>
+                    <span className="text-[10px] text-white/35 font-mono">Submit ideas & vote on themes</span>
                   </div>
                   <ChevronRight size={16} className="text-white/15 shrink-0" />
                 </button>
@@ -2760,14 +2771,15 @@ export default function App() {
                     Rules & Guidelines
                   </a>
 
-                  {isAdmin && (
+                  {(isAdmin || isBetaTester) && (
                     <button
                       type="button"
                       onClick={() => setShowCategorySuggestions(true)}
-                      className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-fivem-orange/15 border border-white/15 hover:border-fivem-orange/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
+                      className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-amber-500/15 border border-white/15 hover:border-amber-500/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
                     >
                       <Sparkles size={14} className="text-amber-400" />
-                      Suggestion Categories
+                      <span>Suggestion Categories</span>
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40">BETA</span>
                     </button>
                   )}
                 </motion.div>
@@ -3214,8 +3226,8 @@ export default function App() {
           </ErrorBoundary>
         )}
 
-        {/* Category Suggestions Fullscreen Render (Admin Only) */}
-        {showCategorySuggestions && isAdmin && (
+        {/* Category Suggestions Fullscreen Render (Admin or Beta Tester) */}
+        {showCategorySuggestions && (isAdmin || isBetaTester) && (
           <ErrorBoundary fallbackTitle="Category Suggestions Error" onReset={() => setShowCategorySuggestions(false)}>
             <Suspense fallback={
               <div className="fixed inset-0 z-[150] bg-[#07070b] flex flex-col p-4 sm:p-8 space-y-6 overflow-hidden">
@@ -3246,6 +3258,7 @@ export default function App() {
               <CategorySuggestionsView
                 currentUser={user}
                 isAdmin={isAdmin}
+                isBetaTester={isBetaTester}
                 onClose={() => setShowCategorySuggestions(false)}
                 onOpenSignIn={() => setShowSignInModal(true)}
               />

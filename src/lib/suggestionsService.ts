@@ -19,7 +19,8 @@ import {
   CreateSuggestionInput,
   SuggestionVoterSummary,
   SuggestionStatus,
-  SuggestionAdminVote
+  SuggestionAdminVote,
+  SuggestionBetaTester
 } from '../types';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
@@ -659,4 +660,126 @@ export async function toggleAdminSuggestionVote(
 
   inFlightAdminVotePromises.set(adminLockKey, adminVotePromise);
   return await adminVotePromise;
+}
+
+// ── Suggestion Beta Testers Access Management ──
+
+export const BETA_TESTERS_COLLECTION = 'suggestion_beta_testers';
+
+/**
+ * Add or update a user's beta testing authorization by Discord ID.
+ */
+export async function addBetaTester(
+  discordId: string,
+  notes: string = '',
+  addedBy: string = 'Admin',
+  discordName?: string
+): Promise<SuggestionBetaTester> {
+  const cleanId = String(discordId).trim().replace(/\D/g, '');
+  if (!cleanId || cleanId.length < 15) {
+    throw new Error('Please enter a valid numeric Discord ID (typically 17-20 digits).');
+  }
+
+  const testerData: SuggestionBetaTester = {
+    discordId: cleanId,
+    discordName: discordName?.trim() || undefined,
+    notes: notes.trim() || undefined,
+    addedBy: addedBy || 'Admin',
+    addedAt: new Date().toISOString()
+  };
+
+  const testerDocRef = doc(db, BETA_TESTERS_COLLECTION, cleanId);
+  await setDoc(testerDocRef, testerData);
+  return testerData;
+}
+
+/**
+ * Remove a user from the beta testing authorization list.
+ */
+export async function removeBetaTester(discordId: string): Promise<void> {
+  const cleanId = String(discordId).trim();
+  if (!cleanId) return;
+  const testerDocRef = doc(db, BETA_TESTERS_COLLECTION, cleanId);
+  await deleteDoc(testerDocRef);
+}
+
+/**
+ * Fetch all registered suggestion beta testers.
+ */
+export async function fetchBetaTesters(): Promise<SuggestionBetaTester[]> {
+  try {
+    const snap = await getDocs(collection(db, BETA_TESTERS_COLLECTION));
+    const testers: SuggestionBetaTester[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      testers.push({
+        discordId: d.id,
+        discordName: data.discordName || undefined,
+        notes: data.notes || undefined,
+        addedBy: data.addedBy || 'Admin',
+        addedAt: data.addedAt || new Date().toISOString()
+      });
+    });
+    // Newest first
+    return testers.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+  } catch (err) {
+    console.error('Error fetching suggestion beta testers:', err);
+    return [];
+  }
+}
+
+/**
+ * Real-time listener for suggestion beta testers.
+ */
+export function subscribeBetaTesters(
+  onUpdate: (testers: SuggestionBetaTester[]) => void
+): () => void {
+  try {
+    const colRef = collection(db, BETA_TESTERS_COLLECTION);
+    return onSnapshot(
+      colRef,
+      (snap) => {
+        const testers: SuggestionBetaTester[] = [];
+        snap.forEach((d) => {
+          const data = d.data();
+          testers.push({
+            discordId: d.id,
+            discordName: data.discordName || undefined,
+            notes: data.notes || undefined,
+            addedBy: data.addedBy || 'Admin',
+            addedAt: data.addedAt || new Date().toISOString()
+          });
+        });
+        testers.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+        onUpdate(testers);
+      },
+      (err) => {
+        console.warn('Beta testers snapshot error:', err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to beta testers:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Verify whether a set of user IDs / Discord IDs contains a registered beta tester.
+ */
+export async function checkIsBetaTester(ids: (string | undefined | null)[]): Promise<boolean> {
+  const validIds = ids.filter((id): id is string => Boolean(id && String(id).trim()));
+  if (validIds.length === 0) return false;
+
+  try {
+    for (const rawId of validIds) {
+      const cleanId = String(rawId).trim();
+      const testerDoc = await getDoc(doc(db, BETA_TESTERS_COLLECTION, cleanId));
+      if (testerDoc.exists()) {
+        return true;
+      }
+    }
+  } catch (err) {
+    console.warn('Error checking beta tester status:', err);
+  }
+  return false;
 }

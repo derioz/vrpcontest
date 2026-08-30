@@ -85,17 +85,17 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260830-1815',
+    id: 'entry-20260830-1830',
     dateKey: 'August 30, 2026',
-    timeStr: '6:18 PM',
-    fullTimestamp: 'August 30, 2026 at 6:18 PM',
-    labels: ['ADMIN', 'SECURITY', 'PERFORMANCE', 'UI'],
-    title: 'Suggestion Categories Access Lockdown & Real-Time Voting Optimization',
+    timeStr: '6:32 PM',
+    fullTimestamp: 'August 30, 2026 at 6:32 PM',
+    labels: ['ADMIN', 'SECURITY', 'NEW', 'UI'],
+    title: 'Suggestion Categories Beta Whitelist & Discord ID Access Controls',
     bullets: [
-      'Configured the "Suggestion Categories" navigation button, mobile drawer, and hero action to open the dedicated full-screen Suggestion Categories interactive view directly for staff members.',
-      'Strictly restricted Suggestion Categories to verified administrators across the desktop navigation bar, mobile menu, hero section, and direct URL queries.',
-      'Added in-flight request deduplication and concurrency coalescing to prevent duplicate votes and eliminate database flooding during rapid voting activity.',
-      'Optimized voting animations and rank stability engine for buttery-smooth card transitions with zero jumping or duplicate re-renders.',
+      'Added Beta Tester Whitelist Management in the Admin Panel to authorize community members by numeric Discord ID with instant access granting and revocation.',
+      'Prominently badged the Suggestion Categories feature as BETA across navigation bars, mobile drawers, hero banners, and full-screen view headers.',
+      'Granted authorized beta testers full ability to propose concepts, vote, and participate ahead of the public rollout while preserving admin moderation boundaries.',
+      'Hardened in-flight concurrency deduplication and real-time rank stability transitions with zero UI jumping or database flooding.',
     ],
     author: 'Damon',
   },

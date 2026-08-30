@@ -50,6 +50,7 @@ import { Skeleton } from './ui/skeleton';
 interface CategorySuggestionsViewProps {
   currentUser?: any | null;
   isAdmin: boolean;
+  isBetaTester?: boolean;
   onClose: () => void;
   onOpenSignIn: () => void;
 }
@@ -64,20 +65,23 @@ interface HoveredVotersState {
 export function CategorySuggestionsView({
   currentUser,
   isAdmin,
+  isBetaTester = false,
   onClose,
   onOpenSignIn
 }: CategorySuggestionsViewProps) {
-  // ── Access Lockdown Guard: Strictly Admins Only ──
+  const hasAccess = isAdmin || isBetaTester;
+
+  // ── Access Lockdown Guard: Strictly Admins and Authorized Beta Testers ──
   useEffect(() => {
-    if (!isAdmin) {
+    if (!hasAccess) {
       toast.error('Access Restricted', {
-        description: 'Only verified administrators can access Category Suggestions.'
+        description: 'Only verified administrators and authorized beta testers can access Category Suggestions.'
       });
       onClose();
     }
-  }, [isAdmin, onClose]);
+  }, [hasAccess, onClose]);
 
-  if (!isAdmin) return null;
+  if (!hasAccess) return null;
 
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -584,12 +588,22 @@ export function CategorySuggestionsView({
           </button>
 
           <div className="flex items-center gap-3">
-            {isAdmin && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              BETA
+            </span>
+
+            {isAdmin ? (
               <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-[10px] font-mono font-bold uppercase tracking-wider">
                 <ShieldCheck size={12} />
                 Admin Moderator Active
               </span>
-            )}
+            ) : isBetaTester ? (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                <Sparkles size={12} />
+                Beta Tester Access Active
+              </span>
+            ) : null}
 
             <button
               onClick={() => {
@@ -616,9 +630,13 @@ export function CategorySuggestionsView({
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md mb-4 text-xs font-mono font-bold text-fivem-orange uppercase tracking-widest">
               <Sparkles size={13} className="text-fivem-orange animate-pulse" />
               <span>Future Contest Brainstorm</span>
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/25 text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 ml-1">BETA</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
-              Category <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">Suggestions</span>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3 flex items-center gap-3 flex-wrap">
+              <span>Category <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">Suggestions</span></span>
+              <span className="px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-sm font-mono font-bold uppercase tracking-wider">
+                BETA
+              </span>
             </h1>
             <p className="text-white/60 text-sm sm:text-base leading-relaxed">
               Have an exciting concept for the next Vital RP Photo Contest? Propose your ideas below, upvote your community favorites, and help shape upcoming competition themes.
