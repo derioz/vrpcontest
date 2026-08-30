@@ -324,9 +324,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
       );
       toast.error('Failed to submit staff decision vote', { description: err.message });
     } finally {
-      setTimeout(() => {
-        setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
-      }, 300);
+      setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
     }
   };
 

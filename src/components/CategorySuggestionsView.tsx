@@ -67,6 +67,18 @@ export function CategorySuggestionsView({
   onClose,
   onOpenSignIn
 }: CategorySuggestionsViewProps) {
+  // ── Access Lockdown Guard: Strictly Admins Only ──
+  useEffect(() => {
+    if (!isAdmin) {
+      toast.error('Access Restricted', {
+        description: 'Only verified administrators can access Category Suggestions.'
+      });
+      onClose();
+    }
+  }, [isAdmin, onClose]);
+
+  if (!isAdmin) return null;
+
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -386,9 +398,7 @@ export function CategorySuggestionsView({
       );
       toast.error('Failed to register vote', { description: err.message });
     } finally {
-      setTimeout(() => {
-        setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
-      }, 300);
+      setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
     }
   };
 

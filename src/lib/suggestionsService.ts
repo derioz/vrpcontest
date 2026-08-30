@@ -40,6 +40,10 @@ export interface SuggestionVoter {
 const voterLookupMemoryCache = new Map<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[]; timestamp: number }>();
 const CACHE_TTL_MS = 60000; // 1 minute cache TTL
 
+// In-flight concurrency lock maps to deduplicate rapid simultaneous votes and prevent Firestore transaction floods
+const inFlightVotePromises = new Map<string, Promise<{ score: number; user_vote: number; upvotes: number; downvotes: number; voters_sample?: SuggestionVoterSummary[] }>>();
+const inFlightAdminVotePromises = new Map<string, Promise<AdminVoteResult>>();
+
 /**
  * High-performance in-memory sorting utility.
  * Top Score: Primary = Net Score, Secondary = Upvotes, Tertiary = Least Downvotes, Tiebreak = Newest.
@@ -315,10 +319,17 @@ export async function castCategorySuggestionVote(
   const voteDocRef = doc(db, VOTES_COLLECTION, voteDocId);
   const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
 
+  // If a vote request for the same suggestion and user is already running, coalesce/await the active promise
+  if (inFlightVotePromises.has(voteDocId)) {
+    return inFlightVotePromises.get(voteDocId)!;
+  }
+
   // Invalidate memory cache for this suggestion
   voterLookupMemoryCache.delete(suggestionId);
 
-  return await runTransaction(db, async (transaction) => {
+  const votePromise = (async () => {
+    try {
+      return await runTransaction(db, async (transaction) => {
     const [voteDocSnap, suggestionDocSnap] = await Promise.all([
       transaction.get(voteDocRef),
       transaction.get(suggestionDocRef)
@@ -405,7 +416,14 @@ export async function castCategorySuggestionVote(
       downvotes: currentDownvotes,
       voters_sample: updatedVotersSample
     };
-  });
+      });
+    } finally {
+      inFlightVotePromises.delete(voteDocId);
+    }
+  })();
+
+  inFlightVotePromises.set(voteDocId, votePromise);
+  return await votePromise;
 }
 
 /**
@@ -550,83 +568,95 @@ export async function toggleAdminSuggestionVote(
   adminName: string,
   adminAvatarUrl?: string | null
 ): Promise<AdminVoteResult> {
-  try {
-    const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
-
-    const result = await runTransaction(db, async (transaction) => {
-      const snap = await transaction.get(suggestionDocRef);
-      if (!snap.exists()) {
-        throw new Error('Suggestion does not exist');
-      }
-
-      const data = snap.data();
-      const currentStatus: string = data.status || 'open';
-      const currentVotes: SuggestionAdminVote[] = Array.isArray(data.admin_votes) ? data.admin_votes : [];
-
-      const existingIndex = currentVotes.findIndex(
-        (v) => v.adminId === adminId || (adminName && v.adminName && v.adminName.toLowerCase() === adminName.toLowerCase())
-      );
-      let updatedVotes: SuggestionAdminVote[] = [];
-
-      if (existingIndex >= 0) {
-        // Toggle off (remove admin vote)
-        updatedVotes = currentVotes.filter((_, idx) => idx !== existingIndex);
-      } else {
-        // Toggle on (add admin vote)
-        const newVote: SuggestionAdminVote = {
-          adminId: String(adminId),
-          adminName: adminName || 'Admin',
-          adminAvatarUrl: adminAvatarUrl || null,
-          vote: 'yes',
-          votedAt: new Date().toISOString()
-        };
-        updatedVotes = [...currentVotes, newVote];
-      }
-
-      // ── Automated 2/3 Admin Quorum Transitions ──
-      if (currentStatus === 'under_review' && updatedVotes.length >= 2) {
-        // Threshold reached for Under Review: Promote to Open for Voting
-        transaction.update(suggestionDocRef, {
-          status: 'open',
-          review_admin_votes: updatedVotes,
-          admin_votes: [],
-          updated_at: new Date().toISOString()
-        });
-        return {
-          admin_votes: [],
-          status: 'open',
-          autoTransitioned: true,
-          transitionType: 'opened_for_voting' as const
-        };
-      } else if ((currentStatus === 'open' || currentStatus === 'active') && updatedVotes.length >= 2) {
-        // Threshold reached for Open for Voting: Promote to Approved for Contest
-        transaction.update(suggestionDocRef, {
-          status: 'approved',
-          admin_votes: updatedVotes,
-          updated_at: new Date().toISOString()
-        });
-        return {
-          admin_votes: updatedVotes,
-          status: 'approved',
-          autoTransitioned: true,
-          transitionType: 'approved_for_contest' as const
-        };
-      } else {
-        transaction.update(suggestionDocRef, {
-          admin_votes: updatedVotes,
-          updated_at: new Date().toISOString()
-        });
-        return {
-          admin_votes: updatedVotes,
-          status: currentStatus,
-          autoTransitioned: false
-        };
-      }
-    });
-
-    return result;
-  } catch (error: any) {
-    console.error('Error toggling admin suggestion vote:', error);
-    throw new Error(error?.message || 'Failed to submit admin decision vote.');
+  const adminLockKey = `${suggestionId}_${adminId}`;
+  if (inFlightAdminVotePromises.has(adminLockKey)) {
+    return inFlightAdminVotePromises.get(adminLockKey)!;
   }
+
+  const adminVotePromise = (async () => {
+    try {
+      const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
+
+      const result = await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(suggestionDocRef);
+        if (!snap.exists()) {
+          throw new Error('Suggestion does not exist');
+        }
+
+        const data = snap.data();
+        const currentStatus: string = data.status || 'open';
+        const currentVotes: SuggestionAdminVote[] = Array.isArray(data.admin_votes) ? data.admin_votes : [];
+
+        const existingIndex = currentVotes.findIndex(
+          (v) => v.adminId === adminId || (adminName && v.adminName && v.adminName.toLowerCase() === adminName.toLowerCase())
+        );
+        let updatedVotes: SuggestionAdminVote[] = [];
+
+        if (existingIndex >= 0) {
+          // Toggle off (remove admin vote)
+          updatedVotes = currentVotes.filter((_, idx) => idx !== existingIndex);
+        } else {
+          // Toggle on (add admin vote)
+          const newVote: SuggestionAdminVote = {
+            adminId: String(adminId),
+            adminName: adminName || 'Admin',
+            adminAvatarUrl: adminAvatarUrl || null,
+            vote: 'yes',
+            votedAt: new Date().toISOString()
+          };
+          updatedVotes = [...currentVotes, newVote];
+        }
+
+        // ── Automated 2/3 Admin Quorum Transitions ──
+        if (currentStatus === 'under_review' && updatedVotes.length >= 2) {
+          // Threshold reached for Under Review: Promote to Open for Voting
+          transaction.update(suggestionDocRef, {
+            status: 'open',
+            review_admin_votes: updatedVotes,
+            admin_votes: [],
+            updated_at: new Date().toISOString()
+          });
+          return {
+            admin_votes: [],
+            status: 'open',
+            autoTransitioned: true,
+            transitionType: 'opened_for_voting' as const
+          };
+        } else if ((currentStatus === 'open' || currentStatus === 'active') && updatedVotes.length >= 2) {
+          // Threshold reached for Open for Voting: Promote to Approved for Contest
+          transaction.update(suggestionDocRef, {
+            status: 'approved',
+            admin_votes: updatedVotes,
+            updated_at: new Date().toISOString()
+          });
+          return {
+            admin_votes: updatedVotes,
+            status: 'approved',
+            autoTransitioned: true,
+            transitionType: 'approved_for_contest' as const
+          };
+        } else {
+          transaction.update(suggestionDocRef, {
+            admin_votes: updatedVotes,
+            updated_at: new Date().toISOString()
+          });
+          return {
+            admin_votes: updatedVotes,
+            status: currentStatus,
+            autoTransitioned: false
+          };
+        }
+      });
+
+      return result;
+    } catch (error: any) {
+      console.error('Error toggling admin suggestion vote:', error);
+      throw new Error(error?.message || 'Failed to submit admin decision vote.');
+    } finally {
+      inFlightAdminVotePromises.delete(adminLockKey);
+    }
+  })();
+
+  inFlightAdminVotePromises.set(adminLockKey, adminVotePromise);
+  return await adminVotePromise;
 }

@@ -263,14 +263,7 @@ export default function App() {
     const storedView = localStorage.getItem('active_view');
     return tab === 'hall-of-fame' || tab === 'hof' || !!archiveId || storedView === 'hall-of-fame';
   });
-  const [showCategorySuggestions, setShowCategorySuggestions] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab') || params.get('view');
-    const suggestionId = params.get('suggestion') || params.get('idea');
-    const storedView = localStorage.getItem('active_view');
-    return tab === 'suggestions' || tab === 'suggest' || !!suggestionId || storedView === 'suggestions';
-  });
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any | null>(null);
@@ -528,7 +521,25 @@ export default function App() {
     const suggestionId = params.get('suggestion') || params.get('idea');
 
     if (tabParam === 'suggestions' || tabParam === 'ideas' || suggestionId) {
-      setShowCategorySuggestions(true);
+      if (isAuthLoading) {
+        // Wait for auth verification to complete before acting
+        return;
+      }
+      if (isAdmin) {
+        setShowCategorySuggestions(true);
+      } else {
+        // Access denied for non-admins: sanitize URL parameters and warn
+        params.delete('tab');
+        params.delete('view');
+        params.delete('suggestion');
+        params.delete('idea');
+        localStorage.removeItem('active_view');
+        const newSearch = params.toString();
+        window.history.replaceState(null, '', newSearch ? `?${newSearch}` : window.location.pathname);
+        toast.error('Admin Access Required', {
+          description: 'Suggestion Categories are strictly restricted to verified staff administrators.'
+        });
+      }
     } else if (archiveId || photoId) {
       if (archiveId) {
         setShowArchivedWinners(true);
@@ -543,7 +554,7 @@ export default function App() {
         }
       }
     }
-  }, [allPhotos]);
+  }, [allPhotos, isAdmin, isAuthLoading]);
 
   // Sync Category Suggestions state to localStorage and URL for seamless browser refresh persistence
   useEffect(() => {
@@ -2270,7 +2281,7 @@ export default function App() {
                   {
                     id: 'suggest',
                     icon: <Sparkles className="h-4 w-4" />,
-                    label: 'Suggest Theme',
+                    label: 'Suggestion Categories',
                     badge: 'Staff',
                     badgeClassName: 'bg-purple-500/25 text-purple-300 border border-purple-500/40 font-bold',
                     gradient: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
@@ -2426,20 +2437,28 @@ export default function App() {
                 <ChevronRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
               </button>
 
-              {/* Suggest Category */}
-              <button
-                onClick={() => { setShowCategorySuggestions(true); setIsMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] active:bg-white/[0.06] transition-all cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                  <Sparkles size={18} className="text-violet-400" />
-                </div>
-                <div className="flex-1 text-left">
-                  <span className="text-sm font-bold text-white/80 block">Suggest Category</span>
-                  <span className="text-[10px] text-white/35 font-mono">Submit ideas for next round</span>
-                </div>
-                <ChevronRight size={16} className="text-white/15 shrink-0" />
-              </button>
+              {/* Suggest Category (Admin Only) */}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigateTo('/admin/suggestions');
+                  }}
+                  className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] active:bg-white/[0.06] transition-all cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                    <Sparkles size={18} className="text-violet-400" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white/80 block">Suggestion Categories</span>
+                      <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-[9px] font-mono font-bold text-purple-300 uppercase">Staff</span>
+                    </div>
+                    <span className="text-[10px] text-white/35 font-mono">Manage & vote on themes</span>
+                  </div>
+                  <ChevronRight size={16} className="text-white/15 shrink-0" />
+                </button>
+              )}
 
               {/* Admin Tools (Admin Only) */}
               {isAdmin && (
@@ -2741,14 +2760,16 @@ export default function App() {
                     Rules & Guidelines
                   </a>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowCategorySuggestions(true)}
-                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-fivem-orange/15 border border-white/15 hover:border-fivem-orange/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
-                  >
-                    <Sparkles size={14} className="text-amber-400" />
-                    Suggest Category
-                  </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => navigateTo('/admin/suggestions')}
+                      className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-fivem-orange/15 border border-white/15 hover:border-fivem-orange/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
+                    >
+                      <Sparkles size={14} className="text-amber-400" />
+                      Suggestion Categories
+                    </button>
+                  )}
                 </motion.div>
 
                 {/* Non-Redundant Telemetry Matrix */}
@@ -3193,8 +3214,8 @@ export default function App() {
           </ErrorBoundary>
         )}
 
-        {/* Category Suggestions Fullscreen Render */}
-        {showCategorySuggestions && (
+        {/* Category Suggestions Fullscreen Render (Admin Only) */}
+        {showCategorySuggestions && isAdmin && (
           <ErrorBoundary fallbackTitle="Category Suggestions Error" onReset={() => setShowCategorySuggestions(false)}>
             <Suspense fallback={
               <div className="fixed inset-0 z-[150] bg-[#07070b] flex flex-col p-4 sm:p-8 space-y-6 overflow-hidden">

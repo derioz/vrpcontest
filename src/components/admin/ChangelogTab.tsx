@@ -85,6 +85,21 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260830-1815',
+    dateKey: 'August 30, 2026',
+    timeStr: '6:15 PM',
+    fullTimestamp: 'August 30, 2026 at 6:15 PM',
+    labels: ['ADMIN', 'SECURITY', 'PERFORMANCE'],
+    title: 'Suggestion Categories Access Lockdown & Real-Time Voting Optimization',
+    bullets: [
+      'Strictly restricted Suggestion Categories to verified administrators across the desktop navigation bar, mobile menu, hero section, and direct URL queries.',
+      'Updated the desktop navbar label to "Suggestion Categories" with a dedicated Staff indicator badge.',
+      'Added in-flight request deduplication and concurrency coalescing to prevent duplicate votes and eliminate database flooding during rapid voting activity.',
+      'Optimized voting animations and rank stability engine for buttery-smooth card transitions with zero jumping or duplicate re-renders.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260828-1710',
     dateKey: 'August 28, 2026',
     timeStr: '5:10 PM',

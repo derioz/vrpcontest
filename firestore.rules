@@ -120,6 +120,11 @@ service cloud.firestore {
       allow read, create, update, delete: if true;
     }
 
+    // Category Suggestion Votes
+    match /category_suggestion_votes/{voteId} {
+      allow read, write: if true;
+    }
+
     // Flagged alt accounts (blacklist)
     match /flagged_voters/{docId} {
       allow read, write: if true;
