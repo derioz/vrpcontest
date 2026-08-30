@@ -29,7 +29,8 @@ import {
   Award,
   History,
   ThumbsUp,
-  UserCheck
+  UserCheck,
+  Users
 } from 'lucide-react';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
