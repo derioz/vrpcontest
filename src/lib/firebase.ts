@@ -23,7 +23,8 @@ const app = initializeApp(firebaseConfig);
 // Initialize Services
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
-    localCache: persistentLocalCache({})
+    localCache: persistentLocalCache({}),
+    ignoreUndefinedProperties: true
 });
 
 // Initialize Discord OAuth Provider (Custom OIDC via Firebase Identity Platform)

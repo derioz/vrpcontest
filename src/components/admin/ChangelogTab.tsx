@@ -85,6 +85,20 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260830-2200',
+    dateKey: 'August 30, 2026',
+    timeStr: '10:00 PM',
+    fullTimestamp: 'August 30, 2026 at 10:00 PM',
+    labels: ['FIX', 'ADMIN', 'SECURITY'],
+    title: 'Beta Tester Authorization Sanitization & Scope Clarification',
+    bullets: [
+      'Resolved Firestore document write validation error when authorizing beta testers without a custom name or notes.',
+      'Configured database ignoreUndefinedProperties safety guard to protect against uninitialized field serialization.',
+      'Clarified beta tester permission boundaries across the management modal confirming access applies strictly to category suggestions and never grants admin dashboard access.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260830-1830',
     dateKey: 'August 30, 2026',
     timeStr: '6:32 PM',

@@ -680,17 +680,31 @@ export async function addBetaTester(
     throw new Error('Please enter a valid numeric Discord ID (typically 17-20 digits).');
   }
 
-  const testerData: SuggestionBetaTester = {
+  const cleanTesterData: Record<string, any> = {
     discordId: cleanId,
-    discordName: discordName?.trim() || undefined,
-    notes: notes.trim() || undefined,
     addedBy: addedBy || 'Admin',
     addedAt: new Date().toISOString()
   };
 
+  const cleanName = discordName?.trim();
+  if (cleanName) {
+    cleanTesterData.discordName = cleanName;
+  }
+
+  const cleanNotes = notes.trim();
+  if (cleanNotes) {
+    cleanTesterData.notes = cleanNotes;
+  }
+
   const testerDocRef = doc(db, BETA_TESTERS_COLLECTION, cleanId);
-  await setDoc(testerDocRef, testerData);
-  return testerData;
+  await setDoc(testerDocRef, cleanTesterData);
+  return {
+    discordId: cleanId,
+    discordName: cleanName || undefined,
+    notes: cleanNotes || undefined,
+    addedBy: addedBy || 'Admin',
+    addedAt: cleanTesterData.addedAt
+  };
 }
 
 /**

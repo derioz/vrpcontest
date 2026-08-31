@@ -470,7 +470,8 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     setIsAddingTester(true);
     try {
       const adminName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Admin';
-      await addBetaTester(cleanId, newTesterNotes, adminName);
+      const cleanNotes = newTesterNotes.trim();
+      await addBetaTester(cleanId, cleanNotes, adminName, cleanNotes);
       toast.success('Beta Tester Added!', {
         description: `Discord ID ${cleanId} can now access the Suggestion Categories feature.`
       });
@@ -1238,7 +1239,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
               </div>
             </div>
             <DialogDescription className="text-xs text-white/60 leading-relaxed">
-              Add Discord IDs of trusted members to grant them private access to view, submit, and vote on Suggestion Categories ahead of the public rollout.
+              Add Discord IDs of community members to grant them access to preview, submit, and vote on Suggestion Categories. This provides access strictly to the Suggestion feature and does <span className="text-amber-400 font-semibold">not</span> grant access to the Admin Dashboard or any administrative controls.
             </DialogDescription>
           </DialogHeader>
 
