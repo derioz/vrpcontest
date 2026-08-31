@@ -23,8 +23,10 @@ import {
     ExternalLink,
     ChevronDown,
     Maximize2,
-    SlidersHorizontal,
-    Volume2
+    X,
+    ChevronLeft,
+    ChevronRight,
+    ZoomIn
 } from "lucide-react";
 import { downloadPhoto } from "../lib/download";
 import { MagicCard } from "./ui/magic-card";
@@ -52,6 +54,7 @@ export interface Winner {
 interface WinnerAnnouncementProps {
     winners: Winner[];
     contestName?: string;
+    onPhotoClick?: (winner: Winner) => void;
 }
 
 function sanitizeFilePart(value: string) {
@@ -71,96 +74,65 @@ const CATEGORY_THEMES: Record<string, {
     pedestalBg: string;
 }> = {
     gold: {
-        border: "border-amber-400/60",
-        glow: "rgba(245, 158, 11, 0.4)",
+        border: "border-amber-400/50",
+        glow: "rgba(245, 158, 11, 0.35)",
         badge: "bg-amber-500/20 text-amber-300 border-amber-400/40",
         accent: "#f59e0b",
-        gradient: "from-amber-500/30 via-orange-500/20 to-transparent",
-        pedestalBg: "from-amber-500/30 via-black/90 to-[#0a0a0f]",
+        gradient: "from-amber-500/25 via-orange-500/15 to-transparent",
+        pedestalBg: "from-amber-500/20 via-black/90 to-[#0a0a0f]",
     },
     silver: {
         border: "border-sky-400/50",
         glow: "rgba(56, 189, 248, 0.35)",
         badge: "bg-sky-500/20 text-sky-300 border-sky-400/40",
         accent: "#38bdf8",
-        gradient: "from-sky-500/30 via-blue-500/15 to-transparent",
-        pedestalBg: "from-sky-500/25 via-black/90 to-[#0a0a0f]",
+        gradient: "from-sky-500/25 via-blue-500/15 to-transparent",
+        pedestalBg: "from-sky-500/20 via-black/90 to-[#0a0a0f]",
     },
     bronze: {
         border: "border-orange-400/50",
         glow: "rgba(251, 146, 60, 0.35)",
         badge: "bg-orange-500/20 text-orange-300 border-orange-400/40",
         accent: "#fb923c",
-        gradient: "from-orange-500/30 via-amber-600/15 to-transparent",
-        pedestalBg: "from-orange-500/25 via-black/90 to-[#0a0a0f]",
+        gradient: "from-orange-500/25 via-amber-600/15 to-transparent",
+        pedestalBg: "from-orange-500/20 via-black/90 to-[#0a0a0f]",
     },
     purple: {
         border: "border-purple-400/50",
         glow: "rgba(192, 132, 252, 0.35)",
         badge: "bg-purple-500/20 text-purple-300 border-purple-400/40",
         accent: "#c084fc",
-        gradient: "from-purple-500/30 via-indigo-600/15 to-transparent",
-        pedestalBg: "from-purple-500/25 via-black/90 to-[#0a0a0f]",
+        gradient: "from-purple-500/25 via-indigo-600/15 to-transparent",
+        pedestalBg: "from-purple-500/20 via-black/90 to-[#0a0a0f]",
     },
     emerald: {
         border: "border-emerald-400/50",
         glow: "rgba(52, 211, 153, 0.35)",
         badge: "bg-emerald-500/20 text-emerald-300 border-emerald-400/40",
         accent: "#34d399",
-        gradient: "from-emerald-500/30 via-teal-600/15 to-transparent",
-        pedestalBg: "from-emerald-500/25 via-black/90 to-[#0a0a0f]",
+        gradient: "from-emerald-500/25 via-teal-600/15 to-transparent",
+        pedestalBg: "from-emerald-500/20 via-black/90 to-[#0a0a0f]",
     },
 };
 
 const THEME_CYCLE = ['gold', 'silver', 'bronze', 'purple', 'emerald'];
 
-export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementProps) {
+export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: WinnerAnnouncementProps) {
     const [viewMode, setViewMode] = useState<"podium" | "grid">("podium");
     const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [activeWinnerHighlight, setActiveWinnerHighlight] = useState<string | null>(null);
+    const [enlargedWinner, setEnlargedWinner] = useState<Winner | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Rank winners by vote count for podium height calculation
-    const rankedWinners = useMemo(() => {
-        return [...winners].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
-    }, [winners]);
-
-    // Construct dramatic visual podium order:
-    // Highest voted (#1 Grand Champion) is in the absolute center!
-    // Flanked by #2 on left, #3 on right, #4 outer left, #5 outer right.
-    const podiumArrangedWinners = useMemo(() => {
-        if (rankedWinners.length <= 1) return rankedWinners;
-
-        const result: { winner: Winner; rank: number; podiumHeightClass: string; theme: string }[] = [];
-        
-        if (rankedWinners.length === 3) {
-            // [Rank 2, Rank 1 (Center), Rank 3]
-            result.push({ winner: rankedWinners[1], rank: 2, podiumHeightClass: "h-32 sm:h-36", theme: "silver" });
-            result.push({ winner: rankedWinners[0], rank: 1, podiumHeightClass: "h-44 sm:h-52", theme: "gold" });
-            result.push({ winner: rankedWinners[2], rank: 3, podiumHeightClass: "h-24 sm:h-28", theme: "bronze" });
-            return result;
-        }
-
-        if (rankedWinners.length >= 5) {
-            // Standard 5-category podium:
-            // [Rank 4, Rank 2, Rank 1 (Center Grand Champion), Rank 3, Rank 5]
-            result.push({ winner: rankedWinners[3], rank: 4, podiumHeightClass: "h-20 sm:h-24", theme: "purple" });
-            result.push({ winner: rankedWinners[1], rank: 2, podiumHeightClass: "h-32 sm:h-36", theme: "silver" });
-            result.push({ winner: rankedWinners[0], rank: 1, podiumHeightClass: "h-44 sm:h-52", theme: "gold" });
-            result.push({ winner: rankedWinners[2], rank: 3, podiumHeightClass: "h-26 sm:h-30", theme: "bronze" });
-            result.push({ winner: rankedWinners[4], rank: 5, podiumHeightClass: "h-16 sm:h-20", theme: "emerald" });
-            return result;
-        }
-
-        // Fallback for 2 or 4 items: Sort center-heavy
-        return rankedWinners.map((w, idx) => ({
+    // All winners are equal co-champions!
+    // Assign each category winner a distinct luxury theme color
+    const styledWinners = useMemo(() => {
+        return winners.map((w, idx) => ({
             winner: w,
-            rank: idx + 1,
-            podiumHeightClass: idx === 0 ? "h-44 sm:h-52" : idx === 1 ? "h-32 sm:h-36" : "h-24 sm:h-28",
             theme: THEME_CYCLE[idx % THEME_CYCLE.length],
         }));
-    }, [rankedWinners]);
+    }, [winners]);
 
     // Unique category list for tabs
     const categoryOptions = useMemo(() => {
@@ -233,7 +205,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
         }
 
         toast.success("🎉 Celebration Confetti Fired!", {
-            description: "Honoring our community champions across all categories."
+            description: "Honoring all 5 co-champions across every category equally."
         });
     }, []);
 
@@ -244,6 +216,54 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
         }, 800);
         return () => clearTimeout(timer);
     }, [triggerCelebrationCannon]);
+
+    // Handle photo click to enlarge
+    const handlePhotoClick = (winner: Winner) => {
+        setEnlargedWinner(winner);
+        if (onPhotoClick) {
+            onPhotoClick(winner);
+        }
+    };
+
+    // Lightbox navigation
+    const currentEnlargedIndex = useMemo(() => {
+        if (!enlargedWinner) return -1;
+        return winners.findIndex(w => w.id === enlargedWinner.id);
+    }, [enlargedWinner, winners]);
+
+    const handlePrevWinner = useCallback(() => {
+        if (currentEnlargedIndex > 0) {
+            setEnlargedWinner(winners[currentEnlargedIndex - 1]);
+        } else if (winners.length > 0) {
+            setEnlargedWinner(winners[winners.length - 1]);
+        }
+    }, [currentEnlargedIndex, winners]);
+
+    const handleNextWinner = useCallback(() => {
+        if (currentEnlargedIndex >= 0 && currentEnlargedIndex < winners.length - 1) {
+            setEnlargedWinner(winners[currentEnlargedIndex + 1]);
+        } else if (winners.length > 0) {
+            setEnlargedWinner(winners[0]);
+        }
+    }, [currentEnlargedIndex, winners]);
+
+    // Keyboard navigation shortcuts when lightbox is open
+    useEffect(() => {
+        if (!enlargedWinner) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setEnlargedWinner(null);
+            } else if (e.key === "ArrowLeft") {
+                handlePrevWinner();
+            } else if (e.key === "ArrowRight") {
+                handleNextWinner();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [enlargedWinner, handlePrevWinner, handleNextWinner]);
 
     const handleDownload = async (winner: Winner) => {
         setDownloadingId(winner.id);
@@ -276,19 +296,19 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
             ref={containerRef}
             className="relative w-full pt-24 sm:pt-32 pb-24 overflow-hidden bg-[#050508] border-b border-white/10"
         >
-            {/* ── Layer 1: Ambient Backdrop & Dynamic Sweeping Spotlights ── */}
+            {/* ── Layer 1: Ambient Backdrop & Dynamic Spotlights ── */}
             <div className="absolute inset-0 pointer-events-none z-0">
                 {/* Dark Luxury Gradient Base */}
                 <div className="absolute inset-0 bg-gradient-to-b from-[#030305] via-[#08080d] to-[#040407]" />
 
-                {/* Animated Beaming Spotlights converging on Center Podium */}
+                {/* Animated Beaming Spotlights */}
                 <Spotlight
                     className="-top-24 left-1/4 sm:left-1/3 -translate-x-1/2 w-[700px] h-[900px]"
-                    fill="rgba(245, 158, 11, 0.28)"
+                    fill="rgba(245, 158, 11, 0.25)"
                 />
                 <Spotlight
                     className="-top-24 right-1/4 sm:right-1/3 translate-x-1/2 w-[700px] h-[900px]"
-                    fill="rgba(234, 88, 12, 0.25)"
+                    fill="rgba(234, 88, 12, 0.22)"
                 />
 
                 {/* Ambient Radial Color Orbs */}
@@ -301,8 +321,8 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
 
                 {/* Ambient Gold Stardust Particles */}
                 <Particles
-                    className="absolute inset-0 opacity-45"
-                    quantity={50}
+                    className="absolute inset-0 opacity-40"
+                    quantity={45}
                     color="#f59e0b"
                     staticity={40}
                     size={0.6}
@@ -315,23 +335,23 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                 <div className="text-center max-w-4xl mx-auto mb-10 sm:mb-14">
                     {/* Official Server Loading Screen Heraldry Ribbon */}
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 text-amber-300 text-xs font-mono font-bold uppercase tracking-widest mb-6 backdrop-blur-xl shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                        <Crown size={15} className="text-amber-400 animate-pulse" />
+                        <Trophy size={14} className="text-amber-400" />
                         <span>Vital RP · Official Loading Screen Co-Champions</span>
-                        <Crown size={15} className="text-amber-400 animate-pulse" />
+                        <Trophy size={14} className="text-amber-400" />
                     </div>
 
                     {/* Grand Title with Magic Sparkles */}
                     <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black font-display tracking-tight text-white leading-[1.1] mb-5">
                         <SparklesText
                             text={contestName ? `${contestName} Winners` : "Champions Celebration Stage"}
-                            sparklesCount={8}
+                            sparklesCount={7}
                             colors={{ first: "#f59e0b", second: "#ea580c" }}
-                            className="drop-shadow-[0_12px_45px_rgba(245,158,11,0.35)]"
+                            className="drop-shadow-[0_12px_45px_rgba(245,158,11,0.3)]"
                         />
                     </h1>
 
                     <p className="text-white/75 text-base sm:text-lg leading-relaxed font-sans max-w-2xl mx-auto mb-7">
-                        Congratulations to each category victor! All winning photographs have earned permanent exhibition on the <strong className="text-white">FiveM Server Loading Screens</strong> and Hall of Fame.
+                        Congratulations to our 5 category winners! All 5 photos are honored as <strong className="text-white font-bold">equal co-champions</strong>, each permanently featured on the official FiveM Server Loading Screens.
                     </p>
 
                     {/* ── Toolbar: Confetti Cannon & View Mode Switcher ── */}
@@ -348,7 +368,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                             <span>Launch Confetti Celebration</span>
                         </ShimmerButton>
 
-                        {/* View Mode Toggle: Podium Stage vs Grid Showcase */}
+                        {/* View Mode Toggle: Equal Podium Stage vs Grid Showcase */}
                         <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg">
                             <button
                                 type="button"
@@ -356,12 +376,12 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                 className={cn(
                                     "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold font-display transition-all cursor-pointer",
                                     viewMode === "podium"
-                                        ? "bg-amber-500 text-black shadow-md"
+                                        ? "bg-amber-500 text-black shadow-md font-extrabold"
                                         : "text-white/60 hover:text-white"
                                 )}
                             >
                                 <Trophy size={14} />
-                                <span>Podium Stage</span>
+                                <span>Celebration Stage</span>
                             </button>
                             <button
                                 type="button"
@@ -369,7 +389,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                 className={cn(
                                     "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold font-display transition-all cursor-pointer",
                                     viewMode === "grid"
-                                        ? "bg-amber-500 text-black shadow-md"
+                                        ? "bg-amber-500 text-black shadow-md font-extrabold"
                                         : "text-white/60 hover:text-white"
                                 )}
                             >
@@ -384,7 +404,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                         <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2 backdrop-blur-md">
                             <Trophy size={13} className="text-amber-400" />
                             <span className="text-white font-bold">{winners.length}</span>
-                            <span>Category Champions</span>
+                            <span>Equal Co-Champions</span>
                         </div>
                         <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2 backdrop-blur-md">
                             <Heart size={13} className="text-red-400 fill-red-400" />
@@ -395,67 +415,52 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                             <Tv size={13} className="text-fivem-orange" />
                             <span className="text-emerald-400 font-bold">5 Server Screens</span>
                         </div>
+                        <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2 backdrop-blur-md text-amber-300">
+                            <ZoomIn size={13} />
+                            <span>Click any photo to enlarge</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* ── View 1: 3D Tiered Winners Celebration Podium Stage ── */}
+                {/* ── View 1: 3D Equal Celebration Podium Stage (All 5 Equal) ── */}
                 {viewMode === "podium" && (
                     <div className="relative w-full mb-12">
-                        {/* Dramatic Stage Floor Glow Arc */}
-                        <div className="relative pt-6 sm:pt-10">
+                        {/* Stage Floor Glow Arc */}
+                        <div className="relative pt-4">
                             {/* Horizontal Stage Floor Light Bar */}
-                            <div className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-gradient-to-r from-transparent via-amber-400/80 to-transparent shadow-[0_0_25px_rgba(245,158,11,0.8)] z-10" />
+                            <div className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent shadow-[0_0_25px_rgba(245,158,11,0.7)] z-10" />
 
-                            {/* Responsive Podium Stage Grid */}
+                            {/* Responsive 5-Column Equal Stage Grid */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-4 items-end justify-center">
-                                {podiumArrangedWinners.map((item, idx) => {
-                                    const { winner, rank, podiumHeightClass, theme } = item;
-                                    const isGrandChampion = rank === 1;
+                                {styledWinners.map((item, idx) => {
+                                    const { winner, theme } = item;
                                     const themeObj = CATEGORY_THEMES[theme] || CATEGORY_THEMES.gold;
                                     const isHovered = activeWinnerHighlight === winner.id;
 
                                     return (
                                         <motion.div
                                             key={winner.id}
-                                            initial={{ opacity: 0, y: 50, scale: 0.92 }}
+                                            initial={{ opacity: 0, y: 35, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            transition={{ duration: 0.6, delay: idx * 0.1, ease: "easeOut" }}
+                                            transition={{ duration: 0.5, delay: idx * 0.08, ease: "easeOut" }}
                                             onMouseEnter={() => setActiveWinnerHighlight(winner.id)}
                                             onMouseLeave={() => setActiveWinnerHighlight(null)}
-                                            className={cn(
-                                                "relative flex flex-col items-center group/podium transition-all duration-500",
-                                                isGrandChampion ? "lg:-translate-y-4 z-20" : "z-10",
-                                                // Center champion full width on small mobile if desired
-                                                isGrandChampion && "sm:col-span-2 lg:col-span-1"
-                                            )}
+                                            className="relative flex flex-col items-center group/podium transition-all duration-500 z-10"
                                         >
-                                            {/* Grand Champion Aura Crest */}
-                                            {isGrandChampion && (
-                                                <div className="absolute -top-12 sm:-top-14 flex flex-col items-center pointer-events-none z-30 animate-bounce">
-                                                    <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 text-black font-extrabold text-[11px] uppercase tracking-wider shadow-[0_0_25px_rgba(245,158,11,0.9)]">
-                                                        <Crown size={14} className="fill-black" />
-                                                        <span>Grand Champion</span>
-                                                    </div>
-                                                    <div className="w-0.5 h-3 bg-gradient-to-b from-amber-400 to-transparent" />
-                                                </div>
-                                            )}
-
-                                            {/* Podium Entry Card (Floating Above Pedestal) */}
+                                            {/* Equal Podium Entry Card */}
                                             <div className={cn(
                                                 "relative w-full rounded-2xl sm:rounded-3xl p-3 sm:p-3.5 bg-[#0a0a0f]/95 border backdrop-blur-2xl transition-all duration-500 shadow-2xl flex flex-col",
-                                                isGrandChampion 
-                                                    ? "border-amber-400/80 shadow-[0_0_35px_rgba(245,158,11,0.35)] ring-1 ring-amber-400/50" 
-                                                    : "border-white/10 hover:border-white/30 hover:shadow-[0_0_25px_rgba(255,255,255,0.1)]",
+                                                "border-white/10 hover:border-amber-400/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]",
                                                 isHovered && "scale-[1.02] -translate-y-1"
                                             )}>
-                                                {/* Animated Border Beam on Grand Champion */}
-                                                {isGrandChampion && (
+                                                {/* Animated Border Beam on hover */}
+                                                {isHovered && (
                                                     <BorderBeam
-                                                        size={180}
-                                                        duration={8}
+                                                        size={160}
+                                                        duration={7}
                                                         colorFrom="#f59e0b"
                                                         colorTo="#fbbf24"
-                                                        borderWidth={2}
+                                                        borderWidth={1.5}
                                                     />
                                                 )}
 
@@ -467,20 +472,33 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                                     )}>
                                                         {winner.categoryName}
                                                     </span>
-                                                    <span className="text-[10px] font-mono font-bold text-white/50 bg-white/5 px-2 py-0.5 rounded-md">
-                                                        #{rank}
+                                                    <span className="text-[9.5px] font-mono font-bold text-amber-400/80 bg-amber-500/10 border border-amber-400/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                        <Trophy size={10} />
+                                                        <span>CHAMPION</span>
                                                     </span>
                                                 </div>
 
-                                                {/* High-Res Photo Display */}
-                                                <div className="relative aspect-[4/3] rounded-xl sm:rounded-2xl overflow-hidden bg-black/80 border border-white/10 group/img mb-3">
+                                                {/* High-Res Photo Display (Click to Enlarge!) */}
+                                                <div 
+                                                    onClick={() => handlePhotoClick(winner)}
+                                                    className="relative aspect-[4/3] rounded-xl sm:rounded-2xl overflow-hidden bg-black/80 border border-white/10 group/img mb-3 cursor-pointer select-none"
+                                                    title="Click to enlarge photo"
+                                                >
                                                     <img
                                                         src={winner.imageUrl}
                                                         alt={winner.caption || winner.playerName}
                                                         loading="lazy"
-                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover/podium:scale-105"
+                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover/podium:scale-105 group-hover/img:scale-105"
                                                     />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-300" />
+
+                                                    {/* Hover "Click to Enlarge" Floating Pill */}
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-300 bg-black/40 backdrop-blur-[2px]">
+                                                        <div className="px-3 py-1.5 rounded-xl bg-black/80 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xl scale-90 group-hover/img:scale-100 transition-transform">
+                                                            <Maximize2 size={13} />
+                                                            <span>Click to Enlarge</span>
+                                                        </div>
+                                                    </div>
 
                                                     {/* Loading Screen Overlay Pill */}
                                                     <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-mono font-bold uppercase text-white tracking-wider">
@@ -534,12 +552,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                                         type="button"
                                                         onClick={() => handleDownload(winner)}
                                                         disabled={downloadingId === winner.id}
-                                                        className={cn(
-                                                            "flex-1 py-1.5 rounded-lg font-bold text-[10px] transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95",
-                                                            isGrandChampion
-                                                                ? "bg-amber-400 hover:bg-amber-300 text-black shadow-[0_0_12px_rgba(245,158,11,0.4)]"
-                                                                : "bg-white/10 hover:bg-white/20 text-white border border-white/15"
-                                                        )}
+                                                        className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black font-bold text-[10px] transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
                                                         title="Download 4K Photo"
                                                     >
                                                         <Download size={11} />
@@ -548,44 +561,29 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                                 </div>
                                             </div>
 
-                                            {/* ── 3D Tiered Pedestal Block ── */}
+                                            {/* ── Equal Height 3D Pedestal Block (Uniform for all 5 winners) ── */}
                                             <div className={cn(
-                                                "w-full mt-2 rounded-t-2xl sm:rounded-t-3xl border-t border-x relative overflow-hidden transition-all duration-500 hidden lg:flex flex-col items-center justify-between p-3",
-                                                podiumHeightClass,
-                                                isGrandChampion
-                                                    ? "bg-gradient-to-b from-amber-500/25 via-[#13110b] to-[#08080c] border-amber-400/60 shadow-[0_0_40px_rgba(245,158,11,0.25)]"
-                                                    : "bg-gradient-to-b from-white/[0.08] via-[#0d0d14] to-[#08080c] border-white/15 shadow-lg"
+                                                "w-full mt-2 h-28 rounded-t-2xl sm:rounded-t-3xl border-t border-x relative overflow-hidden transition-all duration-500 hidden lg:flex flex-col items-center justify-between p-3",
+                                                "bg-gradient-to-b from-amber-500/15 via-[#0d0d14] to-[#08080c] border-amber-400/30 shadow-lg",
+                                                isHovered && "from-amber-500/25 border-amber-400/60 shadow-[0_0_25px_rgba(245,158,11,0.2)]"
                                             )}>
                                                 {/* Top Glowing Edge Strip */}
-                                                <div className={cn(
-                                                    "absolute top-0 inset-x-0 h-[2px]",
-                                                    isGrandChampion 
-                                                        ? "bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-400 shadow-[0_0_15px_#f59e0b]" 
-                                                        : "bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                                                )} />
+                                                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
 
-                                                {/* Pedestal Heraldry Emblem */}
+                                                {/* Pedestal Category Heraldry */}
                                                 <div className="flex flex-col items-center mt-1">
-                                                    <div className={cn(
-                                                        "w-9 h-9 rounded-full flex items-center justify-center font-display font-black text-sm border shadow-inner",
-                                                        isGrandChampion
-                                                            ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]"
-                                                            : "bg-white/10 text-white border-white/20"
-                                                    )}>
-                                                        {rank}
+                                                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-500/20 text-amber-300 border border-amber-400/30 shadow-inner">
+                                                        <Trophy size={14} className="text-amber-400" />
                                                     </div>
-                                                    <span className={cn(
-                                                        "text-[9.5px] font-mono font-bold uppercase tracking-widest mt-1",
-                                                        isGrandChampion ? "text-amber-300" : "text-white/40"
-                                                    )}>
-                                                        {isGrandChampion ? "GRAND VICTOR" : `${winner.categoryName}`}
+                                                    <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-amber-200 mt-1 truncate max-w-[100px]">
+                                                        {winner.categoryName}
                                                     </span>
                                                 </div>
 
-                                                {/* Pedestal Bottom Neon Base Glow */}
-                                                <div className="w-full text-center pb-1">
-                                                    <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase">
-                                                        SERVER FEATURE
+                                                {/* Pedestal Base Tag */}
+                                                <div className="w-full text-center pb-0.5">
+                                                    <span className="text-[9px] font-mono text-white/35 tracking-widest uppercase">
+                                                        CO-CHAMPION
                                                     </span>
                                                 </div>
                                             </div>
@@ -597,7 +595,7 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                     </div>
                 )}
 
-                {/* ── View 2: High-Res Category Grid Showcase ── */}
+                {/* ── View 2: High-Res Category Grid Showcase (All 5 Equal) ── */}
                 {viewMode === "grid" && (
                     <div className="w-full space-y-8">
                         {/* Category Filter Pills */}
@@ -660,15 +658,19 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                             <div className="flex items-center justify-between gap-2 mb-3">
                                                 <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest text-amber-300 bg-amber-500/15 border border-amber-400/30 px-3 py-1 rounded-full shadow-sm">
                                                     <Tv size={12} className="text-amber-400" />
-                                                    <span>Loading Screen Victor</span>
+                                                    <span>Loading Screen Co-Champion</span>
                                                 </span>
                                                 <span className="text-[10px] font-mono font-bold text-white/70 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
                                                     {winner.categoryName}
                                                 </span>
                                             </div>
 
-                                            {/* High-Res Image Container */}
-                                            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-white/10 group/img shadow-md bg-black/60">
+                                            {/* High-Res Image Container (Click to Enlarge!) */}
+                                            <div 
+                                                onClick={() => handlePhotoClick(winner)}
+                                                className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-white/10 group/img shadow-md bg-black/60 cursor-pointer select-none"
+                                                title="Click to enlarge photo"
+                                            >
                                                 <img
                                                     src={winner.imageUrl}
                                                     alt={winner.caption || winner.playerName}
@@ -676,6 +678,14 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80" />
+
+                                                {/* Hover "Click to Enlarge" Overlay */}
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
+                                                    <div className="px-3.5 py-1.5 rounded-xl bg-black/80 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xl">
+                                                        <Maximize2 size={13} />
+                                                        <span>Click to Enlarge</span>
+                                                    </div>
+                                                </div>
 
                                                 {/* Vital RP Featured Pill */}
                                                 <div className="absolute top-3 left-3 bg-black/75 backdrop-blur-md border border-white/20 text-white font-bold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1.5">
@@ -755,7 +765,146 @@ export function WinnerAnnouncement({ winners, contestName }: WinnerAnnouncementP
                 </div>
 
             </div>
+
+            {/* ── Layer 4: Interactive Photo Enlargement Lightbox Modal ── */}
+            <AnimatePresence>
+                {enlargedWinner && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl"
+                        onClick={() => setEnlargedWinner(null)}
+                    >
+                        {/* Close button */}
+                        <button
+                            type="button"
+                            onClick={() => setEnlargedWinner(null)}
+                            className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/20 transition-colors z-50 cursor-pointer active:scale-95"
+                            title="Close preview (Esc)"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        {/* Prev Button */}
+                        {winners.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePrevWinner();
+                                }}
+                                className="hidden sm:flex absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all z-50 cursor-pointer active:scale-95"
+                                title="Previous photo (Arrow Left)"
+                            >
+                                <ChevronLeft size={24} />
+                            </button>
+                        )}
+
+                        {/* Next Button */}
+                        {winners.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNextWinner();
+                                }}
+                                className="hidden sm:flex absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all z-50 cursor-pointer active:scale-95"
+                                title="Next photo (Arrow Right)"
+                            >
+                                <ChevronRight size={24} />
+                            </button>
+                        )}
+
+                        {/* Modal Container */}
+                        <motion.div
+                            initial={{ scale: 0.94, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.94, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: "easeOut" }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative max-w-5xl w-full max-h-[92vh] flex flex-col rounded-3xl bg-[#0a0a0f] border border-amber-400/40 shadow-[0_0_50px_rgba(245,158,11,0.25)] overflow-hidden"
+                        >
+                            {/* Header Bar */}
+                            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-black/60 backdrop-blur-md">
+                                <div className="flex items-center gap-2">
+                                    <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                                        {enlargedWinner.categoryName} Champion
+                                    </span>
+                                    <span className="text-white/40 text-xs font-mono hidden sm:inline">
+                                        · Loading Screen Feature
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-mono font-bold text-white">
+                                        <Heart size={12} className="text-red-500 fill-red-500" />
+                                        <span>{enlargedWinner.voteCount} votes</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Main High-Res Photo Container */}
+                            <div className="relative flex-1 flex items-center justify-center p-2 sm:p-4 bg-black/95 overflow-hidden min-h-[300px]">
+                                <img
+                                    src={enlargedWinner.imageUrl}
+                                    alt={enlargedWinner.caption || enlargedWinner.playerName}
+                                    className="max-h-[62vh] sm:max-h-[68vh] w-auto max-w-full object-contain rounded-xl sm:rounded-2xl shadow-2xl"
+                                />
+                            </div>
+
+                            {/* Footer Details & Action Bar */}
+                            <div className="p-4 sm:p-5 border-t border-white/10 bg-black/80 backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <img
+                                        src={getDiceBearAvatarUrl(enlargedWinner.discordName || enlargedWinner.playerName, 'botttsNeutral')}
+                                        alt=""
+                                        className="w-10 h-10 rounded-full border border-amber-400/40 bg-black/50 object-cover shrink-0"
+                                    />
+                                    <div className="flex flex-col min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-white font-bold text-sm sm:text-base truncate">
+                                                {enlargedWinner.playerName}
+                                            </span>
+                                            <span className="text-white/40 font-mono text-xs truncate">
+                                                @{enlargedWinner.discordName}
+                                            </span>
+                                        </div>
+                                        {enlargedWinner.caption && (
+                                            <p className="text-white/70 text-xs italic mt-0.5 line-clamp-2">
+                                                "{enlargedWinner.caption}"
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleShare(enlargedWinner)}
+                                        className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold font-mono transition-colors border border-white/15 flex items-center justify-center gap-1.5 cursor-pointer"
+                                    >
+                                        <Share2 size={13} />
+                                        <span>Share</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDownload(enlargedWinner)}
+                                        disabled={downloadingId === enlargedWinner.id}
+                                        className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black text-xs font-bold font-display transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95"
+                                    >
+                                        <Download size={13} />
+                                        <span>{downloadingId === enlargedWinner.id ? "Downloading..." : "Download 4K"}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section>
     );
 }
+
 
