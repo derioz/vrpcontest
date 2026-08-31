@@ -122,18 +122,18 @@ const ADMIN_NAV_CATEGORIES: AdminNavCategory[] = [
         icon: Trophy,
       },
       {
-        id: 'suggestions',
-        label: 'Category Themes',
-        description: 'Community ideas & staff quorum voting',
-        icon: Sparkles,
-      },
-      {
         id: 'controls',
         label: 'Controls & Security',
         description: 'Gate locks, 1-photo toggle & RSA encryption',
         icon: Zap,
       },
     ],
+  },
+  {
+    id: 'suggestions',
+    label: 'Category Suggestions',
+    icon: Sparkles,
+    directTab: 'suggestions',
   },
   {
     id: 'audits',

@@ -91,7 +91,7 @@ const TAB_GROUPS: {
   {
     section: "Category Suggestions",
     tabs: [
-      { id: 'suggestions', label: 'Category Ideas', icon: Sparkles, color: 'text-orange-400', glowColor: 'from-orange-500/25 via-amber-500/15 to-transparent', description: 'Proposals, votes & curation' },
+      { id: 'suggestions', label: 'Category Suggestions', icon: Sparkles, color: 'text-orange-400', glowColor: 'from-orange-500/25 via-amber-500/15 to-transparent', description: 'Proposals, votes & curation' },
     ]
   },
   {

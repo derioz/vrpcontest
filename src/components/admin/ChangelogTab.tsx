@@ -85,6 +85,20 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260830-2225',
+    dateKey: 'August 30, 2026',
+    timeStr: '10:25 PM',
+    fullTimestamp: 'August 30, 2026 at 10:25 PM',
+    labels: ['UI', 'ADMIN', 'ENHANCE'],
+    title: 'Dedicated Admin Menu Item for Category Suggestions & Whitelist',
+    bullets: [
+      'Promoted Category Suggestions to its own dedicated top-level menu item in the Admin Console navigation bar.',
+      'Extracted suggestions out of the Contest dropdown so admins can access proposals, quorum votes, and the beta whitelist in a single direct click.',
+      'Synchronized navigation labels across desktop floating docks, mobile sliding bars, and breadcrumb trails.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260830-2200',
     dateKey: 'August 30, 2026',
     timeStr: '10:00 PM',
