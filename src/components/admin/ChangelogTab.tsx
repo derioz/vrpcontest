@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-2055',
+    id: 'entry-20260906-2105',
     dateKey: 'September 6, 2026',
-    timeStr: '8:55 PM',
-    fullTimestamp: 'September 6, 2026 at 8:55 PM',
-    labels: ['NEW', 'ADMIN', 'BACKEND'],
-    title: 'Automatic Submitter Upvotes & Inline Community Moderation',
+    timeStr: '9:05 PM',
+    fullTimestamp: 'September 6, 2026 at 9:05 PM',
+    labels: ['SECURITY', 'ADMIN', 'UI'],
+    title: 'Firestore Security Hardening & Portaled Moderation Overlay',
     bullets: [
-      'Submitting a category suggestion now automatically records an authentic upvote from the author, starting newly created ideas at score 1 with full Reddit-style voting flexibility.',
-      'Empowered authorized staff to moderate community proposals directly on the main suggestions page via a subtle action menu with instant updates and zero page reloads.',
-      'Added direct inline controls for marking categories as selected, reviewing proposals, editing details, declining concepts, and confirming deletions.',
-      'Introduced prominent celebration badges on selected categories and a discreet moderator status indicator for authorized administrators.',
-      'Guaranteed atomic database synchronization across suggestion scores, global votes, unique voter tallies, and remaining submission allowances.',
+      'Hardened Cloud Firestore Security Rules with a strict deny-by-default architecture protecting site settings, secret keys, admin privileges, and user profile integrity.',
+      'Enforced rigorous server-side validation for category suggestion creation, preventing arbitrary scores, unauthorized status changes, and vote spoofing.',
+      'Re-architected the community moderation menu with top-level portal overlays, ensuring dropdowns float above all cards with zero clipping or stacking context bleed.',
+      'Equipped dropdown menus with responsive viewport collision detection, automatically flipping menus above cards when near screen boundaries.',
+      'Preserved 100% backward compatibility for photo contest submissions, community voting, winner podiums, and historical galleries.',
     ],
     author: 'Damon',
   },
