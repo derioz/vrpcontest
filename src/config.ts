@@ -56,3 +56,10 @@ export const SITE_CONFIG: SiteConfig = {
 export const CATEGORY_SUGGESTION_MODE: boolean = SITE_CONFIG.categorySuggestions.suggestionModeEnabled;
 
 export const MAX_CATEGORY_SUGGESTIONS_PER_USER: number = SITE_CONFIG.categorySuggestions.maxSuggestionsPerUser;
+
+/**
+ * Official Site Assets
+ */
+export const VITAL_RP_LOGO_URL = 'https://r2.fivemanage.com/image/qlWrCeXTQdqx.png';
+export const DAMON_AVATAR_URL = 'https://r2.fivemanage.com/image/qePVNvTsc65p.png';
+

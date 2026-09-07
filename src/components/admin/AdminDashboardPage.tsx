@@ -23,6 +23,7 @@ import { cn } from '../../lib/utils';
 import { getProfileAvatar } from '../../lib/dicebear';
 import { Category, Photo } from '../../types';
 import { Skeleton } from '../ui/skeleton';
+import { VITAL_RP_LOGO_URL } from '../../config';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -72,6 +73,8 @@ export interface AdminDashboardPageProps {
   onToggleShowWinners: (enabled: boolean) => void;
   onToggleSiteClosed?: (closed: boolean) => void;
   onToggleCensorSubmissions?: (enabled: boolean) => void;
+  categorySuggestionMode?: boolean;
+  onToggleCategorySuggestionMode?: (enabled: boolean) => void;
   onGenerateKeys: () => void;
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
@@ -193,6 +196,8 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
     showWinnersToggle,
     siteClosed = false,
     censorSubmissions = false,
+    categorySuggestionMode = false,
+    onToggleCategorySuggestionMode,
     publicKey,
     privateKey,
     rulesMarkdown,
@@ -439,7 +444,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
             title="Return to Public Contest"
           >
             <img
-              src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
+              src={VITAL_RP_LOGO_URL}
               alt="Vital RP"
               className="w-8 h-8 rounded-xl object-contain drop-shadow-[0_0_12px_rgba(234,88,12,0.4)] group-hover:scale-105 transition-transform shrink-0"
             />
@@ -850,6 +855,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
               showWinnersToggle={showWinnersToggle}
               siteClosed={siteClosed}
               censorSubmissions={censorSubmissions}
+              categorySuggestionMode={categorySuggestionMode}
               publicKey={publicKey}
               privateKey={privateKey}
               rulesMarkdown={rulesMarkdown}
@@ -860,6 +866,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
               onToggleShowWinners={onToggleShowWinners}
               onToggleSiteClosed={onToggleSiteClosed}
               onToggleCensorSubmissions={onToggleCensorSubmissions}
+              onToggleCategorySuggestionMode={onToggleCategorySuggestionMode}
               onGenerateKeys={onGenerateKeys}
               onToggleReveal={onToggleReveal}
               onDownloadWinners={onDownloadWinners}

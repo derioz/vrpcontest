@@ -109,7 +109,8 @@ import UploadForm from './components/UploadForm';
 import { ContestInfoSidebar } from './components/ContestInfoSidebar';
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView'));
-import { CATEGORY_SUGGESTION_MODE } from './config';
+import { CATEGORY_SUGGESTION_MODE, VITAL_RP_LOGO_URL } from './config';
+import { CreatorPill } from './components/ui/CreatorPill';
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 import AdminPanel from './components/admin/AdminPanel';
@@ -1587,6 +1588,22 @@ export default function App() {
     }
   };
 
+  const toggleCategorySuggestionMode = async (enabled: boolean) => {
+    if (!isAdmin) return;
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { categorySuggestionMode: enabled });
+      setCategorySuggestionModeOverride(enabled);
+      toast.success(
+        enabled
+          ? 'Category Suggestion Mode enabled — Website homepage is now Category Suggestions'
+          : 'Category Suggestion Mode disabled — Photo Contest homepage restored'
+      );
+    } catch (error) {
+      console.error("Toggle Category Suggestion Mode Error:", error);
+      toast.error('Failed to toggle category suggestion mode');
+    }
+  };
+
   const handleGenerateKeys = async () => {
     if (!isAdmin) return;
     if (publicKey && !window.confirm("Keys already exist. Generating new keys will completely break existing encrypted images. Continue?")) return;
@@ -2118,6 +2135,7 @@ export default function App() {
         showWinnersToggle={showWinnersToggle}
         siteClosed={siteClosed}
         censorSubmissions={censorSubmissions}
+        categorySuggestionMode={isCategorySuggestionMode}
         publicKey={publicKey}
         privateKey={privateKey}
         rulesMarkdown={rulesMarkdown}
@@ -2128,6 +2146,7 @@ export default function App() {
         onToggleShowWinners={toggleShowWinners}
         onToggleSiteClosed={toggleSiteClosed}
         onToggleCensorSubmissions={toggleCensorSubmissions}
+        onToggleCategorySuggestionMode={toggleCategorySuggestionMode}
         onGenerateKeys={handleGenerateKeys}
         onToggleReveal={handleToggleReveal}
         onDownloadWinners={handleDownloadWinningPhotos}
@@ -2297,7 +2316,7 @@ export default function App() {
                 <div className="absolute inset-[2px] bg-fivem-dark rounded-[10px] z-5 pointer-events-none" />
               )}
               <motion.img
-                src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
+                src={VITAL_RP_LOGO_URL}
                 alt="Vital RP"
                 className="w-5.5 h-5.5 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]"
                 animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.2, 1] } : {}}
@@ -2921,7 +2940,7 @@ export default function App() {
           <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.04] z-[1]" />
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative mb-6">
             <div className="absolute inset-0 bg-white/5 blur-3xl scale-150 rounded-full" />
-            <img src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png" alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
+            <img src={VITAL_RP_LOGO_URL} alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
           </motion.div>
           <h2 className="text-3xl font-display font-black text-white/30 mb-3 relative z-10">No Active Contest</h2>
           <p className="text-white/20 max-w-sm relative z-10">Check back soon — the next contest is being prepared by the admins.</p>
@@ -3378,7 +3397,7 @@ export default function App() {
             <div className="flex flex-col items-center md:items-start gap-3">
               <div className="flex items-center gap-3">
                 {/* VRP logo mark */}
-                <img src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png" alt="Vital RP logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.6)]" />
+                <img src={VITAL_RP_LOGO_URL} alt="Vital RP logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.6)]" />
                 <div>
                   <p className="text-white font-black font-display text-lg leading-none">Vital RP</p>
                   <p className="text-white/30 text-[10px] font-mono uppercase tracking-[0.2em] leading-none mt-0.5">Photo Contest</p>
@@ -3425,76 +3444,7 @@ export default function App() {
               </div>
 
               {/* Made by Damon pill */}
-              <button
-                onClick={(e) => {
-                  const el = e.currentTarget as HTMLButtonElement;
-                  if (el.dataset.egging) return;
-                  el.dataset.egging = "true";
-
-                  const span = el.querySelector('.damon-text') as HTMLDivElement;
-                  const img = el.querySelector('img') as HTMLImageElement;
-                  if (!span || !img) return;
-
-                  // 1. Shrink pill and hide text
-                  span.style.maxWidth = '0px';
-                  span.style.opacity = '0';
-                  // Use negative margin to conceptually collapse the flex gap on the parent
-                  span.style.marginLeft = '-10px';
-
-                  // 2. Enlarge and wiggle icon
-                  img.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-
-                  let wiggleCount = 0;
-                  const wiggleInterval = setInterval(() => {
-                    wiggleCount++;
-                    const rot = wiggleCount % 2 === 0 ? 15 : -15;
-                    img.style.transform = `scale(2.2) rotate(${rot}deg)`;
-                  }, 120);
-
-                  // 3. Pop and return to normal
-                  setTimeout(() => {
-                    clearInterval(wiggleInterval);
-                    img.style.transition = 'all 0.15s ease-out';
-                    img.style.transform = 'scale(3.5)';
-                    img.style.opacity = '0';
-
-                    setTimeout(() => {
-                      img.style.transition = 'none';
-                      img.style.transform = 'scale(0)';
-
-                      requestAnimationFrame(() => {
-                        // Reset everything back to normal with a satisfying spring
-                        img.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                        img.style.transform = '';
-                        img.style.opacity = '1';
-
-                        span.style.maxWidth = '200px';
-                        span.style.opacity = '1';
-                        span.style.marginLeft = '0px';
-
-                        setTimeout(() => {
-                          span.style.maxWidth = '';
-                          span.style.opacity = '';
-                          span.style.marginLeft = '';
-                          delete el.dataset.egging;
-                        }, 500);
-                      });
-                    }, 150);
-                  }, 1500);
-                }}
-                className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-md px-3.5 py-2 hover:border-white/20 transition-all duration-300 group cursor-pointer"
-              >
-                <img
-                  src="https://r2.fivemanage.com/image/JOQmUtYFGJ7q.png"
-                  alt="Damon"
-                  className="w-6 h-6 rounded-full object-cover ring-1 ring-white/20 relative z-10 shrink-0"
-                />
-                <div className="damon-text overflow-hidden whitespace-nowrap transition-all duration-300 origin-left opacity-100 max-w-[200px]">
-                  <span className="text-[11px] font-mono text-white/40 group-hover:text-white/60 transition-colors">
-                    Made by <span className="text-white/70 font-semibold">Damon</span>
-                  </span>
-                </div>
-              </button>
+              <CreatorPill />
 
               {/* Copyright */}
               <p className="text-[10px] font-mono text-white/20 tracking-widest uppercase">

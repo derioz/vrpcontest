@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
@@ -22,7 +22,8 @@ import {
   History,
   Check,
   Award,
-  ThumbsUp,
+  ChevronUp,
+  ChevronDown,
   ExternalLink,
   ChevronRight,
   Heart,
@@ -40,16 +41,18 @@ import {
   deleteCategorySuggestion,
   fetchSuggestionVoters,
   fetchUserSuggestionCount,
+  sortSuggestions,
   SuggestionVoter
 } from '../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
 import { checkUserDiscordEligibility } from '../lib/discord';
-import { SITE_CONFIG, MAX_CATEGORY_SUGGESTIONS_PER_USER } from '../config';
+import { SITE_CONFIG, MAX_CATEGORY_SUGGESTIONS_PER_USER, VITAL_RP_LOGO_URL } from '../config';
 import { Spotlight } from './ui/spotlight';
 import { DotPattern } from './ui/dot-pattern';
 import { NumberTicker } from './ui/number-ticker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Skeleton } from './ui/skeleton';
+import { CreatorPill } from './ui/CreatorPill';
 
 export type SuggestionFilterOption = 'most_votes' | 'newest' | 'my_suggestions' | 'voted_by_me';
 
@@ -315,8 +318,12 @@ export function CategorySuggestionsView({
     }
   };
 
-  // ── Single-Action Voting Mechanics with Optimistic Updates ──
-  const handleToggleVote = async (suggestionId: string) => {
+  // Serialized concurrency maps to safeguard rapid voting
+  const inFlightVotesRef = useRef<Map<string, boolean>>(new Map());
+  const pendingDesiredVotesRef = useRef<Map<string, 1 | -1 | 0>>(new Map());
+
+  // ── Reddit-Style Upvote / Downvote Mechanics with Instant Optimistic Updates & FLIP Reordering ──
+  const handleVote = async (suggestionId: string, direction: 'up' | 'down') => {
     if (!currentUser) {
       toast.info('Discord Sign-In Required', {
         description: 'You must sign in with Discord before you can vote.'
@@ -334,46 +341,60 @@ export function CategorySuggestionsView({
       return;
     }
 
-    if (votingLocks[suggestionId]) return;
-
     const target = suggestions.find((s) => s.id === suggestionId);
     if (!target) return;
 
-    const isCurrentlyVoted = (target.user_vote || 0) === 1;
+    const currentVote = (target.user_vote || 0) as 1 | -1 | 0;
+    let desiredVote: 1 | -1 | 0 = 0;
 
-    // If already voted and vote removal is not allowed
-    if (isCurrentlyVoted && !SITE_CONFIG.categorySuggestions.allowVoteRemoval) {
-      toast.info('Vote Already Recorded', {
-        description: 'Your vote on this category has already been cast.'
-      });
-      return;
+    if (direction === 'up') {
+      desiredVote = currentVote === 1 ? 0 : 1;
+    } else {
+      desiredVote = currentVote === -1 ? 0 : -1;
     }
 
-    // Requested vote: 0 to remove, 1 to add
-    const requestedVote: 1 | 0 = isCurrentlyVoted ? 0 : 1;
+    // Optimistic calculation for upvotes, downvotes, and score
+    let prevUpvotes = Math.max(0, target.upvotes || 0);
+    let prevDownvotes = Math.max(0, target.downvotes || 0);
+    let optUpvotes = prevUpvotes;
+    let optDownvotes = prevDownvotes;
 
-    // Optimistic calculation
-    const prevVote = target.user_vote || 0;
-    const prevUpvotes = target.upvotes || 0;
-    const prevScore = target.score || 0;
+    // Remove old vote contribution
+    if (currentVote === 1) optUpvotes = Math.max(0, optUpvotes - 1);
+    if (currentVote === -1) optDownvotes = Math.max(0, optDownvotes - 1);
 
-    const newUpvotes = requestedVote === 1 ? prevUpvotes + 1 : Math.max(0, prevUpvotes - 1);
-    const newScore = requestedVote === 1 ? prevScore + 1 : Math.max(0, prevScore - 1);
+    // Apply new vote contribution
+    if (desiredVote === 1) optUpvotes += 1;
+    if (desiredVote === -1) optDownvotes += 1;
 
-    // Optimistically update
-    setSuggestions((prev) =>
-      prev.map((s) => {
+    const optScore = optUpvotes - optDownvotes;
+
+    // Rollback snapshot
+    const rollbackSnapshot = {
+      user_vote: currentVote,
+      upvotes: prevUpvotes,
+      downvotes: prevDownvotes,
+      score: target.score !== undefined ? target.score : prevUpvotes - prevDownvotes
+    };
+
+    // 1. Immediately apply optimistic state locally & re-sort if on Top
+    setSuggestions((prev) => {
+      const updated = prev.map((s) => {
         if (s.id !== suggestionId) return s;
         return {
           ...s,
-          user_vote: requestedVote,
-          upvotes: newUpvotes,
-          score: newScore
+          user_vote: desiredVote,
+          upvotes: optUpvotes,
+          downvotes: optDownvotes,
+          score: optScore
         };
-      })
-    );
+      });
 
-    setVotingLocks((prev) => ({ ...prev, [suggestionId]: true }));
+      if (filterOption === 'most_votes') {
+        return sortSuggestions(updated, 'top');
+      }
+      return updated;
+    });
 
     // Invalidate local voter cache for this suggestion
     setVotersCache((prev) => {
@@ -382,51 +403,85 @@ export function CategorySuggestionsView({
       return copy;
     });
 
-    try {
-      const res = await castCategorySuggestionVote(
-        suggestionId,
-        effectiveUserId || currentUser.uid,
-        requestedVote,
-        currentUser?.discordId,
-        currentUser?.displayName || currentUser?.email?.split('@')[0],
-        currentUser?.photoURL || null,
-        currentUser?.avatarSeed || currentUser?.uid,
-        currentUser?.avatarStyle || 'botttsNeutral'
-      );
-
-      // Reconcile with response
-      setSuggestions((prev) =>
-        prev.map((s) => {
-          if (s.id !== suggestionId) return s;
-          return {
-            ...s,
-            score: res.score,
-            user_vote: res.user_vote,
-            upvotes: res.upvotes,
-            voters_sample: res.voters_sample || s.voters_sample
-          };
-        })
-      );
-    } catch (err: any) {
-      console.error('Vote failed:', err);
-      // Rollback on failure
-      setSuggestions((prev) =>
-        prev.map((s) => {
-          if (s.id !== suggestionId) return s;
-          return {
-            ...s,
-            user_vote: prevVote,
-            upvotes: prevUpvotes,
-            score: prevScore
-          };
-        })
-      );
-      toast.error("Your vote couldn't be saved. Please try again.", {
-        description: err.message
-      });
-    } finally {
-      setVotingLocks((prev) => ({ ...prev, [suggestionId]: false }));
+    // 2. Concurrency / Rapid Click Protection
+    if (inFlightVotesRef.current.get(suggestionId)) {
+      pendingDesiredVotesRef.current.set(suggestionId, desiredVote);
+      return;
     }
+
+    inFlightVotesRef.current.set(suggestionId, true);
+
+    const executeVote = async (voteToCommit: 1 | -1 | 0) => {
+      try {
+        const res = await castCategorySuggestionVote(
+          suggestionId,
+          effectiveUserId || currentUser.uid,
+          voteToCommit,
+          currentUser?.discordId,
+          currentUser?.displayName || currentUser?.email?.split('@')[0],
+          currentUser?.photoURL || null,
+          currentUser?.avatarSeed || currentUser?.uid,
+          currentUser?.avatarStyle || 'botttsNeutral'
+        );
+
+        // If user queued a newer desired vote while the server request was in flight, process it
+        if (pendingDesiredVotesRef.current.has(suggestionId)) {
+          const queued = pendingDesiredVotesRef.current.get(suggestionId)!;
+          pendingDesiredVotesRef.current.delete(suggestionId);
+          if (queued !== voteToCommit) {
+            await executeVote(queued);
+            return;
+          }
+        }
+
+        // Reconcile with authoritative database values
+        setSuggestions((prev) => {
+          const updated = prev.map((s) => {
+            if (s.id !== suggestionId) return s;
+            return {
+              ...s,
+              score: res.score,
+              user_vote: res.user_vote,
+              upvotes: res.upvotes,
+              downvotes: res.downvotes,
+              voters_sample: res.voters_sample || s.voters_sample
+            };
+          });
+
+          if (filterOption === 'most_votes') {
+            return sortSuggestions(updated, 'top');
+          }
+          return updated;
+        });
+      } catch (err: any) {
+        console.error('Vote failed:', err);
+        pendingDesiredVotesRef.current.delete(suggestionId);
+
+        // Revert to rollback snapshot
+        setSuggestions((prev) => {
+          const reverted = prev.map((s) => {
+            if (s.id !== suggestionId) return s;
+            return {
+              ...s,
+              ...rollbackSnapshot
+            };
+          });
+
+          if (filterOption === 'most_votes') {
+            return sortSuggestions(reverted, 'top');
+          }
+          return reverted;
+        });
+
+        toast.error("Your vote couldn't be saved. Please try again.", {
+          description: err.message || 'Database error occurred.'
+        });
+      } finally {
+        inFlightVotesRef.current.set(suggestionId, false);
+      }
+    };
+
+    await executeVote(desiredVote);
   };
 
   // ── Hover Voter Breakdown ──
@@ -514,13 +569,7 @@ export function CategorySuggestionsView({
   // ── Community Favorites Leaderboard (Top 3 Highest-Voted Categories) ──
   const communityFavorites = useMemo(() => {
     const valid = suggestions.filter((s) => s.status !== 'removed' && s.status !== 'rejected');
-    const sorted = [...valid].sort((a, b) => {
-      const bVotes = b.upvotes || b.score || 0;
-      const aVotes = a.upvotes || a.score || 0;
-      if (bVotes !== aVotes) return bVotes - aVotes;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-    return sorted.slice(0, 3);
+    return sortSuggestions(valid, 'top').slice(0, 3);
   }, [suggestions]);
 
   // ── Filtered & Sorted Suggestions ──
@@ -546,25 +595,26 @@ export function CategorySuggestionsView({
           (currentUser?.discordId && (s.discord_id === currentUser.discordId || s.author_discord_id === currentUser.discordId))
       );
     } else if (filterOption === 'voted_by_me') {
-      result = result.filter((s) => s.user_vote === 1);
+      result = result.filter((s) => (s.user_vote || 0) !== 0);
     }
 
     // 3. Sorting
-    return result.sort((a, b) => {
-      if (filterOption === 'newest') {
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-      // Default: Most Votes
-      const bVotes = b.upvotes || b.score || 0;
-      const aVotes = a.upvotes || a.score || 0;
-      if (bVotes !== aVotes) return bVotes - aVotes;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+    if (filterOption === 'newest') {
+      return [...result].sort((a, b) => {
+        const timeA = new Date(a.created_at).getTime() || 0;
+        const timeB = new Date(b.created_at).getTime() || 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return b.id.localeCompare(a.id);
+      });
+    }
+
+    // Default: Top (score = upvotes - downvotes)
+    return sortSuggestions(result, 'top');
   }, [suggestions, searchQuery, filterOption, effectiveUserId, currentUser?.discordId]);
 
   // Aggregate Metrics
   const totalVotesCast = useMemo(() => {
-    return suggestions.reduce((acc, s) => acc + (s.upvotes || 0), 0);
+    return suggestions.reduce((acc, s) => acc + (s.upvotes || 0) + (s.downvotes || 0), 0);
   }, [suggestions]);
 
   const remainingSuggestions = Math.max(0, maxAllowedSuggestions - userSubmittedCount);
@@ -606,7 +656,7 @@ export function CategorySuggestionsView({
             /* Standalone Page Brand Header */
             <div className="flex items-center gap-3">
               <img
-                src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
+                src={VITAL_RP_LOGO_URL}
                 alt="Vital RP Logo"
                 className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.6)]"
               />
@@ -799,8 +849,8 @@ export function CategorySuggestionsView({
                     </div>
 
                     <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/40 border border-white/10 text-xs font-mono font-bold text-fivem-orange">
-                      <ThumbsUp size={11} className="fill-current" />
-                      <span>{fav.upvotes || fav.score || 0}</span>
+                      <ChevronUp size={13} strokeWidth={2.5} />
+                      <span>{fav.score !== undefined ? (fav.score > 0 ? `+${fav.score}` : fav.score) : (fav.upvotes || 0)}</span>
                     </div>
                   </motion.div>
                 );
@@ -835,10 +885,10 @@ export function CategorySuggestionsView({
           <div className="flex items-center gap-2 self-end sm:self-auto overflow-x-auto pb-1 sm:pb-0 max-w-full">
             <div className="flex items-center p-1 rounded-xl bg-white/[0.03] border border-white/10 shrink-0">
               {[
-                { id: 'most_votes' as const, label: 'Most Votes', icon: Flame },
-                { id: 'newest' as const, label: 'Newest', icon: Clock },
+                { id: 'most_votes' as const, label: 'Top', icon: Flame },
+                { id: 'newest' as const, label: 'New', icon: Clock },
                 { id: 'my_suggestions' as const, label: 'My Suggestions', icon: User },
-                { id: 'voted_by_me' as const, label: 'Voted By Me', icon: Check }
+                { id: 'voted_by_me' as const, label: 'My Votes', icon: Check }
               ].map((tab) => {
                 const Icon = tab.icon;
                 const active = filterOption === tab.id;
@@ -941,7 +991,9 @@ export function CategorySuggestionsView({
           /* ── Suggestion Cards List ── */
           <div className="space-y-4">
             {filteredSuggestions.map((suggestion) => {
-              const isVoted = (suggestion.user_vote || 0) === 1;
+              const userVote = (suggestion.user_vote || 0) as 1 | -1 | 0;
+              const isUpvoted = userVote === 1;
+              const isDownvoted = userVote === -1;
               const isAuthor =
                 currentUser &&
                 ((effectiveUserId && suggestion.user_id === effectiveUserId) ||
@@ -949,7 +1001,7 @@ export function CategorySuggestionsView({
               const isSelected = suggestion.status === 'approved' || suggestion.status === 'selected';
               const canDelete = isAdmin || isAuthor;
               const isHighlighted = highlightedSuggestionId === suggestion.id;
-              const voteCount = suggestion.upvotes !== undefined ? suggestion.upvotes : (suggestion.score || 0);
+              const score = suggestion.score !== undefined ? suggestion.score : ((suggestion.upvotes || 0) - (suggestion.downvotes || 0));
 
               // Display author name based on config
               const displayName =
@@ -964,18 +1016,122 @@ export function CategorySuggestionsView({
                   id={`suggestion-${suggestion.id}`}
                   key={suggestion.id}
                   transition={{
-                    layout: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                    opacity: { duration: 0.25 }
+                    layout: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                    opacity: { duration: 0.2 }
                   }}
                   className={cn(
-                    "group relative rounded-3xl border bg-[#0a0a0d]/90 transition-all duration-300 p-5 sm:p-6 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-5",
+                    "group relative rounded-3xl border bg-[#0a0a0d]/90 transition-all duration-300 p-4 sm:p-6 backdrop-blur-xl shadow-lg flex gap-4 sm:gap-6 items-start",
                     isHighlighted
                       ? "border-fivem-orange/90 ring-2 ring-fivem-orange/80 shadow-[0_0_40px_rgba(234,88,12,0.4)] bg-fivem-orange/[0.08]"
                       : "border-white/10 hover:border-white/20 hover:shadow-xl"
                   )}
                 >
-                  {/* Left: Content Block */}
-                  <div className="flex-1 min-w-0 pr-0 sm:pr-4">
+                  {/* Left: Reddit-Style Vertical Vote Capsule */}
+                  <div className="flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-2xl bg-white/[0.04] border border-white/10 shrink-0 select-none">
+                    {/* Upvote Button (▲) */}
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => handleVote(suggestion.id, 'up')}
+                      disabled={votingLocks[suggestion.id]}
+                      aria-label="Upvote category suggestion"
+                      title={isUpvoted ? "Remove upvote" : "Upvote this category"}
+                      className={cn(
+                        "p-1.5 sm:p-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center",
+                        isUpvoted
+                          ? "bg-fivem-orange text-white shadow-[0_0_12px_rgba(234,88,12,0.5)]"
+                          : "text-white/40 hover:text-fivem-orange hover:bg-white/[0.08]"
+                      )}
+                    >
+                      <ChevronUp size={20} strokeWidth={isUpvoted ? 3 : 2.2} />
+                    </motion.button>
+
+                    {/* Numeric Score with Voter Hover Popover */}
+                    <div
+                      onMouseEnter={() => handleHoverVoters(suggestion.id)}
+                      onMouseLeave={handleLeaveVoters}
+                      className="relative py-1 px-1 sm:px-2 cursor-default flex flex-col items-center"
+                    >
+                      <span
+                        className={cn(
+                          "text-xs sm:text-sm font-black font-mono tracking-tight transition-colors duration-200",
+                          isUpvoted
+                            ? "text-fivem-orange font-black"
+                            : isDownvoted
+                            ? "text-blue-400 font-black"
+                            : score > 0
+                            ? "text-emerald-400"
+                            : score < 0
+                            ? "text-rose-400"
+                            : "text-white/70"
+                        )}
+                      >
+                        {score > 0 ? `+${score}` : score}
+                      </span>
+
+                      {/* Hovered Voters Popover */}
+                      <AnimatePresence>
+                        {hoveredVoters?.suggestionId === suggestion.id && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 w-56 p-3 rounded-2xl bg-[#0e0e13]/98 border border-white/15 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none"
+                          >
+                            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10 text-[11px] font-mono text-white/60">
+                              <span>Recent Voters</span>
+                              <span className="font-bold text-fivem-orange">
+                                {suggestion.upvotes || 0} ▲ / {suggestion.downvotes || 0} ▼
+                              </span>
+                            </div>
+                            {hoveredVoters.loading ? (
+                              <div className="py-2 text-[10px] font-mono text-white/40 flex items-center justify-center gap-1.5">
+                                <RefreshCw size={11} className="animate-spin text-fivem-orange" />
+                                <span>Loading voters...</span>
+                              </div>
+                            ) : hoveredVoters.voters.length === 0 ? (
+                              <p className="text-[10px] font-mono text-white/40 py-1">No upvotes recorded.</p>
+                            ) : (
+                              <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                                {hoveredVoters.voters.slice(0, 15).map((voter) => (
+                                  <div key={voter.userId} className="flex items-center gap-2 text-xs py-0.5">
+                                    <img
+                                      src={getProfileAvatar(voter.authorAvatarUrl, voter.discordId || voter.userId, voter.avatarStyle)}
+                                      alt=""
+                                      className="w-4 h-4 rounded-full object-cover border border-white/10 shrink-0"
+                                    />
+                                    <span className="text-[11px] font-bold text-white/90 truncate flex-1">
+                                      {voter.discordName}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Downvote Button (▼) */}
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => handleVote(suggestion.id, 'down')}
+                      disabled={votingLocks[suggestion.id]}
+                      aria-label="Downvote category suggestion"
+                      title={isDownvoted ? "Remove downvote" : "Downvote this category"}
+                      className={cn(
+                        "p-1.5 sm:p-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center",
+                        isDownvoted
+                          ? "bg-blue-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.5)]"
+                          : "text-white/40 hover:text-blue-400 hover:bg-white/[0.08]"
+                      )}
+                    >
+                      <ChevronDown size={20} strokeWidth={isDownvoted ? 3 : 2.2} />
+                    </motion.button>
+                  </div>
+
+                  {/* Middle / Right: Content Block & Action Tools */}
+                  <div className="flex-1 min-w-0">
                     {/* Header Badges: Selected, Your Suggestion, Author attribution, Date */}
                     <div className="flex items-center gap-2 mb-2 flex-wrap text-xs">
                       {/* Selected Badge */}
@@ -1007,7 +1163,7 @@ export function CategorySuggestionsView({
                     </div>
 
                     {/* Category Title */}
-                    <h3 className="text-lg sm:text-xl font-black font-display text-white mb-2 leading-tight group-hover:text-fivem-orange/95 transition-colors">
+                    <h3 className="text-base sm:text-xl font-black font-display text-white mb-2 leading-tight group-hover:text-fivem-orange/95 transition-colors">
                       {suggestion.category_name}
                     </h3>
 
@@ -1022,9 +1178,26 @@ export function CategorySuggestionsView({
                       </p>
                     )}
 
-                    {/* Admin delete/moderation trigger */}
-                    {canDelete && (
-                      <div className="mt-3 flex items-center gap-2">
+                    {/* Bottom Actions: Share and Moderate */}
+                    <div className="mt-3.5 flex items-center justify-between gap-3 pt-2 border-t border-white/5">
+                      <div className="flex items-center gap-2">
+                        {/* Share Direct Link Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = `${window.location.origin}${window.location.pathname}?suggestion=${suggestion.id}`;
+                            copyToClipboard(url, suggestion.category_name);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1.5 font-mono"
+                          title="Share link to this category idea"
+                        >
+                          <Share2 size={12} className="text-fivem-orange" />
+                          <span className="text-[11px]">Share</span>
+                        </button>
+                      </div>
+
+                      {/* Admin delete/moderation trigger */}
+                      {canDelete && (
                         <button
                           onClick={() => setDeletingSuggestionId(suggestion.id)}
                           title={isAdmin && !isAuthor ? "Moderate this proposal" : "Delete your suggestion"}
@@ -1033,100 +1206,8 @@ export function CategorySuggestionsView({
                           <Trash2 size={11} />
                           <span>{isAdmin && !isAuthor ? 'Moderate' : 'Delete'}</span>
                         </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right: Vote Control & Share */}
-                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10">
-                    {/* Vote Button Capsule */}
-                    <div className="flex items-center gap-2 relative">
-                      {/* Voters Popover Trigger on Hover */}
-                      <div
-                        onMouseEnter={() => handleHoverVoters(suggestion.id)}
-                        onMouseLeave={handleLeaveVoters}
-                        className="cursor-pointer"
-                      >
-                        <span className="text-sm font-black font-mono text-white/80 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1">
-                          <NumberTicker value={voteCount} />
-                          <span className="text-[10px] text-white/40 uppercase font-sans">
-                            {voteCount === 1 ? 'vote' : 'votes'}
-                          </span>
-                        </span>
-
-                        {/* Hovered Voters Popover */}
-                        <AnimatePresence>
-                          {hoveredVoters?.suggestionId === suggestion.id && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                              transition={{ duration: 0.15 }}
-                              className="absolute bottom-full right-0 mb-2 z-50 w-56 p-3 rounded-2xl bg-[#0e0e13]/98 border border-white/15 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none"
-                            >
-                              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10 text-[11px] font-mono text-white/60">
-                                <span>Recent Voters</span>
-                                <span className="font-bold text-fivem-orange">{voteCount}</span>
-                              </div>
-                              {hoveredVoters.loading ? (
-                                <div className="py-2 text-[10px] font-mono text-white/40 flex items-center justify-center gap-1.5">
-                                  <RefreshCw size={11} className="animate-spin text-fivem-orange" />
-                                  <span>Loading voters...</span>
-                                </div>
-                              ) : hoveredVoters.voters.length === 0 ? (
-                                <p className="text-[10px] font-mono text-white/40 py-1">No votes cast yet.</p>
-                              ) : (
-                                <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
-                                  {hoveredVoters.voters.slice(0, 15).map((voter) => (
-                                    <div key={voter.userId} className="flex items-center gap-2 text-xs py-0.5">
-                                      <img
-                                        src={getProfileAvatar(voter.authorAvatarUrl, voter.discordId || voter.userId, voter.avatarStyle)}
-                                        alt=""
-                                        className="w-4 h-4 rounded-full object-cover border border-white/10 shrink-0"
-                                      />
-                                      <span className="text-[11px] font-bold text-white/90 truncate flex-1">
-                                        {voter.discordName}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* Vote Toggle Button */}
-                      <motion.button
-                        whileTap={{ scale: 0.92 }}
-                        onClick={() => handleToggleVote(suggestion.id)}
-                        disabled={votingLocks[suggestion.id]}
-                        className={cn(
-                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 cursor-pointer flex items-center gap-2 border shadow-sm select-none",
-                          isVoted
-                            ? "bg-gradient-to-r from-fivem-orange to-orange-500 text-white border-fivem-orange/50 shadow-[0_0_16px_rgba(234,88,12,0.4)]"
-                            : "bg-white/[0.05] hover:bg-white/[0.12] text-white/80 hover:text-white border-white/10 hover:border-white/20"
-                        )}
-                        title={isVoted ? "Click to remove your vote" : "Click to vote for this category"}
-                      >
-                        <ThumbsUp size={14} className={cn(isVoted && "fill-current animate-bounce-once")} />
-                        <span>{isVoted ? 'Voted' : 'Vote'}</span>
-                      </motion.button>
+                      )}
                     </div>
-
-                    {/* Share Direct Link Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}?suggestion=${suggestion.id}`;
-                        copyToClipboard(url, suggestion.category_name);
-                      }}
-                      className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1 font-mono"
-                      title="Share link to this category idea"
-                    >
-                      <Share2 size={13} className="text-fivem-orange" />
-                      <span className="hidden sm:inline text-[11px]">Share</span>
-                    </button>
                   </div>
                 </motion.div>
               );
@@ -1136,23 +1217,20 @@ export function CategorySuggestionsView({
       </main>
 
       {/* ── FOOTER: CREATOR CREDIT & BRANDING ── */}
-      <footer className="mt-auto border-t border-white/10 bg-[#060608] py-6 px-4 sm:px-8 relative z-10">
+      <footer className="mt-auto border-t border-white/10 bg-[#060608] py-8 px-4 sm:px-8 relative z-10">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-2.5">
             <img
-              src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
+              src={VITAL_RP_LOGO_URL}
               alt="Vital RP Logo"
-              className="w-5 h-5 object-contain"
+              className="w-6 h-6 object-contain"
             />
             <span className="text-white/60 text-xs font-mono">
               Vital RP Photo Contest Platform
             </span>
           </div>
 
-          {/* Mandatory AGENTS.md Credit */}
-          <div className="px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-[11px] font-mono text-white/70">
-            Website Created and Designed by <strong className="text-fivem-orange font-bold">Damon</strong>
-          </div>
+          <CreatorPill />
         </div>
       </footer>
 

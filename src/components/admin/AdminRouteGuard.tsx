@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ShieldAlert, ArrowLeft, Lock, LogIn } from 'lucide-react';
+import { VITAL_RP_LOGO_URL } from '../../config';
 
 interface AdminRouteGuardProps {
   user: any;
@@ -26,7 +27,7 @@ export function AdminRouteGuard({ user, onNavigateHome, onOpenSignIn }: AdminRou
         {/* Brand Banner */}
         <div className="flex items-center justify-center gap-3 mb-6">
           <img
-            src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
+            src={VITAL_RP_LOGO_URL}
             alt="Vital RP Logo"
             className="w-10 h-10 rounded-xl object-contain drop-shadow-[0_0_12px_rgba(234,88,12,0.4)]"
           />

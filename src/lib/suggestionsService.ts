@@ -56,21 +56,38 @@ export function sortSuggestions(
 ): CategorySuggestion[] {
   return [...items].sort((a, b) => {
     if (sortBy === 'top') {
-      if (b.score !== a.score) return b.score - a.score;
-      if (b.upvotes !== a.upvotes) return b.upvotes - a.upvotes;
-      if (a.downvotes !== b.downvotes) return a.downvotes - b.downvotes;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      const scoreA = a.score !== undefined ? a.score : (a.upvotes || 0) - (a.downvotes || 0);
+      const scoreB = b.score !== undefined ? b.score : (b.upvotes || 0) - (b.downvotes || 0);
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      if ((b.upvotes || 0) !== (a.upvotes || 0)) return (b.upvotes || 0) - (a.upvotes || 0);
+      if ((a.downvotes || 0) !== (b.downvotes || 0)) return (a.downvotes || 0) - (b.downvotes || 0);
+      const timeA = new Date(a.created_at).getTime() || 0;
+      const timeB = new Date(b.created_at).getTime() || 0;
+      if (timeA !== timeB) return timeA - timeB; // deterministic tiebreak: earlier submission first
+      return a.id.localeCompare(b.id);
     }
     if (sortBy === 'lowest') {
-      if (a.score !== b.score) return a.score - b.score;
-      if (a.upvotes !== b.upvotes) return a.upvotes - b.upvotes;
-      if (b.downvotes !== a.downvotes) return b.downvotes - a.downvotes;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      const scoreA = a.score !== undefined ? a.score : (a.upvotes || 0) - (a.downvotes || 0);
+      const scoreB = b.score !== undefined ? b.score : (b.upvotes || 0) - (b.downvotes || 0);
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      if ((a.upvotes || 0) !== (b.upvotes || 0)) return (a.upvotes || 0) - (b.upvotes || 0);
+      if ((b.downvotes || 0) !== (a.downvotes || 0)) return (b.downvotes || 0) - (a.downvotes || 0);
+      const timeA = new Date(a.created_at).getTime() || 0;
+      const timeB = new Date(b.created_at).getTime() || 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id.localeCompare(b.id);
     }
     if (sortBy === 'oldest') {
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      const timeA = new Date(a.created_at).getTime() || 0;
+      const timeB = new Date(b.created_at).getTime() || 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id.localeCompare(b.id);
     }
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    // newest / default
+    const timeA = new Date(a.created_at).getTime() || 0;
+    const timeB = new Date(b.created_at).getTime() || 0;
+    if (timeB !== timeA) return timeB - timeA;
+    return b.id.localeCompare(a.id);
   });
 }
 
@@ -670,13 +687,15 @@ export async function updateCategorySuggestionContent(
  * Generate CSV export for category suggestions and community votes.
  */
 export function exportSuggestionsToCSV(suggestions: CategorySuggestion[]): string {
-  const headers = ['ID', 'Category Name', 'Description', 'Status', 'Total Votes', 'Author Name', 'Discord ID', 'Created At'];
+  const headers = ['ID', 'Category Name', 'Description', 'Status', 'Score', 'Upvotes', 'Downvotes', 'Author Name', 'Discord ID', 'Created At'];
   const rows = suggestions.map((s) => [
     `"${s.id}"`,
     `"${(s.category_name || '').replace(/"/g, '""')}"`,
     `"${(s.description || '').replace(/"/g, '""')}"`,
     `"${s.status || 'open'}"`,
-    s.upvotes || s.score || 0,
+    s.score !== undefined ? s.score : (s.upvotes || 0) - (s.downvotes || 0),
+    s.upvotes || 0,
+    s.downvotes || 0,
     `"${(s.author_name || s.discord_name || '').replace(/"/g, '""')}"`,
     `"${s.discord_id || s.user_id || ''}"`,
     `"${s.created_at || ''}"`

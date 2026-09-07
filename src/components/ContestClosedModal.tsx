@@ -10,6 +10,8 @@ import { SparklesText } from './ui/sparkles-text';
 import { AnimatedShinyText } from './ui/animated-shiny-text';
 import { getProfileAvatar } from '../lib/dicebear';
 import { cn } from '../lib/utils';
+import { VITAL_RP_LOGO_URL } from '../config';
+import { CreatorPill } from './ui/CreatorPill';
 
 interface ContestClosedModalProps {
   isAdmin: boolean;
@@ -32,7 +34,6 @@ export function ContestClosedModal({
   onSignOut,
   onOpenAdminPanel
 }: ContestClosedModalProps) {
-  const [isWiggling, setIsWiggling] = useState(false);
   const userAvatar = user ? getProfileAvatar(
     user.photoURL,
     user.avatarSeed || user.uid,
@@ -74,7 +75,7 @@ export function ContestClosedModal({
                 <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-fivem-orange/40 via-amber-500/25 to-fivem-orange/40 blur-xl opacity-75 group-hover:opacity-100 transition-opacity" />
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-black/70 border border-white/15 p-3 flex items-center justify-center shadow-2xl backdrop-blur-md">
                   <img
-                    src="https://r2.fivemanage.com/image/FFN7c54pQkLA.png"
+                    src={VITAL_RP_LOGO_URL}
                     alt="Vital RP"
                     className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(234,88,12,0.6)]"
                   />
@@ -230,28 +231,9 @@ export function ContestClosedModal({
               </div>
             )}
 
-            {/* Simple Creator Credit with Easter Egg Wiggle */}
+            {/* Damon Creator Credit Pill */}
             <div className="pt-4 border-t border-white/[0.08] w-full flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => setIsWiggling(true)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md px-3.5 py-1.5 transition-all duration-300 group cursor-pointer select-none"
-              >
-                <motion.img
-                  src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
-                  alt="Damon"
-                  className="w-5 h-5 rounded-full object-cover ring-1 ring-white/20 shrink-0"
-                  animate={isWiggling ? {
-                    rotate: [0, -18, 18, -14, 14, -8, 8, 0],
-                    scale: [1, 1.25, 1.25, 1.2, 1],
-                  } : {}}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                  onAnimationComplete={() => setIsWiggling(false)}
-                />
-                <span className="text-[11px] font-mono text-white/50 group-hover:text-white/80 transition-colors">
-                  Created by <strong className="text-fivem-orange font-bold">Damon</strong>
-                </span>
-              </button>
+              <CreatorPill />
             </div>
           </div>
         </div>

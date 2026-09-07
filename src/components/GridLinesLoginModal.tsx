@@ -14,6 +14,7 @@ import { Dialog, DialogPortal, DialogOverlay, DialogTitle, DialogDescription } f
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '../lib/utils';
 import { BorderBeam } from './ui/border-beam';
+import { VITAL_RP_LOGO_URL } from '../config';
 
 interface GridLinesLoginModalProps {
   isOpen: boolean;
@@ -102,7 +103,7 @@ export function GridLinesLoginModal({
                 <div className="absolute -inset-2 bg-gradient-to-r from-fivem-orange/40 via-amber-400/30 to-[#5865F2]/30 rounded-2xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
                 <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-white/[0.12] to-white/[0.02] border border-white/20 p-2.5 flex items-center justify-center backdrop-blur-xl shadow-2xl">
                   <img
-                    src="https://r2.fivemanage.com/image/be70Qnvx8DT5.png"
+                    src={VITAL_RP_LOGO_URL}
                     alt="Vital RP Logo"
                     className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(234,88,12,0.8)] transform transition-transform duration-300 group-hover:scale-110"
                   />

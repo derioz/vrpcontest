@@ -4,7 +4,7 @@ import {
   Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
   Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
   Eye, EyeOff, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
-  Bug, CheckCircle2, Trash2, Clock, Minus, Maximize2, X, Wrench, Sparkles, TrendingUp
+  Bug, CheckCircle2, Trash2, Clock, Minus, Maximize2, X, Wrench, Sparkles, TrendingUp, MessageSquarePlus
 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -43,6 +43,7 @@ interface AdminPanelProps {
   showWinnersToggle: boolean;
   siteClosed?: boolean;
   censorSubmissions?: boolean;
+  categorySuggestionMode?: boolean;
   publicKey: string | null;
   privateKey: string | null;
   rulesMarkdown: string;
@@ -53,6 +54,7 @@ interface AdminPanelProps {
   onToggleShowWinners: (enabled: boolean) => void;
   onToggleSiteClosed?: (closed: boolean) => void;
   onToggleCensorSubmissions?: (enabled: boolean) => void;
+  onToggleCategorySuggestionMode?: (enabled: boolean) => void;
   onGenerateKeys: () => void;
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
@@ -115,7 +117,9 @@ const ALL_TABS = TAB_GROUPS.flatMap(g => g.tabs);
 export default function AdminPanel(props: AdminPanelProps) {
   const {
     isAdmin, user, activeContest, categories = [], allPhotos = [], votingOpen, submissionsOpen,
-    onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false, publicKey, privateKey, rulesMarkdown, winners = [],
+    onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false,
+    categorySuggestionMode = false, onToggleCategorySuggestionMode,
+    publicKey, privateKey, rulesMarkdown, winners = [],
     onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed, onToggleCensorSubmissions,
     onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
     isMinimized = false, onToggleMinimize, onClose,
@@ -281,6 +285,7 @@ export default function AdminPanel(props: AdminPanelProps) {
             showWinnersToggle={showWinnersToggle}
             siteClosed={siteClosed}
             censorSubmissions={censorSubmissions}
+            categorySuggestionMode={categorySuggestionMode}
             publicKey={publicKey}
             privateKey={privateKey}
             onToggleVoting={onToggleVoting}
@@ -289,6 +294,7 @@ export default function AdminPanel(props: AdminPanelProps) {
             onToggleShowWinners={onToggleShowWinners}
             onToggleSiteClosed={onToggleSiteClosed}
             onToggleCensorSubmissions={onToggleCensorSubmissions}
+            onToggleCategorySuggestionMode={onToggleCategorySuggestionMode}
             onGenerateKeys={onGenerateKeys}
             onToggleReveal={onToggleReveal}
           />
@@ -676,6 +682,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                     showWinnersToggle={showWinnersToggle}
                     siteClosed={siteClosed}
                     censorSubmissions={censorSubmissions}
+                    categorySuggestionMode={categorySuggestionMode}
                     publicKey={publicKey}
                     privateKey={privateKey}
                     onToggleVoting={onToggleVoting}
@@ -684,6 +691,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                     onToggleShowWinners={onToggleShowWinners}
                     onToggleSiteClosed={onToggleSiteClosed}
                     onToggleCensorSubmissions={onToggleCensorSubmissions}
+                    onToggleCategorySuggestionMode={onToggleCategorySuggestionMode}
                     onGenerateKeys={onGenerateKeys}
                     onToggleReveal={onToggleReveal}
                   />
@@ -1272,16 +1280,20 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
    ═══════════════════════════════════════════════════════════════════════ */
 function ControlsAndSecurityTab({
   votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false,
+  categorySuggestionMode = false,
   publicKey, privateKey,
   onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed, onToggleCensorSubmissions,
+  onToggleCategorySuggestionMode,
   onGenerateKeys, onToggleReveal
 }: {
   votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean; siteClosed?: boolean; censorSubmissions?: boolean;
+  categorySuggestionMode?: boolean;
   publicKey: string | null; privateKey: string | null;
   onToggleVoting: (open: boolean) => void; onToggleSubmissions: (open: boolean) => void;
   onToggleOnePhotoPerUser: (enabled: boolean) => void; onToggleShowWinners: (enabled: boolean) => void;
   onToggleSiteClosed?: (closed: boolean) => void;
   onToggleCensorSubmissions?: (enabled: boolean) => void;
+  onToggleCategorySuggestionMode?: (enabled: boolean) => void;
   onGenerateKeys: () => void; onToggleReveal: (reveal: boolean) => void;
 }) {
   return (
@@ -1297,7 +1309,7 @@ function ControlsAndSecurityTab({
       />
 
       {/* ── Live Telemetry Telemetry Strip ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-3.5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-3.5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl">
         <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
           <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", submissionsOpen ? "bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse" : "bg-zinc-600")} />
           <div className="min-w-0">
@@ -1330,7 +1342,15 @@ function ControlsAndSecurityTab({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] col-span-2 sm:col-span-1">
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
+          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", categorySuggestionMode ? "bg-fivem-orange shadow-[0_0_10px_rgba(234,88,12,0.9)] animate-pulse" : "bg-zinc-600")} />
+          <div className="min-w-0">
+            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Suggestion Mode</p>
+            <p className="text-xs font-bold font-display text-white truncate">{categorySuggestionMode ? "ENABLED" : "DISABLED"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
           <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", siteClosed ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,1)] animate-ping" : "bg-emerald-500")} />
           <div className="min-w-0">
             <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Lockdown Mode</p>
@@ -1384,6 +1404,19 @@ function ControlsAndSecurityTab({
               variant="warning"
               badgeActiveText="CENSORED"
               badgeInactiveText="VISIBLE"
+            />
+          )}
+
+          {onToggleCategorySuggestionMode && (
+            <AnimatedControlCard
+              title="Category Suggestion Mode"
+              description="Temporarily make the Category Suggestion feature the main homepage experience. Standard contest pages redirect to suggestions while admin tools remain available."
+              checked={categorySuggestionMode}
+              onToggle={(checked) => onToggleCategorySuggestionMode(checked)}
+              icon={<MessageSquarePlus size={18} />}
+              variant="warning"
+              badgeActiveText="ENABLED"
+              badgeInactiveText="DISABLED"
             />
           )}
 
