@@ -85,6 +85,21 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260907-1240',
+    dateKey: 'September 7, 2026',
+    timeStr: '12:40 PM',
+    fullTimestamp: 'September 7, 2026 at 12:40 PM',
+    labels: ['UI', 'FIX', 'ENHANCE'],
+    title: 'Category Suggestion Auto-Scroll, Skeleton Loading & Viewport Styling',
+    bullets: [
+      'Added smooth auto-scrolling with a temporary amber glow highlight when creating a new category suggestion, scrolling you directly to your ranked card.',
+      'Introduced tailored skeleton loaders across cards, stats counters, user allowances, voter lists, and user avatars to eliminate layout shift and fake zeroes.',
+      'Standardized universal dark viewport styling across all pages, completely eliminating light background gaps beneath footers during empty searches.',
+      'Refined voter list previews with instant skeleton feedback and resilient request animation frame alignment respecting reduced motion preferences.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260906-2255',
     dateKey: 'September 6, 2026',
     timeStr: '10:55 PM',

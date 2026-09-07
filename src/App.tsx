@@ -2163,9 +2163,9 @@ export default function App() {
   // Normal contest pages, submissions, and voting routes are replaced with the suggestion view.
   if (isCategorySuggestionMode) {
     return (
-      <div className="min-h-screen w-full bg-[#07070a] text-white flex flex-col">
+      <div className="min-h-screen min-h-[100dvh] flex-1 w-full bg-[#07070a] text-white flex flex-col">
         <Suspense fallback={
-          <div className="min-h-screen w-full bg-[#07070b] flex flex-col items-center justify-center p-6 space-y-4">
+          <div className="min-h-screen min-h-[100dvh] flex-1 w-full bg-[#07070a] flex flex-col items-center justify-center p-6 space-y-4">
             <Loader2 className="w-8 h-8 animate-spin text-fivem-orange" />
             <span className="text-xs font-mono text-white/50 uppercase tracking-widest">
               Loading Category Suggestions...
@@ -2176,6 +2176,7 @@ export default function App() {
             currentUser={user}
             isAdmin={isAdmin}
             isStandalonePage={true}
+            isAuthLoading={isAuthLoading}
             votingOpen={votingOpen}
             onOpenSignIn={() => setShowSignInModal(true)}
             onNavigateAdmin={() => navigateTo('/admin')}
@@ -2239,7 +2240,7 @@ export default function App() {
   }
 
   return (
-    <ShaderBackground className={cn("min-h-screen flex flex-col relative w-full overflow-x-clip max-w-full", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
+    <ShaderBackground className={cn("min-h-screen min-h-[100dvh] flex flex-col flex-1 relative w-full overflow-x-clip max-w-full bg-[#07070a]", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
       <div className={cn("flex flex-col flex-1 w-full max-w-full overflow-x-clip transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
         
         {/* ── 1. UNIFIED FIXED TOP NAVIGATION CONTAINER ── */}

@@ -83,6 +83,13 @@ import {
   DropdownMenuSeparator
 } from './ui/dropdown-menu';
 import { Skeleton } from './ui/skeleton';
+import {
+  SuggestionCardSkeleton,
+  SuggestionFeedSkeleton,
+  StatsCardSkeleton,
+  SuggestionLimitSkeleton,
+  VoteListSkeleton
+} from './ui/SuggestionSkeletons';
 import { CreatorPill } from './ui/CreatorPill';
 import { SiteNavbar } from './SiteNavbar';
 import { UserAvatar } from './ui/UserAvatar';
@@ -93,6 +100,7 @@ export interface CategorySuggestionsViewProps {
   currentUser?: any | null;
   isAdmin: boolean;
   isStandalonePage?: boolean;
+  isAuthLoading?: boolean;
   votingOpen?: boolean;
   onClose?: () => void;
   onOpenSignIn: () => void;
@@ -111,6 +119,7 @@ export function CategorySuggestionsView({
   currentUser,
   isAdmin,
   isStandalonePage = false,
+  isAuthLoading = false,
   votingOpen,
   onClose,
   onOpenSignIn,
@@ -121,6 +130,7 @@ export function CategorySuggestionsView({
   const shouldReduceMotion = useReducedMotion();
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [filterOption, setFilterOption] = useState<SuggestionFilterOption>('most_votes');
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,6 +149,7 @@ export function CategorySuggestionsView({
   // Authoritative database-backed suggestion limit tracking
   const maxAllowedSuggestions = SITE_CONFIG.categorySuggestions.maxSuggestionsPerUser || MAX_CATEGORY_SUGGESTIONS_PER_USER;
   const [userSubmittedCount, setUserSubmittedCount] = useState(0);
+  const [isLimitLoading, setIsLimitLoading] = useState(true);
   const [suggestionLimit, setSuggestionLimit] = useState<UserSuggestionLimitState>({
     limit: maxAllowedSuggestions,
     used: 0,
@@ -276,6 +287,27 @@ export function CategorySuggestionsView({
     }
   }, []);
 
+  // ── Unified Smooth Scroll & Positioning Helper ──
+  const scrollToSuggestion = useCallback((id: string, options?: { instant?: boolean }) => {
+    const el = document.getElementById(`suggestion-${id}`);
+    if (!el) return false;
+
+    const rect = el.getBoundingClientRect();
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    const elTop = rect.top + currentScroll;
+
+    // Account for floating navbar (height + margin ~80-96px) and usable viewport space
+    const topNavOffset = 96;
+    const idealTopOffset = Math.max(topNavOffset + 16, (window.innerHeight - rect.height) / 2);
+    const targetY = Math.max(0, elTop - idealTopOffset);
+
+    window.scrollTo({
+      top: targetY,
+      behavior: options?.instant || shouldReduceMotion ? 'auto' : 'smooth'
+    });
+    return true;
+  }, [shouldReduceMotion]);
+
   // ── Deep Link Parameter Detection ──
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -285,49 +317,65 @@ export function CategorySuggestionsView({
     }
   }, []);
 
-  // ── Smooth Scroll & Temporary Highlight for Deep Link ──
+  // ── Smooth Scroll & Temporary Highlight Controller ──
   useEffect(() => {
-    if (highlightedSuggestionId && suggestions.length > 0) {
-      const timer = setTimeout(() => {
-        const el = document.getElementById(`suggestion-${highlightedSuggestionId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 400);
+    if (!highlightedSuggestionId) return;
 
-      const fadeTimer = setTimeout(() => {
-        setHighlightedSuggestionId(null);
-      }, 3500);
+    let frameId: number;
+    let attempts = 0;
+    const maxAttempts = 30; // ~500ms at 60fps, allows DOM commit and Framer Motion layout to settle
 
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(fadeTimer);
-      };
-    }
-  }, [highlightedSuggestionId, suggestions]);
+    const tryScroll = () => {
+      const success = scrollToSuggestion(highlightedSuggestionId);
+      if (!success && attempts < maxAttempts) {
+        attempts++;
+        frameId = requestAnimationFrame(tryScroll);
+      }
+    };
+
+    frameId = requestAnimationFrame(tryScroll);
+
+    // Hold highlight for 850ms, then clear ID to initiate smooth 1200ms fade back to normal
+    const fadeTimer = setTimeout(() => {
+      setHighlightedSuggestionId(null);
+    }, shouldReduceMotion ? 800 : 950);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(fadeTimer);
+    };
+  }, [highlightedSuggestionId, scrollToSuggestion, shouldReduceMotion]);
 
   // ── Real-time Subscription to Category Suggestions ──
   useEffect(() => {
     setLoading(true);
+    setLoadError(null);
 
     const unsubscribe = subscribeCategorySuggestions(
       effectiveUserId,
       (data) => {
         setSuggestions(data);
         setLoading(false);
+        setLoadError(null);
       },
       (err) => {
         console.error('Error subscribing to category suggestions:', err);
         fetchCategorySuggestions(effectiveUserId)
-          .then((data) => setSuggestions(data))
-          .catch((fetchErr) => console.error('Fallback fetch error:', fetchErr))
+          .then((data) => {
+            setSuggestions(data);
+            setLoadError(null);
+          })
+          .catch((fetchErr) => {
+            console.error('Fallback fetch error:', fetchErr);
+            setLoadError('Failed to load category suggestions.');
+          })
           .finally(() => setLoading(false));
       }
     );
 
     const safetyTimer = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 2000);
 
     return () => {
       unsubscribe();
@@ -353,9 +401,15 @@ export function CategorySuggestionsView({
   // ── Refresh user's authoritative suggestion limit ──
   const refreshUserCount = useCallback(async () => {
     if (effectiveUserId || currentUser?.discordId) {
-      const limitState = await getUserSuggestionLimit(effectiveUserId, currentUser?.discordId);
-      setSuggestionLimit(limitState);
-      setUserSubmittedCount(limitState.used);
+      try {
+        const limitState = await getUserSuggestionLimit(effectiveUserId, currentUser?.discordId);
+        setSuggestionLimit(limitState);
+        setUserSubmittedCount(limitState.used);
+      } catch (err) {
+        console.warn('Error fetching user suggestion limit:', err);
+      } finally {
+        setIsLimitLoading(false);
+      }
     } else {
       setSuggestionLimit({
         limit: maxAllowedSuggestions,
@@ -364,6 +418,7 @@ export function CategorySuggestionsView({
         canSuggest: false
       });
       setUserSubmittedCount(0);
+      setIsLimitLoading(false);
     }
   }, [effectiveUserId, currentUser?.discordId, maxAllowedSuggestions]);
 
@@ -373,17 +428,20 @@ export function CategorySuggestionsView({
 
   const loadSuggestions = useCallback(async () => {
     setRefreshing(true);
+    setLoadError(null);
     try {
       const [data, newStats] = await Promise.all([
         fetchCategorySuggestions(effectiveUserId),
         getCategorySuggestionStats()
       ]);
       setSuggestions(data);
-      setStats(newStats);
+      if (newStats) setStats(newStats);
       await refreshUserCount();
+      setLoadError(null);
       toast.success('Suggestions refreshed');
     } catch (err: any) {
       console.error('Error refreshing suggestions:', err);
+      setLoadError('Failed to refresh category suggestions');
       toast.error('Failed to refresh category suggestions');
     } finally {
       setRefreshing(false);
@@ -474,6 +532,22 @@ export function CategorySuggestionsView({
       if (res.stats) {
         setStats(res.stats);
       }
+
+      // Optimistically inject the new suggestion with authoritative initial upvote (score: 1, user_vote: 1)
+      if (res.suggestion) {
+        setSuggestions((prev) => {
+          if (prev.some((s) => s.id === res.id)) return prev;
+          return [res.suggestion, ...prev];
+        });
+      }
+
+      // Clear search query to ensure the newly created suggestion is visible in the ranked feed
+      if (searchQuery.trim()) {
+        setSearchQuery('');
+      }
+
+      // Trigger auto-scroll and temporary highlight to the new suggestion
+      setHighlightedSuggestionId(res.id);
 
       setCategoryName('');
       setDescription('');
@@ -1081,9 +1155,9 @@ export function CategorySuggestionsView({
     <div
       ref={containerRef}
       className={cn(
-        "bg-[#050507] text-white flex flex-col w-full max-w-full",
+        "bg-[#050507] text-white flex flex-col flex-1 w-full max-w-full min-h-screen min-h-[100dvh]",
         isStandalonePage
-          ? "min-h-screen relative overflow-x-clip"
+          ? "relative overflow-x-clip"
           : "fixed inset-0 z-[150] overflow-y-auto overflow-x-hidden"
       )}
     >
@@ -1098,6 +1172,7 @@ export function CategorySuggestionsView({
         currentUser={currentUser}
         isAdmin={isAdmin}
         isStandalonePage={isStandalonePage}
+        isAuthLoading={isAuthLoading}
         activeNav="category-voting"
         onOpenSuggestModal={handleOpenSuggestModal}
         onClose={onClose}
@@ -1108,7 +1183,7 @@ export function CategorySuggestionsView({
       />
 
       {/* ── Main Content Stage ── */}
-      <main className="flex-1 max-w-[1440px] 2xl:max-w-[1536px] w-full mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10 pt-20 sm:pt-24 pb-8 sm:pb-12 relative z-10">
+      <main className="flex-1 max-w-[1440px] 2xl:max-w-[1536px] w-full mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10 pt-20 sm:pt-24 pb-8 sm:pb-12 relative z-10 flex flex-col">
         {/* ── HERO SECTION: 16:9 MODERN 2-COLUMN COMMUNITY-VOTING HERO ── */}
         <section className="mb-8 pt-2 relative pb-8 border-b border-white/[0.08]">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
@@ -1190,9 +1265,13 @@ export function CategorySuggestionsView({
                     <span className="text-emerald-400 font-bold hidden sm:inline">✓ Eligible</span>
                     <span className="text-white/20 hidden sm:inline">•</span>
                     <span>
-                      <strong className={cn(suggestionLimit.remaining <= 0 ? "text-amber-400" : "text-fivem-orange")}>
-                        {suggestionLimit.remaining} of {suggestionLimit.limit}
-                      </strong>{' '}
+                      {isLimitLoading ? (
+                        <SuggestionLimitSkeleton className="mx-0.5" />
+                      ) : (
+                        <strong className={cn(suggestionLimit.remaining <= 0 ? "text-amber-400" : "text-fivem-orange")}>
+                          {suggestionLimit.remaining} of {suggestionLimit.limit}
+                        </strong>
+                      )}{' '}
                       remaining
                     </span>
                   </div>
@@ -1264,7 +1343,7 @@ export function CategorySuggestionsView({
                     <span className="text-[10px] uppercase font-bold text-white/50">Ideas</span>
                   </div>
                   <span className="text-base sm:text-lg font-black text-white">
-                    {stats ? <NumberTicker value={stats.suggestions} /> : '—'}
+                    {stats ? <NumberTicker value={stats.suggestions} /> : <StatsCardSkeleton />}
                   </span>
                 </div>
 
@@ -1274,7 +1353,7 @@ export function CategorySuggestionsView({
                     <span className="text-[10px] uppercase font-bold text-white/50">Votes</span>
                   </div>
                   <span className="text-base sm:text-lg font-black text-white">
-                    {stats ? <NumberTicker value={stats.votes} /> : '—'}
+                    {stats ? <NumberTicker value={stats.votes} /> : <StatsCardSkeleton />}
                   </span>
                 </div>
 
@@ -1284,7 +1363,7 @@ export function CategorySuggestionsView({
                     <span className="text-[10px] uppercase font-bold text-white/50">Voters</span>
                   </div>
                   <span className="text-base sm:text-lg font-black text-white">
-                    {stats ? <NumberTicker value={stats.voters} /> : '—'}
+                    {stats ? <NumberTicker value={stats.voters} /> : <StatsCardSkeleton />}
                   </span>
                 </div>
               </div>
@@ -1316,8 +1395,6 @@ export function CategorySuggestionsView({
                     whileHover={{ y: -2 }}
                     onClick={() => {
                       setHighlightedSuggestionId(fav.id);
-                      const el = document.getElementById(`suggestion-${fav.id}`);
-                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }}
                     className={cn(
                       "p-4 rounded-2xl border transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden backdrop-blur-xl",
@@ -1436,20 +1513,27 @@ export function CategorySuggestionsView({
 
         {/* ── SUGGESTIONS FEED ── */}
         {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="p-6 rounded-3xl border border-white/10 bg-[#0d0d14]/70 backdrop-blur-md flex gap-5 items-start"
-              >
-                <Skeleton className="w-16 h-16 rounded-2xl shrink-0 bg-white/[0.07]" />
-                <div className="flex-1 space-y-3 min-w-0">
-                  <Skeleton className="w-1/3 h-5 rounded-lg bg-white/[0.08]" />
-                  <Skeleton className="w-full h-10 rounded-xl bg-white/[0.05]" />
-                  <Skeleton className="w-24 h-4 rounded-md bg-white/[0.06]" />
-                </div>
-              </div>
-            ))}
+          <SuggestionFeedSkeleton count={5} />
+        ) : loadError && suggestions.length === 0 ? (
+          /* ── Error State With Retry ── */
+          <div className="text-center py-16 px-6 rounded-3xl border border-red-500/20 bg-red-500/[0.04] backdrop-blur-sm max-w-lg mx-auto">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400">
+              <AlertCircle size={24} />
+            </div>
+            <h3 className="text-base font-black font-display text-white mb-1.5">
+              Unable to Load Suggestions
+            </h3>
+            <p className="text-xs text-white/50 mb-5 leading-relaxed">
+              We couldn't connect to the suggestions feed. Please check your connection and try again.
+            </p>
+            <button
+              type="button"
+              onClick={loadSuggestions}
+              className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold uppercase tracking-wider text-white transition-all cursor-pointer inline-flex items-center gap-2"
+            >
+              <RefreshCw size={13} />
+              <span>Retry</span>
+            </button>
           </div>
         ) : filteredSuggestions.length === 0 ? (
           /* ── Empty State ── */
@@ -1524,9 +1608,10 @@ export function CategorySuggestionsView({
                     opacity: { duration: 0.2 }
                   }}
                   className={cn(
-                    "group relative rounded-3xl border bg-[#0a0a0d]/90 transition-all duration-300 p-4 sm:p-6 backdrop-blur-xl shadow-lg flex gap-4 sm:gap-6 items-start",
+                    "group relative rounded-3xl border bg-[#0a0a0d]/90 p-4 sm:p-6 backdrop-blur-xl shadow-lg flex gap-4 sm:gap-6 items-start",
+                    "transition-[background-color,border-color,box-shadow,ring-color] duration-1000",
                     isHighlighted
-                      ? "border-fivem-orange/90 ring-2 ring-fivem-orange/80 shadow-[0_0_40px_rgba(234,88,12,0.4)] bg-fivem-orange/[0.08]"
+                      ? "border-fivem-orange/90 ring-1 ring-fivem-orange/60 shadow-[0_0_35px_rgba(234,88,12,0.35)] bg-fivem-orange/[0.08]"
                       : "border-white/10 hover:border-white/20 hover:shadow-xl"
                   )}
                 >
@@ -1836,10 +1921,7 @@ export function CategorySuggestionsView({
                             </div>
                             <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
                               {loadingVotersIds[suggestion.id] && getUpvoters(suggestion).length === 0 ? (
-                                <div className="py-3 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
-                                  <RefreshCw size={12} className="animate-spin text-fivem-orange" />
-                                  <span>Loading upvoters...</span>
-                                </div>
+                                <VoteListSkeleton count={3} />
                               ) : getUpvoters(suggestion).length === 0 ? (
                                 <p className="py-3 text-center text-xs font-mono text-white/40">No upvotes recorded yet</p>
                               ) : (
@@ -1893,10 +1975,7 @@ export function CategorySuggestionsView({
                             </div>
                             <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
                               {loadingVotersIds[suggestion.id] && getDownvoters(suggestion).length === 0 ? (
-                                <div className="py-3 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
-                                  <RefreshCw size={12} className="animate-spin text-fivem-orange" />
-                                  <span>Loading downvoters...</span>
-                                </div>
+                                <VoteListSkeleton count={3} />
                               ) : getDownvoters(suggestion).length === 0 ? (
                                 <p className="py-3 text-center text-xs font-mono text-white/40">No downvotes recorded yet</p>
                               ) : (
@@ -2065,12 +2144,16 @@ export function CategorySuggestionsView({
           {/* User Allowance Notice */}
           <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs font-mono">
             <span className="text-white/60">Suggestions Remaining</span>
-            <span className={cn(
-              "font-bold",
-              suggestionLimit.remaining > 0 || isAdmin ? "text-fivem-orange" : "text-amber-400"
-            )}>
-              {suggestionLimit.remaining} of {suggestionLimit.limit}
-            </span>
+            {isLimitLoading ? (
+              <SuggestionLimitSkeleton />
+            ) : (
+              <span className={cn(
+                "font-bold",
+                suggestionLimit.remaining > 0 || isAdmin ? "text-fivem-orange" : "text-amber-400"
+              )}>
+                {suggestionLimit.remaining} of {suggestionLimit.limit}
+              </span>
+            )}
           </div>
 
           {/* Schedule Notice */}
@@ -2368,10 +2451,7 @@ export function CategorySuggestionsView({
           {/* Voter Items List */}
           <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-[160px]">
             {voterModal.loading ? (
-              <div className="py-12 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
-                <RefreshCw size={14} className="animate-spin text-fivem-orange" />
-                <span>Loading voter list...</span>
-              </div>
+              <VoteListSkeleton count={5} />
             ) : voterModal.voters.length === 0 ? (
               <div className="py-12 text-center text-xs font-mono text-white/40">
                 No {voterModal.type === 'up' ? 'upvotes' : 'downvotes'} recorded for this category yet.

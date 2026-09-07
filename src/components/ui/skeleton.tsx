@@ -15,6 +15,7 @@ function Skeleton({
   return (
     <div
       data-slot="skeleton"
+      aria-hidden="true"
       className={cn("animate-pulse rounded-xl bg-white/[0.08] border border-white/[0.04]", className)}
       {...props}
     />

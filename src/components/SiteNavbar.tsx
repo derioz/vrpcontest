@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { VITAL_RP_LOGO_URL, SITE_CONFIG } from '../config';
 import { UserAvatar } from './ui/UserAvatar';
+import { Skeleton } from './ui/skeleton';
 import { cn } from '../lib/utils';
 
 export interface SiteNavbarProps {
@@ -26,6 +27,7 @@ export interface SiteNavbarProps {
   isAdmin: boolean;
   isStandalonePage?: boolean;
   activeNav?: string;
+  isAuthLoading?: boolean;
   onOpenSuggestModal?: () => void;
   onClose?: () => void;
   onOpenSignIn: () => void;
@@ -46,6 +48,7 @@ export function SiteNavbar({
   isAdmin,
   isStandalonePage = true,
   activeNav = 'category-voting',
+  isAuthLoading = false,
   onOpenSuggestModal,
   onClose,
   onOpenSignIn,
@@ -241,7 +244,15 @@ export function SiteNavbar({
             )}
 
             {/* Integrated Profile Presentation */}
-            {currentUser ? (
+            {isAuthLoading ? (
+              <div
+                className="flex items-center gap-2 p-1 sm:pl-1.5 sm:pr-2.5 sm:py-1 rounded-full bg-white/[0.04] border border-white/10 select-none"
+                aria-hidden="true"
+              >
+                <Skeleton className="w-7 h-7 rounded-full bg-white/[0.08]" />
+                <Skeleton className="w-16 h-3.5 rounded-md hidden sm:inline-block bg-white/[0.06]" />
+              </div>
+            ) : currentUser ? (
               <div className="relative" ref={profileMenuRef}>
                 <button
                   type="button"
