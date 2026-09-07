@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   ArrowLeft,
@@ -195,10 +196,35 @@ export function CategorySuggestionsView({
 
   // Floating Scroll-To-Top Button State
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 400);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const handleScroll = () => {
+      const windowY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0;
+      const containerY = containerRef.current ? containerRef.current.scrollTop : 0;
+      setShowScrollTop(windowY > 300 || containerY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    const containerEl = containerRef.current;
+    if (containerEl) {
+      containerEl.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (containerEl) {
+        containerEl.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
+  const handleScrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, []);
 
   // Separate Voter List Modal State ("See everyone")
@@ -674,13 +700,13 @@ export function CategorySuggestionsView({
     await executeVote(desiredVote);
   };
 
-  // ── Hover Voter Breakdown ──
-  const handleHoverVoters = useCallback(async (suggestionId: string) => {
-    const target = suggestions.find((s) => s.id === suggestionId);
-    const inlined = target?.voters_sample;
-
-    if (Array.isArray(inlined) && inlined.length > 0) {
-      const upvoters: SuggestionVoter[] = inlined
+  // ── Synchronous Voter Extractors (Instantly available on First Click from voters_sample or votersCache) ──
+  const getUpvoters = useCallback((suggestion: CategorySuggestion): SuggestionVoter[] => {
+    if (votersCache[suggestion.id]?.upvoters) {
+      return votersCache[suggestion.id].upvoters;
+    }
+    if (Array.isArray(suggestion.voters_sample) && suggestion.voters_sample.length > 0) {
+      return suggestion.voters_sample
         .filter((v) => v.vote === 1)
         .map((v) => ({
           userId: v.userId,
@@ -692,48 +718,99 @@ export function CategorySuggestionsView({
           vote: v.vote,
           updatedAt: v.updatedAt
         }));
-
-      setHoveredVoters({
-        suggestionId,
-        loading: false,
-        voters: upvoters
-      });
-      return;
     }
+    return [];
+  }, [votersCache]);
 
-    if (votersCache[suggestionId]) {
-      setHoveredVoters({
-        suggestionId,
-        loading: false,
-        voters: votersCache[suggestionId].upvoters
-      });
-      return;
+  const getDownvoters = useCallback((suggestion: CategorySuggestion): SuggestionVoter[] => {
+    if (votersCache[suggestion.id]?.downvoters) {
+      return votersCache[suggestion.id].downvoters;
     }
+    if (Array.isArray(suggestion.voters_sample) && suggestion.voters_sample.length > 0) {
+      return suggestion.voters_sample
+        .filter((v) => v.vote === -1)
+        .map((v) => ({
+          userId: v.userId,
+          discordId: v.discordId,
+          discordName: v.discordName || 'Community Member',
+          authorAvatarUrl: v.authorAvatarUrl,
+          avatarSeed: v.avatarSeed || v.userId,
+          avatarStyle: v.avatarStyle || 'botttsNeutral',
+          vote: v.vote,
+          updatedAt: v.updatedAt
+        }));
+    }
+    return [];
+  }, [votersCache]);
 
-    setHoveredVoters({
-      suggestionId,
-      loading: true,
-      voters: []
+  // ── Ensure Voters Loaded & Cached (Instant seed + async enrich) ──
+  const [loadingVotersIds, setLoadingVotersIds] = useState<Record<string, boolean>>({});
+
+  const ensureVotersLoaded = useCallback(async (suggestionId: string) => {
+    const target = suggestions.find((s) => s.id === suggestionId);
+    if (!target) return;
+
+    // 1. Immediately seed votersCache from inlined voters_sample if not already present
+    setVotersCache((prev) => {
+      if (prev[suggestionId]) return prev;
+      const inlined = target.voters_sample;
+      if (Array.isArray(inlined) && inlined.length > 0) {
+        const up: SuggestionVoter[] = inlined
+          .filter((v) => v.vote === 1)
+          .map((v) => ({
+            userId: v.userId,
+            discordId: v.discordId,
+            discordName: v.discordName || 'Community Member',
+            authorAvatarUrl: v.authorAvatarUrl,
+            avatarSeed: v.avatarSeed || v.userId,
+            avatarStyle: v.avatarStyle || 'botttsNeutral',
+            vote: v.vote,
+            updatedAt: v.updatedAt
+          }));
+        const down: SuggestionVoter[] = inlined
+          .filter((v) => v.vote === -1)
+          .map((v) => ({
+            userId: v.userId,
+            discordId: v.discordId,
+            discordName: v.discordName || 'Community Member',
+            authorAvatarUrl: v.authorAvatarUrl,
+            avatarSeed: v.avatarSeed || v.userId,
+            avatarStyle: v.avatarStyle || 'botttsNeutral',
+            vote: v.vote,
+            updatedAt: v.updatedAt
+          }));
+        return {
+          ...prev,
+          [suggestionId]: { upvoters: up, downvoters: down }
+        };
+      }
+      return prev;
     });
 
+    if (votersCache[suggestionId] || loadingVotersIds[suggestionId]) return;
+
+    setLoadingVotersIds((prev) => ({ ...prev, [suggestionId]: true }));
     try {
-      const result = await fetchSuggestionVoters(suggestionId, inlined);
+      const result = await fetchSuggestionVoters(suggestionId, target.voters_sample);
       setVotersCache((prev) => ({ ...prev, [suggestionId]: result }));
-      setHoveredVoters((curr) => {
-        if (curr && curr.suggestionId === suggestionId) {
-          return {
-            suggestionId,
-            loading: false,
-            voters: result.upvoters
-          };
-        }
-        return curr;
-      });
     } catch (err) {
-      console.error('Error fetching voters on hover:', err);
-      setHoveredVoters((curr) => (curr && curr.suggestionId === suggestionId ? { ...curr, loading: false } : null));
+      console.warn('Notice loading voters:', err);
+    } finally {
+      setLoadingVotersIds((prev) => ({ ...prev, [suggestionId]: false }));
     }
-  }, [suggestions, votersCache]);
+  }, [suggestions, votersCache, loadingVotersIds]);
+
+  // ── Hover Voter Breakdown ──
+  const handleHoverVoters = useCallback((suggestionId: string) => {
+    ensureVotersLoaded(suggestionId);
+    const target = suggestions.find((s) => s.id === suggestionId);
+    const upvoters = target ? getUpvoters(target) : [];
+    setHoveredVoters({
+      suggestionId,
+      loading: upvoters.length === 0 && ((target?.upvotes || 0) > 0),
+      voters: upvoters
+    });
+  }, [ensureVotersLoaded, suggestions, getUpvoters]);
 
   const handleLeaveVoters = useCallback(() => {
     setHoveredVoters(null);
@@ -899,12 +976,13 @@ export function CategorySuggestionsView({
 
   // ── Open Full Voter List Dialog ("See everyone") ──
   const handleOpenSeeEveryone = async (suggestion: CategorySuggestion, type: 'up' | 'down') => {
+    const initialVoters = type === 'up' ? getUpvoters(suggestion) : getDownvoters(suggestion);
     setVoterModal({
       isOpen: true,
       suggestion,
       type,
-      voters: [],
-      loading: true,
+      voters: initialVoters,
+      loading: initialVoters.length === 0 && ((type === 'up' ? suggestion.upvotes : suggestion.downvotes) || 0) > 0,
       searchQuery: ''
     });
 
@@ -1001,8 +1079,9 @@ export function CategorySuggestionsView({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
-        "bg-[#050507] text-white flex flex-col w-full max-w-full transform-gpu",
+        "bg-[#050507] text-white flex flex-col w-full max-w-full",
         isStandalonePage
           ? "min-h-screen relative overflow-x-clip"
           : "fixed inset-0 z-[150] overflow-y-auto overflow-x-hidden"
@@ -1737,9 +1816,10 @@ export function CategorySuggestionsView({
                     <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-white/5">
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Separate Upvotes List Dropdown */}
-                        <DropdownMenu>
+                        <DropdownMenu onOpenChange={(open) => { if (open) ensureVotersLoaded(suggestion.id); }}>
                           <DropdownTrigger
-                            onClick={() => handleHoverVoters(suggestion.id)}
+                            onPointerDown={() => ensureVotersLoaded(suggestion.id)}
+                            onMouseEnter={() => ensureVotersLoaded(suggestion.id)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-white/70 hover:text-emerald-400 text-xs font-mono font-bold transition-all cursor-pointer"
                             title="View community members who upvoted"
                           >
@@ -1755,15 +1835,15 @@ export function CategorySuggestionsView({
                               </span>
                             </div>
                             <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
-                              {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.loading ? (
+                              {loadingVotersIds[suggestion.id] && getUpvoters(suggestion).length === 0 ? (
                                 <div className="py-3 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
                                   <RefreshCw size={12} className="animate-spin text-fivem-orange" />
                                   <span>Loading upvoters...</span>
                                 </div>
-                              ) : (votersCache[suggestion.id]?.upvoters || hoveredVoters?.voters?.filter(v => v.vote === 1) || []).length === 0 ? (
+                              ) : getUpvoters(suggestion).length === 0 ? (
                                 <p className="py-3 text-center text-xs font-mono text-white/40">No upvotes recorded yet</p>
                               ) : (
-                                (votersCache[suggestion.id]?.upvoters || hoveredVoters?.voters?.filter(v => v.vote === 1) || []).slice(0, 6).map((voter) => (
+                                getUpvoters(suggestion).slice(0, 6).map((voter) => (
                                   <div key={voter.userId} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors">
                                     <UserAvatar
                                       userId={voter.userId}
@@ -1793,9 +1873,10 @@ export function CategorySuggestionsView({
                         </DropdownMenu>
 
                         {/* Separate Downvotes List Dropdown */}
-                        <DropdownMenu>
+                        <DropdownMenu onOpenChange={(open) => { if (open) ensureVotersLoaded(suggestion.id); }}>
                           <DropdownTrigger
-                            onClick={() => handleHoverVoters(suggestion.id)}
+                            onPointerDown={() => ensureVotersLoaded(suggestion.id)}
+                            onMouseEnter={() => ensureVotersLoaded(suggestion.id)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 text-white/70 hover:text-blue-400 text-xs font-mono font-bold transition-all cursor-pointer"
                             title="View community members who downvoted"
                           >
@@ -1811,15 +1892,15 @@ export function CategorySuggestionsView({
                               </span>
                             </div>
                             <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
-                              {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.loading ? (
+                              {loadingVotersIds[suggestion.id] && getDownvoters(suggestion).length === 0 ? (
                                 <div className="py-3 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
                                   <RefreshCw size={12} className="animate-spin text-fivem-orange" />
                                   <span>Loading downvoters...</span>
                                 </div>
-                              ) : (votersCache[suggestion.id]?.downvoters || hoveredVoters?.voters?.filter(v => v.vote === -1) || []).length === 0 ? (
+                              ) : getDownvoters(suggestion).length === 0 ? (
                                 <p className="py-3 text-center text-xs font-mono text-white/40">No downvotes recorded yet</p>
                               ) : (
-                                (votersCache[suggestion.id]?.downvoters || hoveredVoters?.voters?.filter(v => v.vote === -1) || []).slice(0, 6).map((voter) => (
+                                getDownvoters(suggestion).slice(0, 6).map((voter) => (
                                   <div key={voter.userId} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors">
                                     <UserAvatar
                                       userId={voter.userId}
@@ -2331,24 +2412,27 @@ export function CategorySuggestionsView({
         </DialogContent>
       </Dialog>
 
-      {/* ── FLOATING SCROLL TO TOP BUTTON ── */}
-      <AnimatePresence>
-        {showScrollTop && (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-6 right-6 z-40 p-3 rounded-2xl bg-[#0e0e16]/90 hover:bg-fivem-orange border border-white/15 hover:border-fivem-orange/50 text-white shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all cursor-pointer group"
-            aria-label="Scroll to top"
-            title="Scroll to top"
-          >
-            <ChevronUp size={20} className="group-hover:-translate-y-0.5 transition-transform" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* ── FLOATING SCROLL TO TOP BUTTON (PORTALED TO BODY FOR TRUE VIEWPORT FLOATING) ── */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showScrollTop && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, scale: 0.8, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 16 }}
+              transition={{ duration: 0.2 }}
+              onClick={handleScrollToTop}
+              className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-[120] p-3.5 rounded-2xl bg-[#0e0e16]/95 hover:bg-fivem-orange border border-white/20 hover:border-fivem-orange/60 text-white shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_20px_rgba(234,88,12,0.3)] backdrop-blur-xl transition-all duration-200 cursor-pointer group hover:scale-105 active:scale-95"
+              aria-label="Scroll to top"
+              title="Scroll to top"
+            >
+              <ChevronUp size={22} className="group-hover:-translate-y-1 transition-transform duration-200" strokeWidth={2.5} />
+            </motion.button>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
