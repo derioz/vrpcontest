@@ -43,10 +43,16 @@ import {
   deleteCategorySuggestion,
   fetchSuggestionVoters,
   fetchUserSuggestionCount,
+  getUserSuggestionAllowance,
   getUserSuggestionLimit,
   UserSuggestionLimitState,
   sortSuggestions,
-  SuggestionVoter
+  SuggestionVoter,
+  CategorySuggestionStats,
+  getCategorySuggestionStats,
+  subscribeCategorySuggestionStats,
+  isSuggestionActive,
+  suggestionConsumesSlot
 } from '../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
 import { checkUserDiscordEligibility } from '../lib/discord';
@@ -92,7 +98,6 @@ export function CategorySuggestionsView({
   onSignOut
 }: CategorySuggestionsViewProps) {
   const shouldReduceMotion = useReducedMotion();
-  const isVotingActive = votingOpen !== undefined ? votingOpen : (SITE_CONFIG.categorySuggestions.allowVoting ?? true);
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,6 +105,9 @@ export function CategorySuggestionsView({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [highlightedSuggestionId, setHighlightedSuggestionId] = useState<string | null>(null);
+
+  // Authoritative Database-backed Category Suggestion Statistics
+  const [stats, setStats] = useState<CategorySuggestionStats | null>(null);
 
   // Form State
   const [categoryName, setCategoryName] = useState('');
@@ -215,6 +223,21 @@ export function CategorySuggestionsView({
     };
   }, [effectiveUserId]);
 
+  // ── Real-time Subscription to Authoritative Category Suggestion Stats ──
+  useEffect(() => {
+    getCategorySuggestionStats()
+      .then((s) => setStats(s))
+      .catch((err) => console.warn('Error fetching initial category suggestion stats:', err));
+
+    const unsubStats = subscribeCategorySuggestionStats((newStats) => {
+      setStats(newStats);
+    });
+
+    return () => {
+      unsubStats();
+    };
+  }, []);
+
   // ── Refresh user's authoritative suggestion limit ──
   const refreshUserCount = useCallback(async () => {
     if (effectiveUserId || currentUser?.discordId) {
@@ -239,8 +262,12 @@ export function CategorySuggestionsView({
   const loadSuggestions = useCallback(async () => {
     setRefreshing(true);
     try {
-      const data = await fetchCategorySuggestions(effectiveUserId);
+      const [data, newStats] = await Promise.all([
+        fetchCategorySuggestions(effectiveUserId),
+        getCategorySuggestionStats()
+      ]);
       setSuggestions(data);
+      setStats(newStats);
       await refreshUserCount();
       toast.success('Suggestions refreshed');
     } catch (err: any) {
@@ -326,10 +353,14 @@ export function CategorySuggestionsView({
         status: 'open'
       });
 
-      // Immediately apply authoritative suggestion limit returned by server
-      if (res.suggestionLimit) {
-        setSuggestionLimit(res.suggestionLimit);
-        setUserSubmittedCount(res.suggestionLimit.used);
+      // Immediately apply authoritative suggestion limit and stats returned by server
+      const nextLimit = res.userSuggestionLimit || res.suggestionLimit;
+      if (nextLimit) {
+        setSuggestionLimit(nextLimit);
+        setUserSubmittedCount(nextLimit.used);
+      }
+      if (res.stats) {
+        setStats(res.stats);
       }
 
       setCategoryName('');
@@ -408,6 +439,41 @@ export function CategorySuggestionsView({
       score: target.score !== undefined ? target.score : prevUpvotes - prevDownvotes
     };
 
+    // Optimistic calculation for top-level Votes and Voters counters
+    setStats((prevStats) => {
+      if (!prevStats) return prevStats;
+      let newVotes = prevStats.votes;
+      let newVoters = prevStats.voters;
+
+      const hadActiveVote = currentVote === 1 || currentVote === -1;
+      const willHaveActiveVote = desiredVote === 1 || desiredVote === -1;
+
+      if (!hadActiveVote && willHaveActiveVote) {
+        newVotes += 1;
+      } else if (hadActiveVote && !willHaveActiveVote) {
+        newVotes = Math.max(0, newVotes - 1);
+      }
+
+      // Check if user has active votes on any other suggestions
+      const hasOtherActiveVotes = suggestions.some(
+        (s) => s.id !== suggestionId && (s.user_vote === 1 || s.user_vote === -1)
+      );
+
+      if (!hasOtherActiveVotes) {
+        if (!hadActiveVote && willHaveActiveVote) {
+          newVoters += 1;
+        } else if (hadActiveVote && !willHaveActiveVote) {
+          newVoters = Math.max(0, newVoters - 1);
+        }
+      }
+
+      return {
+        ...prevStats,
+        votes: newVotes,
+        voters: newVoters
+      };
+    });
+
     // 1. Immediately apply optimistic state locally & re-sort if on Top
     setSuggestions((prev) => {
       const updated = prev.map((s) => {
@@ -466,6 +532,10 @@ export function CategorySuggestionsView({
         }
 
         // Reconcile with authoritative database values
+        if (res.stats) {
+          setStats(res.stats);
+        }
+
         setSuggestions((prev) => {
           const updated = prev.map((s) => {
             if (s.id !== suggestionId) return s;
@@ -487,6 +557,9 @@ export function CategorySuggestionsView({
       } catch (err: any) {
         console.error('Vote failed:', err);
         pendingDesiredVotesRef.current.delete(suggestionId);
+
+        // Revert stats to ground truth on error
+        getCategorySuggestionStats().then((s) => setStats(s)).catch(console.warn);
 
         // Revert to rollback snapshot
         setSuggestions((prev) => {
@@ -583,15 +656,37 @@ export function CategorySuggestionsView({
   // Handle Delete Suggestion
   const confirmDelete = async () => {
     if (!deletingSuggestionId) return;
+    const targetId = deletingSuggestionId;
     setIsDeleting(true);
+
+    // Optimistically decrement suggestion count and remove locally
+    setSuggestions((prev) => prev.filter((s) => s.id !== targetId));
+    setStats((prev) => (prev ? { ...prev, suggestions: Math.max(0, prev.suggestions - 1) } : prev));
+    setSuggestionLimit((prev) => {
+      const nextUsed = Math.max(0, prev.used - 1);
+      return {
+        ...prev,
+        used: nextUsed,
+        remaining: Math.min(prev.limit, prev.limit - nextUsed),
+        canSuggest: true
+      };
+    });
+
     try {
-      await deleteCategorySuggestion(deletingSuggestionId);
-      setSuggestions((prev) => prev.filter((s) => s.id !== deletingSuggestionId));
+      const res = await deleteCategorySuggestion(targetId, effectiveUserId, currentUser?.discordId);
+      if (res.stats) {
+        setStats(res.stats);
+      }
+      if (res.userSuggestionLimit) {
+        setSuggestionLimit(res.userSuggestionLimit);
+        setUserSubmittedCount(res.userSuggestionLimit.used);
+      }
       await refreshUserCount();
       toast.success('Category suggestion deleted');
       setDeletingSuggestionId(null);
     } catch (err: any) {
       toast.error('Failed to delete suggestion', { description: err.message });
+      await loadSuggestions();
     } finally {
       setIsDeleting(false);
     }
@@ -599,13 +694,13 @@ export function CategorySuggestionsView({
 
   // ── Community Favorites Leaderboard (Top 3 Highest-Voted Categories) ──
   const communityFavorites = useMemo(() => {
-    const valid = suggestions.filter((s) => s.status !== 'removed' && s.status !== 'rejected');
+    const valid = suggestions.filter((s) => isSuggestionActive(s.status));
     return sortSuggestions(valid, 'top').slice(0, 3);
   }, [suggestions]);
 
   // ── Filtered & Sorted Suggestions ──
   const filteredSuggestions = useMemo(() => {
-    let result = suggestions.filter((s) => s.status !== 'removed' && s.status !== 'rejected');
+    let result = suggestions.filter((s) => isSuggestionActive(s.status));
 
     // 1. Search Query Filter
     if (searchQuery.trim()) {
@@ -642,25 +737,6 @@ export function CategorySuggestionsView({
     // Default: Top (score = upvotes - downvotes)
     return sortSuggestions(result, 'top');
   }, [suggestions, searchQuery, filterOption, effectiveUserId, currentUser?.discordId]);
-
-  // Aggregate Metrics
-  const totalVotesCast = useMemo(() => {
-    return suggestions.reduce((acc, s) => acc + (s.upvotes || 0) + (s.downvotes || 0), 0);
-  }, [suggestions]);
-
-  // Unique Voters Count without expensive DB queries
-  const uniqueVotersCount = useMemo(() => {
-    const voterSet = new Set<string>();
-    suggestions.forEach((s) => {
-      if (Array.isArray(s.voters_sample)) {
-        s.voters_sample.forEach((v) => {
-          const id = v.discordId || v.userId;
-          if (id) voterSet.add(id);
-        });
-      }
-    });
-    return voterSet.size;
-  }, [suggestions]);
 
   const remainingSuggestions = Math.max(0, maxAllowedSuggestions - userSubmittedCount);
 
@@ -728,20 +804,10 @@ export function CategorySuggestionsView({
                 height={32}
               />
               <div
-                className={cn(
-                  "inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider",
-                  isVotingActive
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                    : "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                )}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
               >
-                <span
-                  className={cn(
-                    "w-2 h-2 rounded-full shrink-0",
-                    isVotingActive ? "bg-emerald-400 animate-[pulse_2.5s_ease-in-out_infinite]" : "bg-amber-400"
-                  )}
-                />
-                <span>{isVotingActive ? "Community Voting Open" : "Voting Paused"}</span>
+                <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400 animate-[pulse_2.5s_ease-in-out_infinite]" />
+                <span>Community Suggestions Open</span>
               </div>
             </div>
 
@@ -777,23 +843,45 @@ export function CategorySuggestionsView({
 
             {/* Useful Live Community Statistics Row */}
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs font-mono mb-3.5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
-                <Lightbulb size={13} className="text-amber-400 shrink-0" />
-                <span className="font-bold text-white"><NumberTicker value={suggestions.length} /></span>
-                <span className="text-white/50">{suggestions.length === 1 ? 'Suggestion' : 'Suggestions'}</span>
-              </div>
+              {stats === null ? (
+                <>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/60 shadow-sm">
+                    <Lightbulb size={13} className="text-amber-400/60 shrink-0" />
+                    <span className="font-bold text-white/40 font-mono">—</span>
+                    <span className="text-white/40">Suggestions</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/60 shadow-sm">
+                    <TrendingUp size={13} className="text-fivem-orange/60 shrink-0" />
+                    <span className="font-bold text-white/40 font-mono">—</span>
+                    <span className="text-white/40">Votes</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/60 shadow-sm">
+                    <Users size={13} className="text-sky-400/60 shrink-0" />
+                    <span className="font-bold text-white/40 font-mono">—</span>
+                    <span className="text-white/40">Voters</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
+                    <Lightbulb size={13} className="text-amber-400 shrink-0" />
+                    <span className="font-bold text-white"><NumberTicker value={stats.suggestions} /></span>
+                    <span className="text-white/50">{stats.suggestions === 1 ? 'Suggestion' : 'Suggestions'}</span>
+                  </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
-                <TrendingUp size={13} className="text-fivem-orange shrink-0" />
-                <span className="font-bold text-white"><NumberTicker value={totalVotesCast} /></span>
-                <span className="text-white/50">{totalVotesCast === 1 ? 'Vote' : 'Votes'}</span>
-              </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
+                    <TrendingUp size={13} className="text-fivem-orange shrink-0" />
+                    <span className="font-bold text-white"><NumberTicker value={stats.votes} /></span>
+                    <span className="text-white/50">{stats.votes === 1 ? 'Vote' : 'Votes'}</span>
+                  </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
-                <Users size={13} className="text-sky-400 shrink-0" />
-                <span className="font-bold text-white"><NumberTicker value={uniqueVotersCount} /></span>
-                <span className="text-white/50">{uniqueVotersCount === 1 ? 'Voter' : 'Voters'}</span>
-              </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
+                    <Users size={13} className="text-sky-400 shrink-0" />
+                    <span className="font-bold text-white"><NumberTicker value={stats.voters} /></span>
+                    <span className="text-white/50">{stats.voters === 1 ? 'Voter' : 'Voters'}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* User Context & Eligibility State */}
@@ -807,7 +895,7 @@ export function CategorySuggestionsView({
                   username={currentUser.displayName}
                   size="xs"
                 />
-                <span className="text-emerald-400 font-bold">✓ You're eligible to vote</span>
+                <span className="text-emerald-400 font-bold">✓ You're eligible to participate</span>
                 <span className="text-white/20">•</span>
                 <span>
                   <AnimatePresence mode="wait">
@@ -827,7 +915,7 @@ export function CategorySuggestionsView({
               </div>
             ) : (
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-mono text-white/60">
-                <span>Sign in with Discord to vote or suggest a category.</span>
+                <span>Sign in with Discord to participate or suggest a category.</span>
                 <button
                   type="button"
                   onClick={onOpenSignIn}

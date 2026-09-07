@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-2030',
+    id: 'entry-20260906-2045',
     dateKey: 'September 6, 2026',
-    timeStr: '8:30 PM',
-    fullTimestamp: 'September 6, 2026 at 8:30 PM',
+    timeStr: '8:45 PM',
+    fullTimestamp: 'September 6, 2026 at 8:45 PM',
     labels: ['UI', 'ENHANCE', 'BACKEND'],
-    title: 'Floating Navbar, Profile Capsule & Database-Backed Suggestion Limits',
+    title: 'Authoritative Community Telemetry, Restored Limits & Floating Navigation',
     bullets: [
-      'Introduced a modern floating navigation bar with scroll hide-and-reveal animations, responsive mobile drawer, and official Vital branding.',
-      'Added an integrated profile capsule with seamless avatar loading, Discord account details, Whitelist status, and quick profile settings access.',
-      'Upgraded suggestion allowance tracking to be 100% database-backed and server-enforced, guaranteeing accurate real-time submission limits.',
-      'Refined the community voting hero and sticky filter toolbar with live participant telemetry and responsive category rankings.',
-      'Updated avatar rendering with high-resolution Discord CDN support and zero-layout-shift DiceBear fallbacks across all suggestion cards.',
+      'Decoupled Category Suggestions from the photo contest voting phase, introducing dedicated community status badges and refined participation wording.',
+      'Established 100% database-backed ground truth for live community metrics (Suggestions, Total Votes, and Unique Voters) with zero counter drift.',
+      'Introduced automatic allowance restoration that immediately returns a submission slot whenever a category idea is deleted or moderated.',
+      'Added real-time statistics synchronization across tabs and smooth placeholder hydration to prevent number flickering.',
+      'Engineered a modern floating navigation bar with responsive mobile drawer, user profile capsule, and high-resolution Discord avatar support.',
     ],
     author: 'Damon',
   },

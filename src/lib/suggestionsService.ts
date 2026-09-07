@@ -270,6 +270,172 @@ export function subscribeCategorySuggestions(
 }
 
 /**
+ * Single central rule for whether a category suggestion is considered active
+ * and consumes a user submission slot.
+ */
+export function isSuggestionActive(status?: string | null): boolean {
+  if (!status) return true; // default status is 'open'
+  const s = status.trim().toLowerCase();
+  return s !== 'removed' && s !== 'declined' && s !== 'rejected' && s !== 'archived';
+}
+
+export function suggestionConsumesSlot(suggestion: { status?: string | null }): boolean {
+  return isSuggestionActive(suggestion.status);
+}
+
+/**
+ * Authoritative Category Suggestion Statistics.
+ */
+export interface CategorySuggestionStats {
+  suggestions: number;
+  votes: number;
+  voters: number;
+}
+
+/**
+ * Authoritatively compute the database ground truth for Category Suggestion counters:
+ * - suggestions: count of active suggestions in Firestore
+ * - votes: count of all active non-neutral votes (vote === 1 || vote === -1) on active suggestions
+ * - voters: count of unique Discord users with at least one active non-neutral vote on an active suggestion
+ */
+export async function getCategorySuggestionStats(): Promise<CategorySuggestionStats> {
+  try {
+    const [suggestionsSnap, votesSnap] = await Promise.all([
+      getDocs(collection(db, SUGGESTIONS_COLLECTION)),
+      getDocs(collection(db, VOTES_COLLECTION))
+    ]);
+
+    const activeSuggestionIds = new Set<string>();
+    let activeSuggestionsCount = 0;
+
+    suggestionsSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (suggestionConsumesSlot(data)) {
+        activeSuggestionIds.add(docSnap.id);
+        activeSuggestionsCount++;
+      }
+    });
+
+    let totalVotes = 0;
+    const uniqueVoters = new Set<string>();
+
+    votesSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const voteVal = Number(data.vote || 0);
+      if (activeSuggestionIds.has(data.suggestion_id) && (voteVal === 1 || voteVal === -1)) {
+        totalVotes++;
+        const voterId = data.discord_id || data.user_id;
+        if (voterId) {
+          uniqueVoters.add(String(voterId));
+        }
+      }
+    });
+
+    return {
+      suggestions: activeSuggestionsCount,
+      votes: totalVotes,
+      voters: uniqueVoters.size
+    };
+  } catch (err) {
+    console.error('Error computing category suggestion stats:', err);
+    return { suggestions: 0, votes: 0, voters: 0 };
+  }
+}
+
+/**
+ * Real-time subscription to authoritative category suggestion stats.
+ * Uses a lightweight debounce to synchronize counters across tabs and users without polling.
+ */
+export function subscribeCategorySuggestionStats(
+  onUpdate: (stats: CategorySuggestionStats) => void,
+  onError?: (err: Error) => void
+): () => void {
+  let debounceTimer: any = null;
+  const activeSuggestionsMap = new Map<string, boolean>();
+  const votesMap = new Map<string, { suggestion_id: string; vote: number; voterId: string }>();
+
+  const computeAndEmit = () => {
+    let activeSuggestionsCount = 0;
+    const activeIds = new Set<string>();
+    for (const [id, isActive] of activeSuggestionsMap.entries()) {
+      if (isActive) {
+        activeSuggestionsCount++;
+        activeIds.add(id);
+      }
+    }
+
+    let totalVotes = 0;
+    const uniqueVoters = new Set<string>();
+
+    for (const v of votesMap.values()) {
+      if (activeIds.has(v.suggestion_id) && (v.vote === 1 || v.vote === -1)) {
+        totalVotes++;
+        if (v.voterId) {
+          uniqueVoters.add(v.voterId);
+        }
+      }
+    }
+
+    onUpdate({
+      suggestions: activeSuggestionsCount,
+      votes: totalVotes,
+      voters: uniqueVoters.size
+    });
+  };
+
+  const scheduleCompute = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(computeAndEmit, 60);
+  };
+
+  const unsubSuggestions = onSnapshot(
+    collection(db, SUGGESTIONS_COLLECTION),
+    (snap) => {
+      activeSuggestionsMap.clear();
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        activeSuggestionsMap.set(docSnap.id, suggestionConsumesSlot(data));
+      });
+      scheduleCompute();
+    },
+    (err) => {
+      console.warn('Suggestions stats listener error:', err);
+      if (onError) onError(err);
+    }
+  );
+
+  const unsubVotes = onSnapshot(
+    collection(db, VOTES_COLLECTION),
+    (snap) => {
+      votesMap.clear();
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const voteVal = Number(data.vote || 0);
+        const voterId = String(data.discord_id || data.user_id || '');
+        if (data.suggestion_id && voterId) {
+          votesMap.set(docSnap.id, {
+            suggestion_id: data.suggestion_id,
+            vote: voteVal,
+            voterId
+          });
+        }
+      });
+      scheduleCompute();
+    },
+    (err) => {
+      console.warn('Votes stats listener error:', err);
+      if (onError) onError(err);
+    }
+  );
+
+  return () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    unsubSuggestions();
+    unsubVotes();
+  };
+}
+
+/**
  * User Suggestion Limit State
  */
 export interface UserSuggestionLimitState {
@@ -282,7 +448,9 @@ export interface UserSuggestionLimitState {
 export interface SubmitSuggestionResult extends CategorySuggestion {
   success: boolean;
   suggestion: CategorySuggestion;
-  suggestionLimit: UserSuggestionLimitState;
+  stats?: CategorySuggestionStats;
+  userSuggestionLimit: UserSuggestionLimitState;
+  suggestionLimit: UserSuggestionLimitState; // backward compatibility
 }
 
 /**
@@ -300,7 +468,7 @@ export async function fetchUserSuggestionCount(userId: string, discordId?: strin
       );
       userSnap.forEach((d) => {
         const data = d.data();
-        if (data.status !== 'removed' && data.status !== 'declined' && data.status !== 'rejected') {
+        if (suggestionConsumesSlot(data)) {
           countedIds.add(d.id);
           count++;
         }
@@ -313,7 +481,7 @@ export async function fetchUserSuggestionCount(userId: string, discordId?: strin
       );
       discordSnap.forEach((d) => {
         const data = d.data();
-        if (!countedIds.has(d.id) && data.status !== 'removed' && data.status !== 'declined' && data.status !== 'rejected') {
+        if (!countedIds.has(d.id) && suggestionConsumesSlot(data)) {
           countedIds.add(d.id);
           count++;
         }
@@ -330,7 +498,7 @@ export async function fetchUserSuggestionCount(userId: string, discordId?: strin
 /**
  * Authoritatively fetch the user's database-backed submission limit, usage, and remaining slots.
  */
-export async function getUserSuggestionLimit(
+export async function getUserSuggestionAllowance(
   userId?: string | null,
   discordId?: string | null
 ): Promise<UserSuggestionLimitState> {
@@ -353,6 +521,8 @@ export async function getUserSuggestionLimit(
     canSuggest: remaining > 0
   };
 }
+
+export const getUserSuggestionLimit = getUserSuggestionAllowance;
 
 /**
  * Submit a new category suggestion attached to the user's Discord profile.
@@ -381,7 +551,7 @@ export async function submitCategorySuggestion(
   const normalizedNewName = trimmedName.toLowerCase().replace(/\s+/g, ' ');
   const duplicate = suggestionsSnap.docs.find((d) => {
     const data = d.data();
-    if (data.status === 'removed' || data.status === 'declined' || data.status === 'rejected') return false;
+    if (!suggestionConsumesSlot(data)) return false;
     const existingNormalized = (data.category_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
     return existingNormalized === normalizedNewName;
   });
@@ -430,12 +600,25 @@ export async function submitCategorySuggestion(
     user_vote: 0
   };
 
+  const stats = await getCategorySuggestionStats();
+
   return {
     ...suggestionItem,
     success: true,
     suggestion: suggestionItem,
+    stats,
+    userSuggestionLimit: updatedLimitState,
     suggestionLimit: updatedLimitState
   };
+}
+
+export interface CastCategoryVoteResult {
+  score: number;
+  user_vote: number;
+  upvotes: number;
+  downvotes: number;
+  voters_sample?: SuggestionVoterSummary[];
+  stats?: CategorySuggestionStats;
 }
 
 /**
@@ -451,7 +634,7 @@ export async function castCategorySuggestionVote(
   avatarUrl?: string,
   avatarSeed?: string,
   avatarStyle?: string
-): Promise<{ score: number; user_vote: number; upvotes: number; downvotes: number; voters_sample?: SuggestionVoterSummary[] }> {
+): Promise<CastCategoryVoteResult> {
   if (!suggestionId || (!userId && !discordId)) {
     throw new Error('Missing suggestion or user identifier for voting.');
   }
@@ -588,7 +771,12 @@ export async function castCategorySuggestionVote(
   })();
 
   inFlightVotePromises.set(voteDocId, votePromise);
-  return await votePromise;
+  const txResult = await votePromise;
+  const stats = await getCategorySuggestionStats();
+  return {
+    ...txResult,
+    stats
+  };
 }
 
 /**
@@ -665,10 +853,21 @@ export async function fetchSuggestionVoters(
   }
 }
 
+export interface DeleteSuggestionResult {
+  success: boolean;
+  stats: CategorySuggestionStats;
+  userSuggestionLimit?: UserSuggestionLimitState;
+}
+
 /**
  * Delete a category suggestion and all of its associated vote documents in a single atomic batch.
+ * Authoritatively recalculates Category Suggestion statistics and restores the submitter's suggestion allowance.
  */
-export async function deleteCategorySuggestion(suggestionId: string): Promise<boolean> {
+export async function deleteCategorySuggestion(
+  suggestionId: string,
+  userId?: string | null,
+  discordId?: string | null
+): Promise<DeleteSuggestionResult> {
   const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
   voterLookupMemoryCache.delete(suggestionId);
 
@@ -686,7 +885,17 @@ export async function deleteCategorySuggestion(suggestionId: string): Promise<bo
 
     batch.delete(suggestionDocRef);
     await batch.commit();
-    return true;
+
+    const [stats, userSuggestionLimit] = await Promise.all([
+      getCategorySuggestionStats(),
+      (userId || discordId) ? getUserSuggestionAllowance(userId, discordId) : Promise.resolve(undefined)
+    ]);
+
+    return {
+      success: true,
+      stats,
+      userSuggestionLimit
+    };
   } catch (error: any) {
     console.error('Error deleting category suggestion:', error);
     throw new Error(error?.message || 'Failed to delete category suggestion.');
