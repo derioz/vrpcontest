@@ -1048,6 +1048,10 @@ export function CategorySuggestionsView({
                   <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400 animate-[pulse_2.5s_ease-in-out_infinite]" />
                   <span>Community Suggestions Open</span>
                 </div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-amber-500/30 bg-amber-500/10 text-amber-300">
+                  <Sparkles size={11} className="text-amber-400" />
+                  <span>October Theme</span>
+                </div>
                 {isAdmin && (
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-indigo-500/30 bg-indigo-500/10 text-indigo-300 shadow-sm">
                     <ShieldCheck size={12} className="text-indigo-400" />
@@ -1058,13 +1062,21 @@ export function CategorySuggestionsView({
 
               {/* Headline */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
-                Help Choose What's Next
+                Help Shape <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">October’s</span> Loading Screen
               </h1>
 
-              {/* Description */}
-              <p className="text-white/70 text-xs sm:text-sm max-w-xl leading-relaxed mb-5">
-                Suggest photo contest categories, vote on your favorites, and help decide what the Vital RP community wants to see next.
-              </p>
+              {/* Description & Supporting Copy */}
+              <div className="space-y-2 max-w-xl mb-5">
+                <p className="text-white/80 text-xs sm:text-sm leading-relaxed">
+                  Suggest and vote on photo contest categories for <strong className="text-white font-semibold">October’s Vital RP loading screen</strong>. Keep your ideas seasonal, spooky, fall-inspired, Halloween-themed, or otherwise fitting for the month.
+                </p>
+                <p className="text-xs sm:text-sm font-bold text-amber-400/90 tracking-wide">
+                  Keep suggestions relevant to October.
+                </p>
+                <p className="text-[11px] sm:text-xs text-white/45 italic leading-relaxed">
+                  Staff reserves the right to deny or remove suggestions that are inappropriate, off-topic, or do not fit the October theme.
+                </p>
+              </div>
 
               {/* Actions & Eligibility Pill */}
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">

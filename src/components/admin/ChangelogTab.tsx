@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-2235',
+    id: 'entry-20260906-2245',
     dateKey: 'September 6, 2026',
-    timeStr: '10:35 PM',
-    fullTimestamp: 'September 6, 2026 at 10:35 PM',
+    timeStr: '10:45 PM',
+    fullTimestamp: 'September 6, 2026 at 10:45 PM',
     labels: ['UI', 'ENHANCE', 'NEW'],
-    title: 'Widescreen 16:9 Category Hub, Live Countdown & Voter Insights',
+    title: 'October Loading Screen Category Phase & Schedule Alignment',
     bullets: [
+      'Tailored the Category Suggestion hub to focus on themes for October’s Vital RP loading screen, encouraging seasonal, spooky, and fall-inspired concepts.',
+      'Highlighted October community guidelines and staff moderation criteria for themed submissions.',
       'Configured the official Category Suggestion submission and voting window to start immediately and conclude Saturday, September 12 at Midnight EST.',
       'Enforced the September 12 at Midnight EST deadline across server-side Firestore security rules and client suggestion services.',
-      'Expanded the Category Suggestion hub to an expansive 16:9 widescreen layout with a 2-column live countdown ticker.',
-      'Added public upvote and downvote voter lists with quick hover preview cards and a searchable full-community voter modal.',
-      'Upgraded cards with live Discord display name and custom avatar resolution for authors and voters.',
+      'Expanded the hub to an expansive 16:9 widescreen layout with public voter previews and live profile resolution.',
     ],
     author: 'Damon',
   },
