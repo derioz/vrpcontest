@@ -4,9 +4,9 @@ import {
   Sparkles, History, Plus, Tag, Calendar, User, CheckCircle,
   ShieldCheck, Zap, Wrench, Bug, Trash2, Search,
   Terminal, Layers, ChevronDown, ChevronUp, ChevronsUpDown,
-  Clock, Smartphone, Server, Eye, Filter, ArrowUpRight
+  Clock, Smartphone, Server, Eye, Filter, ArrowUpRight, RefreshCw
 } from 'lucide-react';
-import { collection, query, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
@@ -85,15 +85,15 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-2105',
+    id: 'entry-20260906-2115',
     dateKey: 'September 6, 2026',
-    timeStr: '9:05 PM',
-    fullTimestamp: 'September 6, 2026 at 9:05 PM',
-    labels: ['SECURITY', 'ADMIN', 'UI'],
-    title: 'Firestore Security Hardening & Portaled Moderation Overlay',
+    timeStr: '9:15 PM',
+    fullTimestamp: 'September 6, 2026 at 9:15 PM',
+    labels: ['SECURITY', 'BACKEND', 'ADMIN'],
+    title: 'Firestore Security Hardening & Cloud Changelog Sync',
     bullets: [
       'Hardened Cloud Firestore Security Rules with a strict deny-by-default architecture protecting site settings, secret keys, admin privileges, and user profile integrity.',
-      'Enforced rigorous server-side validation for category suggestion creation, preventing arbitrary scores, unauthorized status changes, and vote spoofing.',
+      'Synchronized all platform changelog history to Cloud Firestore and added a 1-click cloud sync tool for authorized administrators.',
       'Re-architected the community moderation menu with top-level portal overlays, ensuring dropdowns float above all cards with zero clipping or stacking context bleed.',
       'Equipped dropdown menus with responsive viewport collision detection, automatically flipping menus above cards when near screen boundaries.',
       'Preserved 100% backward compatibility for photo contest submissions, community voting, winner podiums, and historical galleries.',
@@ -927,6 +927,35 @@ export function ChangelogTab() {
 
   const allAvailableLabels: ChangelogLabel[] = ['NEW', 'UI', 'ENHANCE', 'FIX', 'MOBILE', 'ADMIN', 'SECURITY', 'PERFORMANCE', 'BACKEND'];
 
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const handleSyncAllToFirestore = async () => {
+    setIsSyncing(true);
+    try {
+      let syncedCount = 0;
+      for (const item of INITIAL_CHANGELOG_ENTRIES) {
+        if (!item.id) continue;
+        const docRef = doc(db, 'changelogs', item.id);
+        await setDoc(
+          docRef,
+          {
+            ...item,
+            author: item.author || 'Damon',
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+        syncedCount++;
+      }
+      toast.success(`Synced ${syncedCount} changelog entries to Firestore!`);
+    } catch (err: any) {
+      console.error('Error syncing changelogs to Firestore:', err);
+      toast.error('Failed to sync changelogs to Firestore.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-8 relative">
       
@@ -939,14 +968,27 @@ export function ChangelogTab() {
         icon={<Layers size={20} className="text-fivem-orange" />}
         iconBg="bg-fivem-orange/15 border-fivem-orange/30"
         actions={
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 text-fivem-orange border border-fivem-orange/40 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
-          >
-            <Plus size={15} />
-            <span>Publish Update</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSyncAllToFirestore}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/10 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+              title="Ensure all local changelog entries are synced to Firestore"
+            >
+              <RefreshCw size={14} className={cn(isSyncing && "animate-spin text-fivem-orange")} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 text-fivem-orange border border-fivem-orange/40 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
+            >
+              <Plus size={15} />
+              <span>Publish Update</span>
+            </button>
+          </div>
         }
       />
 

@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "sync:changelogs": "node scripts/sync_changelogs.mjs",
     "start": "vite preview"
   },
   "dependencies": {
