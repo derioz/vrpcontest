@@ -12,7 +12,7 @@ import {
   runTransaction,
   writeBatch
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import {
   CategorySuggestion,
   SuggestionSortOption,
@@ -563,6 +563,22 @@ export async function submitCategorySuggestion(
   const suggestionRef = doc(collection(db, SUGGESTIONS_COLLECTION));
   const now = new Date().toISOString();
 
+  // Voter Key & Vote Document for Submitter's Authoritative Automatic Upvote
+  const voterKey = primaryDiscordId ? String(primaryDiscordId) : String(input.user_id);
+  const voteDocId = `${suggestionRef.id}_${voterKey}`;
+  const voteDocRef = doc(db, VOTES_COLLECTION, voteDocId);
+
+  const submitterVoterEntry: SuggestionVoterSummary = {
+    userId: String(input.user_id),
+    discordId: primaryDiscordId,
+    discordName: input.discord_name || input.author_name || 'Discord User',
+    authorAvatarUrl: input.author_avatar_url || null,
+    avatarSeed: input.avatar_seed || null,
+    avatarStyle: input.avatar_style || 'botttsNeutral',
+    vote: 1,
+    updatedAt: now
+  };
+
   const payload: any = {
     id: suggestionRef.id,
     category_name: trimmedName,
@@ -576,15 +592,34 @@ export async function submitCategorySuggestion(
     avatar_style: input.avatar_style || null,
     is_admin_author: !!input.is_admin_author,
     status: (input.status === 'active' || !input.status) ? 'open' : input.status,
-    score: 0,
-    upvotes: 0,
+    score: 1,
+    upvotes: 1,
     downvotes: 0,
-    voters_sample: [],
+    voters_sample: [submitterVoterEntry],
     created_at: now,
     updated_at: now
   };
 
-  await setDoc(suggestionRef, payload);
+  const votePayload: any = {
+    id: voteDocId,
+    suggestion_id: suggestionRef.id,
+    user_id: String(input.user_id),
+    discord_id: primaryDiscordId,
+    discord_name: input.discord_name || input.author_name || 'Discord User',
+    author_name: input.author_name || input.discord_name || 'Discord User',
+    author_avatar_url: input.author_avatar_url || null,
+    avatar_seed: input.avatar_seed || null,
+    avatar_style: input.avatar_style || 'botttsNeutral',
+    vote: 1,
+    updated_at: now,
+    created_at: now
+  };
+
+  // Authoritative atomic batch commit ensuring suggestion and vote are created together
+  const batch = writeBatch(db);
+  batch.set(suggestionRef, payload);
+  batch.set(voteDocRef, votePayload);
+  await batch.commit();
 
   const updatedUsed = limitState.used + 1;
   const updatedRemaining = Math.max(0, limitState.limit - updatedUsed);
@@ -597,7 +632,7 @@ export async function submitCategorySuggestion(
 
   const suggestionItem: CategorySuggestion = {
     ...payload,
-    user_vote: 0
+    user_vote: 1
   };
 
   const stats = await getCategorySuggestionStats();
@@ -860,6 +895,43 @@ export interface DeleteSuggestionResult {
 }
 
 /**
+ * Authoritatively verify whether a user has admin privileges.
+ * Validates against VITE_ADMIN_DISCORD_IDS, the Firestore 'admins' collection, and active Firebase Auth.
+ */
+export async function isAuthorizedAdmin(userId?: string | null, discordId?: string | null): Promise<boolean> {
+  const idsToCheck = new Set<string>();
+  if (userId) idsToCheck.add(String(userId));
+  if (discordId) idsToCheck.add(String(discordId));
+
+  if (auth.currentUser) {
+    idsToCheck.add(auth.currentUser.uid);
+    auth.currentUser.providerData?.forEach((p) => {
+      if (p.uid) idsToCheck.add(p.uid);
+    });
+  }
+
+  const envAdminIds = (import.meta.env.VITE_ADMIN_DISCORD_IDS || '')
+    .split(',')
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+
+  for (const id of idsToCheck) {
+    if (envAdminIds.includes(id)) return true;
+  }
+
+  for (const id of idsToCheck) {
+    try {
+      const adminDoc = await getDoc(doc(db, 'admins', id));
+      if (adminDoc.exists()) return true;
+    } catch {
+      // Ignore network or permission errors
+    }
+  }
+
+  return false;
+}
+
+/**
  * Delete a category suggestion and all of its associated vote documents in a single atomic batch.
  * Authoritatively recalculates Category Suggestion statistics and restores the submitter's suggestion allowance.
  */
@@ -870,6 +942,27 @@ export async function deleteCategorySuggestion(
 ): Promise<DeleteSuggestionResult> {
   const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
   voterLookupMemoryCache.delete(suggestionId);
+
+  // Authoritatively verify author or admin permission if caller identifiers are supplied
+  if (userId || discordId) {
+    try {
+      const snap = await getDoc(suggestionDocRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        const isAuthor =
+          (userId && data.user_id === String(userId)) ||
+          (discordId && (data.discord_id === String(discordId) || data.author_discord_id === String(discordId)));
+        if (!isAuthor) {
+          const authorized = await isAuthorizedAdmin(userId, discordId);
+          if (!authorized) {
+            throw new Error('Unauthorized: You do not have permission to delete this suggestion.');
+          }
+        }
+      }
+    } catch (authErr: any) {
+      if (authErr.message?.startsWith('Unauthorized')) throw authErr;
+    }
+  }
 
   try {
     const votesQuery = query(
@@ -908,8 +1001,18 @@ export async function deleteCategorySuggestion(
  */
 export async function updateCategorySuggestionStatus(
   suggestionId: string,
-  status: SuggestionStatus | string
+  status: SuggestionStatus | string,
+  adminUserId?: string | null,
+  adminDiscordId?: string | null
 ): Promise<boolean> {
+  // If caller credentials are provided, authoritatively verify admin status
+  if (adminUserId || adminDiscordId) {
+    const authorized = await isAuthorizedAdmin(adminUserId, adminDiscordId);
+    if (!authorized) {
+      throw new Error('Unauthorized: Admin permission required to update suggestion status.');
+    }
+  }
+
   try {
     const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
     await updateDoc(suggestionDocRef, {
@@ -928,10 +1031,34 @@ export async function updateCategorySuggestionStatus(
  */
 export async function updateCategorySuggestionContent(
   suggestionId: string,
-  updates: { category_name?: string; description?: string }
+  updates: { category_name?: string; description?: string },
+  userId?: string | null,
+  discordId?: string | null
 ): Promise<boolean> {
+  const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
+
+  // Authoritatively verify author or admin permissions if caller identifiers are supplied
+  if (userId || discordId) {
+    try {
+      const snap = await getDoc(suggestionDocRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        const isAuthor =
+          (userId && data.user_id === String(userId)) ||
+          (discordId && (data.discord_id === String(discordId) || data.author_discord_id === String(discordId)));
+        if (!isAuthor) {
+          const authorized = await isAuthorizedAdmin(userId, discordId);
+          if (!authorized) {
+            throw new Error('Unauthorized: You do not have permission to edit this category suggestion.');
+          }
+        }
+      }
+    } catch (authErr: any) {
+      if (authErr.message?.startsWith('Unauthorized')) throw authErr;
+    }
+  }
+
   try {
-    const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
     const dataToUpdate: Record<string, any> = {
       updated_at: new Date().toISOString()
     };

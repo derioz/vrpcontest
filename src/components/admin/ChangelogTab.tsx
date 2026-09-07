@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-2045',
+    id: 'entry-20260906-2055',
     dateKey: 'September 6, 2026',
-    timeStr: '8:45 PM',
-    fullTimestamp: 'September 6, 2026 at 8:45 PM',
-    labels: ['UI', 'ENHANCE', 'BACKEND'],
-    title: 'Authoritative Community Telemetry, Restored Limits & Floating Navigation',
+    timeStr: '8:55 PM',
+    fullTimestamp: 'September 6, 2026 at 8:55 PM',
+    labels: ['NEW', 'ADMIN', 'BACKEND'],
+    title: 'Automatic Submitter Upvotes & Inline Community Moderation',
     bullets: [
-      'Decoupled Category Suggestions from the photo contest voting phase, introducing dedicated community status badges and refined participation wording.',
-      'Established 100% database-backed ground truth for live community metrics (Suggestions, Total Votes, and Unique Voters) with zero counter drift.',
-      'Introduced automatic allowance restoration that immediately returns a submission slot whenever a category idea is deleted or moderated.',
-      'Added real-time statistics synchronization across tabs and smooth placeholder hydration to prevent number flickering.',
-      'Engineered a modern floating navigation bar with responsive mobile drawer, user profile capsule, and high-resolution Discord avatar support.',
+      'Submitting a category suggestion now automatically records an authentic upvote from the author, starting newly created ideas at score 1 with full Reddit-style voting flexibility.',
+      'Empowered authorized staff to moderate community proposals directly on the main suggestions page via a subtle action menu with instant updates and zero page reloads.',
+      'Added direct inline controls for marking categories as selected, reviewing proposals, editing details, declining concepts, and confirming deletions.',
+      'Introduced prominent celebration badges on selected categories and a discreet moderator status indicator for authorized administrators.',
+      'Guaranteed atomic database synchronization across suggestion scores, global votes, unique voter tallies, and remaining submission allowances.',
     ],
     author: 'Damon',
   },

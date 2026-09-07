@@ -30,17 +30,22 @@ import {
   HelpCircle,
   LogIn,
   Lightbulb,
-  Users
+  Users,
+  MoreHorizontal,
+  Edit3,
+  Copy
 } from 'lucide-react';
 import { toast } from './ui/toast';
 import { cn } from '../lib/utils';
-import { CategorySuggestion } from '../types';
+import { CategorySuggestion, SuggestionStatus } from '../types';
 import {
   fetchCategorySuggestions,
   subscribeCategorySuggestions,
   submitCategorySuggestion,
   castCategorySuggestionVote,
   deleteCategorySuggestion,
+  updateCategorySuggestionStatus,
+  updateCategorySuggestionContent,
   fetchSuggestionVoters,
   fetchUserSuggestionCount,
   getUserSuggestionAllowance,
@@ -61,6 +66,13 @@ import { Spotlight } from './ui/spotlight';
 import { DotPattern } from './ui/dot-pattern';
 import { NumberTicker } from './ui/number-ticker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import {
+  DropdownMenu,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from './ui/dropdown-menu';
 import { Skeleton } from './ui/skeleton';
 import { CreatorPill } from './ui/CreatorPill';
 import { SiteNavbar } from './SiteNavbar';
@@ -125,9 +137,18 @@ export function CategorySuggestionsView({
     canSuggest: true
   });
 
-  // Delete confirmation modal
-  const [deletingSuggestionId, setDeletingSuggestionId] = useState<string | null>(null);
+  // Deletion modal state
+  const [deletingSuggestion, setDeletingSuggestion] = useState<CategorySuggestion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Status updating state
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+
+  // Edit modal state
+  const [editingSuggestion, setEditingSuggestion] = useState<CategorySuggestion | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Voting optimistic state locks
   const [votingLocks, setVotingLocks] = useState<Record<string, boolean>>({});
@@ -653,14 +674,104 @@ export function CategorySuggestionsView({
     setHoveredVoters(null);
   }, []);
 
-  // Handle Delete Suggestion
+  // ── Admin Status Change ──
+  const handleStatusChange = async (suggestionId: string, newStatus: SuggestionStatus) => {
+    setUpdatingStatusId(suggestionId);
+    const target = suggestions.find((s) => s.id === suggestionId);
+    if (!target) return;
+
+    const prevStatus = target.status;
+    // Optimistic update
+    setSuggestions((prev) =>
+      prev.map((s) => (s.id === suggestionId ? { ...s, status: newStatus } : s))
+    );
+
+    try {
+      await updateCategorySuggestionStatus(suggestionId, newStatus, effectiveUserId, currentUser?.discordId);
+      if (newStatus === 'approved') {
+        toast.success('🏆 Marked as Selected for Contest!', {
+          description: `"${target.category_name}" has been marked as selected for an upcoming contest.`
+        });
+      } else if (newStatus === 'open') {
+        toast.success('Status Set to Open for Voting', {
+          description: `"${target.category_name}" is open for community voting.`
+        });
+      } else if (newStatus === 'under_review') {
+        toast.info('Voting Paused / Under Review', {
+          description: `"${target.category_name}" has been moved to Under Review.`
+        });
+      } else if (newStatus === 'declined') {
+        toast.info('Suggestion Declined', {
+          description: `"${target.category_name}" was declined.`
+        });
+      } else {
+        toast.success(`Status updated to ${newStatus}`);
+      }
+      getCategorySuggestionStats().then((s) => setStats(s)).catch(console.warn);
+    } catch (err: any) {
+      console.error('Failed to update suggestion status:', err);
+      // Rollback
+      setSuggestions((prev) =>
+        prev.map((s) => (s.id === suggestionId ? { ...s, status: prevStatus } : s))
+      );
+      toast.error('Failed to update status', { description: err.message });
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  // ── Edit Suggestion Handlers ──
+  const handleOpenEditModal = (suggestion: CategorySuggestion) => {
+    setEditingSuggestion(suggestion);
+    setEditCategoryName(suggestion.category_name);
+    setEditDescription(suggestion.description || '');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSuggestion) return;
+    const trimmedTitle = editCategoryName.trim();
+    if (!trimmedTitle) {
+      toast.error('Category title cannot be empty.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      await updateCategorySuggestionContent(
+        editingSuggestion.id,
+        {
+          category_name: trimmedTitle,
+          description: editDescription.trim()
+        },
+        effectiveUserId,
+        currentUser?.discordId
+      );
+
+      setSuggestions((prev) =>
+        prev.map((s) =>
+          s.id === editingSuggestion.id
+            ? { ...s, category_name: trimmedTitle, description: editDescription.trim() }
+            : s
+        )
+      );
+      toast.success('Category suggestion updated!');
+      setEditingSuggestion(null);
+    } catch (err: any) {
+      toast.error('Failed to save changes', { description: err.message });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // ── Delete / Remove Suggestion Handlers ──
   const confirmDelete = async () => {
-    if (!deletingSuggestionId) return;
-    const targetId = deletingSuggestionId;
+    if (!deletingSuggestion) return;
+    const target = deletingSuggestion;
     setIsDeleting(true);
 
     // Optimistically decrement suggestion count and remove locally
-    setSuggestions((prev) => prev.filter((s) => s.id !== targetId));
+    setSuggestions((prev) => prev.filter((s) => s.id !== target.id));
     setStats((prev) => (prev ? { ...prev, suggestions: Math.max(0, prev.suggestions - 1) } : prev));
     setSuggestionLimit((prev) => {
       const nextUsed = Math.max(0, prev.used - 1);
@@ -673,7 +784,7 @@ export function CategorySuggestionsView({
     });
 
     try {
-      const res = await deleteCategorySuggestion(targetId, effectiveUserId, currentUser?.discordId);
+      const res = await deleteCategorySuggestion(target.id, effectiveUserId, currentUser?.discordId);
       if (res.stats) {
         setStats(res.stats);
       }
@@ -682,9 +793,12 @@ export function CategorySuggestionsView({
         setUserSubmittedCount(res.userSuggestionLimit.used);
       }
       await refreshUserCount();
-      toast.success('Category suggestion deleted');
-      setDeletingSuggestionId(null);
+      toast.success('Category suggestion removed', {
+        description: `"${target.category_name}" has been removed and counters updated.`
+      });
+      setDeletingSuggestion(null);
     } catch (err: any) {
+      console.error('Delete failed:', err);
       toast.error('Failed to delete suggestion', { description: err.message });
       await loadSuggestions();
     } finally {
@@ -809,6 +923,12 @@ export function CategorySuggestionsView({
                 <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400 animate-[pulse_2.5s_ease-in-out_infinite]" />
                 <span>Community Suggestions Open</span>
               </div>
+              {isAdmin && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-indigo-500/30 bg-indigo-500/10 text-indigo-300 shadow-sm">
+                  <ShieldCheck size={12} className="text-indigo-400" />
+                  <span>Moderator Tools Enabled</span>
+                </div>
+              )}
             </div>
 
             {/* Clear Headline */}
@@ -1262,42 +1382,163 @@ export function CategorySuggestionsView({
                   </div>
 
                   {/* Middle / Right: Content Block & Action Tools */}
+                  {/* Middle / Right: Content Block & Action Tools */}
                   <div className="flex-1 min-w-0">
-                    {/* Header Badges: Selected, Your Suggestion, Author attribution, Date */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap text-xs">
-                      {/* Selected Badge */}
-                      {isSelected && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/40 text-purple-300 text-[10px] font-mono font-bold uppercase tracking-wider">
-                          <Award size={12} className="text-purple-400" />
-                          Selected by Staff
+                    {/* Header: Badges on left, Admin ⋯ on right */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap text-xs">
+                        {/* Selected Badge */}
+                        {isSelected && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/40 text-purple-300 text-[10px] font-mono font-bold uppercase tracking-wider shadow-sm">
+                            <span className="text-xs">🏆</span>
+                            <span>Selected</span>
+                          </span>
+                        )}
+
+                        {/* Your Suggestion Badge */}
+                        {isAuthor && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-[10px] font-mono font-bold uppercase tracking-wider">
+                            <Sparkles size={11} />
+                            Your Suggestion
+                          </span>
+                        )}
+
+                        {/* Submitter Attribution */}
+                        <span className="text-white/40 text-[11px] font-mono flex items-center gap-1.5">
+                          <UserAvatar
+                            userId={suggestion.user_id}
+                            discordId={suggestion.discord_id || suggestion.author_discord_id}
+                            photoURL={suggestion.author_avatar_url}
+                            username={displayName}
+                            size="xs"
+                          />
+                          <span>by</span>
+                          <strong className="text-white/80">{displayName}</strong>
                         </span>
-                      )}
 
-                      {/* Your Suggestion Badge */}
-                      {isAuthor && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange text-[10px] font-mono font-bold uppercase tracking-wider">
-                          <Sparkles size={11} />
-                          Your Suggestion
+                        <span className="text-white/20 text-xs">•</span>
+                        <span className="text-[11px] font-mono text-white/40">
+                          {formatDate(suggestion.created_at)}
                         </span>
+                      </div>
+
+                      {/* Admin Moderation ⋯ Menu */}
+                      {isAdmin && (
+                        <div className="shrink-0 relative">
+                          <DropdownMenu>
+                            <DropdownTrigger className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors" aria-label="Moderation actions">
+                              <MoreHorizontal size={18} />
+                            </DropdownTrigger>
+                            <DropdownContent align="right" width="w-72">
+                              {/* Admin Context Info */}
+                              <div className="px-3 py-2 border-b border-white/10 bg-white/[0.02] rounded-t-xl mb-1 text-[10px] font-mono space-y-1">
+                                <div className="flex items-center justify-between text-white/50">
+                                  <span className="uppercase tracking-wider font-bold text-indigo-400">Moderator Context</span>
+                                  <span className={cn(
+                                    "font-bold uppercase px-1.5 py-0.5 rounded text-[9px]",
+                                    isSelected ? "bg-purple-500/20 text-purple-300" :
+                                    suggestion.status === 'declined' ? "bg-rose-500/20 text-rose-300" :
+                                    suggestion.status === 'under_review' ? "bg-amber-500/20 text-amber-300" :
+                                    "bg-emerald-500/20 text-emerald-300"
+                                  )}>
+                                    {suggestion.status || 'open'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-white/70">
+                                  <span className="text-white/40">Suggestion ID:</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      copyToClipboard(suggestion.id, 'Suggestion ID');
+                                    }}
+                                    className="hover:text-fivem-orange hover:underline inline-flex items-center gap-1 text-white/80 font-bold"
+                                  >
+                                    <span>{suggestion.id.slice(0, 10)}...</span>
+                                    <Copy size={9} />
+                                  </button>
+                                </div>
+                                <div className="flex items-center justify-between text-white/70">
+                                  <span className="text-white/40">Submitter ID:</span>
+                                  <span className="text-white/80 truncate max-w-[140px]">{suggestion.discord_id || suggestion.user_id || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-white/70">
+                                  <span className="text-white/40">Telemetry:</span>
+                                  <span className="text-white/90 font-bold">+{score} ({suggestion.upvotes || 0}▲ / {suggestion.downvotes || 0}▼)</span>
+                                </div>
+                              </div>
+
+                              {/* Moderation Actions */}
+                              <DropdownMenuItem
+                                icon={<Edit3 size={14} className="text-amber-400" />}
+                                onClick={() => handleOpenEditModal(suggestion)}
+                              >
+                                Edit Suggestion
+                              </DropdownMenuItem>
+
+                              {isSelected ? (
+                                <DropdownMenuItem
+                                  icon={<X size={14} className="text-purple-400" />}
+                                  onClick={() => handleStatusChange(suggestion.id, 'open')}
+                                >
+                                  Remove Selected Status
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  icon={<Award size={14} className="text-purple-400" />}
+                                  onClick={() => handleStatusChange(suggestion.id, 'approved')}
+                                >
+                                  Mark as Selected
+                                </DropdownMenuItem>
+                              )}
+
+                              {suggestion.status === 'under_review' ? (
+                                <DropdownMenuItem
+                                  icon={<CheckCircle2 size={14} className="text-emerald-400" />}
+                                  onClick={() => handleStatusChange(suggestion.id, 'open')}
+                                >
+                                  Unlock Voting (Open)
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  icon={<Clock size={14} className="text-amber-400" />}
+                                  onClick={() => handleStatusChange(suggestion.id, 'under_review')}
+                                >
+                                  Lock Voting (Under Review)
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuSeparator />
+
+                              {suggestion.status === 'declined' ? (
+                                <DropdownMenuItem
+                                  variant="success"
+                                  icon={<Check size={14} className="text-emerald-400" />}
+                                  onClick={() => handleStatusChange(suggestion.id, 'open')}
+                                >
+                                  Restore Suggestion
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  variant="warning"
+                                  icon={<X size={14} className="text-amber-400" />}
+                                  onClick={() => handleStatusChange(suggestion.id, 'declined')}
+                                >
+                                  Reject / Decline Suggestion
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuItem
+                                variant="danger"
+                                icon={<Trash2 size={14} className="text-rose-400" />}
+                                onClick={() => setDeletingSuggestion(suggestion)}
+                              >
+                                Remove Suggestion
+                              </DropdownMenuItem>
+                            </DropdownContent>
+                          </DropdownMenu>
+                        </div>
                       )}
-
-                      {/* Submitter Attribution */}
-                      <span className="text-white/40 text-[11px] font-mono flex items-center gap-1.5">
-                        <UserAvatar
-                          userId={suggestion.user_id}
-                          discordId={suggestion.discord_id || suggestion.author_discord_id}
-                          photoURL={suggestion.author_avatar_url}
-                          username={displayName}
-                          size="xs"
-                        />
-                        <span>by</span>
-                        <strong className="text-white/80">{displayName}</strong>
-                      </span>
-
-                      <span className="text-white/20 text-xs">•</span>
-                      <span className="text-[11px] font-mono text-white/40">
-                        {formatDate(suggestion.created_at)}
-                      </span>
                     </div>
 
                     {/* Category Title */}
@@ -1316,7 +1557,7 @@ export function CategorySuggestionsView({
                       </p>
                     )}
 
-                    {/* Bottom Actions: Share and Moderate */}
+                    {/* Bottom Actions: Share and Author Delete */}
                     <div className="mt-3.5 flex items-center justify-between gap-3 pt-2 border-t border-white/5">
                       <div className="flex items-center gap-2">
                         {/* Share Direct Link Button */}
@@ -1334,15 +1575,15 @@ export function CategorySuggestionsView({
                         </button>
                       </div>
 
-                      {/* Admin delete/moderation trigger */}
-                      {canDelete && (
+                      {/* Author delete trigger (admins use the ⋯ menu) */}
+                      {isAuthor && !isAdmin && (
                         <button
-                          onClick={() => setDeletingSuggestionId(suggestion.id)}
-                          title={isAdmin && !isAuthor ? "Moderate this proposal" : "Delete your suggestion"}
+                          onClick={() => setDeletingSuggestion(suggestion)}
+                          title="Delete your suggestion"
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider text-red-400/70 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all cursor-pointer"
                         >
                           <Trash2 size={11} />
-                          <span>{isAdmin && !isAuthor ? 'Moderate' : 'Delete'}</span>
+                          <span>Delete</span>
                         </button>
                       )}
                     </div>
@@ -1545,41 +1786,114 @@ export function CategorySuggestionsView({
         </DialogContent>
       </Dialog>
 
-      {/* ── DELETE CONFIRMATION DIALOG ── */}
-      <Dialog open={!!deletingSuggestionId} onOpenChange={(open) => !open && setDeletingSuggestionId(null)}>
+      {/* ── EDIT SUGGESTION MODAL ── */}
+      <Dialog open={!!editingSuggestion} onOpenChange={(open) => !open && setEditingSuggestion(null)}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0a0a0e] border-white/15 text-white p-6 rounded-3xl">
+          <DialogHeader>
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2">
+              <Edit3 size={20} />
+            </div>
+            <DialogTitle className="font-display text-lg font-black text-white">
+              Edit Suggestion Details
+            </DialogTitle>
+            <DialogDescription className="text-xs text-white/60">
+              Correct spelling, capitalization, or formatting. Existing votes will be preserved.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveEdit} className="space-y-4 mt-2">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5 font-mono">
+                Category Name <span className="text-fivem-orange">*</span>
+              </label>
+              <input
+                type="text"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                maxLength={100}
+                required
+                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/15 text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 transition-all font-semibold"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5 font-mono">
+                Description
+              </label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={3}
+                maxLength={1000}
+                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/15 text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 transition-all resize-none leading-relaxed"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setEditingSuggestion(null)}
+                disabled={isSavingEdit}
+                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingEdit || !editCategoryName.trim()}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-fivem-orange/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSavingEdit ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>Save Changes</span>
+                )}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── DELETE / REMOVE CONFIRMATION DIALOG ── */}
+      <Dialog open={!!deletingSuggestion} onOpenChange={(open) => !open && setDeletingSuggestion(null)}>
         <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0a0a0e] border-white/15 text-white p-6 rounded-3xl">
           <DialogHeader>
-            <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-2">
               <Trash2 size={20} />
             </div>
             <DialogTitle className="font-display text-lg font-black text-white">
-              Delete Suggestion?
+              Remove "{deletingSuggestion?.category_name}"?
             </DialogTitle>
-            <DialogDescription className="text-xs text-white/60">
-              This action will permanently delete this category suggestion and remove all associated votes.
+            <DialogDescription className="text-xs text-white/60 leading-relaxed">
+              This will remove the suggestion from public voting and update the associated suggestion/vote statistics.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-white/10">
             <button
-              onClick={() => setDeletingSuggestionId(null)}
+              type="button"
+              onClick={() => setDeletingSuggestion(null)}
               disabled={isDeleting}
-              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={confirmDelete}
               disabled={isDeleting}
-              className="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-[0_0_16px_rgba(239,68,68,0.3)]"
+              className="px-5 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-[0_0_16px_rgba(239,68,68,0.3)]"
             >
               {isDeleting ? (
                 <>
                   <RefreshCw size={14} className="animate-spin" />
-                  <span>Deleting...</span>
+                  <span>Removing...</span>
                 </>
               ) : (
-                <span>Confirm Delete</span>
+                <span>Remove</span>
               )}
             </button>
           </div>
