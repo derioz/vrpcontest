@@ -85,6 +85,22 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260906-2230',
+    dateKey: 'September 6, 2026',
+    timeStr: '10:30 PM',
+    fullTimestamp: 'September 6, 2026 at 10:30 PM',
+    labels: ['UI', 'ENHANCE', 'NEW'],
+    title: 'Widescreen 16:9 Category Hub, Live Countdown & Voter Insights',
+    bullets: [
+      'Expanded the Category Suggestion hub to an expansive 16:9 widescreen layout with a 2-column live countdown ticker to the September 27 deadline.',
+      'Added public upvote and downvote voter lists with quick hover preview cards and a searchable full-community voter modal.',
+      'Upgraded cards with live Discord display name and custom avatar resolution for authors and voters.',
+      'Empowered suggestion authors to safely delete their own submissions with instant slot recovery and confirmation safeguards.',
+      'Enhanced suggestion submissions with live character counters, real-time duplicate topic alerts, and an instant scroll-to-top floating action.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260906-2115',
     dateKey: 'September 6, 2026',
     timeStr: '9:15 PM',

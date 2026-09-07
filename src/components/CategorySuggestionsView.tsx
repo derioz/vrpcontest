@@ -57,11 +57,19 @@ import {
   getCategorySuggestionStats,
   subscribeCategorySuggestionStats,
   isSuggestionActive,
-  suggestionConsumesSlot
+  suggestionConsumesSlot,
+  clearAllCategorySuggestions
 } from '../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../lib/dicebear';
 import { checkUserDiscordEligibility } from '../lib/discord';
-import { SITE_CONFIG, MAX_CATEGORY_SUGGESTIONS_PER_USER, VITAL_RP_LOGO_URL } from '../config';
+import {
+  SITE_CONFIG,
+  MAX_CATEGORY_SUGGESTIONS_PER_USER,
+  VITAL_RP_LOGO_URL,
+  CATEGORY_SUGGESTION_DEADLINE,
+  CATEGORY_SUGGESTION_DEADLINE_LABEL,
+  isCategorySuggestionDeadlineActive
+} from '../config';
 import { Spotlight } from './ui/spotlight';
 import { DotPattern } from './ui/dot-pattern';
 import { NumberTicker } from './ui/number-ticker';
@@ -156,6 +164,63 @@ export function CategorySuggestionsView({
   // Voter breakdown hover state & memory cache
   const [hoveredVoters, setHoveredVoters] = useState<HoveredVotersState | null>(null);
   const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
+
+  // Authoritative Countdown State (Closes September 27, 2026 at 11:59:59 PM CT)
+  const [timeRemaining, setTimeRemaining] = useState(() => {
+    const diff = new Date(CATEGORY_SUGGESTION_DEADLINE).getTime() - Date.now();
+    return Math.max(0, diff);
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const diff = new Date(CATEGORY_SUGGESTION_DEADLINE).getTime() - Date.now();
+      setTimeRemaining(Math.max(0, diff));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const countdownParts = useMemo(() => {
+    if (timeRemaining <= 0) return null;
+    const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeRemaining / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((timeRemaining / (1000 * 60)) % 60);
+    const seconds = Math.floor((timeRemaining / 1000) % 60);
+    return {
+      days: String(days).padStart(2, '0'),
+      hours: String(hours).padStart(2, '0'),
+      minutes: String(minutes).padStart(2, '0'),
+      seconds: String(seconds).padStart(2, '0')
+    };
+  }, [timeRemaining]);
+
+  // Floating Scroll-To-Top Button State
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Separate Voter List Modal State ("See everyone")
+  const [voterModal, setVoterModal] = useState<{
+    isOpen: boolean;
+    suggestion: CategorySuggestion | null;
+    type: 'up' | 'down';
+    voters: SuggestionVoter[];
+    loading: boolean;
+    searchQuery: string;
+  }>({
+    isOpen: false,
+    suggestion: null,
+    type: 'up',
+    voters: [],
+    loading: false,
+    searchQuery: ''
+  });
+
+  // Admin Clear All Suggestions Modal State
+  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
 
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
 
@@ -806,6 +871,71 @@ export function CategorySuggestionsView({
     }
   };
 
+  // ── Admin Clear All Suggestions Handler ──
+  const handleConfirmClearAll = async () => {
+    setIsClearingAll(true);
+    try {
+      const res = await clearAllCategorySuggestions(effectiveUserId, currentUser?.discordId);
+      setSuggestions([]);
+      setStats({ suggestions: 0, votes: 0, voters: 0 });
+      setSuggestionLimit({
+        limit: maxAllowedSuggestions,
+        used: 0,
+        remaining: maxAllowedSuggestions,
+        canSuggest: true
+      });
+      setUserSubmittedCount(0);
+      setIsClearAllModalOpen(false);
+      toast.success('All Suggestions Cleared', {
+        description: `Successfully purged ${res.deletedSuggestions} suggestions and ${res.deletedVotes} votes.`
+      });
+    } catch (err: any) {
+      console.error('Clear all suggestions failed:', err);
+      toast.error('Failed to clear suggestions', { description: err.message });
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
+
+  // ── Open Full Voter List Dialog ("See everyone") ──
+  const handleOpenSeeEveryone = async (suggestion: CategorySuggestion, type: 'up' | 'down') => {
+    setVoterModal({
+      isOpen: true,
+      suggestion,
+      type,
+      voters: [],
+      loading: true,
+      searchQuery: ''
+    });
+
+    try {
+      let cached = votersCache[suggestion.id];
+      if (!cached) {
+        const fetched = await fetchSuggestionVoters(suggestion.id, suggestion.voters_sample);
+        setVotersCache((prev) => ({ ...prev, [suggestion.id]: fetched }));
+        cached = fetched;
+      }
+      setVoterModal((prev) => ({
+        ...prev,
+        voters: type === 'up' ? cached.upvoters : cached.downvoters,
+        loading: false
+      }));
+    } catch (err) {
+      console.error('Failed to load full voter list:', err);
+      setVoterModal((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  // ── Real-time Duplicate Category Submission Check ──
+  const duplicateSuggestionWarning = useMemo(() => {
+    const trimmed = categoryName.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!trimmed || trimmed.length < 3) return null;
+    const found = suggestions.find(
+      (s) => isSuggestionActive(s.status) && (s.category_name || '').trim().toLowerCase().replace(/\s+/g, ' ') === trimmed
+    );
+    return found ? found.category_name : null;
+  }, [categoryName, suggestions]);
+
   // ── Community Favorites Leaderboard (Top 3 Highest-Voted Categories) ──
   const communityFavorites = useMemo(() => {
     const valid = suggestions.filter((s) => isSuggestionActive(s.status));
@@ -899,154 +1029,176 @@ export function CategorySuggestionsView({
       />
 
       {/* ── Main Content Stage ── */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-8 sm:pb-12 relative z-10">
-        {/* ── HERO SECTION: COMPACT COMMUNITY-VOTING HERO ── */}
-        <section className="mb-8 pt-1 text-center flex flex-col items-center justify-center relative pb-6 border-b border-white/[0.08]">
-          <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className="max-w-2xl mx-auto flex flex-col items-center text-center"
-          >
-            {/* Vital RP Logo & Live Status Pill */}
-            <div className="flex items-center justify-center gap-2.5 mb-3">
-              <img
-                src={VITAL_RP_LOGO_URL}
-                alt="Vital RP Logo"
-                className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0"
-                width={32}
-                height={32}
-              />
-              <div
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-              >
-                <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400 animate-[pulse_2.5s_ease-in-out_infinite]" />
-                <span>Community Suggestions Open</span>
-              </div>
-              {isAdmin && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-indigo-500/30 bg-indigo-500/10 text-indigo-300 shadow-sm">
-                  <ShieldCheck size={12} className="text-indigo-400" />
-                  <span>Moderator Tools Enabled</span>
-                </div>
-              )}
-            </div>
-
-            {/* Clear Headline */}
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-2">
-              Help Choose What's Next
-            </h1>
-
-            {/* Short Useful Explanation */}
-            <p className="text-white/70 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed mb-4">
-              Suggest photo contest categories, vote on your favorites, and help decide what the Vital RP community wants to see next.
-            </p>
-
-            {/* Primary Action: Suggest a Category */}
-            <div className="mb-4">
-              <motion.button
-                type="button"
-                whileHover={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 1.02 }}
-                whileTap={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 0.98 }}
-                onClick={handleOpenSuggestModal}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 active:scale-[0.98]",
-                  suggestionLimit.remaining <= 0 && !isAdmin && currentUser
-                    ? "bg-zinc-800/80 text-white/50 border border-white/10 hover:bg-zinc-800 cursor-not-allowed"
-                    : "bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white cursor-pointer shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] focus:ring-fivem-orange/60"
-                )}
-                title={suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `You have reached your limit of ${suggestionLimit.limit} suggestions.` : undefined}
-              >
-                <Plus size={16} strokeWidth={2.5} />
-                <span>{suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `Limit Reached (${suggestionLimit.limit} of ${suggestionLimit.limit})` : "Suggest a Category"}</span>
-              </motion.button>
-            </div>
-
-            {/* Useful Live Community Statistics Row */}
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs font-mono mb-3.5">
-              {stats === null ? (
-                <>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/60 shadow-sm">
-                    <Lightbulb size={13} className="text-amber-400/60 shrink-0" />
-                    <span className="font-bold text-white/40 font-mono">—</span>
-                    <span className="text-white/40">Suggestions</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/60 shadow-sm">
-                    <TrendingUp size={13} className="text-fivem-orange/60 shrink-0" />
-                    <span className="font-bold text-white/40 font-mono">—</span>
-                    <span className="text-white/40">Votes</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/60 shadow-sm">
-                    <Users size={13} className="text-sky-400/60 shrink-0" />
-                    <span className="font-bold text-white/40 font-mono">—</span>
-                    <span className="text-white/40">Voters</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
-                    <Lightbulb size={13} className="text-amber-400 shrink-0" />
-                    <span className="font-bold text-white"><NumberTicker value={stats.suggestions} /></span>
-                    <span className="text-white/50">{stats.suggestions === 1 ? 'Suggestion' : 'Suggestions'}</span>
-                  </div>
-
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
-                    <TrendingUp size={13} className="text-fivem-orange shrink-0" />
-                    <span className="font-bold text-white"><NumberTicker value={stats.votes} /></span>
-                    <span className="text-white/50">{stats.votes === 1 ? 'Vote' : 'Votes'}</span>
-                  </div>
-
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
-                    <Users size={13} className="text-sky-400 shrink-0" />
-                    <span className="font-bold text-white"><NumberTicker value={stats.voters} /></span>
-                    <span className="text-white/50">{stats.voters === 1 ? 'Voter' : 'Voters'}</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* User Context & Eligibility State */}
-            {currentUser ? (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-mono text-white/70">
-                <UserAvatar
-                  userId={currentUser.uid}
-                  discordId={currentUser.discordId}
-                  photoURL={currentUser.photoURL}
-                  discordPhotoURL={currentUser.discordPhotoURL}
-                  username={currentUser.displayName}
-                  size="xs"
+      <main className="flex-1 max-w-[1440px] 2xl:max-w-[1536px] w-full mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10 pt-20 sm:pt-24 pb-8 sm:pb-12 relative z-10">
+        {/* ── HERO SECTION: 16:9 MODERN 2-COLUMN COMMUNITY-VOTING HERO ── */}
+        <section className="mb-8 pt-2 relative pb-8 border-b border-white/[0.08]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+            {/* Left Column (7 cols): Title, branding, CTA, eligibility */}
+            <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
+              {/* Brand & Live Status Pills */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 mb-3">
+                <img
+                  src={VITAL_RP_LOGO_URL}
+                  alt="Vital RP Logo"
+                  className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(234,88,12,0.3)]"
+                  width={32}
+                  height={32}
                 />
-                <span className="text-emerald-400 font-bold">✓ You're eligible to participate</span>
-                <span className="text-white/20">•</span>
-                <span>
-                  <AnimatePresence mode="wait">
-                    <motion.strong
-                      key={suggestionLimit.remaining}
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      transition={{ duration: 0.18 }}
-                      className={cn(suggestionLimit.remaining <= 0 ? "text-amber-400 font-bold" : "text-fivem-orange")}
-                    >
-                      {suggestionLimit.remaining} of {suggestionLimit.limit}
-                    </motion.strong>
-                  </AnimatePresence>{' '}
-                  suggestions remaining
-                </span>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+                  <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400 animate-[pulse_2.5s_ease-in-out_infinite]" />
+                  <span>Community Suggestions Open</span>
+                </div>
+                {isAdmin && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-indigo-500/30 bg-indigo-500/10 text-indigo-300 shadow-sm">
+                    <ShieldCheck size={12} className="text-indigo-400" />
+                    <span>Moderator Tools Enabled</span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-mono text-white/60">
-                <span>Sign in with Discord to participate or suggest a category.</span>
-                <button
+
+              {/* Headline */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
+                Help Choose What's Next
+              </h1>
+
+              {/* Description */}
+              <p className="text-white/70 text-xs sm:text-sm max-w-xl leading-relaxed mb-5">
+                Suggest photo contest categories, vote on your favorites, and help decide what the Vital RP community wants to see next.
+              </p>
+
+              {/* Actions & Eligibility Pill */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                <motion.button
                   type="button"
-                  onClick={onOpenSignIn}
-                  className="inline-flex items-center gap-1 font-bold text-fivem-orange hover:text-orange-400 hover:underline cursor-pointer ml-1"
+                  whileHover={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 0.98 }}
+                  onClick={handleOpenSuggestModal}
+                  disabled={suggestionLimit.remaining <= 0 && !isAdmin && currentUser}
+                  className={cn(
+                    "w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 active:scale-[0.98]",
+                    suggestionLimit.remaining <= 0 && !isAdmin && currentUser
+                      ? "bg-zinc-800/80 text-white/50 border border-white/10 cursor-not-allowed"
+                      : "bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white cursor-pointer shadow-[0_4px_20px_rgba(234,88,12,0.35)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.45)] focus:ring-fivem-orange/60"
+                  )}
+                  title={suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `You have reached your limit of ${suggestionLimit.limit} suggestions.` : undefined}
                 >
-                  <LogIn size={12} />
-                  <span>Sign In</span>
-                </button>
+                  <Plus size={16} strokeWidth={2.5} />
+                  <span>{suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `Limit Reached (${suggestionLimit.limit}/${suggestionLimit.limit})` : "Suggest a Category"}</span>
+                </motion.button>
+
+                {currentUser ? (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-xs font-mono text-white/70">
+                    <UserAvatar
+                      userId={currentUser.uid}
+                      discordId={currentUser.discordId}
+                      photoURL={currentUser.photoURL}
+                      discordPhotoURL={currentUser.discordPhotoURL}
+                      username={currentUser.displayName}
+                      size="xs"
+                    />
+                    <span className="text-emerald-400 font-bold hidden sm:inline">✓ Eligible</span>
+                    <span className="text-white/20 hidden sm:inline">•</span>
+                    <span>
+                      <strong className={cn(suggestionLimit.remaining <= 0 ? "text-amber-400" : "text-fivem-orange")}>
+                        {suggestionLimit.remaining} of {suggestionLimit.limit}
+                      </strong>{' '}
+                      remaining
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onOpenSignIn}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                  >
+                    <LogIn size={13} className="text-fivem-orange" />
+                    <span>Sign in with Discord</span>
+                  </button>
+                )}
               </div>
-            )}
-          </motion.div>
+            </div>
+
+            {/* Right Column (5 cols): Live Countdown Card & Live Statistics */}
+            <div className="lg:col-span-5 flex flex-col gap-3 w-full">
+              {/* Live Countdown Card */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#09090f]/90 border border-white/10 backdrop-blur-xl shadow-lg relative overflow-hidden">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock size={15} className="text-fivem-orange" />
+                    <span className="text-xs font-bold font-display uppercase tracking-wider text-white">
+                      Submission & Voting Window
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/25">
+                    {CATEGORY_SUGGESTION_DEADLINE_LABEL}
+                  </span>
+                </div>
+
+                {countdownParts ? (
+                  <div className="grid grid-cols-4 gap-2 text-center my-2">
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                      <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.days}</span>
+                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Days</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                      <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.hours}</span>
+                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Hours</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                      <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.minutes}</span>
+                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Mins</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                      <span className="block text-xl sm:text-2xl font-black font-mono text-fivem-orange animate-pulse">{countdownParts.seconds}</span>
+                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Secs</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-4 text-center">
+                    <p className="text-sm font-bold text-amber-400 font-display uppercase tracking-wider">Category Submissions Closed</p>
+                    <p className="text-xs text-white/50 font-mono mt-1">Community voting has ended and the final results are in.</p>
+                  </div>
+                )}
+
+                <p className="text-[10px] font-mono text-white/40 text-center mt-2">
+                  Suggestions and votes lock automatically when the deadline expires.
+                </p>
+              </div>
+
+              {/* Live Community Statistics Row */}
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col items-center justify-center">
+                  <div className="flex items-center gap-1 text-amber-400 mb-0.5">
+                    <Lightbulb size={12} />
+                    <span className="text-[10px] uppercase font-bold text-white/50">Ideas</span>
+                  </div>
+                  <span className="text-base sm:text-lg font-black text-white">
+                    {stats ? <NumberTicker value={stats.suggestions} /> : '—'}
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col items-center justify-center">
+                  <div className="flex items-center gap-1 text-fivem-orange mb-0.5">
+                    <TrendingUp size={12} />
+                    <span className="text-[10px] uppercase font-bold text-white/50">Votes</span>
+                  </div>
+                  <span className="text-base sm:text-lg font-black text-white">
+                    {stats ? <NumberTicker value={stats.votes} /> : '—'}
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col items-center justify-center">
+                  <div className="flex items-center gap-1 text-sky-400 mb-0.5">
+                    <Users size={12} />
+                    <span className="text-[10px] uppercase font-bold text-white/50">Voters</span>
+                  </div>
+                  <span className="text-base sm:text-lg font-black text-white">
+                    {stats ? <NumberTicker value={stats.voters} /> : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* ── COMMUNITY FAVORITES (COMPACT LEADERBOARD) ── */}
@@ -1176,6 +1328,18 @@ export function CategorySuggestionsView({
             >
               <RefreshCw size={15} className={cn(refreshing && "animate-spin text-fivem-orange")} />
             </button>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsClearAllModalOpen(true)}
+                title="Admin: Clear all category suggestions"
+                className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-400 hover:text-rose-300 transition-all cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-mono font-bold"
+              >
+                <Trash2 size={13} />
+                <span className="hidden sm:inline">Clear All</span>
+              </button>
+            )}
           </div>
         </section>
 
@@ -1557,9 +1721,121 @@ export function CategorySuggestionsView({
                       </p>
                     )}
 
-                    {/* Bottom Actions: Share and Author Delete */}
-                    <div className="mt-3.5 flex items-center justify-between gap-3 pt-2 border-t border-white/5">
-                      <div className="flex items-center gap-2">
+                    {/* Bottom Actions: Upvotes / Downvotes Lists, Share, Author Delete */}
+                    <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-white/5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Separate Upvotes List Dropdown */}
+                        <DropdownMenu>
+                          <DropdownTrigger
+                            onClick={() => handleHoverVoters(suggestion.id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-white/70 hover:text-emerald-400 text-xs font-mono font-bold transition-all cursor-pointer"
+                            title="View community members who upvoted"
+                          >
+                            <span className="text-emerald-400">▲</span>
+                            <span>{suggestion.upvotes || 0}</span>
+                            <span className="text-[10px] text-white/40 hidden sm:inline">Upvotes</span>
+                          </DropdownTrigger>
+                          <DropdownContent align="start" width="w-64">
+                            <div className="px-3 py-1.5 border-b border-white/10 flex items-center justify-between text-xs font-mono">
+                              <span className="font-bold text-emerald-400 flex items-center gap-1">
+                                <span>▲</span>
+                                <span>Upvoters ({suggestion.upvotes || 0})</span>
+                              </span>
+                            </div>
+                            <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
+                              {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.loading ? (
+                                <div className="py-3 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
+                                  <RefreshCw size={12} className="animate-spin text-fivem-orange" />
+                                  <span>Loading upvoters...</span>
+                                </div>
+                              ) : (votersCache[suggestion.id]?.upvoters || hoveredVoters?.voters?.filter(v => v.vote === 1) || []).length === 0 ? (
+                                <p className="py-3 text-center text-xs font-mono text-white/40">No upvotes recorded yet</p>
+                              ) : (
+                                (votersCache[suggestion.id]?.upvoters || hoveredVoters?.voters?.filter(v => v.vote === 1) || []).slice(0, 6).map((voter) => (
+                                  <div key={voter.userId} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors">
+                                    <UserAvatar
+                                      userId={voter.userId}
+                                      discordId={voter.discordId}
+                                      photoURL={voter.authorAvatarUrl}
+                                      username={voter.discordName}
+                                      size="xs"
+                                    />
+                                    <span className="text-xs font-medium text-white/90 truncate flex-1">{voter.discordName}</span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            {(suggestion.upvotes || 0) > 6 && (
+                              <div className="px-3 py-1 text-[10px] font-mono text-white/40 text-center border-t border-white/5">
+                                + {(suggestion.upvotes || 0) - 6} more
+                              </div>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleOpenSeeEveryone(suggestion, 'up')}
+                              className="text-xs font-bold font-mono text-fivem-orange justify-center py-2 cursor-pointer"
+                            >
+                              See everyone ({suggestion.upvotes || 0})
+                            </DropdownMenuItem>
+                          </DropdownContent>
+                        </DropdownMenu>
+
+                        {/* Separate Downvotes List Dropdown */}
+                        <DropdownMenu>
+                          <DropdownTrigger
+                            onClick={() => handleHoverVoters(suggestion.id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 text-white/70 hover:text-blue-400 text-xs font-mono font-bold transition-all cursor-pointer"
+                            title="View community members who downvoted"
+                          >
+                            <span className="text-blue-400">▼</span>
+                            <span>{suggestion.downvotes || 0}</span>
+                            <span className="text-[10px] text-white/40 hidden sm:inline">Downvotes</span>
+                          </DropdownTrigger>
+                          <DropdownContent align="start" width="w-64">
+                            <div className="px-3 py-1.5 border-b border-white/10 flex items-center justify-between text-xs font-mono">
+                              <span className="font-bold text-blue-400 flex items-center gap-1">
+                                <span>▼</span>
+                                <span>Downvoters ({suggestion.downvotes || 0})</span>
+                              </span>
+                            </div>
+                            <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
+                              {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.loading ? (
+                                <div className="py-3 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
+                                  <RefreshCw size={12} className="animate-spin text-fivem-orange" />
+                                  <span>Loading downvoters...</span>
+                                </div>
+                              ) : (votersCache[suggestion.id]?.downvoters || hoveredVoters?.voters?.filter(v => v.vote === -1) || []).length === 0 ? (
+                                <p className="py-3 text-center text-xs font-mono text-white/40">No downvotes recorded yet</p>
+                              ) : (
+                                (votersCache[suggestion.id]?.downvoters || hoveredVoters?.voters?.filter(v => v.vote === -1) || []).slice(0, 6).map((voter) => (
+                                  <div key={voter.userId} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors">
+                                    <UserAvatar
+                                      userId={voter.userId}
+                                      discordId={voter.discordId}
+                                      photoURL={voter.authorAvatarUrl}
+                                      username={voter.discordName}
+                                      size="xs"
+                                    />
+                                    <span className="text-xs font-medium text-white/90 truncate flex-1">{voter.discordName}</span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            {(suggestion.downvotes || 0) > 6 && (
+                              <div className="px-3 py-1 text-[10px] font-mono text-white/40 text-center border-t border-white/5">
+                                + {(suggestion.downvotes || 0) - 6} more
+                              </div>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleOpenSeeEveryone(suggestion, 'down')}
+                              className="text-xs font-bold font-mono text-blue-400 justify-center py-2 cursor-pointer"
+                            >
+                              See everyone ({suggestion.downvotes || 0})
+                            </DropdownMenuItem>
+                          </DropdownContent>
+                        </DropdownMenu>
+
                         {/* Share Direct Link Button */}
                         <button
                           type="button"
@@ -1567,7 +1843,7 @@ export function CategorySuggestionsView({
                             const url = `${window.location.origin}${window.location.pathname}?suggestion=${suggestion.id}`;
                             copyToClipboard(url, suggestion.category_name);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1.5 font-mono"
+                          className="px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1.5 font-mono"
                           title="Share link to this category idea"
                         >
                           <Share2 size={12} className="text-fivem-orange" />
@@ -1575,14 +1851,15 @@ export function CategorySuggestionsView({
                         </button>
                       </div>
 
-                      {/* Author delete trigger (admins use the ⋯ menu) */}
-                      {isAuthor && !isAdmin && (
+                      {/* Author delete trigger */}
+                      {canDelete && (
                         <button
+                          type="button"
                           onClick={() => setDeletingSuggestion(suggestion)}
-                          title="Delete your suggestion"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider text-red-400/70 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all cursor-pointer"
+                          title="Delete this category suggestion"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-rose-400/80 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all cursor-pointer"
                         >
-                          <Trash2 size={11} />
+                          <Trash2 size={12} />
                           <span>Delete</span>
                         </button>
                       )}
@@ -1597,7 +1874,7 @@ export function CategorySuggestionsView({
 
       {/* ── FOOTER: CREATOR CREDIT, BRANDING & USEFUL NAVIGATION ── */}
       <footer className="mt-auto border-t border-white/[0.08] bg-[#060609]/95 backdrop-blur-xl py-8 px-4 sm:px-8 relative z-10">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+        <div className="max-w-[1440px] 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           {/* Left: Brand Identity */}
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <img
@@ -1703,6 +1980,26 @@ export function CategorySuggestionsView({
             </span>
           </div>
 
+          {/* Schedule Notice */}
+          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-[11px] font-mono">
+            <span className="text-white/50">Phase Deadline</span>
+            <span className="font-bold text-amber-400">{CATEGORY_SUGGESTION_DEADLINE_LABEL}</span>
+          </div>
+
+          {/* Author Initial Upvote Notification */}
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-300 flex items-center gap-2 font-mono">
+            <Sparkles size={14} className="shrink-0 text-emerald-400" />
+            <span>Submitting automatically grants your suggestion your 1 initial upvote.</span>
+          </div>
+
+          {/* Duplicate Warning Pill */}
+          {duplicateSuggestionWarning && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2 font-mono">
+              <AlertCircle size={14} className="shrink-0 text-amber-400" />
+              <span>A category titled "{duplicateSuggestionWarning}" already exists. You can upvote it instead!</span>
+            </div>
+          )}
+
           {suggestionLimit.remaining <= 0 && !isAdmin && (
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2 font-mono">
               <AlertCircle size={14} className="shrink-0 text-amber-400" />
@@ -1769,7 +2066,7 @@ export function CategorySuggestionsView({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || !categoryName.trim() || (suggestionLimit.remaining <= 0 && !isAdmin)}
+                disabled={isSubmitting || !categoryName.trim() || !!duplicateSuggestionWarning || (suggestionLimit.remaining <= 0 && !isAdmin)}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-fivem-orange/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting ? (
@@ -1859,16 +2156,16 @@ export function CategorySuggestionsView({
 
       {/* ── DELETE / REMOVE CONFIRMATION DIALOG ── */}
       <Dialog open={!!deletingSuggestion} onOpenChange={(open) => !open && setDeletingSuggestion(null)}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0a0a0e] border-white/15 text-white p-6 rounded-3xl">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0a0a0e]/98 border-white/15 text-white p-6 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
           <DialogHeader>
             <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-2">
               <Trash2 size={20} />
             </div>
             <DialogTitle className="font-display text-lg font-black text-white">
-              Remove "{deletingSuggestion?.category_name}"?
+              Delete "{deletingSuggestion?.category_name}"?
             </DialogTitle>
-            <DialogDescription className="text-xs text-white/60 leading-relaxed">
-              This will remove the suggestion from public voting and update the associated suggestion/vote statistics.
+            <DialogDescription className="text-xs text-white/60 leading-relaxed font-mono">
+              This will remove your suggestion and its associated votes.
             </DialogDescription>
           </DialogHeader>
 
@@ -1885,22 +2182,164 @@ export function CategorySuggestionsView({
               type="button"
               onClick={confirmDelete}
               disabled={isDeleting}
-              className="px-5 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-[0_0_16px_rgba(239,68,68,0.3)]"
+              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-[0_0_16px_rgba(239,68,68,0.3)]"
             >
               {isDeleting ? (
                 <>
                   <RefreshCw size={14} className="animate-spin" />
-                  <span>Removing...</span>
+                  <span>Deleting...</span>
                 </>
               ) : (
-                <span>Remove</span>
+                <span>Delete</span>
               )}
             </button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── ADMIN CLEAR ALL SUGGESTIONS CONFIRMATION DIALOG ── */}
+      <Dialog open={isClearAllModalOpen} onOpenChange={setIsClearAllModalOpen}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0a0a0e]/98 border-rose-500/30 text-white p-6 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
+          <DialogHeader>
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-2">
+              <AlertCircle size={22} />
+            </div>
+            <DialogTitle className="font-display text-lg font-black text-white">
+              Clear All Category Suggestions?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-white/60 leading-relaxed font-mono">
+              This action will permanently delete all suggestions, remove all votes, and reset all user allowances to 0 used. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-white/10">
+            <button
+              type="button"
+              onClick={() => setIsClearAllModalOpen(false)}
+              disabled={isClearingAll}
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmClearAll}
+              disabled={isClearingAll}
+              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-[0_0_20px_rgba(225,29,72,0.4)]"
+            >
+              {isClearingAll ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>Clearing All...</span>
+                </>
+              ) : (
+                <span>Clear All Suggestions</span>
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── PUBLIC VOTER LIST MODAL ("See everyone") ── */}
+      <Dialog open={voterModal.isOpen} onOpenChange={(open) => setVoterModal((prev) => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0a0a0e]/98 border-white/15 text-white p-6 rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl flex flex-col max-h-[85vh]">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn("text-base font-bold", voterModal.type === 'up' ? "text-emerald-400" : "text-blue-400")}>
+                {voterModal.type === 'up' ? '▲' : '▼'}
+              </span>
+              <DialogTitle className="font-display text-lg font-black text-white">
+                {voterModal.type === 'up' ? 'Upvoters' : 'Downvoters'}
+                <span className="text-white/40 font-mono text-sm ml-2">
+                  ({voterModal.voters.length})
+                </span>
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-white/50 font-mono truncate">
+              Community members who voted on "{voterModal.suggestion?.category_name}"
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Search Voters */}
+          <div className="relative my-3">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+            <input
+              type="text"
+              value={voterModal.searchQuery}
+              onChange={(e) => setVoterModal((prev) => ({ ...prev, searchQuery: e.target.value }))}
+              placeholder="Search voters by name..."
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/30 text-xs font-medium focus:outline-none focus:border-fivem-orange/60"
+            />
+          </div>
+
+          {/* Voter Items List */}
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-[160px]">
+            {voterModal.loading ? (
+              <div className="py-12 text-center text-xs font-mono text-white/40 flex items-center justify-center gap-2">
+                <RefreshCw size={14} className="animate-spin text-fivem-orange" />
+                <span>Loading voter list...</span>
+              </div>
+            ) : voterModal.voters.length === 0 ? (
+              <div className="py-12 text-center text-xs font-mono text-white/40">
+                No {voterModal.type === 'up' ? 'upvotes' : 'downvotes'} recorded for this category yet.
+              </div>
+            ) : (
+              voterModal.voters
+                .filter((v) => !voterModal.searchQuery.trim() || v.discordName.toLowerCase().includes(voterModal.searchQuery.toLowerCase()))
+                .map((voter) => (
+                  <div
+                    key={voter.userId}
+                    className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 transition-colors"
+                  >
+                    <UserAvatar
+                      userId={voter.userId}
+                      discordId={voter.discordId}
+                      photoURL={voter.authorAvatarUrl}
+                      username={voter.discordName}
+                      size="sm"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-white truncate">{voter.discordName}</p>
+                      <p className="text-[10px] font-mono text-white/40">{formatDate(voter.updatedAt)}</p>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+
+          <div className="pt-3 border-t border-white/10 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setVoterModal((prev) => ({ ...prev, isOpen: false }))}
+              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── FLOATING SCROLL TO TOP BUTTON ── */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 z-40 p-3 rounded-2xl bg-[#0e0e16]/90 hover:bg-fivem-orange border border-white/15 hover:border-fivem-orange/50 text-white shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all cursor-pointer group"
+            aria-label="Scroll to top"
+            title="Scroll to top"
+          >
+            <ChevronUp size={20} className="group-hover:-translate-y-0.5 transition-transform" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 export default CategorySuggestionsView;
+

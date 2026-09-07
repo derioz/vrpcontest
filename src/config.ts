@@ -63,3 +63,18 @@ export const MAX_CATEGORY_SUGGESTIONS_PER_USER: number = SITE_CONFIG.categorySug
 export const VITAL_RP_LOGO_URL = 'https://r2.fivemanage.com/image/qlWrCeXTQdqx.png';
 export const DAMON_AVATAR_URL = 'https://r2.fivemanage.com/image/qePVNvTsc65p.png';
 
+/**
+ * Authoritative Category Suggestion Phase Schedule & Deadline:
+ * Closes Sunday, September 27, 2026 at 11:59:59 PM Central (America/Chicago)
+ */
+export const CATEGORY_SUGGESTION_DEADLINE = '2026-09-27T23:59:59-05:00';
+export const CATEGORY_SUGGESTION_DEADLINE_LABEL = 'Sept. 27 • 11:59 PM CT';
+
+/**
+ * Returns true if category suggestions and voting are currently active.
+ * Once the deadline passes, returns false.
+ */
+export function isCategorySuggestionDeadlineActive(): boolean {
+  return new Date().getTime() < new Date(CATEGORY_SUGGESTION_DEADLINE).getTime();
+}
+

@@ -138,7 +138,7 @@ export function SiteNavbar({
         }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          "fixed top-2.5 sm:top-3.5 left-1/2 -translate-x-1/2 w-[calc(100%-1.25rem)] sm:w-[calc(100%-2rem)] max-w-6xl z-40",
+          "fixed top-2.5 sm:top-3.5 left-1/2 -translate-x-1/2 w-[calc(100%-1.25rem)] sm:w-[calc(100%-2rem)] max-w-[1440px] 2xl:max-w-[1536px] z-40",
           "rounded-2xl sm:rounded-full border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.85)]",
           "backdrop-blur-2xl transition-colors duration-300",
           isScrolled
@@ -147,7 +147,7 @@ export function SiteNavbar({
           className
         )}
       >
-        <div className="flex items-center justify-between h-14 sm:h-16 px-3.5 sm:px-5 gap-3">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-3.5 sm:px-6 lg:px-8 gap-3">
           {/* ── LEFT: Logo & Mode Identity ── */}
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             {isStandalonePage ? (

@@ -51,7 +51,7 @@ export interface ProfileSheetProps {
   }) => Promise<void> | void;
   onRetryDiscordAvatar: () => Promise<string | null | void> | void;
   onOpenAdminModal: () => void;
-  onOpenCategorySuggestions: () => void;
+  onOpenCategorySuggestions?: () => void;
   onOpenBugModal: () => void;
   onSignOut: () => void;
 }
@@ -214,29 +214,7 @@ export function ProfileSheet({
                     </button>
                   )}
 
-                  {/* 2. Category Theme Ideas (Rendered ONLY for admins) */}
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        onOpenCategorySuggestions();
-                      }}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-purple-500/40 text-white transition-all cursor-pointer group/btn"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Sparkles size={14} className="text-purple-400 group-hover/btn:scale-110 transition-transform" />
-                        <span className="text-xs font-bold font-display uppercase tracking-wider">
-                          Category Themes
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-mono font-bold text-purple-300 bg-purple-500/15 px-1.5 py-0.5 rounded border border-purple-500/30">
-                        Ideas
-                      </span>
-                    </button>
-                  )}
-
-                  {/* 3. Report Bug (Rendered for ALL users - Compact) */}
+                  {/* 2. Report Bug (Rendered for ALL users - Compact) */}
                   <button
                     type="button"
                     onClick={() => {

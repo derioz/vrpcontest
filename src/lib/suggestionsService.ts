@@ -22,7 +22,13 @@ import {
   SuggestionAdminVote,
   SuggestionBetaTester
 } from '../types';
-import { SITE_CONFIG, MAX_CATEGORY_SUGGESTIONS_PER_USER } from '../config';
+import {
+  SITE_CONFIG,
+  MAX_CATEGORY_SUGGESTIONS_PER_USER,
+  CATEGORY_SUGGESTION_DEADLINE,
+  CATEGORY_SUGGESTION_DEADLINE_LABEL,
+  isCategorySuggestionDeadlineActive
+} from '../config';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
 const VOTES_COLLECTION = 'category_suggestion_votes';
@@ -36,6 +42,101 @@ export interface SuggestionVoter {
   avatarStyle?: string;
   vote: 1 | -1;
   updatedAt: string;
+}
+
+// In-memory cache for user profile resolutions (UID or Discord ID -> latest Profile info)
+export interface CachedUserProfile {
+  displayName: string;
+  avatarUrl?: string;
+  discordPhotoUrl?: string;
+  discordId?: string;
+  timestamp: number;
+}
+const userProfileCache = new Map<string, CachedUserProfile>();
+const USER_CACHE_TTL_MS = 120000; // 2 minutes
+
+/**
+ * Fetch up-to-date user profile data from Firestore 'users' collection with in-memory caching.
+ */
+export async function fetchUserProfile(userIdOrDiscordId: string): Promise<CachedUserProfile | null> {
+  if (!userIdOrDiscordId) return null;
+  const key = String(userIdOrDiscordId).trim();
+  const cached = userProfileCache.get(key);
+  if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL_MS) {
+    return cached;
+  }
+
+  try {
+    // 1. Check users doc by UID
+    const userDocRef = doc(db, 'users', key);
+    const snap = await getDoc(userDocRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const resolved: CachedUserProfile = {
+        displayName: data.custom_display_name || data.default_discord_name || data.discord_name || data.displayName || 'Community Member',
+        avatarUrl: data.photo_url || data.avatar_url || data.photoURL,
+        discordPhotoUrl: data.discord_avatar_url || data.discordPhotoURL,
+        discordId: data.discord_id ? String(data.discord_id) : undefined,
+        timestamp: Date.now()
+      };
+      userProfileCache.set(key, resolved);
+      if (resolved.discordId) userProfileCache.set(resolved.discordId, resolved);
+      return resolved;
+    }
+
+    // 2. Query users collection by discord_id if key is numeric
+    if (/^\d{15,22}$/.test(key)) {
+      const q = query(collection(db, 'users'), where('discord_id', '==', key));
+      const querySnap = await getDocs(q);
+      if (!querySnap.empty) {
+        const data = querySnap.docs[0].data();
+        const resolved: CachedUserProfile = {
+          displayName: data.custom_display_name || data.default_discord_name || data.discord_name || data.displayName || 'Community Member',
+          avatarUrl: data.photo_url || data.avatar_url || data.photoURL,
+          discordPhotoUrl: data.discord_avatar_url || data.discordPhotoURL,
+          discordId: key,
+          timestamp: Date.now()
+        };
+        userProfileCache.set(key, resolved);
+        userProfileCache.set(querySnap.docs[0].id, resolved);
+        return resolved;
+      }
+    }
+  } catch (err) {
+    console.warn('User profile lookup notice:', err);
+  }
+  return null;
+}
+
+/**
+ * Batch-resolves current display names and avatars for a list of user IDs or Discord IDs.
+ */
+export async function fetchUsersProfileMap(identifiers: string[]): Promise<Map<string, CachedUserProfile>> {
+  const result = new Map<string, CachedUserProfile>();
+  const toFetch = new Set<string>();
+
+  for (const rawId of identifiers) {
+    if (!rawId) continue;
+    const id = String(rawId).trim();
+    const cached = userProfileCache.get(id);
+    if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL_MS) {
+      result.set(id, cached);
+    } else {
+      toFetch.add(id);
+    }
+  }
+
+  if (toFetch.size === 0) return result;
+
+  const fetchPromises = Array.from(toFetch).map(async (id) => {
+    const profile = await fetchUserProfile(id);
+    if (profile) {
+      result.set(id, profile);
+    }
+  });
+
+  await Promise.all(fetchPromises);
+  return result;
 }
 
 // In-memory LRU voter cache to prevent redundant Firestore queries
@@ -92,6 +193,21 @@ export function sortSuggestions(
 }
 
 /**
+ * Helper to enrich suggestion author information with latest resolved user profile.
+ */
+function enrichSuggestionWithProfile(raw: CategorySuggestion, profileMap?: Map<string, CachedUserProfile>): CategorySuggestion {
+  if (!profileMap) return raw;
+  const profile = (raw.discord_id && profileMap.get(raw.discord_id)) || (raw.user_id && profileMap.get(raw.user_id));
+  if (!profile) return raw;
+  return {
+    ...raw,
+    author_name: profile.displayName || raw.author_name,
+    discord_name: profile.displayName || raw.discord_name,
+    author_avatar_url: profile.avatarUrl || profile.discordPhotoUrl || raw.author_avatar_url
+  };
+}
+
+/**
  * Fetch all category suggestions with computed scores and the current user's personal vote.
  */
 export async function fetchCategorySuggestions(
@@ -118,11 +234,25 @@ export async function fetchCategorySuggestions(
       });
     }
 
+    const identifiersToResolve: string[] = [];
+    suggestionsSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.discord_id) identifiersToResolve.push(data.discord_id);
+      if (data.user_id) identifiersToResolve.push(data.user_id);
+    });
+
+    // Batch resolve latest profile display names & avatars
+    const profileMap = identifiersToResolve.length > 0 ? await fetchUsersProfileMap(identifiersToResolve) : new Map();
+
     suggestionsSnap.forEach((docSnap) => {
       const data = docSnap.data();
       const upvotes = Number(data.upvotes || 0);
       const downvotes = Number(data.downvotes || 0);
       const score = Number(data.score !== undefined ? data.score : upvotes - downvotes);
+
+      const resolvedProfile = (data.discord_id && profileMap.get(data.discord_id)) || (data.user_id && profileMap.get(data.user_id));
+      const authorName = resolvedProfile?.displayName || data.author_name || data.discord_name || 'Discord User';
+      const authorAvatar = resolvedProfile?.avatarUrl || resolvedProfile?.discordPhotoUrl || data.author_avatar_url || data.photo_url || null;
 
       itemsMap.set(docSnap.id, {
         id: docSnap.id,
@@ -130,9 +260,9 @@ export async function fetchCategorySuggestions(
         description: data.description || '',
         user_id: data.user_id || '',
         discord_id: data.discord_id || data.author_discord_id || null,
-        discord_name: data.discord_name || data.author_name || 'Discord User',
-        author_name: data.author_name || data.discord_name || 'Discord User',
-        author_avatar_url: data.author_avatar_url || data.photo_url || null,
+        discord_name: authorName,
+        author_name: authorName,
+        author_avatar_url: authorAvatar,
         avatar_seed: data.avatar_seed || null,
         avatar_style: data.avatar_style || null,
         is_admin_author: !!data.is_admin_author,
@@ -221,14 +351,23 @@ export function subscribeCategorySuggestions(
   // 2. Subscribe to suggestions collection (1 single collection listener)
   const unsubSuggestions = onSnapshot(
     collection(db, SUGGESTIONS_COLLECTION),
-    (snapshot) => {
+    async (snapshot) => {
       const itemsMap = new Map<string, CategorySuggestion>();
+      const idsToResolve: string[] = [];
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        if (data.discord_id) idsToResolve.push(data.discord_id);
+        if (data.user_id) idsToResolve.push(data.user_id);
+
         const upvotes = Number(data.upvotes || 0);
         const downvotes = Number(data.downvotes || 0);
         const score = Number(data.score !== undefined ? data.score : upvotes - downvotes);
+
+        // Check if cached already
+        const cached = (data.discord_id && userProfileCache.get(data.discord_id)) || (data.user_id && userProfileCache.get(data.user_id));
+        const authorName = cached?.displayName || data.author_name || data.discord_name || 'Discord User';
+        const authorAvatar = cached?.avatarUrl || cached?.discordPhotoUrl || data.author_avatar_url || data.photo_url || null;
 
         itemsMap.set(docSnap.id, {
           id: docSnap.id,
@@ -236,9 +375,9 @@ export function subscribeCategorySuggestions(
           description: data.description || '',
           user_id: data.user_id || '',
           discord_id: data.discord_id || data.author_discord_id || null,
-          discord_name: data.discord_name || data.author_name || 'Discord User',
-          author_name: data.author_name || data.discord_name || 'Discord User',
-          author_avatar_url: data.author_avatar_url || data.photo_url || null,
+          discord_name: authorName,
+          author_name: authorName,
+          author_avatar_url: authorAvatar,
           avatar_seed: data.avatar_seed || null,
           avatar_style: data.avatar_style || null,
           is_admin_author: !!data.is_admin_author,
@@ -256,6 +395,27 @@ export function subscribeCategorySuggestions(
 
       latestRawSuggestions = Array.from(itemsMap.values());
       emit();
+
+      // Resolve uncached profiles in background and update smoothly
+      if (idsToResolve.length > 0) {
+        try {
+          const profileMap = await fetchUsersProfileMap(idsToResolve);
+          let changed = false;
+          latestRawSuggestions = latestRawSuggestions.map((item) => {
+            const enriched = enrichSuggestionWithProfile(item, profileMap);
+            if (enriched.author_name !== item.author_name || enriched.author_avatar_url !== item.author_avatar_url) {
+              changed = true;
+              return enriched;
+            }
+            return item;
+          });
+          if (changed) {
+            emit();
+          }
+        } catch {
+          // Keep existing names if resolution fails
+        }
+      }
     },
     (err) => {
       console.error('Snapshot error for category suggestions:', err);
@@ -539,6 +699,11 @@ export async function submitCategorySuggestion(
   if (trimmedName.length > 100) throw new Error('Category name cannot exceed 100 characters.');
   if (trimmedDesc.length > 1000) throw new Error('Description cannot exceed 1000 characters.');
 
+  // 0. Authoritatively enforce category suggestion schedule deadline
+  if (!isCategorySuggestionDeadlineActive() && !input.is_admin_author) {
+    throw new Error(`The Category Suggestion phase closed on ${CATEGORY_SUGGESTION_DEADLINE_LABEL}. Submissions are no longer accepted.`);
+  }
+
   // 1. Authoritatively enforce per-user suggestion limit
   const primaryDiscordId = input.discord_id || input.author_discord_id || null;
   const limitState = await getUserSuggestionLimit(input.user_id, primaryDiscordId);
@@ -672,6 +837,11 @@ export async function castCategorySuggestionVote(
 ): Promise<CastCategoryVoteResult> {
   if (!suggestionId || (!userId && !discordId)) {
     throw new Error('Missing suggestion or user identifier for voting.');
+  }
+
+  // Authoritatively enforce category suggestion voting deadline
+  if (!isCategorySuggestionDeadlineActive()) {
+    throw new Error(`Voting on Category Suggestions concluded on ${CATEGORY_SUGGESTION_DEADLINE_LABEL}. The results are now finalized.`);
   }
 
   // Consistent unique document ID constraint: suggestionId + (discordId || userId)
@@ -817,6 +987,7 @@ export async function castCategorySuggestionVote(
 /**
  * Fetch all voters for a specific category suggestion (upvoters and downvoters).
  * Uses in-memory cache and falls back to Firestore only when necessary.
+ * Authoritatively enriches voter names and avatars using current user profile cache.
  */
 export async function fetchSuggestionVoters(
   suggestionId: string,
@@ -841,6 +1012,24 @@ export async function fetchSuggestionVoters(
       if (v.vote === 1) upvoters.push(item);
       else if (v.vote === -1) downvoters.push(item);
     });
+
+    const voterIdsToResolve = [...upvoters, ...downvoters].map(v => v.discordId || v.userId).filter(Boolean) as string[];
+    if (voterIdsToResolve.length > 0) {
+      try {
+        const profileMap = await fetchUsersProfileMap(voterIdsToResolve);
+        const enrichVoter = (v: SuggestionVoter) => {
+          const p = (v.discordId && profileMap.get(v.discordId)) || (v.userId && profileMap.get(v.userId));
+          if (p) {
+            if (p.displayName) v.discordName = p.displayName;
+            if (p.avatarUrl || p.discordPhotoUrl) v.authorAvatarUrl = p.avatarUrl || p.discordPhotoUrl || null;
+          }
+        };
+        upvoters.forEach(enrichVoter);
+        downvoters.forEach(enrichVoter);
+      } catch {
+        // Fall back to stored voter names
+      }
+    }
 
     return { upvoters, downvoters };
   }
@@ -878,6 +1067,24 @@ export async function fetchSuggestionVoters(
       if (voter.vote === 1) upvoters.push(voter);
       else if (voter.vote === -1) downvoters.push(voter);
     });
+
+    const voterIdsToResolve = [...upvoters, ...downvoters].map(v => v.discordId || v.userId).filter(Boolean) as string[];
+    if (voterIdsToResolve.length > 0) {
+      try {
+        const profileMap = await fetchUsersProfileMap(voterIdsToResolve);
+        const enrichVoter = (v: SuggestionVoter) => {
+          const p = (v.discordId && profileMap.get(v.discordId)) || (v.userId && profileMap.get(v.userId));
+          if (p) {
+            if (p.displayName) v.discordName = p.displayName;
+            if (p.avatarUrl || p.discordPhotoUrl) v.authorAvatarUrl = p.avatarUrl || p.discordPhotoUrl || null;
+          }
+        };
+        upvoters.forEach(enrichVoter);
+        downvoters.forEach(enrichVoter);
+      } catch {
+        // Fall back to stored voter names
+      }
+    }
 
     const result = { upvoters, downvoters, timestamp: Date.now() };
     voterLookupMemoryCache.set(suggestionId, result);
@@ -992,6 +1199,56 @@ export async function deleteCategorySuggestion(
   } catch (error: any) {
     console.error('Error deleting category suggestion:', error);
     throw new Error(error?.message || 'Failed to delete category suggestion.');
+  }
+}
+
+/**
+ * Admin action: Permanently deletes all category suggestions and all suggestion votes in Firestore.
+ * Chunks batch deletions to <= 450 items to stay well below the 500 Firestore transaction limit.
+ * Clears in-memory voter caches and authoritatively recalculates statistics to 0.
+ */
+export async function clearAllCategorySuggestions(
+  adminUserId?: string | null,
+  adminDiscordId?: string | null
+): Promise<{ success: boolean; deletedSuggestions: number; deletedVotes: number; stats: CategorySuggestionStats }> {
+  const authorized = await isAuthorizedAdmin(adminUserId, adminDiscordId);
+  if (!authorized) {
+    throw new Error('Unauthorized: Admin permission required to clear category suggestions.');
+  }
+
+  try {
+    const [suggestionsSnap, votesSnap] = await Promise.all([
+      getDocs(collection(db, SUGGESTIONS_COLLECTION)),
+      getDocs(collection(db, VOTES_COLLECTION))
+    ]);
+
+    const allDocsToDelete = [
+      ...suggestionsSnap.docs.map((d) => d.ref),
+      ...votesSnap.docs.map((d) => d.ref)
+    ];
+
+    // Chunk into atomic batches of 450 ops max to avoid Firestore 500 limit
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < allDocsToDelete.length; i += CHUNK_SIZE) {
+      const chunk = allDocsToDelete.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach((ref) => batch.delete(ref));
+      await batch.commit();
+    }
+
+    // Invalidate local in-memory caches
+    voterLookupMemoryCache.clear();
+
+    const stats = await getCategorySuggestionStats();
+    return {
+      success: true,
+      deletedSuggestions: suggestionsSnap.size,
+      deletedVotes: votesSnap.size,
+      stats
+    };
+  } catch (err: any) {
+    console.error('Error clearing all category suggestions:', err);
+    throw new Error(err?.message || 'Failed to clear all category suggestions.');
   }
 }
 
