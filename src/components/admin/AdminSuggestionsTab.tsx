@@ -30,22 +30,24 @@ import {
   History,
   ThumbsUp,
   UserCheck,
-  Users
+  Users,
+  Edit3,
+  Download
 } from 'lucide-react';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
-import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote, SuggestionBetaTester } from '../../types';
+import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote } from '../../types';
 import {
   fetchCategorySuggestions,
   deleteCategorySuggestion,
   updateCategorySuggestionStatus,
+  updateCategorySuggestionContent,
   toggleAdminSuggestionVote,
   fetchSuggestionVoters,
   SuggestionVoter,
   sortSuggestions,
-  addBetaTester,
-  removeBetaTester,
-  subscribeBetaTesters
+  submitCategorySuggestion,
+  exportSuggestionsToCSV
 } from '../../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../../lib/dicebear';
 import { AdminHeader } from './AdminHeader';
@@ -148,23 +150,21 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
   const [orderedIds, setOrderedIds] = useState<string[]>([]);
   const [autoReorder, setAutoReorder] = useState(false);
 
-  // ── Beta Testers Whitelist State ──
-  const [betaTesters, setBetaTesters] = useState<SuggestionBetaTester[]>([]);
-  const [isBetaModalOpen, setIsBetaModalOpen] = useState(false);
-  const [newTesterDiscordId, setNewTesterDiscordId] = useState('');
-  const [newTesterNotes, setNewTesterNotes] = useState('');
-  const [isAddingTester, setIsAddingTester] = useState(false);
-  const [revokingTesterId, setRevokingTesterId] = useState<string | null>(null);
+  // ── Inline Edit Suggestion State ──
+  const [editingSuggestion, setEditingSuggestion] = useState<CategorySuggestion | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // ── Admin Create Suggestion State ──
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState('');
+  const [isCreatingSuggestion, setIsCreatingSuggestion] = useState(false);
 
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
 
-  // Real-time listener for Beta Testers Whitelist
-  useEffect(() => {
-    const unsubscribe = subscribeBetaTesters((testers) => {
-      setBetaTesters(testers);
-    });
-    return () => unsubscribe();
-  }, []);
+
 
   // On-demand load from Cloud Firestore (no continuous realtime listener across admin sessions)
   const loadData = useCallback(async (isInitial = false) => {
@@ -456,45 +456,93 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     toast.success('Copied suggestion details to clipboard!');
   };
 
-  // ── Beta Testers Whitelist Handlers ──
-  const handleAddBetaTester = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanId = newTesterDiscordId.trim().replace(/\D/g, '');
-    if (!cleanId || cleanId.length < 15) {
-      toast.error('Invalid Discord ID', {
-        description: 'Please enter a valid numeric Discord ID (17-20 digits).'
-      });
-      return;
-    }
-
-    setIsAddingTester(true);
+  // ── CSV Export Handler ──
+  const handleExportCSV = () => {
     try {
-      const adminName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Admin';
-      const cleanNotes = newTesterNotes.trim();
-      await addBetaTester(cleanId, cleanNotes, adminName, cleanNotes);
-      toast.success('Beta Tester Added!', {
-        description: `Discord ID ${cleanId} can now access the Suggestion Categories feature.`
-      });
-      setNewTesterDiscordId('');
-      setNewTesterNotes('');
+      const csvData = exportSuggestionsToCSV(suggestions);
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `vital_category_suggestions_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Suggestions CSV Exported!');
     } catch (err: any) {
-      toast.error('Failed to add beta tester', { description: err.message });
-    } finally {
-      setIsAddingTester(false);
+      toast.error('Failed to export CSV', { description: err.message });
     }
   };
 
-  const handleRemoveBetaTester = async (discordId: string) => {
-    setRevokingTesterId(discordId);
+  // ── Inline Edit Handlers ──
+  const handleOpenEditModal = (suggestion: CategorySuggestion) => {
+    setEditingSuggestion(suggestion);
+    setEditCategoryName(suggestion.category_name);
+    setEditDescription(suggestion.description || '');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSuggestion) return;
+    const trimmedTitle = editCategoryName.trim();
+    if (!trimmedTitle) {
+      toast.error('Category title cannot be empty.');
+      return;
+    }
+
+    setIsSavingEdit(true);
     try {
-      await removeBetaTester(discordId);
-      toast.success('Beta Access Revoked', {
-        description: `Discord ID ${discordId} no longer has access to Suggestion Categories.`
+      await updateCategorySuggestionContent(editingSuggestion.id, {
+        category_name: trimmedTitle,
+        description: editDescription.trim()
       });
+      setSuggestions((prev) =>
+        prev.map((s) =>
+          s.id === editingSuggestion.id
+            ? { ...s, category_name: trimmedTitle, description: editDescription.trim() }
+            : s
+        )
+      );
+      toast.success('Category suggestion updated!');
+      setEditingSuggestion(null);
     } catch (err: any) {
-      toast.error('Failed to revoke access', { description: err.message });
+      toast.error('Failed to update suggestion', { description: err.message });
     } finally {
-      setRevokingTesterId(null);
+      setIsSavingEdit(false);
+    }
+  };
+
+  // ── Admin Create Suggestion Handler ──
+  const handleCreateSuggestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedTitle = newCategoryName.trim();
+    if (!trimmedTitle) {
+      toast.error('Category title cannot be empty.');
+      return;
+    }
+
+    setIsCreatingSuggestion(true);
+    try {
+      const created = await submitCategorySuggestion({
+        category_name: trimmedTitle,
+        description: newCategoryDescription.trim(),
+        user_id: effectiveUserId || currentUser?.uid || 'admin',
+        author_name: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Staff Admin',
+        discord_name: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Staff Admin',
+        discord_id: currentUser?.discordId || null,
+        is_admin_author: true,
+        status: 'open'
+      });
+      setSuggestions((prev) => [created, ...prev]);
+      toast.success(`Category "${trimmedTitle}" created!`);
+      setNewCategoryName('');
+      setNewCategoryDescription('');
+      setIsCreateModalOpen(false);
+    } catch (err: any) {
+      toast.error('Failed to create suggestion', { description: err.message });
+    } finally {
+      setIsCreatingSuggestion(false);
     }
   };
 
@@ -626,18 +674,27 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         iconBg="bg-orange-500/15 border-orange-500/30"
         actions={
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {/* Beta Whitelist Management Trigger */}
+            {/* New Suggestion Button */}
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setIsBetaModalOpen(true)}
-              className="group relative px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all duration-300 cursor-pointer flex items-center gap-2 overflow-hidden select-none border bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30 hover:border-amber-500/50 shadow-sm"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider cursor-pointer flex items-center gap-1.5 border bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm hover:shadow-orange-500/20"
             >
-              <Users size={14} className="text-amber-400" />
-              <span>Beta Testers</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-500/25 text-[10px] font-mono text-amber-200 border border-amber-500/40">
-                {betaTesters.length}
-              </span>
+              <Plus size={14} />
+              <span>New Suggestion</span>
+            </motion.button>
+
+            {/* Export CSV Button */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleExportCSV}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider cursor-pointer flex items-center gap-1.5 border bg-white/[0.05] hover:bg-white/[0.1] text-white/80 hover:text-white border-white/10"
+              title="Export all proposals to CSV"
+            >
+              <Download size={14} className="text-fivem-orange" />
+              <span>Export CSV</span>
             </motion.button>
 
             <motion.button
@@ -1156,6 +1213,15 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                     </select>
                   </div>
 
+                  {/* Edit Title & Description */}
+                  <button
+                    onClick={() => handleOpenEditModal(suggestion)}
+                    title="Edit title & description"
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-amber-300 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <Edit3 size={13} />
+                  </button>
+
                   {/* Copy Details */}
                   <button
                     onClick={() => handleCopyDetails(suggestion)}
@@ -1221,142 +1287,153 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         </DialogContent>
       </Dialog>
 
-      {/* ── Beta Tester Whitelist Management Dialog ── */}
-      <Dialog open={isBetaModalOpen} onOpenChange={setIsBetaModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl bg-[#0c0c14] border-amber-500/30 text-white p-6 rounded-3xl max-h-[85vh] overflow-y-auto">
+      {/* ── Edit Suggestion Dialog ── */}
+      <Dialog open={!!editingSuggestion} onOpenChange={(open) => !open && setEditingSuggestion(null)}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0c0c14] border-white/15 text-white p-6 rounded-3xl">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <Sparkles size={20} />
+                <Edit3 size={20} />
               </div>
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 border border-amber-500/30 uppercase mb-1">
-                  BETA ACCESS CONTROL
-                </div>
                 <DialogTitle className="text-lg font-black font-display">
-                  Suggestion Categories Beta Whitelist
+                  Edit Category Suggestion
                 </DialogTitle>
+                <DialogDescription className="text-xs text-white/50">
+                  Update title or description to fix typos or adjust theme details.
+                </DialogDescription>
               </div>
             </div>
-            <DialogDescription className="text-xs text-white/60 leading-relaxed">
-              Add Discord IDs of community members to grant them access to preview, submit, and vote on Suggestion Categories. This provides access strictly to the Suggestion feature and does <span className="text-amber-400 font-semibold">not</span> grant access to the Admin Dashboard or any administrative controls.
-            </DialogDescription>
           </DialogHeader>
 
-          {/* Add Tester Form */}
-          <form onSubmit={handleAddBetaTester} className="mt-4 p-4 rounded-2xl bg-black/40 border border-white/10 space-y-3">
-            <div className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
-              <Plus size={14} />
-              <span>Grant Beta Access by Discord ID</span>
+          <form onSubmit={handleSaveEdit} className="space-y-4 mt-2">
+            <div>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+                Category Title
+              </label>
+              <input
+                type="text"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                required
+                maxLength={100}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-amber-400/60"
+              />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-mono uppercase text-white/50 block mb-1">Discord ID (Required)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 314221199341584384"
-                  value={newTesterDiscordId}
-                  onChange={(e) => setNewTesterDiscordId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/20 text-xs font-mono focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/30"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-mono uppercase text-white/50 block mb-1">Notes / Member Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Staff Moderator / VIP Tester"
-                  value={newTesterNotes}
-                  onChange={(e) => setNewTesterNotes(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/20 text-xs focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/30"
-                />
-              </div>
+            <div>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+                Description
+              </label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={3}
+                maxLength={1000}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs focus:outline-none focus:border-amber-400/60 resize-none"
+              />
             </div>
 
-            <div className="flex justify-end pt-1">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setEditingSuggestion(null)}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
-                disabled={isAddingTester || !newTesterDiscordId.trim()}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+                disabled={isSavingEdit || !editCategoryName.trim()}
+                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-md"
               >
-                {isAddingTester ? (
+                {isSavingEdit ? (
                   <>
                     <RefreshCw size={13} className="animate-spin" />
-                    <span>Authorizing...</span>
+                    <span>Saving...</span>
                   </>
                 ) : (
-                  <>
-                    <UserCheck size={14} />
-                    <span>Authorize Beta Tester</span>
-                  </>
+                  <span>Save Changes</span>
                 )}
               </button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
 
-          {/* Active Beta Testers Whitelist List */}
-          <div className="mt-5 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono text-white/50 px-1">
-              <span>AUTHORIZED TESTERS ({betaTesters.length})</span>
-              <span>ROLE</span>
+      {/* ── Admin Create Suggestion Dialog ── */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0c0c14] border-white/15 text-white p-6 rounded-3xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
+                <Plus size={20} />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-black font-display">
+                  Add Category Suggestion (Staff)
+                </DialogTitle>
+                <DialogDescription className="text-xs text-white/50">
+                  Directly post a new contest category idea to community voting.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateSuggestion} className="space-y-4 mt-2">
+            <div>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+                Category Title <span className="text-fivem-orange">*</span>
+              </label>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Nighttime Street Drifting..."
+                required
+                maxLength={100}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-orange-400/60"
+              />
             </div>
 
-            {betaTesters.length === 0 ? (
-              <div className="text-center py-8 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
-                <p className="text-xs text-white/40">No external beta testers authorized yet.</p>
-                <p className="text-[11px] text-white/25 mt-1">Verified administrators always have automatic access.</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {betaTesters.map((tester) => (
-                  <div
-                    key={tester.discordId}
-                    className="p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3 transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-white/90 select-all">
-                          {tester.discordId}
-                        </span>
-                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 uppercase border border-amber-500/30">
-                          BETA
-                        </span>
-                      </div>
-                      {tester.notes && (
-                        <p className="text-[11px] text-white/50 truncate mt-0.5">{tester.notes}</p>
-                      )}
-                      <p className="text-[9px] font-mono text-white/30 mt-0.5">
-                        Added by {tester.addedBy || 'Admin'} • {new Date(tester.addedAt).toLocaleDateString()}
-                      </p>
-                    </div>
+            <div>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+                Description (Optional)
+              </label>
+              <textarea
+                value={newCategoryDescription}
+                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                placeholder="Theme instructions, location guidelines, rules..."
+                rows={3}
+                maxLength={1000}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs focus:outline-none focus:border-orange-400/60 resize-none"
+              />
+            </div>
 
-                    <button
-                      onClick={() => handleRemoveBetaTester(tester.discordId)}
-                      disabled={revokingTesterId === tester.discordId}
-                      className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 transition-all cursor-pointer shrink-0"
-                      title="Revoke Beta Access"
-                    >
-                      {revokingTesterId === tester.discordId ? (
-                        <RefreshCw size={13} className="animate-spin" />
-                      ) : (
-                        <Trash2 size={13} />
-                      )}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-5 pt-3 border-t border-white/10 flex justify-end">
-            <button
-              onClick={() => setIsBetaModalOpen(false)}
-              className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-            >
-              Done
-            </button>
-          </div>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isCreatingSuggestion || !newCategoryName.trim()}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-md"
+              >
+                {isCreatingSuggestion ? (
+                  <>
+                    <RefreshCw size={13} className="animate-spin" />
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <span>Create Suggestion</span>
+                )}
+              </button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

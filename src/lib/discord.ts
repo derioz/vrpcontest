@@ -13,7 +13,16 @@ export interface DiscordVerificationResult {
 export interface VerifyOptions {
   providerToken?: string | null;
   discordId?: string | null;
+  forceRefresh?: boolean;
 }
+
+// In-memory verification cache (5-minute TTL) to eliminate redundant Discord API requests
+interface CachedVerification {
+  result: DiscordVerificationResult;
+  timestamp: number;
+}
+const verificationCache = new Map<string, CachedVerification>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise<DiscordVerificationResult> {
   const guildId = import.meta.env.VITE_DISCORD_GUILD_ID;
@@ -33,6 +42,23 @@ export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise
     storedToken = options.providerToken;
   }
 
+  const cacheKey = options.discordId ? `id_${options.discordId}` : (storedToken ? `token_${storedToken.slice(-16)}` : null);
+
+  // Check in-memory cache if not forcing refresh
+  if (cacheKey && !options.forceRefresh) {
+    const cached = verificationCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.result;
+    }
+  }
+
+  const setCachedResult = (res: DiscordVerificationResult): DiscordVerificationResult => {
+    if (cacheKey) {
+      verificationCache.set(cacheKey, { result: res, timestamp: Date.now() });
+    }
+    return res;
+  };
+
   // ── Strategy A: User OAuth Access Token Check ──
   if (storedToken) {
     try {
@@ -43,11 +69,11 @@ export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise
       });
 
       if (response.status === 404) {
-        return {
+        return setCachedResult({
           allowed: false,
           reason: 'not_in_server',
-          message: 'You are not currently a member of the Vital RP Discord server.',
-        };
+          message: 'You must be a member of the Vital RP Discord to participate.',
+        });
       }
 
       if (response.ok) {
@@ -55,15 +81,15 @@ export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise
         const roles: string[] = member.roles || [];
 
         if (whitelistRoleId && !roles.includes(whitelistRoleId)) {
-          return {
+          return setCachedResult({
             allowed: false,
             reason: 'missing_role',
-            message: 'You are in the Vital RP Discord server, but you do not have the required "Whitelist Approved" role.',
+            message: 'You must be whitelist approved to suggest or vote on contest categories.',
             guildMember: member,
-          };
+          });
         }
 
-        return { allowed: true, guildMember: member };
+        return setCachedResult({ allowed: true, guildMember: member });
       }
 
       // If token expired (401), clean up localStorage token
@@ -85,11 +111,11 @@ export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise
       });
 
       if (response.status === 404) {
-        return {
+        return setCachedResult({
           allowed: false,
           reason: 'not_in_server',
-          message: 'You are not currently a member of the Vital RP Discord server.',
-        };
+          message: 'You must be a member of the Vital RP Discord to participate.',
+        });
       }
 
       if (response.ok) {
@@ -97,15 +123,15 @@ export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise
         const roles: string[] = member.roles || [];
 
         if (whitelistRoleId && !roles.includes(whitelistRoleId)) {
-          return {
+          return setCachedResult({
             allowed: false,
             reason: 'missing_role',
-            message: 'You are in the Vital RP Discord server, but you do not have the required "Whitelist Approved" role.',
+            message: 'You must be whitelist approved to suggest or vote on contest categories.',
             guildMember: member,
-          };
+          });
         }
 
-        return { allowed: true, guildMember: member };
+        return setCachedResult({ allowed: true, guildMember: member });
       }
     } catch (error) {
       console.error("Bot token member check error:", error);
@@ -117,7 +143,38 @@ export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise
     console.warn("⚠️ Unable to verify Discord membership: No provider_token or bot_token available.");
   }
 
-  return { allowed: true };
+  return setCachedResult({ allowed: true });
+}
+
+/**
+ * Check user eligibility for suggestions and voting.
+ * Returns { allowed: true } if in Vital Discord and has Whitelist Approved role.
+ */
+export async function checkUserDiscordEligibility(user: any, forceRefresh = false): Promise<DiscordVerificationResult> {
+  if (!user) {
+    return {
+      allowed: false,
+      reason: 'not_in_server',
+      message: 'You must be signed in with Discord to participate.',
+    };
+  }
+
+  const discordId =
+    user.discordId ||
+    user.user_metadata?.provider_id ||
+    user.user_metadata?.sub ||
+    user.identities?.find((i: any) => i.provider === 'discord')?.id ||
+    user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
+    user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
+    user.id;
+
+  const storedToken = localStorage.getItem('discord_provider_token');
+
+  return await verifyDiscordGuildAndRole({
+    discordId: discordId ? String(discordId) : null,
+    providerToken: storedToken,
+    forceRefresh,
+  });
 }
 
 /**

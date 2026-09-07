@@ -22,6 +22,7 @@ import {
   SuggestionAdminVote,
   SuggestionBetaTester
 } from '../types';
+import { SITE_CONFIG, MAX_CATEGORY_SUGGESTIONS_PER_USER } from '../config';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
 const VOTES_COLLECTION = 'category_suggestion_votes';
@@ -252,19 +253,82 @@ export function subscribeCategorySuggestions(
 }
 
 /**
+ * Fetch total number of active suggestions submitted by a specific user or Discord ID.
+ */
+export async function fetchUserSuggestionCount(userId: string, discordId?: string | null): Promise<number> {
+  if (!userId && !discordId) return 0;
+  try {
+    const countedIds = new Set<string>();
+    let count = 0;
+
+    if (userId) {
+      const userSnap = await getDocs(
+        query(collection(db, SUGGESTIONS_COLLECTION), where('user_id', '==', String(userId)))
+      );
+      userSnap.forEach((d) => {
+        const data = d.data();
+        if (data.status !== 'removed' && data.status !== 'declined' && data.status !== 'rejected') {
+          countedIds.add(d.id);
+          count++;
+        }
+      });
+    }
+
+    if (discordId) {
+      const discordSnap = await getDocs(
+        query(collection(db, SUGGESTIONS_COLLECTION), where('discord_id', '==', String(discordId)))
+      );
+      discordSnap.forEach((d) => {
+        const data = d.data();
+        if (!countedIds.has(d.id) && data.status !== 'removed' && data.status !== 'declined' && data.status !== 'rejected') {
+          countedIds.add(d.id);
+          count++;
+        }
+      });
+    }
+
+    return count;
+  } catch (err) {
+    console.warn('Error fetching user suggestion count:', err);
+    return 0;
+  }
+}
+
+/**
  * Submit a new category suggestion attached to the user's Discord profile.
- * Generates 1 single document write to Cloud Firestore.
+ * Validates character limits, trims whitespace, prevents duplicate categories, and enforces per-user limit.
  */
 export async function submitCategorySuggestion(
   input: CreateSuggestionInput
 ): Promise<CategorySuggestion> {
   const trimmedName = input.category_name.trim();
-  const trimmedDesc = input.description.trim();
+  const trimmedDesc = (input.description || '').trim();
 
   if (!trimmedName) throw new Error('Category name is required.');
-  if (!trimmedDesc) throw new Error('Description is required.');
+  if (trimmedName.length < 3) throw new Error('Category name must be at least 3 characters long.');
   if (trimmedName.length > 100) throw new Error('Category name cannot exceed 100 characters.');
   if (trimmedDesc.length > 1000) throw new Error('Description cannot exceed 1000 characters.');
+
+  // 1. Enforce per-user suggestion limit
+  const maxAllowed = SITE_CONFIG.categorySuggestions.maxSuggestionsPerUser || MAX_CATEGORY_SUGGESTIONS_PER_USER;
+  const currentCount = await fetchUserSuggestionCount(input.user_id, input.discord_id || input.author_discord_id);
+  if (currentCount >= maxAllowed && !input.is_admin_author) {
+    throw new Error(`You have reached the limit of ${maxAllowed} category suggestions.`);
+  }
+
+  // 2. Case-insensitive duplicate prevention (e.g., 'Street Racing' and 'street racing')
+  const suggestionsSnap = await getDocs(collection(db, SUGGESTIONS_COLLECTION));
+  const normalizedNewName = trimmedName.toLowerCase().replace(/\s+/g, ' ');
+  const duplicate = suggestionsSnap.docs.find((d) => {
+    const data = d.data();
+    if (data.status === 'removed' || data.status === 'declined' || data.status === 'rejected') return false;
+    const existingNormalized = (data.category_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    return existingNormalized === normalizedNewName;
+  });
+
+  if (duplicate) {
+    throw new Error(`A category suggestion titled "${trimmedName}" already exists. You can upvote it instead!`);
+  }
 
   const suggestionRef = doc(collection(db, SUGGESTIONS_COLLECTION));
   const now = new Date().toISOString();
@@ -300,7 +364,7 @@ export async function submitCategorySuggestion(
 
 /**
  * Cast, toggle, or invert a vote on a category suggestion using Firestore atomic transactions.
- * Maintains inlined `voters_sample` on the suggestion document to eliminate extra hover queries.
+ * Enforces suggestionId + discordUserId database-level uniqueness to prevent duplicate voting.
  */
 export async function castCategorySuggestionVote(
   suggestionId: string,
@@ -312,12 +376,16 @@ export async function castCategorySuggestionVote(
   avatarSeed?: string,
   avatarStyle?: string
 ): Promise<{ score: number; user_vote: number; upvotes: number; downvotes: number; voters_sample?: SuggestionVoterSummary[] }> {
-  if (!suggestionId || !userId) {
+  if (!suggestionId || (!userId && !discordId)) {
     throw new Error('Missing suggestion or user identifier for voting.');
   }
 
-  const voteDocId = `${suggestionId}_${userId}`;
+  // Consistent unique document ID constraint: suggestionId + (discordId || userId)
+  const voterKey = discordId ? String(discordId) : String(userId);
+  const voteDocId = `${suggestionId}_${voterKey}`;
+  const legacyVoteDocId = `${suggestionId}_${userId}`;
   const voteDocRef = doc(db, VOTES_COLLECTION, voteDocId);
+  const legacyVoteDocRef = voteDocId !== legacyVoteDocId ? doc(db, VOTES_COLLECTION, legacyVoteDocId) : null;
   const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
 
   // If a vote request for the same suggestion and user is already running, coalesce/await the active promise
@@ -331,92 +399,112 @@ export async function castCategorySuggestionVote(
   const votePromise = (async () => {
     try {
       return await runTransaction(db, async (transaction) => {
-    const [voteDocSnap, suggestionDocSnap] = await Promise.all([
-      transaction.get(voteDocRef),
-      transaction.get(suggestionDocRef)
-    ]);
+        const gets: Promise<any>[] = [
+          transaction.get(voteDocRef),
+          transaction.get(suggestionDocRef)
+        ];
+        if (legacyVoteDocRef) {
+          gets.push(transaction.get(legacyVoteDocRef));
+        }
 
-    if (!suggestionDocSnap.exists()) {
-      throw new Error('Category suggestion does not exist.');
-    }
+        const snaps = await Promise.all(gets);
+        const voteDocSnap = snaps[0];
+        const suggestionDocSnap = snaps[1];
+        const legacyVoteDocSnap = legacyVoteDocRef ? snaps[2] : null;
 
-    const suggestionData = suggestionDocSnap.data();
-    let currentUpvotes = Math.max(0, Number(suggestionData.upvotes || 0));
-    let currentDownvotes = Math.max(0, Number(suggestionData.downvotes || 0));
+        if (!suggestionDocSnap.exists()) {
+          throw new Error('Category suggestion does not exist.');
+        }
 
-    const oldVote = voteDocSnap.exists() ? Number(voteDocSnap.data().vote || 0) : 0;
-    const newVote = requestedVote;
+        const suggestionData = suggestionDocSnap.data();
+        let currentUpvotes = Math.max(0, Number(suggestionData.upvotes || 0));
+        let currentDownvotes = Math.max(0, Number(suggestionData.downvotes || 0));
 
-    // Adjust counts based on old vote removal
-    if (oldVote === 1) currentUpvotes = Math.max(0, currentUpvotes - 1);
-    if (oldVote === -1) currentDownvotes = Math.max(0, currentDownvotes - 1);
+        let oldVote = 0;
+        if (voteDocSnap.exists()) {
+          oldVote = Number(voteDocSnap.data().vote || 0);
+        } else if (legacyVoteDocSnap && legacyVoteDocSnap.exists()) {
+          oldVote = Number(legacyVoteDocSnap.data().vote || 0);
+        }
 
-    // Apply new vote addition
-    if (newVote === 1) currentUpvotes += 1;
-    if (newVote === -1) currentDownvotes += 1;
+        const newVote = requestedVote;
 
-    const newScore = currentUpvotes - currentDownvotes;
-    const now = new Date().toISOString();
+        // Adjust counts based on old vote removal
+        if (oldVote === 1) currentUpvotes = Math.max(0, currentUpvotes - 1);
+        if (oldVote === -1) currentDownvotes = Math.max(0, currentDownvotes - 1);
 
-    // 1. Maintain inlined voters_sample (up to 40 most recent voters)
-    const existingSample: SuggestionVoterSummary[] = Array.isArray(suggestionData.voters_sample)
-      ? suggestionData.voters_sample
-      : [];
-    const filteredSample = existingSample.filter((v) => v.userId !== String(userId));
+        // Apply new vote addition
+        if (newVote === 1) currentUpvotes += 1;
+        if (newVote === -1) currentDownvotes += 1;
 
-    let updatedVotersSample: SuggestionVoterSummary[] = filteredSample;
-    if (newVote !== 0) {
-      const newVoterEntry: SuggestionVoterSummary = {
-        userId: String(userId),
-        discordId: discordId || null,
-        discordName: discordName || 'Discord User',
-        authorAvatarUrl: avatarUrl || null,
-        avatarSeed: avatarSeed || null,
-        avatarStyle: avatarStyle || 'botttsNeutral',
-        vote: newVote,
-        updatedAt: now
-      };
-      updatedVotersSample = [newVoterEntry, ...filteredSample].slice(0, 40);
-    }
+        const newScore = currentUpvotes - currentDownvotes;
+        const now = new Date().toISOString();
 
-    // 2. Update Vote Document
-    if (newVote === 0) {
-      if (voteDocSnap.exists()) {
-        transaction.delete(voteDocRef);
-      }
-    } else {
-      transaction.set(voteDocRef, {
-        id: voteDocId,
-        suggestion_id: suggestionId,
-        user_id: String(userId),
-        discord_id: discordId || null,
-        discord_name: discordName || 'Discord User',
-        author_name: discordName || 'Discord User',
-        author_avatar_url: avatarUrl || null,
-        avatar_seed: avatarSeed || null,
-        avatar_style: avatarStyle || 'botttsNeutral',
-        vote: newVote,
-        updated_at: now,
-        created_at: voteDocSnap.exists() ? voteDocSnap.data().created_at || now : now
-      });
-    }
+        // 1. Maintain inlined voters_sample (up to 40 most recent voters)
+        const existingSample: SuggestionVoterSummary[] = Array.isArray(suggestionData.voters_sample)
+          ? suggestionData.voters_sample
+          : [];
+        const filteredSample = existingSample.filter((v) => v.userId !== String(userId) && (!discordId || v.discordId !== String(discordId)));
 
-    // 3. Update Suggestion Document Totals & Inlined Voter Sample
-    transaction.update(suggestionDocRef, {
-      score: newScore,
-      upvotes: currentUpvotes,
-      downvotes: currentDownvotes,
-      voters_sample: updatedVotersSample,
-      updated_at: now
-    });
+        let updatedVotersSample: SuggestionVoterSummary[] = filteredSample;
+        if (newVote !== 0) {
+          const newVoterEntry: SuggestionVoterSummary = {
+            userId: String(userId),
+            discordId: discordId || null,
+            discordName: discordName || 'Discord User',
+            authorAvatarUrl: avatarUrl || null,
+            avatarSeed: avatarSeed || null,
+            avatarStyle: avatarStyle || 'botttsNeutral',
+            vote: newVote,
+            updatedAt: now
+          };
+          updatedVotersSample = [newVoterEntry, ...filteredSample].slice(0, 40);
+        }
 
-    return {
-      score: newScore,
-      user_vote: newVote,
-      upvotes: currentUpvotes,
-      downvotes: currentDownvotes,
-      voters_sample: updatedVotersSample
-    };
+        // 2. Update Vote Document
+        if (newVote === 0) {
+          if (voteDocSnap.exists()) {
+            transaction.delete(voteDocRef);
+          }
+          if (legacyVoteDocSnap && legacyVoteDocSnap.exists()) {
+            transaction.delete(legacyVoteDocRef!);
+          }
+        } else {
+          transaction.set(voteDocRef, {
+            id: voteDocId,
+            suggestion_id: suggestionId,
+            user_id: String(userId),
+            discord_id: discordId || null,
+            discord_name: discordName || 'Discord User',
+            author_name: discordName || 'Discord User',
+            author_avatar_url: avatarUrl || null,
+            avatar_seed: avatarSeed || null,
+            avatar_style: avatarStyle || 'botttsNeutral',
+            vote: newVote,
+            updated_at: now,
+            created_at: voteDocSnap.exists() ? voteDocSnap.data().created_at || now : now
+          });
+          if (legacyVoteDocSnap && legacyVoteDocSnap.exists() && legacyVoteDocRef) {
+            transaction.delete(legacyVoteDocRef);
+          }
+        }
+
+        // 3. Update Suggestion Document Totals & Inlined Voter Sample
+        transaction.update(suggestionDocRef, {
+          score: newScore,
+          upvotes: currentUpvotes,
+          downvotes: currentDownvotes,
+          voters_sample: updatedVotersSample,
+          updated_at: now
+        });
+
+        return {
+          score: newScore,
+          user_vote: newVote,
+          upvotes: currentUpvotes,
+          downvotes: currentDownvotes,
+          voters_sample: updatedVotersSample
+        };
       });
     } finally {
       inFlightVotePromises.delete(voteDocId);
@@ -548,6 +636,52 @@ export async function updateCategorySuggestionStatus(
     console.error('Error updating suggestion status:', error);
     throw new Error(error?.message || 'Failed to update suggestion status.');
   }
+}
+
+/**
+ * Edit title and description of an existing suggestion (e.g. for staff correcting typos or formatting).
+ */
+export async function updateCategorySuggestionContent(
+  suggestionId: string,
+  updates: { category_name?: string; description?: string }
+): Promise<boolean> {
+  try {
+    const suggestionDocRef = doc(db, SUGGESTIONS_COLLECTION, suggestionId);
+    const dataToUpdate: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    };
+    if (updates.category_name !== undefined) {
+      const trimmed = updates.category_name.trim();
+      if (!trimmed) throw new Error('Category name cannot be empty.');
+      dataToUpdate.category_name = trimmed;
+    }
+    if (updates.description !== undefined) {
+      dataToUpdate.description = updates.description.trim();
+    }
+    await updateDoc(suggestionDocRef, dataToUpdate);
+    return true;
+  } catch (error: any) {
+    console.error('Error editing suggestion content:', error);
+    throw new Error(error?.message || 'Failed to edit category suggestion.');
+  }
+}
+
+/**
+ * Generate CSV export for category suggestions and community votes.
+ */
+export function exportSuggestionsToCSV(suggestions: CategorySuggestion[]): string {
+  const headers = ['ID', 'Category Name', 'Description', 'Status', 'Total Votes', 'Author Name', 'Discord ID', 'Created At'];
+  const rows = suggestions.map((s) => [
+    `"${s.id}"`,
+    `"${(s.category_name || '').replace(/"/g, '""')}"`,
+    `"${(s.description || '').replace(/"/g, '""')}"`,
+    `"${s.status || 'open'}"`,
+    s.upvotes || s.score || 0,
+    `"${(s.author_name || s.discord_name || '').replace(/"/g, '""')}"`,
+    `"${s.discord_id || s.user_id || ''}"`,
+    `"${s.created_at || ''}"`
+  ]);
+  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
 }
 
 export interface AdminVoteResult {
@@ -778,22 +912,9 @@ export function subscribeBetaTesters(
 }
 
 /**
- * Verify whether a set of user IDs / Discord IDs contains a registered beta tester.
+ * Beta restrictions lifted: all verified community members have access.
+ * Retained as compatibility helper returning true.
  */
-export async function checkIsBetaTester(ids: (string | undefined | null)[]): Promise<boolean> {
-  const validIds = ids.filter((id): id is string => Boolean(id && String(id).trim()));
-  if (validIds.length === 0) return false;
-
-  try {
-    for (const rawId of validIds) {
-      const cleanId = String(rawId).trim();
-      const testerDoc = await getDoc(doc(db, BETA_TESTERS_COLLECTION, cleanId));
-      if (testerDoc.exists()) {
-        return true;
-      }
-    }
-  } catch (err) {
-    console.warn('Error checking beta tester status:', err);
-  }
-  return false;
+export async function checkIsBetaTester(_ids?: (string | undefined | null)[]): Promise<boolean> {
+  return true;
 }

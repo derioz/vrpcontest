@@ -109,7 +109,7 @@ import UploadForm from './components/UploadForm';
 import { ContestInfoSidebar } from './components/ContestInfoSidebar';
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView'));
-import { checkIsBetaTester } from './lib/suggestionsService';
+import { CATEGORY_SUGGESTION_MODE } from './config';
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
 import AdminPanel from './components/admin/AdminPanel';
@@ -265,6 +265,10 @@ export default function App() {
     return tab === 'hall-of-fame' || tab === 'hof' || !!archiveId || storedView === 'hall-of-fame';
   });
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
+  const [categorySuggestionModeOverride, setCategorySuggestionModeOverride] = useState<boolean | null>(null);
+  const isCategorySuggestionMode = categorySuggestionModeOverride !== null
+    ? categorySuggestionModeOverride
+    : CATEGORY_SUGGESTION_MODE;
   const [playerName, setPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
@@ -293,6 +297,16 @@ export default function App() {
   };
 
   const isAdminRoute = currentPath.startsWith('/admin');
+
+  // Category Suggestion Mode: redirect non-admin routes back to '/'
+  useEffect(() => {
+    if (isCategorySuggestionMode && !isAdminRoute && currentPath !== '/') {
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', '/');
+        setCurrentPath('/');
+      }
+    }
+  }, [isCategorySuggestionMode, isAdminRoute, currentPath]);
   const rawTab = currentPath.replace(/^\/admin\/?/, '').split('/')[0];
   const adminSubTab: AdminRouteTab =
     rawTab === 'ideas' || rawTab === 'suggest'
@@ -527,21 +541,7 @@ export default function App() {
         // Wait for auth verification to complete before acting
         return;
       }
-      if (isAdmin || isBetaTester) {
-        setShowCategorySuggestions(true);
-      } else {
-        // Access denied for non-authorized users: sanitize URL parameters and warn
-        params.delete('tab');
-        params.delete('view');
-        params.delete('suggestion');
-        params.delete('idea');
-        localStorage.removeItem('active_view');
-        const newSearch = params.toString();
-        window.history.replaceState(null, '', newSearch ? `?${newSearch}` : window.location.pathname);
-        toast.error('Beta Access Required', {
-          description: 'Suggestion Categories is currently in private Beta testing for staff and whitelisted testers.'
-        });
-      }
+      setShowCategorySuggestions(true);
     } else if (archiveId || photoId) {
       if (archiveId) {
         setShowArchivedWinners(true);
@@ -860,14 +860,7 @@ export default function App() {
           }
         }
 
-        // 5. Check if user is an authorized suggestion beta tester
-        const isTester = await checkIsBetaTester([...idsToCheck]);
-        if (isTester) {
-          console.log('✅ Authorized Suggestion Category Beta Tester matched for user:', [...idsToCheck]);
-          setIsBetaTester(true);
-        } else {
-          setIsBetaTester(false);
-        }
+        setIsBetaTester(false);
 
         console.log('❌ No admin match. Add one of these IDs to VITE_ADMIN_DISCORD_IDS or the Firestore "admins" collection:', [...idsToCheck]);
         setIsAdmin(false);
@@ -1019,6 +1012,9 @@ export default function App() {
     const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
+        if (typeof data.categorySuggestionMode === 'boolean') {
+          setCategorySuggestionModeOverride(data.categorySuggestionMode);
+        }
         setVotingOpen(!!data.votingOpen);
         setSubmissionsOpen(data.submissionsOpen !== false);
         setOnePhotoPerUser(!!data.onePhotoPerUser); // default false (no limit)
@@ -2143,6 +2139,84 @@ export default function App() {
     );
   }
 
+  // ── Standalone Category Suggestion Mode ──
+  // When active, the entire public-facing website experience becomes the dedicated Category Suggestion portal.
+  // Normal contest pages, submissions, and voting routes are replaced with the suggestion view.
+  if (isCategorySuggestionMode) {
+    return (
+      <div className="min-h-screen w-full bg-[#07070a] text-white flex flex-col">
+        <Suspense fallback={
+          <div className="min-h-screen w-full bg-[#07070b] flex flex-col items-center justify-center p-6 space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin text-fivem-orange" />
+            <span className="text-xs font-mono text-white/50 uppercase tracking-widest">
+              Loading Category Suggestions...
+            </span>
+          </div>
+        }>
+          <CategorySuggestionsView
+            currentUser={user}
+            isAdmin={isAdmin}
+            isStandalonePage={true}
+            onOpenSignIn={() => setShowSignInModal(true)}
+            onNavigateAdmin={() => navigateTo('/admin')}
+            onOpenProfile={() => setIsProfileSheetOpen(true)}
+          />
+        </Suspense>
+
+        {/* ── Aceternity UI — Simple Login With Grid Lines Modal ── */}
+        <GridLinesLoginModal
+          isOpen={showSignInModal}
+          onClose={() => setShowSignInModal(false)}
+          onDiscordLogin={async () => {
+            setShowSignInModal(false);
+            const success = await handleDiscordLogin();
+            if (!success) setShowSignInModal(true);
+          }}
+        />
+
+        {/* ── Discord Requirements Gate Modal ── */}
+        {showDiscordReqModal && (
+          <DiscordRequirementsModal
+            isOpen={showDiscordReqModal}
+            reason={discordReqReason}
+            message={discordReqMessage}
+            onClose={() => setShowDiscordReqModal(false)}
+            onRetry={() => {
+              setShowDiscordReqModal(false);
+              setShowSignInModal(true);
+            }}
+          />
+        )}
+
+        {/* ── Animate UI Radix Sheet — User Profile & Kokonut UI Avatar Picker ── */}
+        <ProfileSheet
+          isOpen={isProfileSheetOpen}
+          onClose={() => setIsProfileSheetOpen(false)}
+          user={user}
+          isAdmin={isAdmin}
+          isAuthLoading={isAuthLoading}
+          getUserWinCount={getUserWinCount}
+          getProfileAvatar={getProfileAvatar}
+          getDiceBearAvatarUrl={getDiceBearAvatarUrl}
+          availableDiceBearStyles={AVAILABLE_DICEBEAR_STYLES}
+          onSaveProfile={handleSaveProfile}
+          onRetryDiscordAvatar={handleRetryDiscordAvatar}
+          onOpenAdminModal={() => navigateTo('/admin')}
+          onOpenCategorySuggestions={() => {}}
+          onOpenBugModal={() => setShowBugModal(true)}
+          onSignOut={handleSignOut}
+        />
+
+        {/* Bug Report Modal */}
+        <BugReportModal
+          isOpen={showBugModal}
+          onClose={() => setShowBugModal(false)}
+          user={user}
+        />
+      </div>
+    );
+  }
+
   return (
     <ShaderBackground className={cn("min-h-screen flex flex-col relative w-full overflow-x-clip max-w-full", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "overflow-hidden")}>
       <div className={cn("flex flex-col flex-1 w-full max-w-full overflow-x-clip transition-all duration-500", isSiteLocked && !showArchivedWinners && !showCategorySuggestions && "filter blur-lg sm:blur-xl opacity-60 pointer-events-none select-none max-h-screen overflow-hidden")}>
@@ -3226,8 +3300,8 @@ export default function App() {
           </ErrorBoundary>
         )}
 
-        {/* Category Suggestions Fullscreen Render (Admin or Beta Tester) */}
-        {showCategorySuggestions && (isAdmin || isBetaTester) && (
+        {/* Category Suggestions Fullscreen Render */}
+        {showCategorySuggestions && (
           <ErrorBoundary fallbackTitle="Category Suggestions Error" onReset={() => setShowCategorySuggestions(false)}>
             <Suspense fallback={
               <div className="fixed inset-0 z-[150] bg-[#07070b] flex flex-col p-4 sm:p-8 space-y-6 overflow-hidden">
@@ -3258,9 +3332,10 @@ export default function App() {
               <CategorySuggestionsView
                 currentUser={user}
                 isAdmin={isAdmin}
-                isBetaTester={isBetaTester}
                 onClose={() => setShowCategorySuggestions(false)}
                 onOpenSignIn={() => setShowSignInModal(true)}
+                onNavigateAdmin={() => navigateTo('/admin')}
+                onOpenProfile={() => setIsProfileSheetOpen(true)}
               />
             </Suspense>
           </ErrorBoundary>

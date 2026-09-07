@@ -85,6 +85,22 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260906-1905',
+    dateKey: 'September 6, 2026',
+    timeStr: '7:05 PM',
+    fullTimestamp: 'September 6, 2026 at 7:05 PM',
+    labels: ['NEW', 'UI', 'ENHANCE'],
+    title: 'Category Suggestion Community Event & Favorites Podium',
+    bullets: [
+      'Introduced Category Suggestion Mode: temporarily transforms the homepage into a dedicated community brainstorm and voting event for future contest themes.',
+      'Added Community Favorites Podium: top 3 community-voted ideas are showcased in gold, silver, and bronze pedestals with smooth click-to-card scrolling.',
+      'Expanded Community Access: removed all private beta restrictions so all verified Vital RP Discord members can suggest up to 3 categories and vote.',
+      'Optimistic Real-Time Voting: instant vote toggling with fluid number tickers, duplicate protection, and automatic database synchronization.',
+      'Enhanced Staff Management: equipped admins with inline category title/description editing, CSV data export, and direct status toggles.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260831-1150',
     dateKey: 'August 31, 2026',
     timeStr: '11:55 AM',
