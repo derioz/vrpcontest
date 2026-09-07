@@ -190,9 +190,9 @@ service cloud.firestore {
     }
 
     // Helper to verify category suggestions and votes are within the active phase window:
-    // Closes Sunday, September 27, 2026 at 11:59:59 PM Central Time
+    // Window starts immediately and ends Saturday, September 12, 2026 at midnight EST (2026-09-13 04:00:00 UTC)
     function isCategorySuggestionPeriodActive() {
-      return request.time < timestamp.date(2026, 9, 28);
+      return request.time < timestamp.date(2026, 9, 13) + duration.value(4, 'h');
     }
 
     // Category Suggestions: community proposals

@@ -65,10 +65,10 @@ export const DAMON_AVATAR_URL = 'https://r2.fivemanage.com/image/qePVNvTsc65p.pn
 
 /**
  * Authoritative Category Suggestion Phase Schedule & Deadline:
- * Closes Sunday, September 27, 2026 at 11:59:59 PM Central (America/Chicago)
+ * Window starts immediately and ends Saturday, September 12, 2026 at Midnight EST (23:59:59 EDT)
  */
-export const CATEGORY_SUGGESTION_DEADLINE = '2026-09-27T23:59:59-05:00';
-export const CATEGORY_SUGGESTION_DEADLINE_LABEL = 'Sept. 27 • 11:59 PM CT';
+export const CATEGORY_SUGGESTION_DEADLINE = '2026-09-12T23:59:59-04:00';
+export const CATEGORY_SUGGESTION_DEADLINE_LABEL = 'Sept. 12 • Midnight EST';
 
 /**
  * Returns true if category suggestions and voting are currently active.

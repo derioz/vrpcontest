@@ -165,7 +165,7 @@ export function CategorySuggestionsView({
   const [hoveredVoters, setHoveredVoters] = useState<HoveredVotersState | null>(null);
   const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
 
-  // Authoritative Countdown State (Closes September 27, 2026 at 11:59:59 PM CT)
+  // Authoritative Countdown State (Closes Saturday, September 12, 2026 at Midnight EST)
   const [timeRemaining, setTimeRemaining] = useState(() => {
     const diff = new Date(CATEGORY_SUGGESTION_DEADLINE).getTime() - Date.now();
     return Math.max(0, diff);

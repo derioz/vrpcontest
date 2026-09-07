@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-2230',
+    id: 'entry-20260906-2235',
     dateKey: 'September 6, 2026',
-    timeStr: '10:30 PM',
-    fullTimestamp: 'September 6, 2026 at 10:30 PM',
+    timeStr: '10:35 PM',
+    fullTimestamp: 'September 6, 2026 at 10:35 PM',
     labels: ['UI', 'ENHANCE', 'NEW'],
     title: 'Widescreen 16:9 Category Hub, Live Countdown & Voter Insights',
     bullets: [
-      'Expanded the Category Suggestion hub to an expansive 16:9 widescreen layout with a 2-column live countdown ticker to the September 27 deadline.',
+      'Configured the official Category Suggestion submission and voting window to start immediately and conclude Saturday, September 12 at Midnight EST.',
+      'Enforced the September 12 at Midnight EST deadline across server-side Firestore security rules and client suggestion services.',
+      'Expanded the Category Suggestion hub to an expansive 16:9 widescreen layout with a 2-column live countdown ticker.',
       'Added public upvote and downvote voter lists with quick hover preview cards and a searchable full-community voter modal.',
       'Upgraded cards with live Discord display name and custom avatar resolution for authors and voters.',
-      'Empowered suggestion authors to safely delete their own submissions with instant slot recovery and confirmation safeguards.',
-      'Enhanced suggestion submissions with live character counters, real-time duplicate topic alerts, and an instant scroll-to-top floating action.',
     ],
     author: 'Damon',
   },
