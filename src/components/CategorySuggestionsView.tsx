@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   ArrowLeft,
   Sparkles,
@@ -28,7 +28,9 @@ import {
   ChevronRight,
   Heart,
   HelpCircle,
-  LogIn
+  LogIn,
+  Lightbulb,
+  Users
 } from 'lucide-react';
 import { toast } from './ui/toast';
 import { cn } from '../lib/utils';
@@ -60,6 +62,7 @@ export interface CategorySuggestionsViewProps {
   currentUser?: any | null;
   isAdmin: boolean;
   isStandalonePage?: boolean;
+  votingOpen?: boolean;
   onClose?: () => void;
   onOpenSignIn: () => void;
   onNavigateAdmin?: () => void;
@@ -76,11 +79,14 @@ export function CategorySuggestionsView({
   currentUser,
   isAdmin,
   isStandalonePage = false,
+  votingOpen,
   onClose,
   onOpenSignIn,
   onNavigateAdmin,
   onOpenProfile
 }: CategorySuggestionsViewProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const isVotingActive = votingOpen !== undefined ? votingOpen : (SITE_CONFIG.categorySuggestions.allowVoting ?? true);
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -617,6 +623,20 @@ export function CategorySuggestionsView({
     return suggestions.reduce((acc, s) => acc + (s.upvotes || 0) + (s.downvotes || 0), 0);
   }, [suggestions]);
 
+  // Unique Voters Count without expensive DB queries
+  const uniqueVotersCount = useMemo(() => {
+    const voterSet = new Set<string>();
+    suggestions.forEach((s) => {
+      if (Array.isArray(s.voters_sample)) {
+        s.voters_sample.forEach((v) => {
+          const id = v.discordId || v.userId;
+          if (id) voterSet.add(id);
+        });
+      }
+    });
+    return voterSet.size;
+  }, [suggestions]);
+
   const remainingSuggestions = Math.max(0, maxAllowedSuggestions - userSubmittedCount);
 
   const formatDate = (isoString: string) => {
@@ -745,59 +765,122 @@ export function CategorySuggestionsView({
 
       {/* ── Main Content Stage ── */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 relative z-10">
-        {/* ── HERO SECTION ── */}
-        <section className="mb-10 text-center sm:text-left flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 border-b border-white/10">
-          <div className="max-w-2xl">
-            {/* Status Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-md mb-4 text-xs font-mono font-bold text-emerald-400 uppercase tracking-widest">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Community Category Voting is Open</span>
+        {/* ── HERO SECTION: COMPACT COMMUNITY-VOTING HERO ── */}
+        <section className="mb-8 pt-1 text-center flex flex-col items-center justify-center relative pb-6 border-b border-white/[0.08]">
+          <motion.div
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="max-w-2xl mx-auto flex flex-col items-center text-center"
+          >
+            {/* Vital RP Logo & Live Status Pill */}
+            <div className="flex items-center justify-center gap-2.5 mb-3">
+              <img
+                src={VITAL_RP_LOGO_URL}
+                alt="Vital RP Logo"
+                className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0"
+                width={32}
+                height={32}
+              />
+              <div
+                className={cn(
+                  "inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider",
+                  isVotingActive
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full shrink-0",
+                    isVotingActive ? "bg-emerald-400 animate-[pulse_2.5s_ease-in-out_infinite]" : "bg-amber-400"
+                  )}
+                />
+                <span>{isVotingActive ? "Community Voting Open" : "Voting Paused"}</span>
+              </div>
             </div>
 
-            {/* Title */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
-              Help Pick the Next{' '}
-              <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
-                Vital RP Photo Contest
-              </span>
+            {/* Clear Headline */}
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-2">
+              Help Choose What's Next
             </h1>
 
-            {/* Description */}
-            <p className="text-white/70 text-sm sm:text-base leading-relaxed">
-              Suggest a category or vote for your favorites. The most popular ideas may become future Vital RP photo contests.
+            {/* Short Useful Explanation */}
+            <p className="text-white/70 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed mb-4">
+              Suggest photo contest categories, vote on your favorites, and help decide what the Vital RP community wants to see next.
             </p>
 
-            {/* User remaining counter notice when signed in */}
-            {currentUser && (
-              <div className="mt-3 flex items-center gap-2 text-xs font-mono text-white/50">
-                <Sparkles size={12} className="text-fivem-orange" />
+            {/* Primary Action: Suggest a Category */}
+            <div className="mb-4">
+              <motion.button
+                type="button"
+                whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+                onClick={handleOpenSuggestModal}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs sm:text-sm font-black uppercase tracking-wider cursor-pointer shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-fivem-orange/60 active:scale-[0.98]"
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                <span>Suggest a Category</span>
+              </motion.button>
+            </div>
+
+            {/* Useful Live Community Statistics Row */}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs font-mono mb-3.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
+                <Lightbulb size={13} className="text-amber-400 shrink-0" />
+                <span className="font-bold text-white"><NumberTicker value={suggestions.length} /></span>
+                <span className="text-white/50">{suggestions.length === 1 ? 'Suggestion' : 'Suggestions'}</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
+                <TrendingUp size={13} className="text-fivem-orange shrink-0" />
+                <span className="font-bold text-white"><NumberTicker value={totalVotesCast} /></span>
+                <span className="text-white/50">{totalVotesCast === 1 ? 'Vote' : 'Votes'}</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-white/80 shadow-sm">
+                <Users size={13} className="text-sky-400 shrink-0" />
+                <span className="font-bold text-white"><NumberTicker value={uniqueVotersCount} /></span>
+                <span className="text-white/50">{uniqueVotersCount === 1 ? 'Voter' : 'Voters'}</span>
+              </div>
+            </div>
+
+            {/* User Context & Eligibility State */}
+            {currentUser ? (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-mono text-white/70">
+                <img
+                  src={getProfileAvatar(
+                    currentUser.photoURL,
+                    currentUser.avatarSeed || currentUser.uid,
+                    currentUser.avatarStyle,
+                    currentUser.avatarSource,
+                    currentUser.discordPhotoURL
+                  )}
+                  alt=""
+                  className="w-4 h-4 rounded-full object-cover ring-1 ring-white/20 shrink-0"
+                  width={16}
+                  height={16}
+                />
+                <span className="text-emerald-400 font-bold">✓ You're eligible to vote</span>
+                <span className="text-white/20">•</span>
                 <span>
-                  You have <strong className="text-fivem-orange">{remainingSuggestions}</strong> of{' '}
-                  <strong>{maxAllowedSuggestions}</strong> suggestions remaining.
+                  <strong className="text-fivem-orange">{remainingSuggestions}</strong> of {maxAllowedSuggestions} suggestions remaining
                 </span>
               </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-mono text-white/60">
+                <span>Sign in with Discord to vote or suggest a category.</span>
+                <button
+                  type="button"
+                  onClick={onOpenSignIn}
+                  className="inline-flex items-center gap-1 font-bold text-fivem-orange hover:text-orange-400 hover:underline cursor-pointer ml-1"
+                >
+                  <LogIn size={12} />
+                  <span>Sign In</span>
+                </button>
+              </div>
             )}
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-2 gap-3 shrink-0 self-center sm:self-end">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center min-w-[120px]">
-              <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">
-                Total Ideas
-              </span>
-              <span className="text-xl font-black font-display text-white">
-                <NumberTicker value={suggestions.length} />
-              </span>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center min-w-[120px]">
-              <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">
-                Community Votes
-              </span>
-              <span className="text-xl font-black font-display text-fivem-orange">
-                <NumberTicker value={totalVotesCast} />
-              </span>
-            </div>
-          </div>
+          </motion.div>
         </section>
 
         {/* ── COMMUNITY FAVORITES (COMPACT LEADERBOARD) ── */}
@@ -859,8 +942,8 @@ export function CategorySuggestionsView({
           </section>
         )}
 
-        {/* ── TOOLBAR: SEARCH & FILTERS ── */}
-        <section className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        {/* ── TOOLBAR: SEARCH & FILTERS (SUBTLY STICKY) ── */}
+        <section className="sticky top-[58px] sm:top-[64px] z-20 py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 mb-6 bg-[#07070b]/90 backdrop-blur-md border-y border-white/[0.08] transition-all flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
@@ -869,7 +952,7 @@ export function CategorySuggestionsView({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search category concepts or ideas..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/30 text-xs font-medium focus:outline-none focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 transition-all"
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/30 text-xs font-medium focus:outline-none focus:border-fivem-orange/60 focus:ring-1 focus:ring-fivem-orange/40 transition-all"
             />
             {searchQuery && (
               <button
@@ -923,7 +1006,7 @@ export function CategorySuggestionsView({
               onClick={loadSuggestions}
               disabled={refreshing}
               title="Refresh suggestions"
-              className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer shrink-0 disabled:opacity-50"
+              className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white/50 hover:text-white transition-all cursor-pointer shrink-0 disabled:opacity-50"
             >
               <RefreshCw size={15} className={cn(refreshing && "animate-spin text-fivem-orange")} />
             </button>
@@ -1216,21 +1299,81 @@ export function CategorySuggestionsView({
         )}
       </main>
 
-      {/* ── FOOTER: CREATOR CREDIT & BRANDING ── */}
-      <footer className="mt-auto border-t border-white/10 bg-[#060608] py-8 px-4 sm:px-8 relative z-10">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="flex items-center gap-2.5">
+      {/* ── FOOTER: CREATOR CREDIT, BRANDING & USEFUL NAVIGATION ── */}
+      <footer className="mt-auto border-t border-white/[0.08] bg-[#060609]/95 backdrop-blur-xl py-8 px-4 sm:px-8 relative z-10">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+          {/* Left: Brand Identity */}
+          <div className="flex flex-col sm:flex-row items-center gap-3">
             <img
               src={VITAL_RP_LOGO_URL}
               alt="Vital RP Logo"
-              className="w-6 h-6 object-contain"
+              className="w-8 h-8 object-contain shrink-0"
+              width={32}
+              height={32}
             />
-            <span className="text-white/60 text-xs font-mono">
-              Vital RP Photo Contest Platform
-            </span>
+            <div>
+              <p className="text-white font-bold font-display text-sm">
+                Vital RP Photo Contests
+              </p>
+              <p className="text-white/40 text-xs font-mono">
+                Community-created. Community-voted.
+              </p>
+            </div>
           </div>
 
-          <CreatorPill />
+          {/* Center: Mode-Aware Useful Navigation Links */}
+          <nav aria-label="Footer Navigation" className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs font-mono">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-white/60 hover:text-white transition-colors cursor-pointer"
+            >
+              Category Voting
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenSuggestModal}
+              className="text-white/60 hover:text-fivem-orange transition-colors cursor-pointer"
+            >
+              Suggest an Idea
+            </button>
+
+            {!isStandalonePage && onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-white/60 hover:text-white transition-colors cursor-pointer"
+              >
+                Return to Contest
+              </button>
+            )}
+
+            <a
+              href={SITE_CONFIG.discord.inviteUrl || "https://discord.gg/vitalrp"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/60 hover:text-indigo-400 transition-colors inline-flex items-center gap-1"
+            >
+              <span>Vital Discord</span>
+              <ExternalLink size={11} className="opacity-70" />
+            </a>
+
+            {isAdmin && onNavigateAdmin && (
+              <button
+                type="button"
+                onClick={onNavigateAdmin}
+                className="text-fivem-orange/80 hover:text-fivem-orange transition-colors cursor-pointer"
+              >
+                Admin Console
+              </button>
+            )}
+          </nav>
+
+          {/* Right: Creator Pill */}
+          <div className="shrink-0">
+            <CreatorPill />
+          </div>
         </div>
       </footer>
 

@@ -2176,6 +2176,7 @@ export default function App() {
             currentUser={user}
             isAdmin={isAdmin}
             isStandalonePage={true}
+            votingOpen={votingOpen}
             onOpenSignIn={() => setShowSignInModal(true)}
             onNavigateAdmin={() => navigateTo('/admin')}
             onOpenProfile={() => setIsProfileSheetOpen(true)}
@@ -3351,6 +3352,7 @@ export default function App() {
               <CategorySuggestionsView
                 currentUser={user}
                 isAdmin={isAdmin}
+                votingOpen={votingOpen}
                 onClose={() => setShowCategorySuggestions(false)}
                 onOpenSignIn={() => setShowSignInModal(true)}
                 onNavigateAdmin={() => navigateTo('/admin')}

@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-1930',
+    id: 'entry-20260906-1955',
     dateKey: 'September 6, 2026',
-    timeStr: '7:30 PM',
-    fullTimestamp: 'September 6, 2026 at 7:30 PM',
-    labels: ['NEW', 'UI', 'ENHANCE'],
-    title: 'Reddit-Style Community Voting, Admin Mode Toggle & Brand Refresh',
+    timeStr: '7:55 PM',
+    fullTimestamp: 'September 6, 2026 at 7:55 PM',
+    labels: ['UI', 'ENHANCE', 'NEW'],
+    title: 'Community Voting Hero, Sticky Toolbar & Modernized Footer',
     bullets: [
-      'Upgraded Category Suggestions to Reddit-style community voting with dedicated upvotes, downvotes, dynamic net score, and smooth FLIP layout animations.',
-      'Added live Category Suggestion Mode toggle inside Admin Console → Controls with real-time telemetry badge and cross-session persistence.',
-      'Introduced interactive "Created by Damon" footer pill featuring Damon\'s avatar, playful wiggle animation, and motion accessibility support.',
-      'Updated official Vital RP logo site-wide across navigation headers, watermarks, and verification modals.',
-      'Refined filter tabs to Top, New, My Suggestions, and My Votes with rapid-click concurrency protection.',
+      'Redesigned the Category Suggestions header into a compact community-voting hero with live voting status, real-time suggestion stats, and Discord eligibility tracking.',
+      'Introduced a sticky voting toolbar with smooth backdrop blur that docks seamlessly beneath the header when browsing community ideas.',
+      'Modernized the page footer with mode-aware navigation links, official Vital RP branding, and direct community Discord access.',
+      'Enhanced the "Created by Damon" creator pill with transform-based wiggle animations and a playful Easter egg.',
+      'Optimized community telemetry tickers with instant number counters and zero unnecessary database queries.',
     ],
     author: 'Damon',
   },
