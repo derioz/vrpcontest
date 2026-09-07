@@ -270,6 +270,22 @@ export function subscribeCategorySuggestions(
 }
 
 /**
+ * User Suggestion Limit State
+ */
+export interface UserSuggestionLimitState {
+  limit: number;
+  used: number;
+  remaining: number;
+  canSuggest: boolean;
+}
+
+export interface SubmitSuggestionResult extends CategorySuggestion {
+  success: boolean;
+  suggestion: CategorySuggestion;
+  suggestionLimit: UserSuggestionLimitState;
+}
+
+/**
  * Fetch total number of active suggestions submitted by a specific user or Discord ID.
  */
 export async function fetchUserSuggestionCount(userId: string, discordId?: string | null): Promise<number> {
@@ -312,12 +328,39 @@ export async function fetchUserSuggestionCount(userId: string, discordId?: strin
 }
 
 /**
+ * Authoritatively fetch the user's database-backed submission limit, usage, and remaining slots.
+ */
+export async function getUserSuggestionLimit(
+  userId?: string | null,
+  discordId?: string | null
+): Promise<UserSuggestionLimitState> {
+  const maxAllowed = SITE_CONFIG.categorySuggestions.maxSuggestionsPerUser || MAX_CATEGORY_SUGGESTIONS_PER_USER;
+  if (!userId && !discordId) {
+    return {
+      limit: maxAllowed,
+      used: 0,
+      remaining: maxAllowed,
+      canSuggest: false
+    };
+  }
+
+  const used = await fetchUserSuggestionCount(userId || '', discordId);
+  const remaining = Math.max(0, maxAllowed - used);
+  return {
+    limit: maxAllowed,
+    used,
+    remaining,
+    canSuggest: remaining > 0
+  };
+}
+
+/**
  * Submit a new category suggestion attached to the user's Discord profile.
  * Validates character limits, trims whitespace, prevents duplicate categories, and enforces per-user limit.
  */
 export async function submitCategorySuggestion(
   input: CreateSuggestionInput
-): Promise<CategorySuggestion> {
+): Promise<SubmitSuggestionResult> {
   const trimmedName = input.category_name.trim();
   const trimmedDesc = (input.description || '').trim();
 
@@ -326,11 +369,11 @@ export async function submitCategorySuggestion(
   if (trimmedName.length > 100) throw new Error('Category name cannot exceed 100 characters.');
   if (trimmedDesc.length > 1000) throw new Error('Description cannot exceed 1000 characters.');
 
-  // 1. Enforce per-user suggestion limit
-  const maxAllowed = SITE_CONFIG.categorySuggestions.maxSuggestionsPerUser || MAX_CATEGORY_SUGGESTIONS_PER_USER;
-  const currentCount = await fetchUserSuggestionCount(input.user_id, input.discord_id || input.author_discord_id);
-  if (currentCount >= maxAllowed && !input.is_admin_author) {
-    throw new Error(`You have reached the limit of ${maxAllowed} category suggestions.`);
+  // 1. Authoritatively enforce per-user suggestion limit
+  const primaryDiscordId = input.discord_id || input.author_discord_id || null;
+  const limitState = await getUserSuggestionLimit(input.user_id, primaryDiscordId);
+  if (!input.is_admin_author && limitState.remaining <= 0) {
+    throw new Error(`You have reached the limit of ${limitState.limit} category suggestions.`);
   }
 
   // 2. Case-insensitive duplicate prevention (e.g., 'Street Racing' and 'street racing')
@@ -355,7 +398,7 @@ export async function submitCategorySuggestion(
     category_name: trimmedName,
     description: trimmedDesc,
     user_id: String(input.user_id),
-    discord_id: input.discord_id || input.author_discord_id || null,
+    discord_id: primaryDiscordId,
     discord_name: input.discord_name || input.author_name || 'Discord User',
     author_name: input.author_name || input.discord_name || 'Discord User',
     author_avatar_url: input.author_avatar_url || null,
@@ -373,9 +416,25 @@ export async function submitCategorySuggestion(
 
   await setDoc(suggestionRef, payload);
 
-  return {
+  const updatedUsed = limitState.used + 1;
+  const updatedRemaining = Math.max(0, limitState.limit - updatedUsed);
+  const updatedLimitState: UserSuggestionLimitState = {
+    limit: limitState.limit,
+    used: updatedUsed,
+    remaining: updatedRemaining,
+    canSuggest: input.is_admin_author || updatedRemaining > 0
+  };
+
+  const suggestionItem: CategorySuggestion = {
     ...payload,
     user_vote: 0
+  };
+
+  return {
+    ...suggestionItem,
+    success: true,
+    suggestion: suggestionItem,
+    suggestionLimit: updatedLimitState
   };
 }
 

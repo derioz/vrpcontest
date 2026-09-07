@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260906-1955',
+    id: 'entry-20260906-2030',
     dateKey: 'September 6, 2026',
-    timeStr: '7:55 PM',
-    fullTimestamp: 'September 6, 2026 at 7:55 PM',
-    labels: ['UI', 'ENHANCE', 'NEW'],
-    title: 'Community Voting Hero, Sticky Toolbar & Modernized Footer',
+    timeStr: '8:30 PM',
+    fullTimestamp: 'September 6, 2026 at 8:30 PM',
+    labels: ['UI', 'ENHANCE', 'BACKEND'],
+    title: 'Floating Navbar, Profile Capsule & Database-Backed Suggestion Limits',
     bullets: [
-      'Redesigned the Category Suggestions header into a compact community-voting hero with live voting status, real-time suggestion stats, and Discord eligibility tracking.',
-      'Introduced a sticky voting toolbar with smooth backdrop blur that docks seamlessly beneath the header when browsing community ideas.',
-      'Modernized the page footer with mode-aware navigation links, official Vital RP branding, and direct community Discord access.',
-      'Enhanced the "Created by Damon" creator pill with transform-based wiggle animations and a playful Easter egg.',
-      'Optimized community telemetry tickers with instant number counters and zero unnecessary database queries.',
+      'Introduced a modern floating navigation bar with scroll hide-and-reveal animations, responsive mobile drawer, and official Vital branding.',
+      'Added an integrated profile capsule with seamless avatar loading, Discord account details, Whitelist status, and quick profile settings access.',
+      'Upgraded suggestion allowance tracking to be 100% database-backed and server-enforced, guaranteeing accurate real-time submission limits.',
+      'Refined the community voting hero and sticky filter toolbar with live participant telemetry and responsive category rankings.',
+      'Updated avatar rendering with high-resolution Discord CDN support and zero-layout-shift DiceBear fallbacks across all suggestion cards.',
     ],
     author: 'Damon',
   },

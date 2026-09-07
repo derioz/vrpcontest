@@ -53,7 +53,7 @@ export function getDiceBearAvatarUrl(seed: string, style: DiceBearStyleName = 'b
   const safeSeed = encodeURIComponent(seed || 'vital-user');
   const matched = AVAILABLE_DICEBEAR_STYLES.find(s => s.id === style);
   const apiName = matched ? matched.apiName : 'bottts-neutral';
-  return `https://api.dicebear.com/9.x/${apiName}/svg?seed=${safeSeed}`;
+  return `https://api.dicebear.com/10.x/${apiName}/svg?seed=${safeSeed}`;
 }
 
 /**

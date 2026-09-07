@@ -43,6 +43,8 @@ import {
   deleteCategorySuggestion,
   fetchSuggestionVoters,
   fetchUserSuggestionCount,
+  getUserSuggestionLimit,
+  UserSuggestionLimitState,
   sortSuggestions,
   SuggestionVoter
 } from '../lib/suggestionsService';
@@ -55,6 +57,8 @@ import { NumberTicker } from './ui/number-ticker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Skeleton } from './ui/skeleton';
 import { CreatorPill } from './ui/CreatorPill';
+import { SiteNavbar } from './SiteNavbar';
+import { UserAvatar } from './ui/UserAvatar';
 
 export type SuggestionFilterOption = 'most_votes' | 'newest' | 'my_suggestions' | 'voted_by_me';
 
@@ -67,6 +71,7 @@ export interface CategorySuggestionsViewProps {
   onOpenSignIn: () => void;
   onNavigateAdmin?: () => void;
   onOpenProfile?: () => void;
+  onSignOut?: () => void;
 }
 
 interface HoveredVotersState {
@@ -83,7 +88,8 @@ export function CategorySuggestionsView({
   onClose,
   onOpenSignIn,
   onNavigateAdmin,
-  onOpenProfile
+  onOpenProfile,
+  onSignOut
 }: CategorySuggestionsViewProps) {
   const shouldReduceMotion = useReducedMotion();
   const isVotingActive = votingOpen !== undefined ? votingOpen : (SITE_CONFIG.categorySuggestions.allowVoting ?? true);
@@ -101,8 +107,15 @@ export function CategorySuggestionsView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // User suggestion count tracking
+  // Authoritative database-backed suggestion limit tracking
+  const maxAllowedSuggestions = SITE_CONFIG.categorySuggestions.maxSuggestionsPerUser || MAX_CATEGORY_SUGGESTIONS_PER_USER;
   const [userSubmittedCount, setUserSubmittedCount] = useState(0);
+  const [suggestionLimit, setSuggestionLimit] = useState<UserSuggestionLimitState>({
+    limit: maxAllowedSuggestions,
+    used: 0,
+    remaining: maxAllowedSuggestions,
+    canSuggest: true
+  });
 
   // Delete confirmation modal
   const [deletingSuggestionId, setDeletingSuggestionId] = useState<string | null>(null);
@@ -116,7 +129,6 @@ export function CategorySuggestionsView({
   const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
 
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
-  const maxAllowedSuggestions = SITE_CONFIG.categorySuggestions.maxSuggestionsPerUser || MAX_CATEGORY_SUGGESTIONS_PER_USER;
 
   // ── Multi-fallback Clipboard Copy Helper ──
   const copyToClipboard = useCallback(async (text: string, title?: string) => {
@@ -203,15 +215,22 @@ export function CategorySuggestionsView({
     };
   }, [effectiveUserId]);
 
-  // ── Refresh user's suggestion count ──
+  // ── Refresh user's authoritative suggestion limit ──
   const refreshUserCount = useCallback(async () => {
-    if (effectiveUserId) {
-      const count = await fetchUserSuggestionCount(effectiveUserId, currentUser?.discordId);
-      setUserSubmittedCount(count);
+    if (effectiveUserId || currentUser?.discordId) {
+      const limitState = await getUserSuggestionLimit(effectiveUserId, currentUser?.discordId);
+      setSuggestionLimit(limitState);
+      setUserSubmittedCount(limitState.used);
     } else {
+      setSuggestionLimit({
+        limit: maxAllowedSuggestions,
+        used: 0,
+        remaining: maxAllowedSuggestions,
+        canSuggest: false
+      });
       setUserSubmittedCount(0);
     }
-  }, [effectiveUserId, currentUser?.discordId]);
+  }, [effectiveUserId, currentUser?.discordId, maxAllowedSuggestions]);
 
   useEffect(() => {
     refreshUserCount();
@@ -239,10 +258,10 @@ export function CategorySuggestionsView({
       return;
     }
 
-    // Check user limit
-    if (userSubmittedCount >= maxAllowedSuggestions && !isAdmin) {
+    // Check user limit authoritatively
+    if (suggestionLimit.remaining <= 0 && !isAdmin) {
       toast.error('Suggestion Limit Reached', {
-        description: `You have already submitted ${maxAllowedSuggestions} of ${maxAllowedSuggestions} allowed category suggestions.`
+        description: `You have already used all ${suggestionLimit.limit} of ${suggestionLimit.limit} allowed category suggestions.`
       });
       return;
     }
@@ -292,7 +311,7 @@ export function CategorySuggestionsView({
 
     setIsSubmitting(true);
     try {
-      await submitCategorySuggestion({
+      const res = await submitCategorySuggestion({
         category_name: trimmedName,
         description: trimmedDesc,
         user_id: effectiveUserId || currentUser.uid,
@@ -306,6 +325,12 @@ export function CategorySuggestionsView({
         is_admin_author: isAdmin,
         status: 'open'
       });
+
+      // Immediately apply authoritative suggestion limit returned by server
+      if (res.suggestionLimit) {
+        setSuggestionLimit(res.suggestionLimit);
+        setUserSubmittedCount(res.suggestionLimit.used);
+      }
 
       setCategoryName('');
       setDescription('');
@@ -669,102 +694,22 @@ export function CategorySuggestionsView({
       <Spotlight className="top-40 right-0 h-[60vh] w-[45vw]" fill="rgba(251, 146, 60, 0.12)" />
       <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.04] pointer-events-none" />
 
-      {/* ── Navigation Bar ── */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#09090b]/85 backdrop-blur-2xl px-4 sm:px-8 py-3.5 shadow-md">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-          {isStandalonePage ? (
-            /* Standalone Page Brand Header */
-            <div className="flex items-center gap-3">
-              <img
-                src={VITAL_RP_LOGO_URL}
-                alt="Vital RP Logo"
-                className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(234,88,12,0.6)]"
-              />
-              <div>
-                <span className="text-white font-black font-display text-sm tracking-wide block leading-none">
-                  Vital RP
-                </span>
-                <span className="text-fivem-orange/80 text-[10px] font-mono uppercase tracking-widest leading-none">
-                  Category Voting Event
-                </span>
-              </div>
-            </div>
-          ) : (
-            /* Modal Overlay Close Button */
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 text-white/80 hover:text-white text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 group"
-            >
-              <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-              <span>Return to Contest</span>
-            </button>
-          )}
-
-          {/* Right Action Cluster */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Admin Console Link (Staff Only) */}
-            {isAdmin && (
-              <button
-                onClick={onNavigateAdmin || (() => window.location.assign('/admin'))}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-fivem-orange/15 hover:bg-fivem-orange/25 border border-fivem-orange/30 text-fivem-orange text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
-                title="Go to Admin Management Console"
-              >
-                <ShieldCheck size={13} />
-                <span>Admin Console</span>
-              </button>
-            )}
-
-            {/* User Profile / Discord Sign-In Button */}
-            {currentUser ? (
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                disabled={!onOpenProfile}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 transition-all text-left",
-                  onOpenProfile ? "hover:bg-white/[0.08] hover:border-white/20 cursor-pointer active:scale-95" : "cursor-default"
-                )}
-                title={onOpenProfile ? "Open Profile Settings" : undefined}
-              >
-                <img
-                  src={getProfileAvatar(
-                    currentUser.photoURL,
-                    currentUser.avatarSeed || currentUser.uid,
-                    currentUser.avatarStyle,
-                    currentUser.avatarSource,
-                    currentUser.discordPhotoURL
-                  )}
-                  alt=""
-                  className="w-5 h-5 rounded-full object-cover border border-white/10"
-                />
-                <span className="text-xs font-bold text-white/90 max-w-[110px] truncate hidden sm:inline">
-                  {currentUser.displayName || currentUser.email?.split('@')[0]}
-                </span>
-              </button>
-            ) : (
-              <button
-                onClick={onOpenSignIn}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-white/90 text-xs font-bold font-mono transition-all cursor-pointer"
-              >
-                <LogIn size={13} className="text-fivem-orange" />
-                <span>Sign In</span>
-              </button>
-            )}
-
-            {/* Primary Action: Suggest Category */}
-            <button
-              onClick={handleOpenSuggestModal}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-[0_4px_16px_rgba(234,88,12,0.35)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.5)] transition-all duration-300 active:scale-95"
-            >
-              <Plus size={15} />
-              <span>Suggest Category</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* ── Floating Modern Navigation Bar ── */}
+      <SiteNavbar
+        currentUser={currentUser}
+        isAdmin={isAdmin}
+        isStandalonePage={isStandalonePage}
+        activeNav="category-voting"
+        onOpenSuggestModal={handleOpenSuggestModal}
+        onClose={onClose}
+        onOpenSignIn={onOpenSignIn}
+        onNavigateAdmin={onNavigateAdmin}
+        onOpenProfile={onOpenProfile}
+        onSignOut={onSignOut}
+      />
 
       {/* ── Main Content Stage ── */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 relative z-10">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-8 sm:pb-12 relative z-10">
         {/* ── HERO SECTION: COMPACT COMMUNITY-VOTING HERO ── */}
         <section className="mb-8 pt-1 text-center flex flex-col items-center justify-center relative pb-6 border-b border-white/[0.08]">
           <motion.div
@@ -814,13 +759,19 @@ export function CategorySuggestionsView({
             <div className="mb-4">
               <motion.button
                 type="button"
-                whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
-                whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+                whileHover={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 1.02 }}
+                whileTap={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 0.98 }}
                 onClick={handleOpenSuggestModal}
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs sm:text-sm font-black uppercase tracking-wider cursor-pointer shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-fivem-orange/60 active:scale-[0.98]"
+                className={cn(
+                  "inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 active:scale-[0.98]",
+                  suggestionLimit.remaining <= 0 && !isAdmin && currentUser
+                    ? "bg-zinc-800/80 text-white/50 border border-white/10 hover:bg-zinc-800 cursor-not-allowed"
+                    : "bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white cursor-pointer shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] focus:ring-fivem-orange/60"
+                )}
+                title={suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `You have reached your limit of ${suggestionLimit.limit} suggestions.` : undefined}
               >
                 <Plus size={16} strokeWidth={2.5} />
-                <span>Suggest a Category</span>
+                <span>{suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `Limit Reached (${suggestionLimit.limit} of ${suggestionLimit.limit})` : "Suggest a Category"}</span>
               </motion.button>
             </div>
 
@@ -848,23 +799,30 @@ export function CategorySuggestionsView({
             {/* User Context & Eligibility State */}
             {currentUser ? (
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-mono text-white/70">
-                <img
-                  src={getProfileAvatar(
-                    currentUser.photoURL,
-                    currentUser.avatarSeed || currentUser.uid,
-                    currentUser.avatarStyle,
-                    currentUser.avatarSource,
-                    currentUser.discordPhotoURL
-                  )}
-                  alt=""
-                  className="w-4 h-4 rounded-full object-cover ring-1 ring-white/20 shrink-0"
-                  width={16}
-                  height={16}
+                <UserAvatar
+                  userId={currentUser.uid}
+                  discordId={currentUser.discordId}
+                  photoURL={currentUser.photoURL}
+                  discordPhotoURL={currentUser.discordPhotoURL}
+                  username={currentUser.displayName}
+                  size="xs"
                 />
                 <span className="text-emerald-400 font-bold">✓ You're eligible to vote</span>
                 <span className="text-white/20">•</span>
                 <span>
-                  <strong className="text-fivem-orange">{remainingSuggestions}</strong> of {maxAllowedSuggestions} suggestions remaining
+                  <AnimatePresence mode="wait">
+                    <motion.strong
+                      key={suggestionLimit.remaining}
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4 }}
+                      transition={{ duration: 0.18 }}
+                      className={cn(suggestionLimit.remaining <= 0 ? "text-amber-400 font-bold" : "text-fivem-orange")}
+                    >
+                      {suggestionLimit.remaining} of {suggestionLimit.limit}
+                    </motion.strong>
+                  </AnimatePresence>{' '}
+                  suggestions remaining
                 </span>
               </div>
             ) : (
@@ -943,7 +901,7 @@ export function CategorySuggestionsView({
         )}
 
         {/* ── TOOLBAR: SEARCH & FILTERS (SUBTLY STICKY) ── */}
-        <section className="sticky top-[58px] sm:top-[64px] z-20 py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 mb-6 bg-[#07070b]/90 backdrop-blur-md border-y border-white/[0.08] transition-all flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <section className="sticky top-0 z-20 py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 mb-6 bg-[#07070b]/92 backdrop-blur-md border-y border-white/[0.08] transition-all flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
@@ -1178,10 +1136,12 @@ export function CategorySuggestionsView({
                               <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                                 {hoveredVoters.voters.slice(0, 15).map((voter) => (
                                   <div key={voter.userId} className="flex items-center gap-2 text-xs py-0.5">
-                                    <img
-                                      src={getProfileAvatar(voter.authorAvatarUrl, voter.discordId || voter.userId, voter.avatarStyle)}
-                                      alt=""
-                                      className="w-4 h-4 rounded-full object-cover border border-white/10 shrink-0"
+                                    <UserAvatar
+                                      userId={voter.userId}
+                                      discordId={voter.discordId}
+                                      photoURL={voter.authorAvatarUrl}
+                                      username={voter.discordName}
+                                      size="xs"
                                     />
                                     <span className="text-[11px] font-bold text-white/90 truncate flex-1">
                                       {voter.discordName}
@@ -1234,7 +1194,14 @@ export function CategorySuggestionsView({
                       )}
 
                       {/* Submitter Attribution */}
-                      <span className="text-white/40 text-[11px] font-mono flex items-center gap-1">
+                      <span className="text-white/40 text-[11px] font-mono flex items-center gap-1.5">
+                        <UserAvatar
+                          userId={suggestion.user_id}
+                          discordId={suggestion.discord_id || suggestion.author_discord_id}
+                          photoURL={suggestion.author_avatar_url}
+                          username={displayName}
+                          size="xs"
+                        />
                         <span>by</span>
                         <strong className="text-white/80">{displayName}</strong>
                       </span>
@@ -1399,10 +1366,20 @@ export function CategorySuggestionsView({
           {/* User Allowance Notice */}
           <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs font-mono">
             <span className="text-white/60">Suggestions Remaining</span>
-            <span className="font-bold text-fivem-orange">
-              {remainingSuggestions} of {maxAllowedSuggestions}
+            <span className={cn(
+              "font-bold",
+              suggestionLimit.remaining > 0 || isAdmin ? "text-fivem-orange" : "text-amber-400"
+            )}>
+              {suggestionLimit.remaining} of {suggestionLimit.limit}
             </span>
           </div>
+
+          {suggestionLimit.remaining <= 0 && !isAdmin && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2 font-mono">
+              <AlertCircle size={14} className="shrink-0 text-amber-400" />
+              <span>You have reached your submission limit ({suggestionLimit.limit} of {suggestionLimit.limit} used).</span>
+            </div>
+          )}
 
           {formError && (
             <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 flex items-center gap-2">
@@ -1463,7 +1440,7 @@ export function CategorySuggestionsView({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || !categoryName.trim()}
+                disabled={isSubmitting || !categoryName.trim() || (suggestionLimit.remaining <= 0 && !isAdmin)}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-fivem-orange/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting ? (

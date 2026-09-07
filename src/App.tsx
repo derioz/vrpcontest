@@ -2180,6 +2180,7 @@ export default function App() {
             onOpenSignIn={() => setShowSignInModal(true)}
             onNavigateAdmin={() => navigateTo('/admin')}
             onOpenProfile={() => setIsProfileSheetOpen(true)}
+            onSignOut={handleSignOut}
           />
         </Suspense>
 
@@ -3357,6 +3358,7 @@ export default function App() {
                 onOpenSignIn={() => setShowSignInModal(true)}
                 onNavigateAdmin={() => navigateTo('/admin')}
                 onOpenProfile={() => setIsProfileSheetOpen(true)}
+                onSignOut={handleSignOut}
               />
             </Suspense>
           </ErrorBoundary>
