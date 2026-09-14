@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { toast } from '../ui/toast';
 import { Category, Photo } from '../../types';
 import { cn } from '../../lib/utils';
@@ -6,9 +6,9 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { DocTabs } from '../ui/doctabs';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, doc, writeBatch, setDoc, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, writeBatch, setDoc, increment, deleteDoc } from 'firebase/firestore';
 import {
-  AlertCircle, X, Plus, Bold, Italic, Heading, List,
+  AlertCircle, AlertTriangle, X, Plus, Bold, Italic, Heading, List,
   Link as LinkIcon, Smile, Trash2, ServerCrash, Trophy, Sparkles,
   Layers, CheckCircle2, Rocket, Edit3, Save, Check, FileText,
   Quote, Code, Wand2, Eye, RefreshCw, Undo2, HelpCircle
@@ -309,7 +309,9 @@ export function EditContestManager({
   categories?: Category[];
 }) {
   const effectiveRules = rulesMarkdown ?? currentRules ?? '';
-  const effectiveCats = currentCategories && currentCategories.length > 0 ? currentCategories : (propCategories || []);
+  const effectiveCats = (currentCategories && currentCategories.length > 0)
+    ? currentCategories
+    : (propCategories && propCategories.length > 0 ? propCategories : []);
 
   const [setupTab, setSetupTab] = useState<'general' | 'categories' | 'rules'>('general');
   
@@ -327,27 +329,53 @@ export function EditContestManager({
   const [editingEmojiIdx, setEditingEmojiIdx] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingRulesOnly, setSavingRulesOnly] = useState(false);
+  const [savingCategoriesOnly, setSavingCategoriesOnly] = useState(false);
+  const [deletingCat, setDeletingCat] = useState<{ id: string | number, name: string } | null>(null);
+  const [isDeletingCat, setIsDeletingCat] = useState(false);
+  const [isDeduplicating, setIsDeduplicating] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastContestIdRef = useRef<string | null>(activeContest?.id || null);
+  const isCategoriesDirtyRef = useRef(false);
 
-  // Sync state ONLY when switching active contest round to avoid wiping user's typing on real-time listener updates
+  // Sync state when switching active contest round or when categories arrive from Firestore
   useEffect(() => {
-    if (activeContest?.id && activeContest.id !== lastContestIdRef.current) {
-      lastContestIdRef.current = activeContest.id;
-      setTitle(activeContest.name || '');
-      const r = rulesMarkdown ?? currentRules ?? '';
-      const cats = currentCategories && currentCategories.length > 0 ? currentCategories : (propCategories || []);
-      setRules(r);
-      setCategories(cats.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji })));
+    if (activeContest?.id) {
+      const isNewContest = activeContest.id !== lastContestIdRef.current;
+      if (isNewContest) {
+        lastContestIdRef.current = activeContest.id;
+        setTitle(activeContest.name || '');
+        setRules(rulesMarkdown ?? currentRules ?? '');
+        isCategoriesDirtyRef.current = false;
+      }
+
+      const cats = (currentCategories && currentCategories.length > 0)
+        ? currentCategories
+        : (propCategories && propCategories.length > 0 ? propCategories : []);
+
+      // If switching contest round or categories arrived from Firestore and user has no uncommitted edits
+      if (isNewContest || (!isCategoriesDirtyRef.current && cats.length > 0)) {
+        setCategories(cats.map(c => ({ id: c.id, name: c.name, desc: c.description, emoji: c.emoji })));
+      }
     }
   }, [activeContest?.id, activeContest?.name, rulesMarkdown, currentRules, currentCategories, propCategories]);
+
+  // Check for duplicate category names (case-insensitive, trimmed)
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    categories.forEach(c => {
+      const key = c.name.trim().toLowerCase();
+      if (key) counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return Array.from(counts.entries()).filter(([_, count]) => count > 1).map(([name]) => name);
+  }, [categories]);
 
   const addCategory = () => {
     if (!catName.trim() || !catDesc.trim()) {
       toast.error('Please enter category name and description');
       return;
     }
+    isCategoriesDirtyRef.current = true;
     setCategories(prev => [...prev, { id: Date.now(), name: catName.trim(), desc: catDesc.trim(), emoji: catEmoji }]);
     setCatName('');
     setCatDesc('');
@@ -356,8 +384,89 @@ export function EditContestManager({
   };
 
   const removeCategory = (id: string | number) => {
+    isCategoriesDirtyRef.current = true;
     setCategories(prev => prev.filter(c => c.id !== id));
-    toast.info('Category removed');
+    toast.info('Category removed from list');
+  };
+
+  // Immediate authoritative category delete handler
+  const handleConfirmDeleteCategory = async () => {
+    if (!deletingCat) return;
+    setIsDeletingCat(true);
+    try {
+      if (typeof deletingCat.id === 'string') {
+        // Permanently delete document from Firestore
+        await deleteDoc(doc(db, 'categories', deletingCat.id));
+      }
+      isCategoriesDirtyRef.current = true;
+      setCategories(prev => prev.filter(c => c.id !== deletingCat.id));
+      toast.success(`Deleted "${deletingCat.name}" category`);
+      setDeletingCat(null);
+      onUpdated();
+    } catch (err: any) {
+      console.error('Delete category error:', err);
+      toast.error('Failed to delete category', { description: err.message });
+    } finally {
+      setIsDeletingCat(false);
+    }
+  };
+
+  // 1-Click Deduplicate Tool
+  const handleDeduplicateCategories = async () => {
+    if (!activeContest) return;
+    setIsDeduplicating(true);
+    try {
+      const qCats = query(collection(db, 'categories'), where('contest_id', '==', activeContest.id));
+      const snap = await getDocs(qCats);
+      const batch = writeBatch(db);
+
+      const seen = new Set<string>();
+      const kept: { id: string, name: string, desc: string, emoji?: string }[] = [];
+      let deletedCount = 0;
+
+      snap.docs.forEach(d => {
+        const data = d.data();
+        const norm = (data.name || '').trim().toLowerCase();
+        if (!seen.has(norm)) {
+          seen.add(norm);
+          kept.push({
+            id: d.id,
+            name: data.name || '',
+            desc: data.description || '',
+            emoji: data.emoji || '✨'
+          });
+        } else {
+          batch.delete(d.ref);
+          deletedCount++;
+        }
+      });
+
+      if (deletedCount > 0) {
+        await batch.commit();
+        setCategories(kept);
+        isCategoriesDirtyRef.current = false;
+        toast.success(`Deduplicated categories! Removed ${deletedCount} duplicate document(s).`);
+        onUpdated();
+      } else {
+        const localSeen = new Set<string>();
+        const localKept: typeof categories = [];
+        categories.forEach(c => {
+          const norm = c.name.trim().toLowerCase();
+          if (!localSeen.has(norm)) {
+            localSeen.add(norm);
+            localKept.push(c);
+          }
+        });
+        setCategories(localKept);
+        isCategoriesDirtyRef.current = true;
+        toast.info('Removed duplicate entries from setup list.');
+      }
+    } catch (err: any) {
+      console.error('Deduplication error:', err);
+      toast.error('Failed to deduplicate categories', { description: err.message });
+    } finally {
+      setIsDeduplicating(false);
+    }
   };
 
   // Dedicated Save Rules Only handler for instant updates
@@ -372,6 +481,71 @@ export function EditContestManager({
       toast.error('Failed to save rules');
     } finally {
       setSavingRulesOnly(false);
+    }
+  };
+
+  // Dedicated Save Categories Only handler for instant updates
+  const handleSaveCategoriesOnly = async () => {
+    if (!activeContest) return;
+
+    let finalCategories = [...categories];
+    if (catName.trim() && catDesc.trim()) {
+      finalCategories.push({ id: Date.now(), name: catName.trim(), desc: catDesc.trim(), emoji: catEmoji });
+    }
+
+    if (finalCategories.length === 0) return toast.error('At least one category is required');
+
+    setSavingCategoriesOnly(true);
+    try {
+      const batch = writeBatch(db);
+
+      // Query ground truth from Firestore
+      const qExisting = query(collection(db, 'categories'), where('contest_id', '==', activeContest.id));
+      const existingSnap = await getDocs(qExisting);
+      const existingCatDocIds = new Set(existingSnap.docs.map(d => d.id));
+
+      const finalCatIds = new Set(finalCategories.map(c => String(c.id)));
+
+      // Delete removed categories from Firestore
+      existingSnap.docs.forEach(oldDoc => {
+        if (!finalCatIds.has(oldDoc.id)) {
+          batch.delete(oldDoc.ref);
+        }
+      });
+
+      // Update existing or insert new categories
+      finalCategories.forEach(cat => {
+        const strId = String(cat.id);
+        if (existingCatDocIds.has(strId)) {
+          batch.update(doc(db, 'categories', strId), {
+            name: cat.name.trim(),
+            description: cat.desc.trim(),
+            emoji: cat.emoji || '✨'
+          });
+        } else {
+          const catRef = doc(collection(db, 'categories'));
+          batch.set(catRef, {
+            contest_id: activeContest.id,
+            name: cat.name.trim(),
+            description: cat.desc.trim(),
+            emoji: cat.emoji || '✨'
+          });
+        }
+      });
+
+      await batch.commit();
+
+      toast.success('Contest categories updated successfully!');
+      setCatName('');
+      setCatDesc('');
+      setCatEmoji('✨');
+      isCategoriesDirtyRef.current = false;
+      onUpdated();
+    } catch (e) {
+      console.error("Save Categories Error:", e);
+      toast.error('Failed to save categories');
+    } finally {
+      setSavingCategoriesOnly(false);
     }
   };
 
@@ -400,28 +574,35 @@ export function EditContestManager({
       // Always persist rules to settings/global
       batch.set(doc(db, 'settings', 'global'), { rulesMarkdown: rules || '' }, { merge: true });
 
-      const currentCatMap = new Map(currentCategories.map(c => [c.id, c]));
-      const finalCatIds = new Set(finalCategories.map(c => c.id));
+      // Authoritatively query existing categories for this contest
+      const qExisting = query(collection(db, 'categories'), where('contest_id', '==', activeContest.id));
+      const existingSnap = await getDocs(qExisting);
+      const existingCatDocIds = new Set(existingSnap.docs.map(d => d.id));
 
-      currentCategories.forEach(oldCat => {
-        if (!finalCatIds.has(oldCat.id)) {
-          batch.delete(doc(db, 'categories', oldCat.id));
+      const finalCatIds = new Set(finalCategories.map(c => String(c.id)));
+
+      // Delete removed categories from Firestore
+      existingSnap.docs.forEach(oldDoc => {
+        if (!finalCatIds.has(oldDoc.id)) {
+          batch.delete(oldDoc.ref);
         }
       });
 
+      // Update existing or create new categories
       finalCategories.forEach(cat => {
-        if (typeof cat.id === 'string' && currentCatMap.has(cat.id)) {
-          batch.update(doc(db, 'categories', cat.id), {
-            name: cat.name,
-            description: cat.desc,
+        const strId = String(cat.id);
+        if (existingCatDocIds.has(strId)) {
+          batch.update(doc(db, 'categories', strId), {
+            name: cat.name.trim(),
+            description: cat.desc.trim(),
             emoji: cat.emoji || '✨'
           });
         } else {
           const catRef = doc(collection(db, 'categories'));
           batch.set(catRef, {
             contest_id: activeContest.id,
-            name: cat.name,
-            description: cat.desc,
+            name: cat.name.trim(),
+            description: cat.desc.trim(),
             emoji: cat.emoji || '✨'
           });
         }
@@ -433,6 +614,7 @@ export function EditContestManager({
       setCatName('');
       setCatDesc('');
       setCatEmoji('✨');
+      isCategoriesDirtyRef.current = false;
       onUpdated();
     } catch (e) {
       console.error("Update Error:", e);
@@ -521,13 +703,90 @@ export function EditContestManager({
       {/* ── TAB 2: CATEGORIES ── */}
       {setupTab === 'categories' && (
         <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div>
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 02 · Competition Categories</span>
               <h3 className="text-lg font-bold text-white font-display">Manage Categories</h3>
+              <p className="text-xs text-white/40 mt-0.5">Configure, add, or remove competition categories for this contest.</p>
             </div>
-            <span className="text-xs font-mono text-white/40">{categories.length} configured</span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-xs font-mono text-white/40">{categories.length} configured</span>
+              <Button
+                type="button"
+                onClick={handleSaveCategoriesOnly}
+                disabled={savingCategoriesOnly}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+              >
+                {savingCategoriesOnly ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Save size={14} />
+                )}
+                <span>{savingCategoriesOnly ? 'Saving Categories...' : 'Save Categories Now'}</span>
+              </Button>
+            </div>
           </div>
+
+          {/* Duplicate Categories Warning & Deduplicate Tool */}
+          {duplicateNames.length > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="text-amber-400 shrink-0 mt-0.5" size={18} />
+                <div>
+                  <p className="text-xs font-bold text-amber-300">Duplicate Categories Detected</p>
+                  <p className="text-[11px] text-amber-200/70 mt-0.5">
+                    Found duplicate entries for: <strong className="text-white">{duplicateNames.join(', ')}</strong>. Clean them up into single unique categories.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                onClick={handleDeduplicateCategories}
+                disabled={isDeduplicating}
+                className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-md active:scale-95"
+              >
+                {isDeduplicating ? <RefreshCw size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                <span>{isDeduplicating ? 'Cleaning Up...' : 'Clean Up Duplicates'}</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Deleting Category Confirmation Alert */}
+          {deletingCat && (
+            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={18} />
+                <div>
+                  <p className="text-xs font-bold text-white">Delete Category: "{deletingCat.name}"?</p>
+                  <p className="text-[11px] text-white/60 mt-0.5 leading-relaxed">
+                    This will permanently delete this category from the active contest.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeletingCat(null)}
+                  disabled={isDeletingCat}
+                  className="text-xs text-white/60 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleConfirmDeleteCategory}
+                  disabled={isDeletingCat}
+                  className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  {isDeletingCat ? <RefreshCw size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  <span>{isDeletingCat ? 'Deleting...' : 'Yes, Delete Category'}</span>
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* List of active categories */}
           <div className="space-y-3">
@@ -549,6 +808,7 @@ export function EditContestManager({
                             data={data}
                             theme="dark"
                             onEmojiSelect={(e: any) => {
+                              isCategoriesDirtyRef.current = true;
                               setCategories(prev => prev.map((c, i) => i === idx ? { ...c, emoji: e.native } : c));
                               setEditingEmojiIdx(null);
                             }}
@@ -562,6 +822,7 @@ export function EditContestManager({
                       value={cat.name}
                       onChange={(e) => {
                         const val = e.target.value;
+                        isCategoriesDirtyRef.current = true;
                         setCategories(prev => prev.map((c, i) => i === idx ? { ...c, name: val } : c));
                       }}
                       className="bg-white/5 border-white/10 h-10 text-sm font-bold text-white rounded-xl focus:border-fivem-orange flex-1"
@@ -572,8 +833,9 @@ export function EditContestManager({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeCategory(cat.id)}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl p-2 h-auto cursor-pointer"
+                    onClick={() => setDeletingCat({ id: cat.id, name: cat.name || 'Untitled Category' })}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl p-2 h-auto cursor-pointer transition-colors"
+                    title="Delete Category"
                   >
                     <Trash2 size={16} />
                   </Button>
@@ -583,6 +845,7 @@ export function EditContestManager({
                   value={cat.desc}
                   onChange={(e) => {
                     const val = e.target.value;
+                    isCategoriesDirtyRef.current = true;
                     setCategories(prev => prev.map((c, i) => i === idx ? { ...c, desc: val } : c));
                   }}
                   placeholder="Category description / criteria..."

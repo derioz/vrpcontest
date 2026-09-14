@@ -1214,6 +1214,7 @@ function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, on
                 <EditContestManager
                   activeContest={activeContest}
                   categories={categories}
+                  currentCategories={categories}
                   rulesMarkdown={rulesMarkdown}
                   onUpdated={() => {}}
                 />

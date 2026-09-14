@@ -85,6 +85,22 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260914-1756',
+    dateKey: 'September 14, 2026',
+    timeStr: '5:56 PM',
+    fullTimestamp: 'September 14, 2026 at 5:56 PM',
+    labels: ['FIX', 'ADMIN', 'ENHANCE'],
+    title: 'Contest Category Management, Instant Deletion & Duplicate Prevention',
+    bullets: [
+      'Resolved category deletion failures in contest setup by synchronizing changes directly against live database documents.',
+      'Eliminated accidental duplicate category generation when updating and saving active contest configurations.',
+      'Added an instant delete confirmation dialog and dedicated "Save Categories Now" button directly in the categories editor.',
+      'Introduced a real-time duplicate category detector with a one-click deduplication tool to clean up redundant categories.',
+      'Upgraded contest categories to real-time live synchronization across the platform for immediate instant updates.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260907-1240',
     dateKey: 'September 7, 2026',
     timeStr: '12:40 PM',

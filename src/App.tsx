@@ -1032,6 +1032,7 @@ export default function App() {
     });
 
     // 2. Listen to Active Contest
+    let unsubCats: (() => void) | null = null;
     const qContest = query(collection(db, 'contests'), where('is_active', '==', true), limit(1));
     const unsubContest = onSnapshot(qContest, async (snapshot) => {
       if (!snapshot.empty) {
@@ -1045,32 +1046,44 @@ export default function App() {
         };
         setActiveContest(contestData);
 
-        // 3. Once we have an active contest, fetch its categories
-        const qCats = query(collection(db, 'categories'), where('contest_id', '==', activeDoc.id));
-        const catSnap = await getDocs(qCats);
-        const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[];
-        setCategories(cats);
-
-        // Check if a category was requested via URL search param (?category=slug)
-        const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const catParam = params ? (params.get('category') || params.get('cat')) : null;
-        let matchedCat: Category | null = null;
-        if (catParam) {
-          matchedCat = cats.find(
-            c =>
-              c.id === catParam ||
-              slugifyCategory(c.name) === catParam.toLowerCase() ||
-              c.name.toLowerCase() === catParam.toLowerCase()
-          ) || null;
+        // 3. Once we have an active contest, subscribe to its categories in real-time
+        if (unsubCats) {
+          unsubCats();
+          unsubCats = null;
         }
 
-        setSelectedCategory(prev => {
-          if (matchedCat) return matchedCat;
-          if (!prev && cats.length > 0) return cats[0];
-          if (prev && cats.find(c => c.id === prev.id)) return prev;
-          return cats.length > 0 ? cats[0] : null;
+        const qCats = query(collection(db, 'categories'), where('contest_id', '==', activeDoc.id));
+        unsubCats = onSnapshot(qCats, (catSnap) => {
+          const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[];
+          setCategories(cats);
+
+          // Check if a category was requested via URL search param (?category=slug)
+          const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+          const catParam = params ? (params.get('category') || params.get('cat')) : null;
+          let matchedCat: Category | null = null;
+          if (catParam) {
+            matchedCat = cats.find(
+              c =>
+                c.id === catParam ||
+                slugifyCategory(c.name) === catParam.toLowerCase() ||
+                c.name.toLowerCase() === catParam.toLowerCase()
+            ) || null;
+          }
+
+          setSelectedCategory(prev => {
+            if (matchedCat) return matchedCat;
+            if (!prev && cats.length > 0) return cats[0];
+            if (prev && cats.find(c => c.id === prev.id)) return prev;
+            return cats.length > 0 ? cats[0] : null;
+          });
+        }, (err) => {
+          console.error("Categories listener error:", err);
         });
       } else {
+        if (unsubCats) {
+          unsubCats();
+          unsubCats = null;
+        }
         setActiveContest(null);
         setCategories([]);
         setSelectedCategory(null);
@@ -1080,6 +1093,7 @@ export default function App() {
     return () => {
       unsubSettings();
       unsubContest();
+      if (unsubCats) unsubCats();
     };
   }, []);
 
