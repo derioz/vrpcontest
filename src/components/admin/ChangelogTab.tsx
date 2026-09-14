@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260914-1756',
+    id: 'entry-20260914-1812',
     dateKey: 'September 14, 2026',
-    timeStr: '5:56 PM',
-    fullTimestamp: 'September 14, 2026 at 5:56 PM',
-    labels: ['FIX', 'ADMIN', 'ENHANCE'],
-    title: 'Contest Category Management, Instant Deletion & Duplicate Prevention',
+    timeStr: '6:12 PM',
+    fullTimestamp: 'September 14, 2026 at 6:12 PM',
+    labels: ['UI', 'FIX', 'ENHANCE'],
+    title: 'Contest Category Management, Minimal Empty Carousel & Database Sync',
     bullets: [
+      'Replaced generic stock photos in the main carousel with a sleek, minimal dark photography viewfinder placeholder.',
+      'Integrated category icons, empty submission indicators, and direct click-to-submit navigation for categories awaiting entries.',
       'Resolved category deletion failures in contest setup by synchronizing changes directly against live database documents.',
-      'Eliminated accidental duplicate category generation when updating and saving active contest configurations.',
+      'Eliminated accidental duplicate category generation when saving active contest configurations.',
       'Added an instant delete confirmation dialog and dedicated "Save Categories Now" button directly in the categories editor.',
-      'Introduced a real-time duplicate category detector with a one-click deduplication tool to clean up redundant categories.',
-      'Upgraded contest categories to real-time live synchronization across the platform for immediate instant updates.',
     ],
     author: 'Damon',
   },

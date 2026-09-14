@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { motion, PanInfo } from 'motion/react'
-import { EyeOff, Sparkles, Trophy, ChevronUp, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { EyeOff, Sparkles, Trophy, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Camera } from 'lucide-react'
 import { Carousel, CarouselNext, CarouselPrevious } from '../../ui/carousel'
 import { Button } from '../../ui/button'
 import { cn } from '../../../lib/utils'
@@ -17,43 +17,46 @@ export interface RadialCarouselItem {
   isDisqualified?: boolean
   onClick?: () => void
   rawPhoto?: any
+  emoji?: string
+  isPlaceholder?: boolean
 }
+
+export const MINIMAL_PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14141d"/>
+      <stop offset="50%" stop-color="#0b0b10"/>
+      <stop offset="100%" stop-color="#050508"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ea580c" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ea580c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#bg)"/>
+  <circle cx="640" cy="360" r="320" fill="url(#glow)"/>
+  
+  <!-- Subtle Framing Grid & Center Focus Reticle -->
+  <line x1="640" y1="260" x2="640" y2="280" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="640" y1="440" x2="640" y2="460" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="540" y1="360" x2="560" y2="360" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="720" y1="360" x2="740" y2="360" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Minimalist Corner Viewfinder Brackets -->
+  <path d="M 60 100 L 60 60 L 100 60" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 1220 100 L 1220 60 L 1180 60" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 60 620 L 60 660 L 100 660" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 1220 620 L 1220 660 L 1180 660" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3" stroke-linecap="round"/>
+</svg>
+`)}`;
 
 const Images: RadialCarouselItem[] = [
   {
-    image: 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-42.png',
-    title: 'Mountain Sunrise',
-    category: 'Nature'
-  },
-  {
-    image: 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-41.png',
-    title: 'Ocean Waves',
-    category: 'Seascape'
-  },
-  {
-    image: 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-40.png',
-    title: 'Forest Path',
-    category: 'Woodland'
-  },
-  {
-    image: 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-39.png',
-    title: 'Desert Dunes',
-    category: 'Landscape'
-  },
-  {
-    image: 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-38.png',
-    title: 'City Lights',
-    category: 'Urban'
-  },
-  {
-    image: 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-74.png',
-    title: 'Autumn Colors',
-    category: 'Seasonal'
-  },
-  {
-    image: 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-75.png',
-    title: 'Winter Frost',
-    category: 'Weather'
+    image: MINIMAL_PLACEHOLDER_IMAGE,
+    title: 'Submit your photo to be featured',
+    category: 'Competition',
+    isPlaceholder: true
   }
 ]
 
@@ -217,7 +220,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
               >
                 {/* 16:9 Image */}
                 <img
-                  src={slide.image}
+                  src={slide.image || MINIMAL_PLACEHOLDER_IMAGE}
                   alt={slide.title}
                   className={cn(
                     'size-full object-cover transition-transform duration-700 select-none',
@@ -227,6 +230,22 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
                   draggable={false}
                   loading="lazy"
                 />
+
+                {/* Minimal Placeholder Center Viewfinder & Category Icon */}
+                {slide.isPlaceholder && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none z-10">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-sm flex items-center justify-center mb-2.5 shadow-inner transition-transform group-hover:scale-105">
+                      {slide.emoji ? (
+                        <span className="text-2xl sm:text-3xl select-none">{slide.emoji}</span>
+                      ) : (
+                        <Camera size={24} className="text-white/40" />
+                      )}
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-widest text-white/50 uppercase">
+                      No Submissions Yet
+                    </span>
+                  </div>
+                )}
 
                 {/* Pixelated / Voting Closed Badge */}
                 {isPixelated && (
@@ -267,7 +286,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
                   {isCenter && (
                     <span className="text-[10px] font-mono text-white/50 tracking-wider hidden sm:inline-flex items-center gap-1 shrink-0">
                       <Sparkles size={11} className="text-fivem-orange" />
-                      Click to inspect
+                      {slide.isPlaceholder ? 'Click to enter' : 'Click to inspect'}
                     </span>
                   )}
                 </motion.div>

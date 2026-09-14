@@ -503,11 +503,13 @@ export default function App() {
     if (categories && categories.length > 0) {
       return categories.map((cat) => ({
         id: `cat-preview-${cat.id}`,
-        image: cat.icon_url || 'https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/gallery/image-42.png',
+        image: cat.icon_url || '',
+        emoji: cat.emoji || '✨',
         title: cat.description || `Submit your finest ${cat.name} photo`,
         category: cat.name,
         voteCount: 0,
         isPixelated: false,
+        isPlaceholder: true,
         onClick: () => {
           handleCategorySelect(cat, true);
         },
