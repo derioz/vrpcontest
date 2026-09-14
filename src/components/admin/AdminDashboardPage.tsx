@@ -18,6 +18,7 @@ import {
   Home,
   Check,
   X,
+  Clock,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getProfileAvatar } from '../../lib/dicebear';
@@ -43,6 +44,7 @@ export type AdminRouteTab =
   | 'suggestions'
   | 'voters'
   | 'contest'
+  | 'countdown'
   | 'controls'
   | 'changelogs'
   | 'danger';
@@ -123,6 +125,12 @@ const ADMIN_NAV_CATEGORIES: AdminNavCategory[] = [
         label: 'Contest Setup',
         description: 'Schedule, presets, rules & archiving',
         icon: Trophy,
+      },
+      {
+        id: 'countdown',
+        label: 'Countdown Timer',
+        description: 'Target dates, presets & mechanical flip clock',
+        icon: Clock,
       },
       {
         id: 'controls',

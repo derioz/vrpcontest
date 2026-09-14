@@ -156,3 +156,20 @@ export interface SuggestionBetaTester {
     addedBy?: string;
     addedAt: string;
 }
+
+export interface CountdownSettings {
+    enabled: boolean;
+    mode: 'custom' | 'submissions' | 'voting';
+    targetDate: string; // ISO 8601 string or valid date string
+    label?: string;
+    eventDateLabel?: string;
+    eventTimeLabel?: string;
+    eventTzLabel?: string;
+    completedMessage?: string;
+    autoGenerateLabels?: boolean;
+    autoCloseSubmissions?: boolean;
+    autoOpenVoting?: boolean;
+    timeZone?: string;
+    updatedAt?: string;
+    updatedBy?: string;
+}

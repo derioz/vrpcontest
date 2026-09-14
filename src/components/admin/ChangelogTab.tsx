@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20260914-1812',
+    id: 'entry-20260914-1824',
     dateKey: 'September 14, 2026',
-    timeStr: '6:12 PM',
-    fullTimestamp: 'September 14, 2026 at 6:12 PM',
-    labels: ['UI', 'FIX', 'ENHANCE'],
-    title: 'Contest Category Management, Minimal Empty Carousel & Database Sync',
+    timeStr: '6:24 PM',
+    fullTimestamp: 'September 14, 2026 at 6:24 PM',
+    labels: ['NEW', 'ADMIN', 'UI'],
+    title: 'Admin Custom Countdown Scheduler, Category Fixes & Minimal Carousel',
     bullets: [
-      'Replaced generic stock photos in the main carousel with a sleek, minimal dark photography viewfinder placeholder.',
-      'Integrated category icons, empty submission indicators, and direct click-to-submit navigation for categories awaiting entries.',
-      'Resolved category deletion failures in contest setup by synchronizing changes directly against live database documents.',
-      'Eliminated accidental duplicate category generation when saving active contest configurations.',
-      'Added an instant delete confirmation dialog and dedicated "Save Categories Now" button directly in the categories editor.',
+      'Added a full-featured Countdown Timer manager in the Admin Console with custom date and time scheduling, timezone selections, and instant duration presets.',
+      'Integrated a live interactive mechanical flip clock preview directly in admin controls for immediate testing before publishing.',
+      'Replaced generic stock photos in the empty carousel with a sleek, minimal dark photography viewfinder placeholder.',
+      'Resolved category deletion failures and prevented accidental duplicate categories in contest setup.',
+      'Enabled real-time synchronization between custom countdown timers and public visitor screens without page refreshes.',
     ],
     author: 'Damon',
   },

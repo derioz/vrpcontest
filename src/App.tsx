@@ -103,7 +103,7 @@ import { signInWithPopup, signInAnonymously, onAuthStateChanged, signOut, sendSi
 import { supabase } from './lib/supabase';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setDoc, updateDoc, increment, addDoc, deleteDoc, writeBatch, deleteField, runTransaction } from 'firebase/firestore';
 
-import { Category, Photo, Rule, Theme, ArchivedWinner } from './types';
+import { Category, Photo, Rule, Theme, ArchivedWinner, CountdownSettings } from './types';
 
 import UploadForm from './components/UploadForm';
 import { ContestInfoSidebar } from './components/ContestInfoSidebar';
@@ -312,9 +312,11 @@ export default function App() {
   const adminSubTab: AdminRouteTab =
     rawTab === 'ideas' || rawTab === 'suggest'
       ? 'suggestions'
-      : (['dashboard', 'analytics', 'submissions', 'suggestions', 'voters', 'contest', 'controls', 'changelogs', 'danger'].includes(rawTab)
-          ? (rawTab as AdminRouteTab)
-          : 'dashboard');
+      : rawTab === 'timer'
+        ? 'countdown'
+        : (['dashboard', 'analytics', 'submissions', 'suggestions', 'voters', 'contest', 'countdown', 'controls', 'changelogs', 'danger'].includes(rawTab)
+            ? (rawTab as AdminRouteTab)
+            : 'dashboard');
 
   const [isAdminMinimized, setIsAdminMinimized] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -336,6 +338,7 @@ export default function App() {
   const [userTotalVotes, setUserTotalVotes] = useState(0);
 
   const [activeContest, setActiveContest] = useState<{ id: string; name: string; submissions_close_date?: string; voting_end_date?: string } | null>(null);
+  const [countdownSettings, setCountdownSettings] = useState<CountdownSettings | null>(null);
   const [votedPhotoIds, setVotedPhotoIds] = useState<Set<string>>(new Set());
   const [votingPhotoId, setVotingPhotoId] = useState<string | null>(null);
   const isVotingInProgress = useRef<Set<string>>(new Set());
@@ -441,11 +444,66 @@ export default function App() {
   const currentUserPhoto = currentUserContestPhotos[0] || null;
   const userContestSubmissionCount = currentUserContestPhotos.length;
 
-  // Dynamic Countdown Clock configuration based on contest phase
+  // Dynamic Countdown Clock configuration based on custom admin settings or contest phase
   const countdownConfig = useMemo(() => {
+    // 1. If custom countdown settings are set in global settings
+    if (countdownSettings) {
+      if (countdownSettings.enabled === false) {
+        return {
+          enabled: false,
+          targetDate: countdownSettings.targetDate || '2026-08-28T17:59:00-04:00',
+          label: countdownSettings.label || 'Submissions Close In',
+          eventDateLabel: countdownSettings.eventDateLabel,
+          eventTimeLabel: countdownSettings.eventTimeLabel,
+          eventTzLabel: countdownSettings.eventTzLabel || 'EST',
+          completedMessage: countdownSettings.completedMessage || '⚠️ The countdown timer has ended.',
+        };
+      }
+
+      if (countdownSettings.mode === 'custom' || (!countdownSettings.mode && countdownSettings.targetDate)) {
+        return {
+          enabled: true,
+          targetDate: countdownSettings.targetDate,
+          label: countdownSettings.label || 'Submissions Close In',
+          eventDateLabel: countdownSettings.eventDateLabel,
+          eventTimeLabel: countdownSettings.eventTimeLabel,
+          eventTzLabel: countdownSettings.eventTzLabel || 'EST',
+          completedMessage: countdownSettings.completedMessage || '⚠️ Official deadline has arrived. Submissions closed.',
+        };
+      }
+
+      if (countdownSettings.mode === 'submissions') {
+        const target = countdownSettings.targetDate || activeContest?.submissions_close_date || '2026-08-28T17:59:00-04:00';
+        return {
+          enabled: true,
+          targetDate: target,
+          label: countdownSettings.label || 'Submissions Close In',
+          eventDateLabel: countdownSettings.eventDateLabel,
+          eventTimeLabel: countdownSettings.eventTimeLabel,
+          eventTzLabel: countdownSettings.eventTzLabel || 'EST',
+          completedMessage: countdownSettings.completedMessage || '⚠️ Official deadline has arrived. Submissions closed. Community voting underway.',
+        };
+      }
+
+      if (countdownSettings.mode === 'voting') {
+        const target = countdownSettings.targetDate || activeContest?.voting_end_date || '2026-08-30T23:59:00-04:00';
+        return {
+          enabled: true,
+          targetDate: target,
+          label: countdownSettings.label || 'Voting Closes In',
+          eventDateLabel: countdownSettings.eventDateLabel,
+          eventTimeLabel: countdownSettings.eventTimeLabel,
+          eventTzLabel: countdownSettings.eventTzLabel || 'EST',
+          completedMessage: countdownSettings.completedMessage || '⚠️ Voting has officially closed. Community results and winners will be announced shortly!',
+        };
+      }
+    }
+
+    // 2. Default contest phase behavior
     // Phase 1: Submissions Open -> count down to Friday, Aug 28, 2026 at 5:59 PM EDT
     if (isSubmissionsOpen) {
       return {
+        enabled: true,
         targetDate: activeContest?.submissions_close_date || '2026-08-28T17:59:00-04:00',
         label: 'Submissions Close In',
         eventDateLabel: 'FRIDAY, AUGUST 28, 2026',
@@ -458,6 +516,7 @@ export default function App() {
     // Phase 2: Submissions Closed & Voting Open -> count down to Sunday, Aug 30, 2026 at 11:59 PM EST
     if (isVotingOpen) {
       return {
+        enabled: true,
         targetDate: activeContest?.voting_end_date || '2026-08-30T23:59:00-04:00',
         label: 'Voting Closes In',
         eventDateLabel: 'SUNDAY, AUGUST 30, 2026',
@@ -469,6 +528,7 @@ export default function App() {
 
     // Phase 3: Both Closed (Voting Concluded)
     return {
+      enabled: true,
       targetDate: activeContest?.voting_end_date || '2026-08-30T23:59:00-04:00',
       label: 'Voting Concluded',
       eventDateLabel: 'SUNDAY, AUGUST 30, 2026',
@@ -476,7 +536,7 @@ export default function App() {
       eventTzLabel: 'EST',
       completedMessage: '⚠️ The contest has concluded. Stay tuned for winner announcements in the Hall of Fame!',
     };
-  }, [isSubmissionsOpen, isVotingOpen, activeContest?.submissions_close_date, activeContest?.voting_end_date]);
+  }, [countdownSettings, isSubmissionsOpen, isVotingOpen, activeContest?.submissions_close_date, activeContest?.voting_end_date]);
 
   // Photos across ALL categories for the Hero 16:9 Radial Carousel
   const heroCarouselItems: RadialCarouselItem[] = useMemo(() => {
@@ -1028,6 +1088,11 @@ export default function App() {
         if (data.theme) setCurrentTheme(data.theme);
         setPublicKey(data.publicKey || null);
         setPrivateKey(data.privateKey || null);
+        if (data.countdownSettings) {
+          setCountdownSettings(data.countdownSettings);
+        } else {
+          setCountdownSettings(null);
+        }
       }
     }, (err) => {
       console.error("Settings listener error:", err);
@@ -2830,16 +2895,18 @@ export default function App() {
                 </motion.div>
 
                 {/* Animated Mechanical Flip Countdown Clock */}
-                <motion.div variants={heroItemVariants} className="mb-8 w-full max-w-xl">
-                  <CountdownClock
-                    targetDate={countdownConfig.targetDate}
-                    label={countdownConfig.label}
-                    eventDateLabel={countdownConfig.eventDateLabel}
-                    eventTimeLabel={countdownConfig.eventTimeLabel}
-                    eventTzLabel={countdownConfig.eventTzLabel}
-                    completedMessage={countdownConfig.completedMessage}
-                  />
-                </motion.div>
+                {countdownConfig.enabled !== false && (
+                  <motion.div variants={heroItemVariants} className="mb-8 w-full max-w-xl">
+                    <CountdownClock
+                      targetDate={countdownConfig.targetDate}
+                      label={countdownConfig.label}
+                      eventDateLabel={countdownConfig.eventDateLabel}
+                      eventTimeLabel={countdownConfig.eventTimeLabel}
+                      eventTzLabel={countdownConfig.eventTzLabel}
+                      completedMessage={countdownConfig.completedMessage}
+                    />
+                  </motion.div>
+                )}
 
                 {/* High Impact Actions */}
                 <motion.div variants={heroItemVariants} className={cn(

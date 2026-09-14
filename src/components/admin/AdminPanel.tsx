@@ -23,13 +23,14 @@ import { AdminHeader } from './AdminHeader';
 import { EditContestManager, ArchiveContest, CreateContestManager, StandaloneRulesEditor } from './ContestManagers';
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 import { AdminSuggestionsTab } from './AdminSuggestionsTab';
+import { AdminCountdownTab } from './AdminCountdownTab';
 import { DocTabs } from '../ui/doctabs';
 import { Skeleton } from '../ui/skeleton';
 import { AnimatedControlCard, AnimatedSwitch } from '../ui/animated-switch';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 
-type AdminTab = 'dashboard' | 'analytics' | 'submissions' | 'suggestions' | 'voters' | 'contest' | 'controls' | 'changelogs' | 'danger';
+type AdminTab = 'dashboard' | 'analytics' | 'submissions' | 'suggestions' | 'voters' | 'contest' | 'countdown' | 'controls' | 'changelogs' | 'danger';
 
 interface AdminPanelProps {
   isAdmin: boolean;
@@ -100,6 +101,7 @@ const TAB_GROUPS: {
     section: "Contest Control",
     tabs: [
       { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', glowColor: 'from-amber-500/20 via-amber-500/10 to-transparent', description: 'Rules & winners' },
+      { id: 'countdown', label: 'Countdown Timer', icon: Clock, color: 'text-emerald-400', glowColor: 'from-emerald-500/20 via-emerald-500/10 to-transparent', description: 'Target date, presets & flip clock' },
       { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-purple-400', glowColor: 'from-purple-500/20 via-purple-500/10 to-transparent', description: 'Lockdown & RSA keys' },
     ]
   },
@@ -274,6 +276,12 @@ export default function AdminPanel(props: AdminPanelProps) {
             rulesMarkdown={rulesMarkdown}
             winners={winners}
             onDownloadWinners={onDownloadWinners}
+          />
+        )}
+
+        {currentActiveTab === 'countdown' && (
+          <AdminCountdownTab
+            activeContest={activeContest}
           />
         )}
 
@@ -671,6 +679,12 @@ export default function AdminPanel(props: AdminPanelProps) {
                     rulesMarkdown={rulesMarkdown}
                     winners={winners}
                     onDownloadWinners={onDownloadWinners}
+                  />
+                )}
+
+                {activeTab === 'countdown' && (
+                  <AdminCountdownTab
+                    activeContest={activeContest}
                   />
                 )}
 
