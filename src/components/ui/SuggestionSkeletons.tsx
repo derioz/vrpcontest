@@ -35,7 +35,7 @@ export function AvatarSkeleton({
  * UserRowSkeleton
  * Placeholder row for voter popovers and "See Everyone" dialogs.
  */
-export function UserRowSkeleton({ className }: { className?: string }) {
+export function UserRowSkeleton({ className }: { className?: string; key?: React.Key }) {
   return (
     <div
       className={cn(
@@ -70,19 +70,19 @@ export function VoteListSkeleton({ count = 5 }: { count?: number }) {
  * StatsCardSkeleton
  * Compact skeleton for the 3 top stat boxes (Ideas, Votes, Voters) to eliminate fake 0s.
  */
-export function StatsCardSkeleton({ className }: { className?: string }) {
+export function StatsCardSkeleton({ className }: { className?: string; key?: React.Key }) {
   return (
     <div className={cn('flex items-center justify-center my-0.5', className)}>
-      <Skeleton className="w-10 sm:w-12 h-6 rounded-lg bg-white/[0.08]" />
+      <Skeleton className="w-10 sm:w-12 h-6 sm:h-7 rounded-lg bg-white/[0.08]" />
     </div>
   );
 }
 
 /**
  * SuggestionLimitSkeleton
- * Inline numeric skeleton for the "X of Y remaining" allowance indicator.
+ * Skeleton for user quota banner while limits are being computed.
  */
-export function SuggestionLimitSkeleton({ className }: { className?: string }) {
+export function SuggestionLimitSkeleton({ className }: { className?: string; key?: React.Key }) {
   return (
     <span className={cn('inline-flex items-center align-middle', className)}>
       <Skeleton className="w-12 h-3.5 rounded-md bg-white/[0.09]" />
@@ -94,7 +94,7 @@ export function SuggestionLimitSkeleton({ className }: { className?: string }) {
  * SuggestionCardSkeleton
  * Realistic placeholder matching the full dimensions and layout of real suggestion cards.
  */
-export function SuggestionCardSkeleton({ className }: { className?: string }) {
+export function SuggestionCardSkeleton({ className }: { className?: string; key?: React.Key }) {
   return (
     <div
       className={cn(

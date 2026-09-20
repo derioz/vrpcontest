@@ -10,6 +10,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "sync:changelogs": "node scripts/sync_changelogs.mjs",
+    "deploy:rules": "node scripts/deploy_rules.mjs",
     "start": "vite preview"
   },
   "dependencies": {

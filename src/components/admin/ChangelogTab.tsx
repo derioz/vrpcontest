@@ -85,6 +85,21 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260920-1635',
+    dateKey: 'September 20, 2026',
+    timeStr: '4:35 PM',
+    fullTimestamp: 'September 20, 2026 at 4:35 PM',
+    labels: ['FIX', 'ADMIN', 'BACKEND'],
+    title: 'Category Suggestion Mode Toggle & Firestore Access Restoration',
+    bullets: [
+      'Resolved permission issues preventing administrators from disabling Category Suggestion Mode.',
+      'Deployed unified Cloud Firestore security rules restoring settings and contest database access.',
+      'Reinforced admin settings controls with resilient merge writes and local storage state persistence.',
+      'Defaulted homepage mode to the active October Photo Contest with streamlined fallback resolution.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260914-1824',
     dateKey: 'September 14, 2026',
     timeStr: '6:24 PM',

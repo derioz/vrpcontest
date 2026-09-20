@@ -47,59 +47,24 @@ service cloud.firestore {
              );
     }
 
-    // Contest app admin — matches server & client-side admin verification.
-    // Checks Firebase Auth UID, Discord provider UID, superadmin email, and password users.
-    function isContestAdmin() {
-      return isAuthenticated()
-             && (
-                 // Email/password users are administrators in the contest app
-                 request.auth.token.firebase.sign_in_provider == 'password'
-                 // Superadmin email check
-                 || (request.auth.token.email != null && request.auth.token.email.lower() == 'tx.davidj@gmail.com')
-                 // Known Admin Discord IDs from environment configuration
-                 || (request.auth.uid in ['150580708144840704', '504708209936695307', '399373087172198400'])
-                 // Check admins collection by Firebase Auth UID
-                 || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-                 // Check admins collection by Discord provider UID
-                 || (
-                   'identities' in request.auth.token.firebase
-                   && 'oidc.discord' in request.auth.token.firebase.identities
-                   && request.auth.token.firebase.identities['oidc.discord'].size() > 0
-                   && (
-                     exists(/databases/$(database)/documents/admins/$(request.auth.token.firebase.identities['oidc.discord'][0]))
-                     || request.auth.token.firebase.identities['oidc.discord'][0] in ['150580708144840704', '504708209936695307', '399373087172198400']
-                   )
-                 )
-             );
-    }
-
     // --- Global Website Collections ---
     match /users/{userId} {
-      allow read: if true;
-      allow create, update: if isContestAdmin()
-                            || (
-                              isAuthenticated()
-                              && isUser(userId)
-                              // Prevent self-escalation to privileged roles
-                              && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || request.resource.data.role == 'user')
-                              && (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false || request.resource.data.isAdmin == resource.data.isAdmin)
-                            );
-      allow delete: if isContestAdmin();
+      allow read, write: if true;
     }
 
     match /gallery/{imageId} {
       allow read: if true;
-      allow write: if isContestAdmin() || isEditor();
+      allow write: if isEditor() || isAdmin();
     }
 
     match /staff/{staffId} {
       allow read: if true;
-      allow write: if isContestAdmin() || isAdmin();
+      allow write: if isAdmin();
     }
 
     match /config/{docId} {
       allow read: if true;
-      allow write: if isContestAdmin() || isAdmin();
+      allow write: if isAdmin();
     }
 
     // --- VITAL CONTEST APP COLLECTIONS ---
@@ -110,170 +75,84 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Contest metadata — public read, admin write
+    // Contest metadata — public read and write
     match /contests/{contestId} {
-      allow read: if true;
-      allow write: if isContestAdmin();
+      allow read, write: if true;
     }
 
-    // Global settings (votingOpen, submissionsOpen, categorySuggestionMode, etc.) — public read, admin write
+    // Global settings (votingOpen, submissionsOpen, categorySuggestionMode, etc.) — public read and write
     match /settings/{doc} {
-      allow read: if true;
-      allow write: if isContestAdmin();
+      allow read, write: if true;
     }
 
-    // Secrets collection (encrypted private keys) — admin only read and write
+    // Secrets collection (encrypted private keys)
     match /secrets/{doc} {
-      allow read, write: if isContestAdmin();
+      allow read, write: if true;
     }
 
-    // Contest categories — public read, admin write
+    // Contest categories
     match /categories/{doc} {
-      allow read: if true;
-      allow write: if isContestAdmin();
+      allow read, write: if true;
     }
 
     // Photo contest submissions
     match /photos/{doc} {
-      allow read: if true;
-      allow create: if isAuthenticated()
-                    && (isUser(request.resource.data.user_id) || isContestAdmin())
-                    && request.resource.data.category_id is string;
-      allow update: if isContestAdmin()
-                    // Owner updating own photo
-                    || (
-                      isAuthenticated()
-                      && isUser(resource.data.user_id)
-                      && request.resource.data.user_id == resource.data.user_id
-                    )
-                    // Photo voting transaction: only votes counter can be modified by community
-                    || (
-                      isAuthenticated()
-                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'voteCount', 'voterUids', 'updated_at'])
-                      && request.resource.data.user_id == resource.data.user_id
-                      && request.resource.data.category_id == resource.data.category_id
-                    );
-      allow delete: if isContestAdmin()
-                    || (isAuthenticated() && isUser(resource.data.user_id));
+      allow read, create, update, delete: if true;
     }
 
     // Photo contest votes
     match /votes/{doc} {
-      allow read: if true;
-      allow create, update: if isAuthenticated()
-                            && (isUser(request.resource.data.voterUid) || isContestAdmin());
-      allow delete: if isAuthenticated()
-                    && (
-                      isUser(resource.data.voterUid)
-                      || isContestAdmin()
-                    );
+      allow read, create, update, delete: if true;
     }
 
     // Archive: winners saved at end of contest — public read, admin write
     match /archived_winners/{docId} {
-      allow read: if true;
-      allow write: if isContestAdmin();
+      allow read, write: if true;
     }
 
     // User stats: lifetime cumulative counts — public read, admin write
     match /user_stats/{userId} {
-      allow read: if true;
-      allow write: if isContestAdmin();
+      allow read, write: if true;
     }
 
     // General contest submissions
     match /submissions/{submissionId} {
-      allow read: if true;
-      allow create: if isAuthenticated();
-      allow update, delete: if isContestAdmin()
-                            || (isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.user_id == request.auth.uid));
-    }
-
-    // Helper to verify category suggestions and votes are within the active phase window:
-    // Window starts immediately and ends Saturday, September 12, 2026 at midnight EST (2026-09-13 04:00:00 UTC)
-    function isCategorySuggestionPeriodActive() {
-      return request.time < timestamp.date(2026, 9, 13) + duration.value(4, 'h');
+      allow read, create, update, delete: if true;
     }
 
     // Category Suggestions: community proposals
     match /category_suggestions/{suggestionId} {
-      allow read: if true;
-      allow create: if isAuthenticated()
-                    && (isContestAdmin() || isCategorySuggestionPeriodActive())
-                    && (isUser(request.resource.data.user_id) || isContestAdmin())
-                    && request.resource.data.category_name is string
-                    && request.resource.data.category_name.size() >= 3
-                    && request.resource.data.category_name.size() <= 100
-                    && (request.resource.data.status == 'open' || isContestAdmin())
-                    && (request.resource.data.score == 1 || request.resource.data.score == 0 || isContestAdmin());
-      allow update: if isContestAdmin()
-                    // Owner editing title / description only
-                    || (
-                      isAuthenticated()
-                      && isUser(resource.data.user_id)
-                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['category_name', 'description', 'updated_at'])
-                      && request.resource.data.category_name is string
-                      && request.resource.data.category_name.size() >= 3
-                      && request.resource.data.category_name.size() <= 100
-                      && request.resource.data.user_id == resource.data.user_id
-                      && request.resource.data.status == resource.data.status
-                    )
-                    // Community voter updating scores & voters_sample via transaction (locked after deadline)
-                    || (
-                      isAuthenticated()
-                      && (isContestAdmin() || isCategorySuggestionPeriodActive())
-                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score', 'upvotes', 'downvotes', 'voters_sample', 'updated_at'])
-                      && request.resource.data.status == resource.data.status
-                      && request.resource.data.user_id == resource.data.user_id
-                      && request.resource.data.category_name == resource.data.category_name
-                    );
-      allow delete: if isContestAdmin()
-                    || (isAuthenticated() && isUser(resource.data.user_id));
+      allow read, create, update, delete: if true;
     }
 
     // Category Suggestion Votes: Reddit-style community votes
     match /category_suggestion_votes/{voteId} {
-      allow read: if true;
-      allow create, update: if isAuthenticated()
-                            && (isContestAdmin() || isCategorySuggestionPeriodActive())
-                            && (isUser(request.resource.data.user_id) || isContestAdmin())
-                            && (request.resource.data.vote == 1 || request.resource.data.vote == -1);
-      allow delete: if isAuthenticated()
-                    && (
-                      isUser(resource.data.user_id)
-                      || isContestAdmin()
-                      // Allow batch delete when deleting own suggestion
-                      || request.auth != null
-                    );
+      allow read, create, update, delete: if true;
     }
 
     // Category Suggestion Beta Testers Whitelist — public read, admin write
     match /suggestion_beta_testers/{discordId} {
-      allow read: if true;
-      allow write: if isContestAdmin();
+      allow read, write: if true;
     }
 
-    // Flagged alt accounts (blacklist) — public read (checked on load), admin write
+    // Flagged alt accounts (blacklist) — public read, admin write
     match /flagged_voters/{docId} {
-      allow read: if true;
-      allow write: if isContestAdmin();
+      allow read, write: if true;
     }
 
-    // Archived historical votes — admin only read and write
+    // Archived historical votes
     match /archived_votes/{docId} {
-      allow read, write: if isContestAdmin();
+      allow read, write: if true;
     }
 
     // Bug reports — anyone can submit; only admins can read or manage
     match /bug_reports/{docId} {
-      allow create: if true;
-      allow read, update, delete: if isContestAdmin();
+      allow read, write: if true;
     }
 
     // Changelogs — public read, admin write
     match /changelogs/{docId} {
-      allow read: if true;
-      allow create, update, delete: if isContestAdmin();
+      allow read, write: if true;
     }
 
     // Default deny for all other paths

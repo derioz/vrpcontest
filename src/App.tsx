@@ -266,7 +266,13 @@ export default function App() {
     return tab === 'hall-of-fame' || tab === 'hof' || !!archiveId || storedView === 'hall-of-fame';
   });
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
-  const [categorySuggestionModeOverride, setCategorySuggestionModeOverride] = useState<boolean | null>(null);
+  const [categorySuggestionModeOverride, setCategorySuggestionModeOverride] = useState<boolean | null>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('category_suggestion_mode_override');
+      if (cached !== null) return cached === 'true';
+    }
+    return null;
+  });
   const isCategorySuggestionMode = categorySuggestionModeOverride !== null
     ? categorySuggestionModeOverride
     : CATEGORY_SUGGESTION_MODE;
@@ -1077,6 +1083,9 @@ export default function App() {
         const data = docSnap.data();
         if (typeof data.categorySuggestionMode === 'boolean') {
           setCategorySuggestionModeOverride(data.categorySuggestionMode);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('category_suggestion_mode_override', String(data.categorySuggestionMode));
+          }
         }
         setVotingOpen(!!data.votingOpen);
         setSubmissionsOpen(data.submissionsOpen !== false);
@@ -1612,7 +1621,7 @@ export default function App() {
   const toggleVoting = async (open: boolean) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { votingOpen: open });
+      await setDoc(doc(db, 'settings', 'global'), { votingOpen: open }, { merge: true });
       setVotingOpen(open);
       toast.success(`Voting ${open ? 'opened' : 'closed'}`);
     } catch (error) {
@@ -1624,7 +1633,7 @@ export default function App() {
   const toggleSubmissions = async (open: boolean) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { submissionsOpen: open });
+      await setDoc(doc(db, 'settings', 'global'), { submissionsOpen: open }, { merge: true });
       setSubmissionsOpen(open);
       toast.success(`Submissions ${open ? 'opened' : 'closed'}`);
     } catch (error) {
@@ -1636,7 +1645,7 @@ export default function App() {
   const toggleOnePhotoPerUser = async (enabled: boolean) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { onePhotoPerUser: enabled });
+      await setDoc(doc(db, 'settings', 'global'), { onePhotoPerUser: enabled }, { merge: true });
       setOnePhotoPerUser(enabled);
       toast.success(enabled ? '1-photo limit enabled' : '1-photo limit disabled');
     } catch (error) {
@@ -1648,7 +1657,7 @@ export default function App() {
   const toggleShowWinners = async (enabled: boolean) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { showWinnersToggle: enabled });
+      await setDoc(doc(db, 'settings', 'global'), { showWinnersToggle: enabled }, { merge: true });
       setShowWinnersToggle(enabled);
       toast.success(enabled ? 'Winner announcement visible' : 'Winner announcement hidden');
     } catch (error) {
@@ -1660,7 +1669,7 @@ export default function App() {
   const toggleSiteClosed = async (closed: boolean) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { siteClosed: closed });
+      await setDoc(doc(db, 'settings', 'global'), { siteClosed: closed }, { merge: true });
       setSiteClosed(closed);
       toast.success(`Contest access ${closed ? 'restricted (Site Closed Mode Active)' : 'opened to all users'}`);
     } catch (error) {
@@ -1672,16 +1681,19 @@ export default function App() {
   const toggleCategorySuggestionMode = async (enabled: boolean) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { categorySuggestionMode: enabled });
+      await setDoc(doc(db, 'settings', 'global'), { categorySuggestionMode: enabled }, { merge: true });
       setCategorySuggestionModeOverride(enabled);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('category_suggestion_mode_override', String(enabled));
+      }
       toast.success(
         enabled
           ? 'Category Suggestion Mode enabled — Website homepage is now Category Suggestions'
           : 'Category Suggestion Mode disabled — Photo Contest homepage restored'
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Toggle Category Suggestion Mode Error:", error);
-      toast.error('Failed to toggle category suggestion mode');
+      toast.error(`Failed to toggle category suggestion mode: ${error?.message || 'Permission denied'}`);
     }
   };
 
@@ -1730,7 +1742,7 @@ export default function App() {
   const toggleCensorSubmissions = async (enabled: boolean) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { censorSubmissions: enabled });
+      await setDoc(doc(db, 'settings', 'global'), { censorSubmissions: enabled }, { merge: true });
       toast.success(
         enabled
           ? "Image censoring enabled (Submissions pixelated until voting starts)."

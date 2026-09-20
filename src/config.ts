@@ -33,7 +33,7 @@ export interface SiteConfig {
 
 export const SITE_CONFIG: SiteConfig = {
   categorySuggestions: {
-    suggestionModeEnabled: true,
+    suggestionModeEnabled: false,
     maxSuggestionsPerUser: 3,
     allowSuggestions: true,
     allowVoting: true,
