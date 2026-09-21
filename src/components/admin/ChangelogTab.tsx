@@ -85,6 +85,20 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20260920-2308',
+    dateKey: 'September 20, 2026',
+    timeStr: '11:08 PM',
+    fullTimestamp: 'September 20, 2026 at 11:08 PM',
+    labels: ['SECURITY', 'BACKEND', 'FIX'],
+    title: 'Cross-Platform Unified Firestore Rules & Compatibility Sync',
+    bullets: [
+      'Synchronized Cloud Firestore security rules between Vital RP and the Photo Contest to ensure seamless interoperability.',
+      'Protected shared collections including user profiles, site configuration, and contest voting pipelines across both platforms.',
+      'Eliminated permission conflicts so administrative changes and contest submissions remain fully accessible without database lockouts.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260920-1635',
     dateKey: 'September 20, 2026',
     timeStr: '4:35 PM',
