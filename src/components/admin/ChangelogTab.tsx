@@ -85,6 +85,21 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20261005-1903',
+    dateKey: 'October 5, 2026',
+    timeStr: '7:03 PM',
+    fullTimestamp: 'October 5, 2026 at 7:03 PM',
+    labels: ['NEW', 'ADMIN', 'UI'],
+    title: 'Category Suggestions Monthly Hero & Countdown Customizer',
+    bullets: [
+      'Added full administrative control to customize the Hero section title, month highlight, theme badge, and guidelines for monthly category suggestion cycles.',
+      'Integrated a dedicated countdown clock scheduler for category suggestions with precision timezones, quick duration jumpers, and expiration messages.',
+      'Introduced 1-click monthly theme presets (Jan–Dec) that automatically populate seasonal titles, descriptions, and deadlines.',
+      'Enabled dual timer management in the Admin Countdown panel so staff can effortlessly configure both Photo Contest voting and Category Suggestion deadlines.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20260920-2308',
     dateKey: 'September 20, 2026',
     timeStr: '11:08 PM',

@@ -32,8 +32,10 @@ import {
   UserCheck,
   Users,
   Edit3,
-  Download
+  Download,
+  Sliders
 } from 'lucide-react';
+import { CategorySuggestionsSettingsModal } from './CategorySuggestionsSettingsModal';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
 import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote } from '../../types';
@@ -161,6 +163,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDescription, setNewCategoryDescription] = useState('');
   const [isCreatingSuggestion, setIsCreatingSuggestion] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const effectiveUserId = currentUser?.uid || currentUser?.id || currentUser?.discordId || null;
 
@@ -674,6 +677,18 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
         iconBg="bg-orange-500/15 border-orange-500/30"
         actions={
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            {/* Customize Hero & Countdown Timer Button */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider cursor-pointer flex items-center gap-1.5 border bg-white/[0.05] hover:bg-orange-500/15 text-orange-300 hover:text-white border-orange-500/30 hover:border-orange-500/60 shadow-[0_0_15px_rgba(249,115,22,0.15)]"
+              title="Customize Monthly Theme Title & Countdown Clock"
+            >
+              <Sliders size={14} className="text-orange-400" />
+              <span>Customize Hero & Timer</span>
+            </motion.button>
+
             {/* New Suggestion Button */}
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -1436,6 +1451,12 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Category Suggestions Page Hero & Countdown Customizer Modal */}
+      <CategorySuggestionsSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+      />
     </div>
   );
 }

@@ -70,11 +70,53 @@ export const DAMON_AVATAR_URL = 'https://r2.fivemanage.com/image/qePVNvTsc65p.pn
 export const CATEGORY_SUGGESTION_DEADLINE = '2026-09-12T23:59:59-04:00';
 export const CATEGORY_SUGGESTION_DEADLINE_LABEL = 'Sept. 12 • Midnight EST';
 
+// In-memory runtime override for dynamically configured Firestore settings
+let dynamicDeadline: string | null = null;
+let dynamicDeadlineLabel: string | null = null;
+let dynamicDeadlineEnabled: boolean | null = null;
+
+export function setDynamicCategorySuggestionDeadline(
+  targetDate?: string | null,
+  label?: string | null,
+  enabled?: boolean | null
+) {
+  if (targetDate !== undefined) dynamicDeadline = targetDate;
+  if (label !== undefined) dynamicDeadlineLabel = label;
+  if (enabled !== undefined) dynamicDeadlineEnabled = enabled;
+}
+
+export function getCategorySuggestionDeadline(): string {
+  return dynamicDeadline || CATEGORY_SUGGESTION_DEADLINE;
+}
+
+export function getCategorySuggestionDeadlineLabel(): string {
+  return dynamicDeadlineLabel || CATEGORY_SUGGESTION_DEADLINE_LABEL;
+}
+
 /**
  * Returns true if category suggestions and voting are currently active.
- * Once the deadline passes, returns false.
+ * Once the deadline passes (if enabled), returns false.
  */
-export function isCategorySuggestionDeadlineActive(): boolean {
-  return new Date().getTime() < new Date(CATEGORY_SUGGESTION_DEADLINE).getTime();
+export function isCategorySuggestionDeadlineActive(
+  customTargetDate?: string | null,
+  customEnabled?: boolean | null
+): boolean {
+  const isEnabled = customEnabled !== undefined
+    ? customEnabled
+    : (dynamicDeadlineEnabled !== null ? dynamicDeadlineEnabled : true);
+
+  if (isEnabled === false) {
+    return true; // Timer disabled => open indefinitely
+  }
+
+  const target = customTargetDate || dynamicDeadline || CATEGORY_SUGGESTION_DEADLINE;
+  try {
+    const targetTime = new Date(target).getTime();
+    if (isNaN(targetTime)) return true;
+    return Date.now() < targetTime;
+  } catch {
+    return true;
+  }
 }
+
 

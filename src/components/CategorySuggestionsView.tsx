@@ -34,11 +34,15 @@ import {
   Users,
   MoreHorizontal,
   Edit3,
-  Copy
+  Copy,
+  Sliders
 } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { toast } from './ui/toast';
 import { cn } from '../lib/utils';
-import { CategorySuggestion, SuggestionStatus } from '../types';
+import { CategorySuggestion, SuggestionStatus, CategorySuggestionsPageSettings } from '../types';
+import { CategorySuggestionsSettingsModal } from './admin/CategorySuggestionsSettingsModal';
 import {
   fetchCategorySuggestions,
   subscribeCategorySuggestions,
@@ -69,7 +73,8 @@ import {
   VITAL_RP_LOGO_URL,
   CATEGORY_SUGGESTION_DEADLINE,
   CATEGORY_SUGGESTION_DEADLINE_LABEL,
-  isCategorySuggestionDeadlineActive
+  isCategorySuggestionDeadlineActive,
+  setDynamicCategorySuggestionDeadline
 } from '../config';
 import { Spotlight } from './ui/spotlight';
 import { DotPattern } from './ui/dot-pattern';
@@ -177,21 +182,70 @@ export function CategorySuggestionsView({
   const [hoveredVoters, setHoveredVoters] = useState<HoveredVotersState | null>(null);
   const [votersCache, setVotersCache] = useState<Record<string, { upvoters: SuggestionVoter[]; downvoters: SuggestionVoter[] }>>({});
 
-  // Authoritative Countdown State (Closes Saturday, September 12, 2026 at Midnight EST)
-  const [timeRemaining, setTimeRemaining] = useState(() => {
-    const diff = new Date(CATEGORY_SUGGESTION_DEADLINE).getTime() - Date.now();
+  // Dynamic Firestore-backed Page & Countdown Customization
+  const [pageSettings, setPageSettings] = useState<CategorySuggestionsPageSettings | null>(null);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const ps: CategorySuggestionsPageSettings | undefined = data?.categorySuggestionsSettings;
+        if (ps) {
+          setPageSettings(ps);
+          if (ps.countdownSettings) {
+            setDynamicCategorySuggestionDeadline(
+              ps.countdownSettings.targetDate,
+              ps.countdownSettings.eventDateLabel,
+              ps.countdownSettings.enabled
+            );
+          }
+        }
+      }
+    }, (err) => {
+      console.warn('Category suggestions settings listener error:', err);
+    });
+    return () => unsub();
+  }, []);
+
+  const isCountdownEnabled = pageSettings?.countdownSettings?.enabled !== false;
+  const effectiveDeadline = pageSettings?.countdownSettings?.targetDate || CATEGORY_SUGGESTION_DEADLINE;
+  const effectiveCountdownLabel = pageSettings?.countdownSettings?.label || 'Submission & Voting Window';
+  const effectiveEventDateLabel = pageSettings?.countdownSettings?.eventDateLabel || CATEGORY_SUGGESTION_DEADLINE_LABEL;
+  const effectiveCompletedMessage = pageSettings?.countdownSettings?.completedMessage || 'Community voting has ended and the final results are in.';
+
+  const heroTitlePrefix = pageSettings?.heroTitlePrefix ?? 'Help Shape';
+  const heroMonthHighlight = pageSettings?.heroMonthHighlight ?? 'October’s';
+  const heroTitleSuffix = pageSettings?.heroTitleSuffix ?? 'Loading Screen';
+  const heroThemeBadge = pageSettings?.heroThemeBadge ?? 'October Theme';
+  const heroDescription = pageSettings?.heroDescription ?? 'Suggest and vote on photo contest categories for October’s Vital RP loading screen. Keep your ideas seasonal, spooky, fall-inspired, Halloween-themed, or otherwise fitting for the month.';
+  const heroGuideline = pageSettings?.heroGuideline ?? 'Keep suggestions relevant to October.';
+  const heroDisclaimer = pageSettings?.heroDisclaimer ?? 'Staff reserves the right to deny or remove suggestions that are inappropriate, off-topic, or do not fit the October theme.';
+
+  // Authoritative Countdown State
+  const [timeRemaining, setTimeRemaining] = useState<number>(() => {
+    if (!isCountdownEnabled) return 1000;
+    const diff = new Date(effectiveDeadline).getTime() - Date.now();
     return Math.max(0, diff);
   });
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const diff = new Date(CATEGORY_SUGGESTION_DEADLINE).getTime() - Date.now();
+    const updateTime = () => {
+      if (!isCountdownEnabled) {
+        setTimeRemaining(1000);
+        return;
+      }
+      const diff = new Date(effectiveDeadline).getTime() - Date.now();
       setTimeRemaining(Math.max(0, diff));
-    }, 1000);
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [effectiveDeadline, isCountdownEnabled]);
 
   const countdownParts = useMemo(() => {
+    if (!isCountdownEnabled) return null;
     if (timeRemaining <= 0) return null;
     const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
     const hours = Math.floor((timeRemaining / (1000 * 60 * 60)) % 24);
@@ -203,7 +257,9 @@ export function CategorySuggestionsView({
       minutes: String(minutes).padStart(2, '0'),
       seconds: String(seconds).padStart(2, '0')
     };
-  }, [timeRemaining]);
+  }, [timeRemaining, isCountdownEnabled]);
+
+  const isDeadlineExpired = isCountdownEnabled && timeRemaining <= 0;
 
   // Floating Scroll-To-Top Button State
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -452,6 +508,13 @@ export function CategorySuggestionsView({
   const handleOpenSuggestModal = async () => {
     if (!currentUser) {
       onOpenSignIn();
+      return;
+    }
+
+    if (isDeadlineExpired && !isAdmin) {
+      toast.error('Submissions Closed', {
+        description: effectiveCompletedMessage || 'The category suggestion phase has closed for this round.'
+      });
       return;
     }
 
@@ -1204,52 +1267,83 @@ export function CategorySuggestionsView({
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-amber-500/30 bg-amber-500/10 text-amber-300">
                   <Sparkles size={11} className="text-amber-400" />
-                  <span>October Theme</span>
+                  <span>{heroThemeBadge}</span>
                 </div>
                 {isAdmin && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-indigo-500/30 bg-indigo-500/10 text-indigo-300 shadow-sm">
-                    <ShieldCheck size={12} className="text-indigo-400" />
-                    <span>Moderator Tools Enabled</span>
-                  </div>
+                  <>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-indigo-500/30 bg-indigo-500/10 text-indigo-300 shadow-sm">
+                      <ShieldCheck size={12} className="text-indigo-400" />
+                      <span>Moderator Tools Enabled</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomizerOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border-orange-500/40 bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 hover:text-white transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(249,115,22,0.3)]"
+                      title="Customize Title, Monthly Theme & Countdown Clock"
+                    >
+                      <Sliders size={11} className="text-orange-400" />
+                      <span>Edit Hero & Timer</span>
+                    </button>
+                  </>
                 )}
               </div>
 
               {/* Headline */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
-                Help Shape <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">October’s</span> Loading Screen
+                {heroTitlePrefix}{' '}
+                <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">
+                  {heroMonthHighlight}
+                </span>{' '}
+                {heroTitleSuffix}
               </h1>
 
               {/* Description & Supporting Copy */}
               <div className="space-y-2 max-w-xl mb-5">
                 <p className="text-white/80 text-xs sm:text-sm leading-relaxed">
-                  Suggest and vote on photo contest categories for <strong className="text-white font-semibold">October’s Vital RP loading screen</strong>. Keep your ideas seasonal, spooky, fall-inspired, Halloween-themed, or otherwise fitting for the month.
+                  {heroDescription}
                 </p>
-                <p className="text-xs sm:text-sm font-bold text-amber-400/90 tracking-wide">
-                  Keep suggestions relevant to October.
-                </p>
-                <p className="text-[11px] sm:text-xs text-white/45 italic leading-relaxed">
-                  Staff reserves the right to deny or remove suggestions that are inappropriate, off-topic, or do not fit the October theme.
-                </p>
+                {heroGuideline && (
+                  <p className="text-xs sm:text-sm font-bold text-amber-400/90 tracking-wide">
+                    {heroGuideline}
+                  </p>
+                )}
+                {heroDisclaimer && (
+                  <p className="text-[11px] sm:text-xs text-white/45 italic leading-relaxed">
+                    {heroDisclaimer}
+                  </p>
+                )}
               </div>
 
               {/* Actions & Eligibility Pill */}
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <motion.button
                   type="button"
-                  whileHover={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 1.02 }}
-                  whileTap={shouldReduceMotion || (suggestionLimit.remaining <= 0 && !isAdmin && currentUser) ? undefined : { scale: 0.98 }}
+                  whileHover={shouldReduceMotion || ((suggestionLimit.remaining <= 0 || isDeadlineExpired) && !isAdmin && currentUser) ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduceMotion || ((suggestionLimit.remaining <= 0 || isDeadlineExpired) && !isAdmin && currentUser) ? undefined : { scale: 0.98 }}
                   onClick={handleOpenSuggestModal}
-                  disabled={suggestionLimit.remaining <= 0 && !isAdmin && currentUser}
+                  disabled={(suggestionLimit.remaining <= 0 || isDeadlineExpired) && !isAdmin && currentUser}
                   className={cn(
                     "w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 active:scale-[0.98]",
-                    suggestionLimit.remaining <= 0 && !isAdmin && currentUser
+                    (suggestionLimit.remaining <= 0 || isDeadlineExpired) && !isAdmin && currentUser
                       ? "bg-zinc-800/80 text-white/50 border border-white/10 cursor-not-allowed"
                       : "bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white cursor-pointer shadow-[0_4px_20px_rgba(234,88,12,0.35)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.45)] focus:ring-fivem-orange/60"
                   )}
-                  title={suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `You have reached your limit of ${suggestionLimit.limit} suggestions.` : undefined}
+                  title={
+                    isDeadlineExpired && !isAdmin
+                      ? "Category submissions have closed."
+                      : suggestionLimit.remaining <= 0 && !isAdmin && currentUser
+                      ? `You have reached your limit of ${suggestionLimit.limit} suggestions.`
+                      : undefined
+                  }
                 >
                   <Plus size={16} strokeWidth={2.5} />
-                  <span>{suggestionLimit.remaining <= 0 && !isAdmin && currentUser ? `Limit Reached (${suggestionLimit.limit}/${suggestionLimit.limit})` : "Suggest a Category"}</span>
+                  <span>
+                    {isDeadlineExpired && !isAdmin
+                      ? "Submissions Closed"
+                      : suggestionLimit.remaining <= 0 && !isAdmin && currentUser
+                      ? `Limit Reached (${suggestionLimit.limit}/${suggestionLimit.limit})`
+                      : "Suggest a Category"}
+                  </span>
                 </motion.button>
 
                 {currentUser ? (
@@ -1296,37 +1390,44 @@ export function CategorySuggestionsView({
                   <div className="flex items-center gap-2">
                     <Clock size={15} className="text-fivem-orange" />
                     <span className="text-xs font-bold font-display uppercase tracking-wider text-white">
-                      Submission & Voting Window
+                      {effectiveCountdownLabel}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/25">
-                    {CATEGORY_SUGGESTION_DEADLINE_LABEL}
+                    {effectiveEventDateLabel}
                   </span>
                 </div>
 
-                {countdownParts ? (
-                  <div className="grid grid-cols-4 gap-2 text-center my-2">
-                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                      <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.days}</span>
-                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Days</span>
+                {isCountdownEnabled ? (
+                  countdownParts ? (
+                    <div className="grid grid-cols-4 gap-2 text-center my-2">
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                        <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.days}</span>
+                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Days</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                        <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.hours}</span>
+                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Hours</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                        <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.minutes}</span>
+                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Mins</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                        <span className="block text-xl sm:text-2xl font-black font-mono text-fivem-orange animate-pulse">{countdownParts.seconds}</span>
+                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Secs</span>
+                      </div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                      <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.hours}</span>
-                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Hours</span>
+                  ) : (
+                    <div className="py-4 text-center">
+                      <p className="text-sm font-bold text-amber-400 font-display uppercase tracking-wider">Category Submissions Closed</p>
+                      <p className="text-xs text-white/50 font-mono mt-1">{effectiveCompletedMessage}</p>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                      <span className="block text-xl sm:text-2xl font-black font-mono text-white">{countdownParts.minutes}</span>
-                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Mins</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                      <span className="block text-xl sm:text-2xl font-black font-mono text-fivem-orange animate-pulse">{countdownParts.seconds}</span>
-                      <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider">Secs</span>
-                    </div>
-                  </div>
+                  )
                 ) : (
                   <div className="py-4 text-center">
-                    <p className="text-sm font-bold text-amber-400 font-display uppercase tracking-wider">Category Submissions Closed</p>
-                    <p className="text-xs text-white/50 font-mono mt-1">Community voting has ended and the final results are in.</p>
+                    <p className="text-sm font-bold text-emerald-400 font-display uppercase tracking-wider">Community Suggestions Open</p>
+                    <p className="text-xs text-white/50 font-mono mt-1">Voting and submitting new ideas is active for this round.</p>
                   </div>
                 )}
 
@@ -2512,6 +2613,14 @@ export function CategorySuggestionsView({
           )}
         </AnimatePresence>,
         document.body
+      )}
+
+      {/* ── Category Suggestions Page Hero & Countdown Customizer Modal (Admin) ── */}
+      {isAdmin && (
+        <CategorySuggestionsSettingsModal
+          isOpen={isCustomizerOpen}
+          onClose={() => setIsCustomizerOpen(false)}
+        />
       )}
     </div>
   );

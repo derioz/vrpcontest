@@ -27,7 +27,8 @@ import {
   MAX_CATEGORY_SUGGESTIONS_PER_USER,
   CATEGORY_SUGGESTION_DEADLINE,
   CATEGORY_SUGGESTION_DEADLINE_LABEL,
-  isCategorySuggestionDeadlineActive
+  isCategorySuggestionDeadlineActive,
+  getCategorySuggestionDeadlineLabel
 } from '../config';
 
 const SUGGESTIONS_COLLECTION = 'category_suggestions';
@@ -701,7 +702,7 @@ export async function submitCategorySuggestion(
 
   // 0. Authoritatively enforce category suggestion schedule deadline
   if (!isCategorySuggestionDeadlineActive() && !input.is_admin_author) {
-    throw new Error(`The Category Suggestion phase closed on ${CATEGORY_SUGGESTION_DEADLINE_LABEL}. Submissions are no longer accepted.`);
+    throw new Error(`The Category Suggestion phase closed on ${getCategorySuggestionDeadlineLabel()}. Submissions are no longer accepted.`);
   }
 
   // 1. Authoritatively enforce per-user suggestion limit
@@ -841,7 +842,7 @@ export async function castCategorySuggestionVote(
 
   // Authoritatively enforce category suggestion voting deadline
   if (!isCategorySuggestionDeadlineActive()) {
-    throw new Error(`Voting on Category Suggestions concluded on ${CATEGORY_SUGGESTION_DEADLINE_LABEL}. The results are now finalized.`);
+    throw new Error(`Voting on Category Suggestions concluded on ${getCategorySuggestionDeadlineLabel()}. The results are now finalized.`);
   }
 
   // Consistent unique document ID constraint: suggestionId + (discordId || userId)

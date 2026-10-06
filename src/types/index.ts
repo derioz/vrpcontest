@@ -173,3 +173,21 @@ export interface CountdownSettings {
     updatedAt?: string;
     updatedBy?: string;
 }
+
+export interface CategorySuggestionsPageSettings {
+    // Hero section custom styling & monthly theme
+    heroTitlePrefix?: string;
+    heroMonthHighlight?: string;
+    heroTitleSuffix?: string;
+    heroThemeBadge?: string;
+    heroDescription?: string;
+    heroGuideline?: string;
+    heroDisclaimer?: string;
+
+    // Dedicated Countdown Clock Configuration
+    countdownSettings?: CountdownSettings;
+
+    updatedAt?: string;
+    updatedBy?: string;
+}
+

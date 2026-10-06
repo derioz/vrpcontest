@@ -38,11 +38,13 @@ import {
 } from 'lucide-react';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { CountdownSettings } from '../../types';
+import { CountdownSettings, CategorySuggestionsPageSettings } from '../../types';
 import { CountdownClock } from '../ui/countdown-clock';
 import { AdminHeader } from './AdminHeader';
 import { AnimatedSwitch } from '../ui/animated-switch';
 import { ShimmerButton } from '../ui/shimmer-button';
+import { CategorySuggestionsSettingsModal } from './CategorySuggestionsSettingsModal';
+import { setDynamicCategorySuggestionDeadline } from '../../config';
 import { cn } from '../../lib/utils';
 
 export interface AdminCountdownTabProps {
@@ -107,12 +109,28 @@ const LABEL_PRESETS = [
   'Grand Finale In',
 ];
 
+const SUGGESTION_LABEL_PRESETS = [
+  'Submission & Voting Window',
+  'Suggestions Close In',
+  'Category Voting Closes In',
+  'Proposals Closing In',
+  'Theme Decisions Announced In',
+  'Categories Locking In',
+];
+
 // Completion Message Quick Templates
 const COMPLETED_MESSAGE_PRESETS = [
   '⚠️ Official deadline has arrived. Submissions closed. Community voting underway.',
   '⚠️ Community voting has concluded. Winners will be announced in the Hall of Fame shortly!',
   '🎉 The countdown has concluded! Stay tuned for official results and winner showcases.',
   '🏆 Contest concluded. Check the Hall of Fame for winning entries!',
+];
+
+const SUGGESTION_COMPLETED_PRESETS = [
+  '⚠️ Category Submissions Closed. Community voting has concluded and the final results are in.',
+  '⚠️ Suggestion window has expired. Staff is reviewing final rankings for the upcoming photo contest.',
+  '🎉 Category suggestions have closed! Stay tuned for the official photo contest announcement.',
+  '🏆 Voting has closed. The winning theme categories will be featured on the upcoming loading screen!',
 ];
 
 /**
@@ -224,6 +242,37 @@ export function AdminCountdownTab({
   const [previewExpired, setPreviewExpired] = useState<boolean>(false);
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(Date.now());
 
+  // Timer target mode: 'contest' = Photo contest, 'suggestions' = Category suggestions
+  const [timerTarget, setTimerTarget] = useState<'contest' | 'suggestions'>('contest');
+  const [rawContestSettings, setRawContestSettings] = useState<CountdownSettings | null>(null);
+  const [rawCategorySuggestionsSettings, setRawCategorySuggestionsSettings] = useState<CategorySuggestionsPageSettings | null>(null);
+  const [isHeroCustomizerOpen, setIsHeroCustomizerOpen] = useState(false);
+
+  const applyCountdownToState = useCallback((cs?: CountdownSettings | null, defaultLabel = 'Submissions Close In') => {
+    if (!cs) return;
+    if (typeof cs.enabled === 'boolean') setEnabled(cs.enabled);
+    if (cs.mode) setMode(cs.mode);
+    if (cs.timeZone) setTimeZone(cs.timeZone);
+    if (cs.label) setLabel(cs.label);
+    else setLabel(defaultLabel);
+    if (typeof cs.autoGenerateLabels === 'boolean') setAutoGenerateLabels(cs.autoGenerateLabels);
+    if (cs.eventDateLabel) setCustomDateLabel(cs.eventDateLabel);
+    if (cs.eventTimeLabel) setCustomTimeLabel(cs.eventTimeLabel);
+    if (cs.eventTzLabel) setCustomTzLabel(cs.eventTzLabel);
+    if (cs.completedMessage) setCompletedMessage(cs.completedMessage);
+    if (typeof cs.autoCloseSubmissions === 'boolean') setAutoCloseSubmissions(cs.autoCloseSubmissions);
+    if (typeof cs.autoOpenVoting === 'boolean') setAutoOpenVoting(cs.autoOpenVoting);
+
+    if (cs.targetDate) {
+      try {
+        const d = new Date(cs.targetDate);
+        if (!isNaN(d.getTime())) {
+          setDatetimeLocal(toDatetimeLocalValue(d, cs.timeZone || 'America/New_York'));
+        }
+      } catch {}
+    }
+  }, []);
+
   // Subscribe to real-time global settings on Firestore
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
@@ -231,27 +280,15 @@ export function AdminCountdownTab({
       if (docSnap.exists()) {
         const data = docSnap.data();
         const cs: CountdownSettings | undefined = data?.countdownSettings;
-        if (cs) {
-          if (typeof cs.enabled === 'boolean') setEnabled(cs.enabled);
-          if (cs.mode) setMode(cs.mode);
-          if (cs.timeZone) setTimeZone(cs.timeZone);
-          if (cs.label) setLabel(cs.label);
-          if (typeof cs.autoGenerateLabels === 'boolean') setAutoGenerateLabels(cs.autoGenerateLabels);
-          if (cs.eventDateLabel) setCustomDateLabel(cs.eventDateLabel);
-          if (cs.eventTimeLabel) setCustomTimeLabel(cs.eventTimeLabel);
-          if (cs.eventTzLabel) setCustomTzLabel(cs.eventTzLabel);
-          if (cs.completedMessage) setCompletedMessage(cs.completedMessage);
-          if (typeof cs.autoCloseSubmissions === 'boolean') setAutoCloseSubmissions(cs.autoCloseSubmissions);
-          if (typeof cs.autoOpenVoting === 'boolean') setAutoOpenVoting(cs.autoOpenVoting);
+        const suggSettings: CategorySuggestionsPageSettings | undefined = data?.categorySuggestionsSettings;
 
-          if (cs.targetDate) {
-            try {
-              const d = new Date(cs.targetDate);
-              if (!isNaN(d.getTime())) {
-                setDatetimeLocal(toDatetimeLocalValue(d, cs.timeZone || 'America/New_York'));
-              }
-            } catch {}
-          }
+        if (cs) setRawContestSettings(cs);
+        if (suggSettings) setRawCategorySuggestionsSettings(suggSettings);
+
+        if (timerTarget === 'contest' && cs) {
+          applyCountdownToState(cs, 'Submissions Close In');
+        } else if (timerTarget === 'suggestions' && suggSettings?.countdownSettings) {
+          applyCountdownToState(suggSettings.countdownSettings, 'Submission & Voting Window');
         }
       }
     }, (err) => {
@@ -260,7 +297,22 @@ export function AdminCountdownTab({
     });
 
     return () => unsub();
-  }, []);
+  }, [timerTarget, applyCountdownToState]);
+
+  const handleSwitchTimerTarget = (target: 'contest' | 'suggestions') => {
+    setTimerTarget(target);
+    setPreviewExpired(false);
+    if (target === 'contest') {
+      applyCountdownToState(rawContestSettings, 'Submissions Close In');
+    } else {
+      if (rawCategorySuggestionsSettings?.countdownSettings) {
+        applyCountdownToState(rawCategorySuggestionsSettings.countdownSettings, 'Submission & Voting Window');
+      } else {
+        setLabel('Submission & Voting Window');
+        setCompletedMessage('⚠️ Category Submissions Closed. Community voting has concluded and the final results are in.');
+      }
+    }
+  };
 
   // 1-second wall clock tick for telemetry readout
   useEffect(() => {
@@ -406,7 +458,7 @@ export function AdminCountdownTab({
         enabled,
         mode,
         targetDate: targetIsoString,
-        label: label.trim() || 'Submissions Close In',
+        label: label.trim() || (timerTarget === 'suggestions' ? 'Submission & Voting Window' : 'Submissions Close In'),
         eventDateLabel: effectiveEventDateLabel,
         eventTimeLabel: effectiveEventTimeLabel,
         eventTzLabel: effectiveEventTzLabel,
@@ -418,22 +470,40 @@ export function AdminCountdownTab({
         updatedAt: new Date().toISOString(),
       };
 
-      // 1. Persist to settings/global
-      await setDoc(doc(db, 'settings', 'global'), {
-        countdownSettings: newSettings,
-      }, { merge: true });
+      if (timerTarget === 'suggestions') {
+        const newSugSettings: CategorySuggestionsPageSettings = {
+          ...rawCategorySuggestionsSettings,
+          countdownSettings: newSettings,
+          updatedAt: new Date().toISOString()
+        };
 
-      // 2. Optionally sync active contest fields if chosen
-      if (activeContest?.id) {
-        const contestUpdates: Record<string, any> = {};
-        if (syncToSubmissionsClose) {
-          contestUpdates.submissions_close_date = targetIsoString;
-        }
-        if (syncToVotingEnd) {
-          contestUpdates.voting_end_date = targetIsoString;
-        }
-        if (Object.keys(contestUpdates).length > 0) {
-          await updateDoc(doc(db, 'contests', activeContest.id), contestUpdates);
+        await setDoc(doc(db, 'settings', 'global'), {
+          categorySuggestionsSettings: newSugSettings,
+        }, { merge: true });
+
+        setDynamicCategorySuggestionDeadline(
+          newSettings.targetDate,
+          newSettings.eventDateLabel,
+          newSettings.enabled
+        );
+      } else {
+        // 1. Persist to settings/global for contest
+        await setDoc(doc(db, 'settings', 'global'), {
+          countdownSettings: newSettings,
+        }, { merge: true });
+
+        // 2. Optionally sync active contest fields if chosen
+        if (activeContest?.id) {
+          const contestUpdates: Record<string, any> = {};
+          if (syncToSubmissionsClose) {
+            contestUpdates.submissions_close_date = targetIsoString;
+          }
+          if (syncToVotingEnd) {
+            contestUpdates.voting_end_date = targetIsoString;
+          }
+          if (Object.keys(contestUpdates).length > 0) {
+            await updateDoc(doc(db, 'contests', activeContest.id), contestUpdates);
+          }
         }
       }
 
@@ -547,6 +617,49 @@ export function AdminCountdownTab({
           </div>
         }
       />
+
+      {/* ── DUAL TIMER TARGET SELECTOR (PHOTO CONTEST vs CATEGORY SUGGESTIONS) ── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/10">
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-white/[0.03] border border-white/5">
+          <button
+            type="button"
+            onClick={() => handleSwitchTimerTarget('contest')}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer",
+              timerTarget === 'contest'
+                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20"
+                : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+            )}
+          >
+            <Clock size={13} />
+            <span>Photo Contest Timer</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSwitchTimerTarget('suggestions')}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer",
+              timerTarget === 'suggestions'
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20"
+                : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+            )}
+          >
+            <Sparkles size={13} />
+            <span>Category Suggestions Timer</span>
+          </button>
+        </div>
+
+        {timerTarget === 'suggestions' && (
+          <button
+            type="button"
+            onClick={() => setIsHeroCustomizerOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 hover:text-white border border-orange-500/30 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+          >
+            <Sliders size={13} className="text-orange-400" />
+            <span>Customize Month Title & Theme</span>
+          </button>
+        )}
+      </div>
 
       {/* ── ERROR & SUCCESS NOTIFICATIONS ── */}
       <AnimatePresence>
@@ -1224,6 +1337,12 @@ export function AdminCountdownTab({
           </button>
         </div>
       </div>
+
+      {/* Hero & Month Customizer Modal */}
+      <CategorySuggestionsSettingsModal
+        isOpen={isHeroCustomizerOpen}
+        onClose={() => setIsHeroCustomizerOpen(false)}
+      />
     </div>
   );
 }
