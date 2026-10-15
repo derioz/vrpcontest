@@ -343,7 +343,21 @@ export default function App() {
   const [userSubmissionCount, setUserSubmissionCount] = useState(0);
   const [userTotalVotes, setUserTotalVotes] = useState(0);
 
-  const [activeContest, setActiveContest] = useState<{ id: string; name: string; submissions_close_date?: string; voting_end_date?: string } | null>(null);
+  const [activeContest, setActiveContest] = useState<{
+    id: string;
+    name: string;
+    submissions_close_date?: string;
+    voting_end_date?: string;
+    status?: string;
+    phase?: string;
+    description?: string;
+  } | null>(null);
+  const lastActiveContestIdRef = useRef<string | null>(null);
+  const [contestSwitchedNotice, setContestSwitchedNotice] = useState<{
+    previousId: string;
+    newName: string;
+    newId: string;
+  } | null>(null);
   const [countdownSettings, setCountdownSettings] = useState<CountdownSettings | null>(null);
   const [votedPhotoIds, setVotedPhotoIds] = useState<Set<string>>(new Set());
   const [votingPhotoId, setVotingPhotoId] = useState<string | null>(null);
@@ -430,22 +444,34 @@ export default function App() {
     }
   }, [showArchivedWinners]);
 
-  // photos for the currently-selected category (derived from allPhotos)
+  // Photos strictly belonging to the currently ACTIVE contest round
+  const activeContestPhotos = useMemo(() => {
+    if (!activeContest?.id) return [];
+    const activeCatIds = new Set(categories.map(c => c.id));
+    return allPhotos.filter(p => {
+      if (p.contest_id) {
+        return p.contest_id === activeContest.id;
+      }
+      return p.category_id && activeCatIds.has(p.category_id);
+    });
+  }, [allPhotos, activeContest?.id, categories]);
+
+  // photos for the currently-selected category (derived from activeContestPhotos)
   const photos = useMemo(() => {
     if (!selectedCategory) return [];
-    return allPhotos.filter(p => p.category_id === selectedCategory.id);
-  }, [allPhotos, selectedCategory]);
+    return activeContestPhotos.filter(p => p.category_id === selectedCategory.id);
+  }, [activeContestPhotos, selectedCategory]);
 
   // Photos submitted by current logged-in user in the ACTIVE contest
   const currentUserContestPhotos = useMemo(() => {
-    if (!user || user.isAnonymous || !allPhotos.length) return [];
-    return allPhotos.filter(p =>
+    if (!user || user.isAnonymous || !activeContestPhotos.length) return [];
+    return activeContestPhotos.filter(p =>
       (user.uid && (p.user_id === user.uid || p.uploader_uid === user.uid)) ||
       (user.displayName && p.discord_name === user.displayName) ||
       (user.email && p.discord_name === user.email) ||
       (user.providerData && user.providerData.some((pd: any) => pd.displayName === p.discord_name))
     );
-  }, [user, allPhotos]);
+  }, [user, activeContestPhotos]);
 
   const currentUserPhoto = currentUserContestPhotos[0] || null;
   const userContestSubmissionCount = currentUserContestPhotos.length;
@@ -1118,8 +1144,24 @@ export default function App() {
           id: activeDoc.id,
           name: data.name,
           submissions_close_date: data.submissions_close_date,
-          voting_end_date: data.voting_end_date
+          voting_end_date: data.voting_end_date,
+          status: data.status || 'active',
+          phase: data.phase,
+          description: data.description,
         };
+
+        // If an active contest was already loaded and has switched to another contest round
+        if (lastActiveContestIdRef.current && lastActiveContestIdRef.current !== activeDoc.id) {
+          categoryCacheRef.current.clear();
+          setContestSwitchedNotice({
+            previousId: lastActiveContestIdRef.current,
+            newName: data.name || 'New Contest',
+            newId: activeDoc.id,
+          });
+          toast.info(`Active contest updated to "${data.name}"`, { duration: 5000 });
+        }
+        lastActiveContestIdRef.current = activeDoc.id;
+
         setActiveContest(contestData);
 
         // 3. Once we have an active contest, subscribe to its categories in real-time
@@ -1339,6 +1381,11 @@ export default function App() {
       return;
     }
 
+    if (!activeContest || (activeContest as any).status === 'paused') {
+      toast.error('The contest is currently paused. Voting is temporarily suspended.');
+      return;
+    }
+
     if (!user) {
       toast.error('Please sign in with Discord to vote!');
       setShowSignInModal(true);
@@ -1355,6 +1402,11 @@ export default function App() {
     const targetPhoto = allPhotos.find((p) => p.id === photoId);
     if (targetPhoto?.is_disqualified) {
       toast.error('This photo is disqualified and cannot receive votes.');
+      return;
+    }
+
+    if (targetPhoto?.contest_id && activeContest?.id && targetPhoto.contest_id !== activeContest.id) {
+      toast.error('This photo belongs to another contest round. Voting is restricted to the active contest.');
       return;
     }
 
@@ -1392,6 +1444,7 @@ export default function App() {
           // Cast new vote — atomically write vote doc and increment photo count
           transaction.set(voteRef, {
             photoId,
+            contest_id: activeContest?.id || '',
             voterName: currentName,
             voterUid: voterUid,
             voterDiscord: user?.displayName || currentName,
@@ -1533,6 +1586,10 @@ export default function App() {
       toast.error('Submissions are currently closed');
       return;
     }
+    if (!activeContest || (activeContest as any).status === 'paused') {
+      toast.error('The contest is currently paused. Submissions are temporarily suspended.');
+      return;
+    }
     // Enforce 1-photo-per-user limit server-side guard
     if (onePhotoPerUser && userContestSubmissionCount >= 1) {
       toast.error('Only 1 submission per user is allowed in this contest. Please remove your existing entry first.');
@@ -1582,6 +1639,7 @@ export default function App() {
       }
 
       const newPhoto = {
+        contest_id: activeContest?.id || '',
         category_id: categoryId,
         player_name: formPlayerName,
         discord_name: discordName,
@@ -2221,7 +2279,7 @@ export default function App() {
         user={user}
         activeContest={activeContest}
         categories={categories}
-        allPhotos={allPhotos}
+        allPhotos={activeContestPhotos}
         votingOpen={votingOpen}
         submissionsOpen={submissionsOpen}
         onePhotoPerUser={onePhotoPerUser}
@@ -2566,7 +2624,7 @@ export default function App() {
           categories={categories}
           selectedCategory={selectedCategory}
           onSelectCategory={handleCategorySelect}
-          allPhotos={allPhotos}
+          allPhotos={activeContestPhotos}
         />
       )}
     </div>
@@ -2765,6 +2823,52 @@ export default function App() {
       {/* Winner Announcement Section */}
       {activeContest && showWinnersToggle && winners.length > 0 && (
         <WinnerAnnouncement winners={winners} contestName={activeContest.name} />
+      )}
+
+      {/* Real-time Contest Switch Notification Banner */}
+      {contestSwitchedNotice && (
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-fivem-orange/15 to-amber-500/10 border border-fivem-orange/40 shadow-xl backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white animate-in fade-in slide-in-from-top-3 duration-300">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-fivem-orange/30 text-amber-300 shrink-0">
+                <Sparkles size={18} />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-fivem-orange text-black px-2 py-0.5 rounded-full">
+                    Contest Updated
+                  </span>
+                  <h4 className="text-xs font-bold text-white">
+                    The active contest is now: <strong>"{contestSwitchedNotice.newName}"</strong>
+                  </h4>
+                </div>
+                <p className="text-[11px] text-white/70">
+                  The previous contest was safely paused or switched by an administrator. Fresh categories and entries are loaded below.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <button
+                onClick={() => {
+                  setContestSwitchedNotice(null);
+                  const el = document.getElementById('category-nav') || document.getElementById('submissions-area');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-4 py-2 rounded-xl bg-fivem-orange hover:bg-orange-500 text-black font-extrabold text-xs transition-all cursor-pointer shadow-md"
+              >
+                View Active Contest
+              </button>
+              <button
+                onClick={() => setContestSwitchedNotice(null)}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                title="Dismiss notice"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Hero Banner — SeraUI Award-Winning Hero Stage */}
@@ -2989,14 +3093,14 @@ export default function App() {
 
                   <div className="flex flex-col border-l border-white/10 pl-3">
                     <span className="text-lg font-black font-display text-white">
-                      <NumberTicker value={allPhotos.length} delay={0.3} />
+                      <NumberTicker value={activeContestPhotos.length} delay={0.3} />
                     </span>
                     <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Submissions</span>
                   </div>
 
                   <div className="flex flex-col border-l border-white/10 pl-3">
                     <span className="text-lg font-black font-display text-fivem-orange">
-                      <NumberTicker value={allPhotos.reduce((s, p) => s + (p.vote_count || 0), 0)} delay={0.3} />
+                      <NumberTicker value={activeContestPhotos.reduce((s, p) => s + (p.vote_count || 0), 0)} delay={0.3} />
                     </span>
                     <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Votes Cast</span>
                   </div>
@@ -3203,7 +3307,7 @@ export default function App() {
             votingOpen={votingOpen}
             submissionsOpen={submissionsOpen}
             categories={categories}
-            allPhotos={allPhotos}
+            allPhotos={activeContestPhotos}
             user={user}
             currentUserPhoto={currentUserPhoto}
             userSubmissionCount={userContestSubmissionCount}

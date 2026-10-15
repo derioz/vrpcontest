@@ -85,6 +85,22 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20261015-1556',
+    dateKey: 'October 15, 2026',
+    timeStr: '3:56 PM',
+    fullTimestamp: 'October 15, 2026 at 3:56 PM',
+    labels: ['NEW', 'ADMIN', 'ENHANCE'],
+    title: 'Multi-Contest Management, Instant Pause & Replace, and Deadline Preservation Engine',
+    bullets: [
+      'Introduced comprehensive multi-contest management allowing staff to pause active contests and deploy temporary replacement contests in under 60 seconds.',
+      'Added Saved Contests vault preserving all photo entries, encrypted votes, categories, rules, and frozen countdown timers with zero data loss.',
+      'Engineered intelligent deadline preservation so restored contests automatically resume with their exact remaining submission and voting time.',
+      'Added real-time visitor alerts notifying online users whenever a contest round is switched or updated without page breaks.',
+      'Equipped the admin console with contest creation wizards, interactive player previews, copy-from-previous presets, and an immutable audit trail.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20261005-1903',
     dateKey: 'October 5, 2026',
     timeStr: '7:03 PM',

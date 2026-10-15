@@ -1,5 +1,48 @@
+export type ContestStatus = 'active' | 'paused' | 'scheduled' | 'archived';
+export type ContestPhase = 'submissions' | 'voting' | 'completed';
+
+export interface Contest {
+    id: string;
+    name: string;
+    description?: string;
+    status: ContestStatus;
+    phase: ContestPhase;
+    is_active: boolean;
+    submissions_close_date?: string;
+    voting_end_date?: string;
+    rulesMarkdown?: string;
+    paused_at?: string | null;
+    paused_remaining_submissions_ms?: number;
+    paused_remaining_voting_ms?: number;
+    previous_phase?: ContestPhase;
+    submissionsOpen?: boolean;
+    votingOpen?: boolean;
+    countdownSettings?: CountdownSettings | null;
+    submission_count?: number;
+    vote_count?: number;
+    category_count?: number;
+    created_at: string;
+    updated_at?: string;
+    resumed_at?: string;
+    archived_at?: string;
+}
+
+export interface ContestAuditLog {
+    id: string;
+    contest_id: string;
+    contest_name: string;
+    action: 'create' | 'pause' | 'restore' | 'edit' | 'archive' | 'switch' | 'delete';
+    details?: string;
+    performed_by_uid: string;
+    performed_by_name: string;
+    performed_by_avatar?: string;
+    timestamp: string;
+    metadata?: Record<string, any>;
+}
+
 export interface Category {
     id: string;
+    contest_id?: string;
     name: string;
     description: string;
     emoji?: string;
@@ -7,6 +50,7 @@ export interface Category {
 
 export interface Photo {
     id: string;
+    contest_id?: string;
     category_id: string;
     player_name: string;
     discord_name: string;

@@ -99,6 +99,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Contest audit logs (creation, pause, restore, edit, archive)
+    match /contest_audit_logs/{docId} {
+      allow read, write: if true;
+    }
+
     // Global contest settings (votingOpen, submissionsOpen, categorySuggestionMode, etc.)
     match /settings/{doc} {
       allow read, write: if true;

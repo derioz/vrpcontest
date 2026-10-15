@@ -21,6 +21,7 @@ import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
 import { AdminHeader } from './AdminHeader';
 
 import { EditContestManager, ArchiveContest, CreateContestManager, StandaloneRulesEditor } from './ContestManagers';
+import { ContestManagementHub } from './ContestManagementHub';
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 import { AdminSuggestionsTab } from './AdminSuggestionsTab';
 import { AdminCountdownTab } from './AdminCountdownTab';
@@ -276,6 +277,11 @@ export default function AdminPanel(props: AdminPanelProps) {
             rulesMarkdown={rulesMarkdown}
             winners={winners}
             onDownloadWinners={onDownloadWinners}
+            allPhotos={allPhotos}
+            user={user}
+            isAdmin={isAdmin}
+            votingOpen={votingOpen}
+            submissionsOpen={submissionsOpen}
           />
         )}
 
@@ -679,6 +685,11 @@ export default function AdminPanel(props: AdminPanelProps) {
                     rulesMarkdown={rulesMarkdown}
                     winners={winners}
                     onDownloadWinners={onDownloadWinners}
+                    allPhotos={allPhotos}
+                    user={user}
+                    isAdmin={isAdmin}
+                    votingOpen={votingOpen}
+                    submissionsOpen={submissionsOpen}
                   />
                 )}
 
@@ -826,13 +837,22 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
         icon={<LayoutDashboard size={20} className="text-fivem-orange" />}
         iconBg="bg-fivem-orange/15 border-fivem-orange/30"
         actions={
-          <button
-            onClick={() => setActiveTab('controls')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 border border-fivem-orange/40 text-fivem-orange font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
-          >
-            <Zap size={14} />
-            <span>Fast Switches</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab('contest')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
+            >
+              <Trophy size={14} />
+              <span>Manage & Switch Contests</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('controls')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 border border-fivem-orange/40 text-fivem-orange font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
+            >
+              <Zap size={14} />
+              <span>Fast Switches</span>
+            </button>
+          </div>
         }
       />
 
@@ -1133,159 +1153,44 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TAB: Contest Setup (Edit, Create, & Download Winners)
+   TAB: Contest Setup & Management (Lifecycle, Pause, Restore & Vault)
    ═══════════════════════════════════════════════════════════════════════ */
-function ContestSetupTab({ activeContest, categories, rulesMarkdown, winners, onDownloadWinners }: {
-  activeContest: any; categories: Category[]; rulesMarkdown: string; winners: any[];
+function ContestSetupTab({
+  activeContest,
+  categories,
+  rulesMarkdown,
+  winners,
+  onDownloadWinners,
+  allPhotos = [],
+  user,
+  isAdmin = true,
+  votingOpen = false,
+  submissionsOpen = false,
+}: {
+  activeContest: any;
+  categories: Category[];
+  rulesMarkdown: string;
+  winners: any[];
   onDownloadWinners: () => void;
+  allPhotos?: Photo[];
+  user?: any;
+  isAdmin?: boolean;
+  votingOpen?: boolean;
+  submissionsOpen?: boolean;
 }) {
-  const [showEditActive, setShowEditActive] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-
   return (
-    <div className="space-y-6">
-      <AdminHeader
-        badge="ROUND CONFIGURATION"
-        badgeColor="bg-amber-500/15 text-amber-400 border-amber-500/30"
-        title="Contest Setup & Management"
-        subtitle="Configure active contest parameters, edit categories, customize rules, or download winning entries."
-        icon={<Trophy size={20} className="text-amber-400" />}
-        iconBg="bg-amber-500/15 border-amber-500/30"
-        actions={
-          <button
-            onClick={onDownloadWinners}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95 shrink-0"
-          >
-            <Download size={14} />
-            <span>Download ZIP</span>
-          </button>
-        }
-      />
-
-      {/* Download Winners Section */}
-      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.03]">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
-        <div className="px-6 pt-5 pb-4 border-b border-amber-500/[0.12] flex items-center gap-2">
-          <div className="w-1 h-4 bg-amber-500/70 rounded-full" />
-          <Download size={13} className="text-amber-500/80" />
-          <h4 className="text-[11px] font-mono text-amber-500/80 uppercase tracking-[0.2em]">Winners Export</h4>
-        </div>
-        <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h5 className="text-sm font-bold text-white mb-0.5">Download Winning Photos</h5>
-            <p className="text-xs text-white/40">
-              Export high-resolution images of current 1st place winners across all categories as a ZIP package.
-            </p>
-          </div>
-          <button
-            onClick={onDownloadWinners}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-all shadow-md shrink-0 flex items-center gap-2 cursor-pointer active:scale-95"
-          >
-            <Download size={14} />
-            Download ZIP
-          </button>
-        </div>
-      </div>
-
-      {/* Edit Current Contest (Collapsible Accordion) */}
-      {activeContest ? (
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] transition-all">
-          <button
-            type="button"
-            onClick={() => setShowEditActive(!showEditActive)}
-            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.03] transition-colors cursor-pointer group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-4 bg-fivem-orange rounded-full" />
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-[11px] font-mono text-fivem-orange uppercase tracking-[0.2em] font-bold">
-                  Edit Current Contest
-                </h4>
-                <span className="text-xs text-white font-bold font-display px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10">
-                  {activeContest.name}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-mono text-fivem-orange bg-fivem-orange/10 px-2 py-0.5 rounded border border-fivem-orange/30 hidden sm:inline-block">
-                ID: {activeContest.id}
-              </span>
-              <span className="text-xs font-mono text-white/40 group-hover:text-white transition-colors">
-                {showEditActive ? '− Collapse' : '+ Expand Editor'}
-              </span>
-            </div>
-          </button>
-
-          {showEditActive && (
-            <div className="p-6 border-t border-white/10">
-              <Suspense fallback={
-                <div className="space-y-4 p-2">
-                  <Skeleton className="w-1/3 h-5 rounded-lg bg-white/[0.08]" />
-                  <Skeleton className="w-full h-11 rounded-xl bg-white/[0.06]" />
-                  <Skeleton className="w-full h-32 rounded-xl bg-white/[0.05]" />
-                </div>
-              }>
-                <EditContestManager
-                  activeContest={activeContest}
-                  categories={categories}
-                  currentCategories={categories}
-                  rulesMarkdown={rulesMarkdown}
-                  onUpdated={() => {}}
-                />
-              </Suspense>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div>
-              <h4 className="text-xs font-mono text-fivem-orange uppercase tracking-[0.2em] font-bold">
-                Global Contest Rules Editor
-              </h4>
-              <p className="text-xs text-white/40">No active contest round is selected, but you can configure platform rules ahead of time.</p>
-            </div>
-          </div>
-          <StandaloneRulesEditor rulesMarkdown={rulesMarkdown} />
-        </div>
-      )}
-
-      {/* Create New Contest Accordion */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] transition-all">
-        <button
-          type="button"
-          onClick={() => setShowCreate(!showCreate)}
-          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.03] transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-4 bg-emerald-500 rounded-full" />
-            <h4 className="text-[11px] font-mono text-emerald-400 uppercase tracking-[0.2em] font-bold">
-              Create New Contest Round
-            </h4>
-          </div>
-          <span className="text-xs font-mono text-white/40 group-hover:text-white transition-colors">
-            {showCreate ? '− Collapse' : '+ Expand Form'}
-          </span>
-        </button>
-
-        {showCreate && (
-          <div className="p-6 border-t border-white/10">
-            <Suspense fallback={
-              <div className="space-y-4 p-2">
-                <Skeleton className="w-1/3 h-5 rounded-lg bg-white/[0.08]" />
-                <Skeleton className="w-full h-11 rounded-xl bg-white/[0.06]" />
-                <Skeleton className="w-full h-24 rounded-xl bg-white/[0.05]" />
-              </div>
-            }>
-              <CreateContestManager
-                onCreated={() => window.location.reload()}
-                onContestCreated={() => window.location.reload()}
-              />
-            </Suspense>
-          </div>
-        )}
-      </div>
-    </div>
+    <ContestManagementHub
+      activeContest={activeContest}
+      categories={categories}
+      allPhotos={allPhotos}
+      rulesMarkdown={rulesMarkdown}
+      winners={winners}
+      user={user}
+      isAdmin={isAdmin}
+      votingOpen={votingOpen}
+      submissionsOpen={submissionsOpen}
+      onDownloadWinners={onDownloadWinners}
+    />
   );
 }
 
