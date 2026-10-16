@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search, UserCheck, Heart, Image as ImageIcon, Sparkles, ExternalLink, Calendar,
-  User, Tag, ShieldAlert, ShieldCheck, UserX, AlertTriangle, RefreshCw, CheckCircle2
+  User, Tag, ShieldAlert, ShieldCheck, UserX, AlertTriangle, RefreshCw, CheckCircle2, Ban
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc, setDoc, deleteDoc, updateDoc, increment, getDocs, where, writeBatch } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -887,9 +887,24 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                       </div>
                     )}
 
+                    {/* DISQUALIFIED Permanent Banner */}
+                    {photo?.is_disqualified && (
+                      <div className="absolute top-0 inset-x-0 bg-red-600/95 text-white font-black text-[10px] uppercase tracking-widest py-1 px-2 flex items-center justify-center gap-1 z-20 shadow-md border-b border-red-400/40">
+                        <Ban size={11} className="stroke-[2.5]" />
+                        <span>DISQUALIFIED</span>
+                        {photo.disqualification_reason && (
+                          <span className="font-normal text-[9px] opacity-90 truncate max-w-[100px] font-mono">
+                            ({photo.disqualification_reason})
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Category Pill Badge */}
                     {photo && (
-                      <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/80 flex items-center gap-1">
+                      <div className={`absolute left-2.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/80 flex items-center gap-1 z-10 ${
+                        photo.is_disqualified ? 'top-8' : 'top-2.5'
+                      }`}>
                         <Tag size={10} className="text-cyan-400" />
                         <span>{categoryMap.get(photo.category_id) || 'Category'}</span>
                       </div>

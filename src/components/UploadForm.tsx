@@ -15,7 +15,8 @@ import {
   Trash2,
   Check,
   Tag,
-  Trophy
+  Trophy,
+  Ban
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Input } from './ui/input';
@@ -254,15 +255,39 @@ export default function UploadForm({
             </div>
           </div>
 
+          {/* Disqualification Status Alert if entry is disqualified */}
+          {existingPhoto.is_disqualified && (
+            <div className="p-3 bg-red-600/20 border border-red-500/40 rounded-2xl flex items-center gap-2.5 text-xs text-red-300 font-bold">
+              <Ban size={16} className="text-red-400 shrink-0" />
+              <span>
+                This entry is currently marked as <strong>Disqualified</strong>
+                {existingPhoto.disqualification_reason ? ` (${existingPhoto.disqualification_reason})` : ''}.
+                The photo remains visible in the contest gallery, but cannot receive votes.
+              </span>
+            </div>
+          )}
+
           {/* Existing Photo Preview Card */}
-          <div className="relative rounded-2xl border border-white/15 bg-black/60 overflow-hidden p-3 flex gap-3.5 items-center">
+          <div className={cn(
+            "relative rounded-2xl border bg-black/60 overflow-hidden p-3 flex gap-3.5 items-center",
+            existingPhoto.is_disqualified ? "border-red-500/40 ring-1 ring-red-500/50" : "border-white/15"
+          )}>
             <img
               src={existingPhoto.image_url}
               alt="Current Entry"
-              className="w-24 h-20 rounded-xl object-cover border border-white/20 shrink-0"
+              className={cn(
+                "w-24 h-20 rounded-xl object-cover border shrink-0",
+                existingPhoto.is_disqualified ? "grayscale-[40%] opacity-80 border-red-500/50" : "border-white/20"
+              )}
             />
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
+                {existingPhoto.is_disqualified && (
+                  <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-mono text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                    <Ban size={10} className="stroke-[2.5]" />
+                    DISQUALIFIED
+                  </span>
+                )}
                 <span className="px-2.5 py-0.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange font-mono text-[10px] font-bold uppercase tracking-wider">
                   {categories.find(c => c.id === existingPhoto.category_id)?.name || 'Category'}
                 </span>

@@ -85,6 +85,21 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20261016-1856',
+    dateKey: 'October 16, 2026',
+    timeStr: '6:56 PM',
+    fullTimestamp: 'October 16, 2026 at 6:56 PM',
+    labels: ['UI', 'ENHANCE', 'ADMIN'],
+    title: 'Disqualified Photo Visibility & Status Display Preservation',
+    bullets: [
+      'Guaranteed that disqualified photos remain visible across contest galleries, categories, and admin views instead of being removed or hidden.',
+      'Added high-visibility red Disqualified indicator banners across the 3D showcase carousel, submission management, and voter audit records.',
+      'Protected leaderboard and archive winner computations so disqualified entries cannot claim victory over active community submissions.',
+      'Clarified submission status alerts and added smooth re-qualification controls so administrators can easily audit and manage entries.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20261015-1556',
     dateKey: 'October 15, 2026',
     timeStr: '3:56 PM',

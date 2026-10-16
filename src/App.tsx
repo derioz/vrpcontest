@@ -1351,7 +1351,7 @@ export default function App() {
           is_disqualified: true,
           disqualification_reason: reason || 'Disqualified by admin',
         });
-        toast.success('Photo marked as Disqualified');
+        toast.success('Photo marked as Disqualified (remains visible in gallery)');
       } else {
         await updateDoc(photoRef, {
           is_disqualified: false,

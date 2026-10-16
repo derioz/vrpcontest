@@ -1045,7 +1045,7 @@ export function ArchiveContest({
 
       // 1. Compute winners
       const winners = categories.map(cat => {
-        const catPhotos = allPhotos.filter(p => p.category_id === cat.id);
+        const catPhotos = allPhotos.filter(p => p.category_id === cat.id && !p.is_disqualified);
         if (!catPhotos.length) return null;
         const topPhoto = [...catPhotos].sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))[0];
         return {

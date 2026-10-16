@@ -59,8 +59,8 @@ export const PhotoCard = memo(function PhotoCard({
   onToggleDisqualify,
 }: PhotoCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const isTopFirst = sortBy === 'top' && index === 0;
-  const rankEmoji = sortBy === 'top' ? (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null) : null;
+  const isTopFirst = !photo.is_disqualified && sortBy === 'top' && index === 0;
+  const rankEmoji = !photo.is_disqualified && sortBy === 'top' ? (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null) : null;
 
   const isUserOwner = !!(
     user &&

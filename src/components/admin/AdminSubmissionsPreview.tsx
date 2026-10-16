@@ -274,6 +274,9 @@ export default function AdminSubmissionsPreview({
                       } else {
                         const reason = window.prompt("Reason for disqualifying this photo (optional):");
                         if (reason !== null) {
+                          if (statusFilter === 'active') {
+                            setStatusFilter('all');
+                          }
                           onToggleDisqualifyPhoto(photo.id, true, reason || undefined);
                         }
                       }

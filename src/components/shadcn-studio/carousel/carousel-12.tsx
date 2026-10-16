@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { motion, PanInfo } from 'motion/react'
-import { EyeOff, Sparkles, Trophy, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Camera } from 'lucide-react'
+import { EyeOff, Sparkles, Trophy, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Camera, Ban } from 'lucide-react'
 import { Carousel, CarouselNext, CarouselPrevious } from '../../ui/carousel'
 import { Button } from '../../ui/button'
 import { cn } from '../../../lib/utils'
@@ -230,6 +230,14 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
                   draggable={false}
                   loading="lazy"
                 />
+
+                {/* DISQUALIFIED Permanent Banner */}
+                {slide.isDisqualified && (
+                  <div className="absolute top-0 inset-x-0 bg-red-600/95 text-white font-black text-xs uppercase tracking-widest py-1.5 px-3 flex items-center justify-center gap-1.5 z-30 shadow-lg border-b border-red-400/40">
+                    <Ban size={14} className="stroke-[2.5]" />
+                    <span>DISQUALIFIED</span>
+                  </div>
+                )}
 
                 {/* Minimal Placeholder Center Viewfinder & Category Icon */}
                 {slide.isPlaceholder && (
