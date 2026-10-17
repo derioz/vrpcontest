@@ -160,7 +160,7 @@ const ADMIN_NAV_CATEGORIES: AdminNavCategory[] = [
       {
         id: 'voters',
         label: 'Voter Audit',
-        description: 'Voter directory, alt blacklist & moderation',
+        description: 'Voter directory & voting audit records',
         icon: UserCheck,
       },
     ],

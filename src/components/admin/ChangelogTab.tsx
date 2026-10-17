@@ -85,18 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20261016-1918',
+    id: 'entry-20261016-1925',
     dateKey: 'October 16, 2026',
-    timeStr: '7:18 PM',
-    fullTimestamp: 'October 16, 2026 at 7:18 PM',
+    timeStr: '7:25 PM',
+    fullTimestamp: 'October 16, 2026 at 7:25 PM',
     labels: ['ENHANCE', 'SECURITY', 'ADMIN'],
-    title: 'Disqualified Photo Visibility & Voter Account Whitelist Verification',
+    title: 'Photo Visibility Safeguards & Complete Alt Blocking Removal',
     bullets: [
-      'Guaranteed that disqualified photos remain visible across contest galleries, categories, and admin views instead of being removed or hidden.',
-      'Added high-visibility red Disqualified indicator banners across the 3D showcase carousel, submission management, and voter audit records.',
-      'Protected leaderboard and archive winner computations so disqualified entries cannot claim victory over active community submissions.',
-      'Added administrative unban and authentication whitelist bypass allowing reinstated community members (including ohgeesy2926) to log in smoothly with Discord.',
-      'Ensured unbanned members have unrestricted access to cast contest votes and participate without being blocked by alt detection.',
+      'Guaranteed that disqualified photos remain visible across contest galleries and categories with clear indicator badges instead of being hidden.',
+      'Completely removed the alt account blocking system, allowing all community members to vote freely without account restrictions.',
+      'Permanently cleared all historical banned accounts and alt flags from the database, restoring full platform access to everyone.',
+      'Streamlined Discord authentication so players can log in immediately without role gates or forced logouts.',
+      'Re-architected the admin voter audit interface into a clean directory focused exclusively on voting history and submission previews.',
     ],
     author: 'Damon',
   },

@@ -34,180 +34,24 @@ export const EXPLICIT_ALLOWED_USERNAMES = new Set<string>([
   'ohgeesy',
 ]);
 
-export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise<DiscordVerificationResult> {
-  // Explicit unban / whitelist bypass for approved users
-  if (options.discordId && EXPLICIT_ALLOWED_DISCORD_IDS.has(String(options.discordId).trim())) {
-    return { allowed: true };
-  }
-
-  const guildId = import.meta.env.VITE_DISCORD_GUILD_ID;
-  const whitelistRoleId = import.meta.env.VITE_DISCORD_WHITELIST_ROLE_ID;
-  const botToken = import.meta.env.VITE_DISCORD_BOT_TOKEN;
-
-  // If Guild ID is not configured in .env, skip check gracefully
-  if (!guildId) {
-    console.warn("⚠️ VITE_DISCORD_GUILD_ID is not set in .env. Skipping server & role verification.");
-    return { allowed: true };
-  }
-
-  // Retrieve and persist provider token
-  let storedToken = options.providerToken || localStorage.getItem('discord_provider_token');
-  if (options.providerToken) {
-    localStorage.setItem('discord_provider_token', options.providerToken);
-    storedToken = options.providerToken;
-  }
-
-  const cacheKey = options.discordId ? `id_${options.discordId}` : (storedToken ? `token_${storedToken.slice(-16)}` : null);
-
-  // Check in-memory cache if not forcing refresh
-  if (cacheKey && !options.forceRefresh) {
-    const cached = verificationCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return cached.result;
-    }
-  }
-
-  const setCachedResult = (res: DiscordVerificationResult): DiscordVerificationResult => {
-    if (cacheKey) {
-      verificationCache.set(cacheKey, { result: res, timestamp: Date.now() });
-    }
-    return res;
-  };
-
-  // ── Strategy A: User OAuth Access Token Check ──
-  if (storedToken) {
-    try {
-      const response = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-        },
-      });
-
-      if (response.status === 404) {
-        return setCachedResult({
-          allowed: false,
-          reason: 'not_in_server',
-          message: 'You must be a member of the Vital RP Discord to participate.',
-        });
-      }
-
-      if (response.ok) {
-        const member = await response.json();
-        const roles: string[] = member.roles || [];
-
-        if (whitelistRoleId && !roles.includes(whitelistRoleId)) {
-          return setCachedResult({
-            allowed: false,
-            reason: 'missing_role',
-            message: 'You must be whitelist approved to suggest or vote on contest categories.',
-            guildMember: member,
-          });
-        }
-
-        return setCachedResult({ allowed: true, guildMember: member });
-      }
-
-      // If token expired (401), clean up localStorage token
-      if (response.status === 401) {
-        localStorage.removeItem('discord_provider_token');
-      }
-    } catch (error) {
-      console.warn("User OAuth token member verification failed:", error);
-    }
-  }
-
-  // ── Strategy B: Discord Bot Token Member Lookup (by Discord User ID) ──
-  if (botToken && options.discordId) {
-    try {
-      const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${options.discordId}`, {
-        headers: {
-          Authorization: `Bot ${botToken}`,
-        },
-      });
-
-      if (response.status === 404) {
-        return setCachedResult({
-          allowed: false,
-          reason: 'not_in_server',
-          message: 'You must be a member of the Vital RP Discord to participate.',
-        });
-      }
-
-      if (response.ok) {
-        const member = await response.json();
-        const roles: string[] = member.roles || [];
-
-        if (whitelistRoleId && !roles.includes(whitelistRoleId)) {
-          return setCachedResult({
-            allowed: false,
-            reason: 'missing_role',
-            message: 'You must be whitelist approved to suggest or vote on contest categories.',
-            guildMember: member,
-          });
-        }
-
-        return setCachedResult({ allowed: true, guildMember: member });
-      }
-    } catch (error) {
-      console.error("Bot token member check error:", error);
-    }
-  }
-
-  // If no tokens are available to perform verification, log diagnostic warning
-  if (!storedToken && !botToken) {
-    console.warn("⚠️ Unable to verify Discord membership: No provider_token or bot_token available.");
-  }
-
-  return setCachedResult({ allowed: true });
+export async function verifyDiscordGuildAndRole(_options: VerifyOptions = {}): Promise<DiscordVerificationResult> {
+  // Blocking checks completely removed — all users are permitted
+  return { allowed: true };
 }
 
 /**
  * Check user eligibility for suggestions and voting.
- * Returns { allowed: true } if in Vital Discord and has Whitelist Approved role.
+ * Always permits authenticated users without blocking.
  */
-export async function checkUserDiscordEligibility(user: any, forceRefresh = false): Promise<DiscordVerificationResult> {
+export async function checkUserDiscordEligibility(user: any, _forceRefresh = false): Promise<DiscordVerificationResult> {
   if (!user) {
     return {
       allowed: false,
       reason: 'not_in_server',
-      message: 'You must be signed in with Discord to participate.',
+      message: 'Please sign in with Discord to participate.',
     };
   }
-
-  const discordId =
-    user.discordId ||
-    user.user_metadata?.provider_id ||
-    user.user_metadata?.sub ||
-    user.identities?.find((i: any) => i.provider === 'discord')?.id ||
-    user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
-    user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
-    user.id;
-
-  const rawUsername = (
-    user.displayName ||
-    user.user_metadata?.user_name ||
-    user.user_metadata?.full_name ||
-    user.user_metadata?.name ||
-    user.email ||
-    ''
-  ).toLowerCase().trim();
-
-  if (
-    (discordId && EXPLICIT_ALLOWED_DISCORD_IDS.has(String(discordId).trim())) ||
-    EXPLICIT_ALLOWED_USERNAMES.has(rawUsername) ||
-    rawUsername.includes('ohgeesy2926') ||
-    rawUsername === 'ohgeesy'
-  ) {
-    return { allowed: true };
-  }
-
-  const storedToken = localStorage.getItem('discord_provider_token');
-
-  return await verifyDiscordGuildAndRole({
-    discordId: discordId ? String(discordId) : null,
-    providerToken: storedToken,
-    forceRefresh,
-  });
+  return { allowed: true };
 }
 
 /**

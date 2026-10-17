@@ -2,9 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search, UserCheck, Heart, Image as ImageIcon, Sparkles, ExternalLink, Calendar,
-  User, Tag, ShieldAlert, ShieldCheck, UserX, AlertTriangle, RefreshCw, CheckCircle2, Ban
+  User, Tag, ShieldCheck, RefreshCw, CheckCircle2, Ban
 } from 'lucide-react';
-import { collection, onSnapshot, query, doc, setDoc, deleteDoc, updateDoc, increment, getDocs, where, writeBatch } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, increment, getDocs, where, writeBatch } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
@@ -35,13 +35,6 @@ interface VoterSummary {
   votes: VoteRecord[];
 }
 
-interface FlaggedVoter {
-  voterUid: string;
-  voterName: string;
-  flaggedAt: string;
-  reason?: string;
-}
-
 interface RegisteredUser {
   uid: string;
   displayName: string;
@@ -58,19 +51,11 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const [votes, setVotes] = useState<VoteRecord[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<Map<string, RegisteredUser>>(new Map());
   const [archivedUserStats, setArchivedUserStats] = useState<Map<string, number>>(new Map());
-  const [flaggedVoters, setFlaggedVoters] = useState<Map<string, FlaggedVoter>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVoterId, setSelectedVoterId] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
-  const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
-
-  // Manual Flag Modal State
-  const [showManualFlagModal, setShowManualFlagModal] = useState(false);
-  const [manualUid, setManualUid] = useState('');
-  const [manualName, setManualName] = useState('');
-  const [manualReason, setManualReason] = useState('Verified Alt Discord Account');
 
   // Fetch all votes (active + historic) and user_stats across contests
   const fetchVotesAndUsers = async () => {
@@ -160,43 +145,6 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
       } catch (statErr) {
         console.warn('user_stats query info:', statErr);
       }
-
-      // 4. Robust fallback fetch for flagged_voters & aliases
-      try {
-        const flaggedMap = new Map<string, FlaggedVoter>();
-        for (const collName of ['flagged_voters', 'flagged_accounts', 'banned_voters']) {
-          try {
-            const snap = await getDocs(collection(db, collName));
-            snap.docs.forEach((doc) => {
-              const data = doc.data();
-              const voterUid = String(data.voterUid || data.uid || data.id || doc.id);
-              const voterName = (data.voterName as string) || (data.name as string) || (data.displayName as string) || (data.username as string) || doc.id;
-              if (
-                voterUid.includes('345694065393926164') ||
-                voterName.toLowerCase().includes('ohgeesy') ||
-                doc.id.toLowerCase().includes('ohgeesy')
-              ) {
-                return;
-              }
-              if (voterUid) {
-                flaggedMap.set(voterUid, {
-                  voterUid,
-                  voterName,
-                  flaggedAt: (data.flaggedAt as string) || (data.timestamp as string) || new Date().toISOString(),
-                  reason: data.reason as string | undefined,
-                });
-              }
-            });
-          } catch {
-            // ignore non-existent collections
-          }
-        }
-        if (flaggedMap.size > 0) {
-          setFlaggedVoters((prev) => new Map([...prev, ...flaggedMap]));
-        }
-      } catch (fErr) {
-        console.warn('Flagged voters fallback fetch error:', fErr);
-      }
     } catch (err) {
       console.error('Failed to load voter database:', err);
       toast.error('Failed to load voter database');
@@ -208,160 +156,6 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   useEffect(() => {
     fetchVotesAndUsers();
   }, []);
-
-  // Subscribe to flagged_voters collection in real time
-  useEffect(() => {
-    const q = query(collection(db, 'flagged_voters'));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const map = new Map<string, FlaggedVoter>();
-        snap.docs.forEach((doc) => {
-          const data = doc.data();
-          const voterUid = String(data.voterUid || data.uid || data.id || doc.id);
-          const voterName = (data.voterName as string) || (data.name as string) || (data.displayName as string) || (data.username as string) || doc.id;
-          if (
-            voterUid.includes('345694065393926164') ||
-            voterName.toLowerCase().includes('ohgeesy') ||
-            doc.id.toLowerCase().includes('ohgeesy')
-          ) {
-            return;
-          }
-          if (voterUid) {
-            map.set(voterUid, {
-              voterUid,
-              voterName,
-              flaggedAt: (data.flaggedAt as string) || (data.timestamp as string) || new Date().toISOString(),
-              reason: data.reason as string | undefined,
-            });
-          }
-        });
-        setFlaggedVoters(map);
-      },
-      (err) => {
-        console.error('Failed to load flagged voters realtime:', err);
-      }
-    );
-
-    return () => unsub();
-  }, []);
-
-  // Handler to toggle Alt Account flag & invalidate votes
-  const handleToggleAltFlag = async (voterUid: string, voterName: string) => {
-    const isCurrentlyFlagged = flaggedVoters.has(voterUid);
-
-    if (isCurrentlyFlagged) {
-      // Unflag account
-      try {
-        await deleteDoc(doc(db, 'flagged_voters', voterUid));
-        toast.success(`Unflagged ${voterName}. Alt flag removed.`);
-      } catch (err: any) {
-        toast.error('Failed to unflag account: ' + (err?.message || 'Unknown error'));
-      }
-    } else {
-      // Flag account & remove votes
-      const confirmFlag = window.confirm(
-        `Are you sure you want to flag "${voterName}" as an Alt Account?\n\nAll votes cast by this account will be permanently deleted and photo vote totals will be updated automatically.`
-      );
-      if (!confirmFlag) return;
-
-      const toastId = toast.loading(`Flagging ${voterName} and purging alt votes...`);
-      setIsProcessing(true);
-
-      try {
-        // 1. Add to flagged_voters collection
-        await setDoc(doc(db, 'flagged_voters', voterUid), {
-          voterUid,
-          voterName,
-          flaggedAt: new Date().toISOString(),
-          reason: 'Verified Alt Discord Account',
-        });
-
-        // 2. Fetch and remove all votes cast by this voterUid
-        const votesQuery = query(collection(db, 'votes'), where('voterUid', '==', voterUid));
-        const votesSnap = await getDocs(votesQuery);
-
-        let votesRemovedCount = 0;
-        const photoVoteDecrements = new Map<string, number>();
-
-        for (const voteDoc of votesSnap.docs) {
-          const photoId = String(voteDoc.data().photoId || '');
-          if (photoId) {
-            photoVoteDecrements.set(photoId, (photoVoteDecrements.get(photoId) || 0) + 1);
-          }
-          await deleteDoc(doc(db, 'votes', voteDoc.id));
-          votesRemovedCount++;
-        }
-
-        // 3. Update vote counts on affected photos
-        for (const [photoId, count] of photoVoteDecrements.entries()) {
-          try {
-            await updateDoc(doc(db, 'photos', photoId), {
-              vote_count: increment(-count),
-            });
-          } catch (e) {
-            console.error(`Failed to decrement vote_count on photo ${photoId}:`, e);
-          }
-        }
-
-        toast.success(
-          `Flagged ${voterName} as alt account. Removed ${votesRemovedCount} vote(s) and updated photo tallies!`,
-          { id: toastId }
-        );
-        await fetchVotesAndUsers();
-      } catch (err: any) {
-        console.error('Failed to flag alt account:', err);
-        toast.error('Error flagging alt account: ' + (err?.message || 'Unknown error'), { id: toastId });
-      } finally {
-        setIsProcessing(false);
-      }
-    }
-  };
-
-  // Handler to manually flag an account by UID / Name
-  const handleManualFlagSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const uid = manualUid.trim();
-    const name = manualName.trim() || uid;
-    if (!uid) {
-      toast.error('Please enter a User ID (UID)');
-      return;
-    }
-
-    setIsProcessing(true);
-    const toastId = toast.loading(`Adding ${name} to Flagged Alts...`);
-    try {
-      await setDoc(doc(db, 'flagged_voters', uid), {
-        voterUid: uid,
-        voterName: name,
-        flaggedAt: new Date().toISOString(),
-        reason: manualReason.trim() || 'Verified Alt Discord Account',
-      });
-
-      // Purge any active votes by this UID
-      const votesQuery = query(collection(db, 'votes'), where('voterUid', '==', uid));
-      const votesSnap = await getDocs(votesQuery);
-      for (const voteDoc of votesSnap.docs) {
-        const photoId = String(voteDoc.data().photoId || '');
-        if (photoId) {
-          try {
-            await updateDoc(doc(db, 'photos', photoId), { vote_count: increment(-1) });
-          } catch (_) {}
-        }
-        await deleteDoc(doc(db, 'votes', voteDoc.id));
-      }
-
-      toast.success(`Successfully flagged ${name} as Alt Account!`, { id: toastId });
-      setShowManualFlagModal(false);
-      setManualUid('');
-      setManualName('');
-      await fetchVotesAndUsers();
-    } catch (err: any) {
-      toast.error('Failed to flag account: ' + (err?.message || 'Unknown error'), { id: toastId });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   // Reconcile and fix any desynchronized photo vote_counts from raw votes collection
   const handleRecalculateAllVoteCounts = async () => {
@@ -433,7 +227,6 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const categoryMap = new Map<string, string>();
   categories.forEach((c) => categoryMap.set(c.id, c.name));
 
-
   const resolveVoterAvatar = (uid?: string, displayName?: string) => {
     const profile = registeredUsers.get(uid || '') || registeredUsers.get((displayName || '').toLowerCase());
     return getProfileAvatar(
@@ -445,8 +238,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
     );
   };
 
-  // Aggregate votes by voter UID
-  // Memoize all voter summaries aggregation across active votes, historical stats & flagged accounts
+  // Aggregate votes by voter
   const allVotersList = useMemo(() => {
     const voterSummariesMap = new Map<string, VoterSummary>();
 
@@ -494,51 +286,20 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
       }
     });
 
-    // 3. Overlay all flagged alt accounts from Firestore (guaranteed persistent)
-    flaggedVoters.forEach((fv, uid) => {
-      const key = (fv.voterName || uid).toLowerCase().trim();
-      if (!voterSummariesMap.has(key) && !voterSummariesMap.has(uid.toLowerCase())) {
-        const targetKey = uid.toLowerCase();
-        voterSummariesMap.set(targetKey, {
-          id: targetKey,
-          voterUid: uid,
-          displayName: fv.voterName || uid,
-          voterDiscord: fv.voterName || uid,
-          voteCount: 0,
-          votes: [],
-        });
-      } else {
-        const targetKey = voterSummariesMap.has(key) ? key : uid.toLowerCase();
-        const summary = voterSummariesMap.get(targetKey)!;
-        if (fv.voterName && (!summary.displayName || summary.displayName.toLowerCase() === 'discord user')) {
-          summary.displayName = fv.voterName;
-          summary.voterDiscord = fv.voterName;
-        }
-      }
-    });
-
-    // Filter out any entries that are empty/placeholder "Discord User" with 0 votes and not flagged
+    // Filter out placeholder entries with 0 votes
     return Array.from(voterSummariesMap.values())
       .filter((v) => {
-        const isAlt = flaggedVoters.has(v.voterUid) || (Array.from(flaggedVoters.values()) as FlaggedVoter[]).some((f) => f.voterName.toLowerCase() === v.displayName.toLowerCase());
         const isPlaceholder = v.displayName.toLowerCase() === 'discord user' || v.voterDiscord.toLowerCase() === 'discord user';
-        if (isPlaceholder && !isAlt) return false;
-        return v.voteCount > 0 || isAlt;
+        if (isPlaceholder) return false;
+        return v.voteCount > 0;
       })
-      .sort((a, b) => {
-        const aAlt = flaggedVoters.has(a.voterUid);
-        const bAlt = flaggedVoters.has(b.voterUid);
-        if (aAlt && !bAlt) return -1;
-        if (!aAlt && bAlt) return 1;
-        return b.voteCount - a.voteCount;
-      });
-  }, [votes, archivedUserStats, flaggedVoters]);
+      .sort((a, b) => b.voteCount - a.voteCount);
+  }, [votes, archivedUserStats]);
 
-  // Memoize filtered voters by search query and flagged filter
+  // Memoize filtered voters by search query
   const searchTrimmed = searchQuery.toLowerCase().trim();
   const matchingVoters = useMemo(() => {
     return allVotersList.filter((v) => {
-      if (showFlaggedOnly && !flaggedVoters.has(v.voterUid)) return false;
       if (!searchTrimmed) return true;
       return (
         v.displayName.toLowerCase().includes(searchTrimmed) ||
@@ -546,28 +307,24 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
         v.voterUid.toLowerCase().includes(searchTrimmed)
       );
     });
-  }, [allVotersList, searchTrimmed, showFlaggedOnly, flaggedVoters]);
+  }, [allVotersList, searchTrimmed]);
 
-  // Determine active voter selection flexibly by ID, UID, or Display Name
-  const activeVoter = selectedVoterId
-    ? allVotersList.find(
-        (v) =>
-          v.id === selectedVoterId ||
-          v.voterUid === selectedVoterId ||
-          v.displayName.toLowerCase() === selectedVoterId.toLowerCase() ||
-          v.voterDiscord.toLowerCase() === selectedVoterId.toLowerCase()
-      ) || null
-    : matchingVoters.length === 1 && searchTrimmed.length > 0
-    ? matchingVoters[0]
-    : null;
+  // Selected voter details
+  const activeVoter = useMemo(() => {
+    if (!selectedVoterId) return null;
+    return allVotersList.find((v) => v.id === selectedVoterId || v.voterUid === selectedVoterId) || null;
+  }, [allVotersList, selectedVoterId]);
 
-  // Photos voted for by active voter
-  const activeVoterPhotos: { vote: VoteRecord; photo?: Photo }[] = activeVoter
-    ? activeVoter.votes.map((v) => ({
-        vote: v,
-        photo: photosById.get(v.photoId),
+  // Active voter's photos
+  const activeVoterPhotos = useMemo(() => {
+    if (!activeVoter) return [];
+    return activeVoter.votes
+      .map((vote) => ({
+        vote,
+        photo: photosById.get(vote.photoId),
       }))
-    : [];
+      .filter((item) => item.photo !== undefined);
+  }, [activeVoter, photosById]);
 
   return (
     <div className="space-y-6">
@@ -576,10 +333,10 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
         <div>
           <div className="flex items-center gap-2 mb-1">
             <UserCheck className="text-cyan-400" size={22} />
-            <h3 className="text-xl font-black font-display text-white">Voter Search & Alt Account Manager</h3>
+            <h3 className="text-xl font-black font-display text-white">Voter Directory & Vote Audit</h3>
           </div>
           <p className="text-sm text-white/40">
-            Search for voters, view voted photos, and flag verified alt Discord accounts to purge invalid votes across all contests.
+            Search for registered voters, inspect voted submissions, and audit vote distribution across contest categories.
           </p>
         </div>
 
@@ -605,102 +362,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             <ShieldCheck size={13} className="text-cyan-400" />
             <span>Reconcile Counts</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setShowManualFlagModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-xs font-mono font-bold text-red-300 transition-all cursor-pointer shadow-sm"
-            title="Manually blacklist an alt Discord account by UID"
-          >
-            <UserX size={13} className="text-red-400" />
-            <span>Blacklist UID</span>
-          </button>
-
-          {/* Flagged Alt Count Badge */}
-          {flaggedVoters.size > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowFlaggedOnly(!showFlaggedOnly)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer ${
-                showFlaggedOnly
-                  ? 'bg-red-500/25 border-red-500/60 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.35)]'
-                  : 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
-              }`}
-            >
-              <ShieldAlert size={14} className="text-red-400" />
-              <span>{flaggedVoters.size} Flagged Alt{flaggedVoters.size !== 1 ? 's' : ''}</span>
-            </button>
-          )}
         </div>
-      </div>
-
-      {/* Persistent Active Alt Blacklist Banner */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-red-500/10 via-[#181014] to-[#0c0c14] border border-red-500/30 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <ShieldAlert size={20} className="text-red-400 shrink-0" />
-            <div>
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Active Alt Blacklist ({flaggedVoters.size} Account{flaggedVoters.size !== 1 ? 's' : ''})</span>
-                <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-mono text-[10px] uppercase tracking-wider border border-red-500/30">Permanent</span>
-              </h4>
-              <p className="text-xs text-white/50">
-                Flagged accounts are permanently blocked from voting across all contest rounds.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Flagged Accounts Grid List */}
-        {flaggedVoters.size > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
-            {(Array.from(flaggedVoters.values()) as FlaggedVoter[]).map((fv) => (
-              <div
-                key={fv.voterUid}
-                className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-black/40 border border-red-500/25 hover:border-red-500/50 transition-all"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <img
-                    src={resolveVoterAvatar(fv.voterUid, fv.voterName)}
-                    alt=""
-                    className="w-7 h-7 rounded-lg border border-red-500/40 object-cover shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-white truncate">{fv.voterName}</p>
-                    <p className="text-[10px] font-mono text-red-400/80 truncate">UID: {fv.voterUid}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedVoterId(fv.voterUid);
-                      setShowFlaggedOnly(false);
-                    }}
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-mono text-white/70 hover:text-white border border-white/10 transition-colors cursor-pointer"
-                    title="Inspect votes"
-                  >
-                    Inspect
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isProcessing}
-                    onClick={() => handleToggleAltFlag(fv.voterUid, fv.voterName)}
-                    className="p-1.5 rounded-lg bg-red-500/20 hover:bg-emerald-500/20 text-red-400 hover:text-emerald-300 border border-red-500/30 hover:border-emerald-500/40 transition-colors cursor-pointer"
-                    title="Unflag alt account"
-                  >
-                    <ShieldCheck size={13} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-3 rounded-xl bg-black/30 border border-white/5 text-center">
-            <p className="text-xs text-white/40">No alt accounts currently flagged in database.</p>
-          </div>
-        )}
       </div>
 
       {/* Search Input & Directory */}
@@ -714,9 +376,18 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
               setSearchQuery(e.target.value);
               setSelectedVoterId(null);
             }}
-            placeholder="Search voter by Discord name, display name, or UID..."
-            className="w-full bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] text-white text-sm rounded-xl pl-11 pr-4 py-3 border border-white/10 focus:border-cyan-500/50 outline-none transition-all placeholder:text-white/30"
+            placeholder="Search voters by Discord Name or UID..."
+            className="w-full pl-11 pr-10 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {/* Directory Pill List of Active Voters */}
@@ -726,20 +397,10 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
               <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
                 Voter Directory ({matchingVoters.length} Listed)
               </p>
-              {showFlaggedOnly && (
-                <button
-                  type="button"
-                  onClick={() => setShowFlaggedOnly(false)}
-                  className="text-[10px] font-mono text-cyan-400 hover:underline cursor-pointer"
-                >
-                  Show all voters
-                </button>
-              )}
             </div>
             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
               {matchingVoters.map((voter) => {
                 const isSelected = activeVoter?.id === voter.id || activeVoter?.voterUid === voter.voterUid || activeVoter?.displayName.toLowerCase() === voter.displayName.toLowerCase();
-                const isAlt = flaggedVoters.has(voter.voterUid);
                 return (
                   <button
                     key={voter.id}
@@ -748,8 +409,6 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
                       isSelected
                         ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.25)]'
-                        : isAlt
-                        ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
                         : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/80 hover:text-white'
                     }`}
                   >
@@ -759,11 +418,6 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
                       className="w-4 h-4 rounded-full border border-white/20 object-cover shrink-0"
                     />
                     <span>{voter.displayName}</span>
-                    {isAlt && (
-                      <span className="px-1 py-0.2 rounded bg-red-500/20 text-[9px] font-mono font-bold text-red-400 border border-red-500/30">
-                        ALT
-                      </span>
-                    )}
                     <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[9px] font-mono font-bold text-white/60">
                       {voter.voteCount}
                     </span>
@@ -801,36 +455,19 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
       ) : activeVoter ? (
         <div className="space-y-4">
           {/* Active Voter Info Banner */}
-          <div
-            className={`p-4 sm:p-5 rounded-2xl border flex flex-wrap items-center justify-between gap-4 backdrop-blur-md ${
-              flaggedVoters.has(activeVoter.voterUid)
-                ? 'bg-gradient-to-r from-red-500/15 via-rose-500/5 to-transparent border-red-500/30'
-                : 'bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent border-cyan-500/20'
-            }`}
-          >
+          <div className="p-4 sm:p-5 rounded-2xl border flex flex-wrap items-center justify-between gap-4 backdrop-blur-md bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent border-cyan-500/20">
             <div className="flex items-center gap-3">
               <img
                 src={resolveVoterAvatar(activeVoter.voterUid, activeVoter.displayName)}
                 alt=""
-                className={`w-12 h-12 rounded-2xl border object-cover shadow-lg ${
-                  flaggedVoters.has(activeVoter.voterUid)
-                    ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
-                    : 'border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
-                }`}
+                className="w-12 h-12 rounded-2xl border object-cover shadow-lg border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
               />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h4 className="text-lg font-bold text-white tracking-wide">{activeVoter.displayName}</h4>
-                  {flaggedVoters.has(activeVoter.voterUid) ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-mono font-bold flex items-center gap-1">
-                      <ShieldAlert size={12} />
-                      ALT ACCOUNT FLAGGED (0 Counted Votes)
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold">
-                      {activeVoter.voteCount} Total {activeVoter.voteCount === 1 ? 'Vote' : 'Votes'} Recorded
-                    </span>
-                  )}
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold">
+                    {activeVoter.voteCount} Total {activeVoter.voteCount === 1 ? 'Vote' : 'Votes'} Recorded
+                  </span>
                 </div>
                 <p className="text-xs text-white/40 font-mono mt-0.5 truncate">
                   UID: {activeVoter.voterUid}
@@ -838,39 +475,13 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Flag / Unflag Alt Account Button */}
-              <button
-                type="button"
-                disabled={isProcessing}
-                onClick={() => handleToggleAltFlag(activeVoter.voterUid, activeVoter.displayName)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                  flaggedVoters.has(activeVoter.voterUid)
-                    ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-400'
-                    : 'bg-red-500/15 hover:bg-red-500/25 border-red-500/30 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
-                }`}
-              >
-                {flaggedVoters.has(activeVoter.voterUid) ? (
-                  <>
-                    <ShieldCheck size={14} />
-                    <span>Unflag Alt Account</span>
-                  </>
-                ) : (
-                  <>
-                    <ShieldAlert size={14} />
-                    <span>Flag as Alt Account & Purge Votes</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedVoterId(null)}
-                className="text-xs font-mono text-white/40 hover:text-white px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
-              >
-                Clear
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedVoterId(null)}
+              className="text-xs font-mono text-white/40 hover:text-white px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+            >
+              Clear
+            </button>
           </div>
 
           {/* Voted Photos Grid or Historical Notice */}
@@ -992,10 +603,9 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
             </div>
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-white/40 text-center border border-white/5 rounded-2xl">
-              <ShieldAlert size={36} className="mb-2 text-red-400/50 stroke-[1.5]" />
               <p className="text-base font-medium text-white/70">No active votes recorded</p>
               <p className="text-xs text-white/40 mt-1 max-w-sm">
-                This account has 0 active votes in the database (or votes were purged after flagging as alt).
+                This account has 0 active votes in the database.
               </p>
             </div>
           )}
@@ -1011,87 +621,13 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           <Sparkles size={36} className="mb-2 text-cyan-400/40 stroke-[1.5]" />
           <p className="text-base font-medium text-white/70">Select or search for a voter</p>
           <p className="text-xs text-white/40 mt-1 max-w-sm">
-            Choose any voter from the directory above to inspect their voted photos or flag verified alt Discord accounts.
+            Choose any voter from the directory above to inspect their voted photos and voting distribution.
           </p>
         </div>
       )}
 
       {/* Lightbox Modal for Image Inspection */}
       <LightboxModal photo={previewPhoto} privateKey={null} onClose={() => setPreviewPhoto(null)} />
-
-      {/* Manual Flag Account Modal */}
-      {showManualFlagModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#0e0e14] border border-red-500/40 rounded-3xl p-6 shadow-[0_20px_70px_rgba(0,0,0,0.9)] space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="text-red-400" size={20} />
-                <h4 className="text-base font-bold text-white">Manual Flag Alt Account</h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowManualFlagModal(false)}
-                className="text-white/40 hover:text-white text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleManualFlagSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-mono text-white/60 mb-1">User ID / Discord UID (Required)</label>
-                <input
-                  type="text"
-                  required
-                  value={manualUid}
-                  onChange={(e) => setManualUid(e.target.value)}
-                  placeholder="e.g. 104829104810294819"
-                  className="w-full bg-white/[0.06] text-white text-sm rounded-xl px-3.5 py-2.5 border border-white/10 focus:border-red-500/50 outline-none font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-white/60 mb-1">Discord Name / Display Name (Optional)</label>
-                <input
-                  type="text"
-                  value={manualName}
-                  onChange={(e) => setManualName(e.target.value)}
-                  placeholder="e.g. PlayerAlt123"
-                  className="w-full bg-white/[0.06] text-white text-sm rounded-xl px-3.5 py-2.5 border border-white/10 focus:border-red-500/50 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-white/60 mb-1">Reason (Optional)</label>
-                <input
-                  type="text"
-                  value={manualReason}
-                  onChange={(e) => setManualReason(e.target.value)}
-                  placeholder="Verified Alt Discord Account"
-                  className="w-full bg-white/[0.06] text-white text-sm rounded-xl px-3.5 py-2.5 border border-white/10 focus:border-red-500/50 outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowManualFlagModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-mono bg-white/5 hover:bg-white/10 text-white/70 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="px-5 py-2 rounded-xl text-xs font-mono font-bold bg-red-500/80 hover:bg-red-500 text-white shadow-lg cursor-pointer"
-                >
-                  {isProcessing ? 'Flagging...' : 'Add to Blacklist'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
