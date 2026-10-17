@@ -171,6 +171,13 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
               const data = doc.data();
               const voterUid = String(data.voterUid || data.uid || data.id || doc.id);
               const voterName = (data.voterName as string) || (data.name as string) || (data.displayName as string) || (data.username as string) || doc.id;
+              if (
+                voterUid.includes('345694065393926164') ||
+                voterName.toLowerCase().includes('ohgeesy') ||
+                doc.id.toLowerCase().includes('ohgeesy')
+              ) {
+                return;
+              }
               if (voterUid) {
                 flaggedMap.set(voterUid, {
                   voterUid,
@@ -213,6 +220,13 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
           const data = doc.data();
           const voterUid = String(data.voterUid || data.uid || data.id || doc.id);
           const voterName = (data.voterName as string) || (data.name as string) || (data.displayName as string) || (data.username as string) || doc.id;
+          if (
+            voterUid.includes('345694065393926164') ||
+            voterName.toLowerCase().includes('ohgeesy') ||
+            doc.id.toLowerCase().includes('ohgeesy')
+          ) {
+            return;
+          }
           if (voterUid) {
             map.set(voterUid, {
               voterUid,

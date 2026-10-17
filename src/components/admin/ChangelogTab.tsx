@@ -85,17 +85,18 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
-    id: 'entry-20261016-1856',
+    id: 'entry-20261016-1918',
     dateKey: 'October 16, 2026',
-    timeStr: '6:56 PM',
-    fullTimestamp: 'October 16, 2026 at 6:56 PM',
-    labels: ['UI', 'ENHANCE', 'ADMIN'],
-    title: 'Disqualified Photo Visibility & Status Display Preservation',
+    timeStr: '7:18 PM',
+    fullTimestamp: 'October 16, 2026 at 7:18 PM',
+    labels: ['ENHANCE', 'SECURITY', 'ADMIN'],
+    title: 'Disqualified Photo Visibility & Voter Account Whitelist Verification',
     bullets: [
       'Guaranteed that disqualified photos remain visible across contest galleries, categories, and admin views instead of being removed or hidden.',
       'Added high-visibility red Disqualified indicator banners across the 3D showcase carousel, submission management, and voter audit records.',
       'Protected leaderboard and archive winner computations so disqualified entries cannot claim victory over active community submissions.',
-      'Clarified submission status alerts and added smooth re-qualification controls so administrators can easily audit and manage entries.',
+      'Added administrative unban and authentication whitelist bypass allowing reinstated community members (including ohgeesy2926) to log in smoothly with Discord.',
+      'Ensured unbanned members have unrestricted access to cast contest votes and participate without being blocked by alt detection.',
     ],
     author: 'Damon',
   },

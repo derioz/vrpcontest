@@ -981,12 +981,27 @@ export default function App() {
         session.user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
         session.user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub;
 
+      const userName = (
+        session.user.user_metadata?.user_name ||
+        session.user.user_metadata?.full_name ||
+        session.user.user_metadata?.name ||
+        session.user.user_metadata?.custom_claims?.global_name ||
+        session.user.email ||
+        ''
+      ).toLowerCase();
+
+      // Explicit whitelist / unban check: ohgeesy2926 (345694065393926164) can always log in
+      const isExplicitlyAllowed =
+        String(discordId) === '345694065393926164' ||
+        userName.includes('ohgeesy2926') ||
+        userName === 'ohgeesy';
+
       const verifyRes = await verifyDiscordGuildAndRole({
         providerToken: session.provider_token || null,
         discordId: discordId ? String(discordId) : null,
       });
 
-      if (!verifyRes.allowed) {
+      if (!verifyRes.allowed && !isExplicitlyAllowed) {
         console.warn("🚫 Discord server/role check failed:", verifyRes);
         setDiscordReqReason(verifyRes.reason || 'not_in_server');
         setDiscordReqMessage(verifyRes.message || 'Access denied.');
@@ -1328,11 +1343,28 @@ export default function App() {
         const ids = new Set<string>();
         snap.docs.forEach((d) => {
           const data = d.data();
-          if (d.id) ids.add(d.id.toLowerCase());
-          if (data.voterUid) ids.add(String(data.voterUid).toLowerCase());
-          if (data.uid) ids.add(String(data.uid).toLowerCase());
-          if (data.id) ids.add(String(data.id).toLowerCase());
-          if (data.voterName) ids.add(String(data.voterName).toLowerCase());
+          const docId = d.id.toLowerCase();
+          const vUid = String(data.voterUid || '').toLowerCase();
+          const uid = String(data.uid || '').toLowerCase();
+          const id = String(data.id || '').toLowerCase();
+          const vName = String(data.voterName || '').toLowerCase();
+
+          // Ensure ohgeesy2926 (345694065393926164) is never treated as flagged
+          if (
+            docId.includes('345694065393926164') || docId.includes('ohgeesy') ||
+            vUid.includes('345694065393926164') ||
+            uid.includes('345694065393926164') ||
+            id.includes('345694065393926164') ||
+            vName.includes('ohgeesy')
+          ) {
+            return;
+          }
+
+          if (d.id) ids.add(docId);
+          if (data.voterUid) ids.add(vUid);
+          if (data.uid) ids.add(uid);
+          if (data.id) ids.add(id);
+          if (data.voterName) ids.add(vName);
         });
         setFlaggedVoterIds(ids);
       },
@@ -1393,8 +1425,16 @@ export default function App() {
     }
 
     const voterUid = user.uid;
+    const voterDiscordId = user.discordId;
+    const voterName = (user.displayName || '').toLowerCase();
 
-    if (flaggedVoterIds.has(voterUid)) {
+    const isExemptAlt =
+      voterDiscordId === '345694065393926164' ||
+      voterUid === '345694065393926164' ||
+      voterName.includes('ohgeesy2926') ||
+      voterName === 'ohgeesy';
+
+    if (flaggedVoterIds.has(voterUid) && !isExemptAlt) {
       toast.error('Your account has been flagged as an alt account and cannot vote.');
       return;
     }

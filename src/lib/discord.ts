@@ -24,7 +24,22 @@ interface CachedVerification {
 const verificationCache = new Map<string, CachedVerification>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Explicit allowed list of Discord IDs that are permanently whitelisted / unbanned
+export const EXPLICIT_ALLOWED_DISCORD_IDS = new Set<string>([
+  '345694065393926164', // ohgeesy2926
+]);
+
+export const EXPLICIT_ALLOWED_USERNAMES = new Set<string>([
+  'ohgeesy2926',
+  'ohgeesy',
+]);
+
 export async function verifyDiscordGuildAndRole(options: VerifyOptions): Promise<DiscordVerificationResult> {
+  // Explicit unban / whitelist bypass for approved users
+  if (options.discordId && EXPLICIT_ALLOWED_DISCORD_IDS.has(String(options.discordId).trim())) {
+    return { allowed: true };
+  }
+
   const guildId = import.meta.env.VITE_DISCORD_GUILD_ID;
   const whitelistRoleId = import.meta.env.VITE_DISCORD_WHITELIST_ROLE_ID;
   const botToken = import.meta.env.VITE_DISCORD_BOT_TOKEN;
@@ -167,6 +182,24 @@ export async function checkUserDiscordEligibility(user: any, forceRefresh = fals
     user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
     user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
     user.id;
+
+  const rawUsername = (
+    user.displayName ||
+    user.user_metadata?.user_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email ||
+    ''
+  ).toLowerCase().trim();
+
+  if (
+    (discordId && EXPLICIT_ALLOWED_DISCORD_IDS.has(String(discordId).trim())) ||
+    EXPLICIT_ALLOWED_USERNAMES.has(rawUsername) ||
+    rawUsername.includes('ohgeesy2926') ||
+    rawUsername === 'ohgeesy'
+  ) {
+    return { allowed: true };
+  }
 
   const storedToken = localStorage.getItem('discord_provider_token');
 
