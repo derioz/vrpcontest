@@ -76,10 +76,8 @@ import { Sheet, SheetContent } from './components/ui/sheet';
 import { VoteButton, VotersButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 import { NumberTicker } from './components/ui/number-ticker';
-import { Marquee } from './components/ui/marquee';
 import { DotPattern } from './components/ui/dot-pattern';
 import { ShimmerButton } from './components/ui/shimmer-button';
-import { AnimatedShinyText } from './components/ui/animated-shiny-text';
 import { MagicCard } from './components/ui/magic-card';
 import { BlurFade } from './components/ui/blur-fade';
 import { RetroGrid } from './components/ui/retro-grid';
@@ -92,7 +90,6 @@ import { HoverGradientNavBar, HoverGradientMenuItem } from './components/ui/hove
 import RadialCarousel, { RadialCarouselItem } from './components/shadcn-studio/carousel/carousel-12';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
-import { Announcement } from './components/ui/announcement';
 import { VelocityScroll } from './components/ui/scroll-based-velocity';
 import { CountdownClock } from './components/ui/countdown-clock';
 
@@ -1694,8 +1691,8 @@ export default function App() {
       }
       toast.success(
         enabled
-          ? 'Category Suggestion Mode enabled — Website homepage is now Category Suggestions'
-          : 'Category Suggestion Mode disabled — Photo Contest homepage restored'
+          ? 'Category Suggestion Mode enabled. The homepage is now Category Suggestions.'
+          : 'Category Suggestion Mode disabled. The Photo Contest homepage is restored.'
       );
     } catch (error: any) {
       console.error("Toggle Category Suggestion Mode Error:", error);
@@ -2434,7 +2431,6 @@ export default function App() {
                 </span>
               </div>
               <div className="hidden sm:flex items-center gap-1.5 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
                 <span className="text-white/40 font-mono text-[9px] uppercase tracking-[0.2em] leading-none font-bold">
                   {activeContest?.name || 'Photo Contest'}
                 </span>
@@ -2896,27 +2892,6 @@ export default function App() {
                 animate="visible"
                 className={cn("flex flex-col", !hasHeroItems && "items-center")}
               >
-                {/* SeraUI Live Announcement Capsule */}
-                <motion.div variants={heroItemVariants} className="mb-5">
-                  <Announcement
-                    variant="gradient"
-                    badge={isVotingOpen ? 'VOTING LIVE' : isSubmissionsOpen ? 'SUBMISSIONS OPEN' : 'ACTIVE CONTEST'}
-                    badgeColor={
-                      isVotingOpen
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                        : isSubmissionsOpen
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                        : 'bg-white/10 text-white/70 border border-white/20'
-                    }
-                  >
-                    <AnimatedShinyText shimmerWidth={100}>
-                      <span className="text-white/90 font-bold uppercase tracking-wider text-[11px]">
-                        Vital RP Photo Contest
-                      </span>
-                    </AnimatedShinyText>
-                  </Announcement>
-                </motion.div>
-
                 {/* Main Headline with SparklesText and Dual-Tone Hierarchy */}
                 <motion.div variants={heroItemVariants} className={cn("mb-4 space-y-1.5", !hasHeroItems && "text-center")}>
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.08] text-white">
@@ -3074,8 +3049,7 @@ export default function App() {
                     }}
                   />
                   <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/40 tracking-wider mt-1 select-none">
-                    <Sparkles size={11} className="text-fivem-orange animate-pulse" />
-                    <span>Scroll, drag, or arrow keys to rotate · Click active slide to inspect</span>
+                    <span>Drag to rotate. Click a slide to open it.</span>
                   </div>
                 </motion.div>
               )}
@@ -3093,7 +3067,7 @@ export default function App() {
             <img src={VITAL_RP_LOGO_URL} alt="" className="w-24 h-24 object-contain mx-auto opacity-20 relative z-10" />
           </motion.div>
           <h2 className="text-3xl font-display font-black text-white/30 mb-3 relative z-10">No Active Contest</h2>
-          <p className="text-white/20 max-w-sm relative z-10">Check back soon — the next contest is being prepared by the admins.</p>
+          <p className="text-white/20 max-w-sm relative z-10">Check back soon. The admins are preparing the next contest.</p>
         </section>
       )}
 
@@ -3514,28 +3488,6 @@ export default function App() {
       </AnimatePresence>
 
       {/* ── Footer ── */}
-      {/* ── MagicUI Marquee — scrolling community ticker ── */}
-      <div className="relative overflow-hidden border-t border-white/[0.07] bg-[#050505] py-3">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-[#050505] z-10 pointer-events-none" />
-        <Marquee pauseOnHover duration={50} className="[--gap:2rem]">
-          {[
-            '📸 Vital RP Photo Contest',
-            '🏆 Submit Your Best Shot',
-            '🎮 FiveM Community',
-            '⭐ Vote for Your Favorites',
-            '🔥 Capture the Spirit of the City',
-            '✨ Winners Announced Weekly',
-            '🎯 In-Game Screenshots Only',
-            '💎 Premium Photography Contest',
-          ].map((text, i) => (
-            <span key={i} className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.2em] text-white/20 whitespace-nowrap">
-              {text}
-              <span className="w-1 h-1 rounded-full bg-fivem-orange/30" />
-            </span>
-          ))}
-        </Marquee>
-      </div>
-
       <footer className="relative overflow-hidden border-t border-white/[0.07] bg-[#060606] mt-auto">
         {/* Ambient glow */}
         <div className="absolute inset-0 pointer-events-none">
@@ -3600,19 +3552,10 @@ export default function App() {
 
               {/* Copyright */}
               <p className="text-[10px] font-mono text-white/20 tracking-widest uppercase">
-                © {new Date().getFullYear()} Vital RP · All rights reserved
+                © {new Date().getFullYear()} Vital RP. All rights reserved
               </p>
             </div>
 
-          </div>
-
-          {/* Bottom divider line */}
-          <div className="mt-8 pt-5 border-t border-white/[0.05] flex items-center justify-center">
-            <div className="flex items-center gap-2 text-[10px] font-mono text-white/15 uppercase tracking-[0.3em]">
-              <span className="w-8 h-px bg-white/10" />
-              Vital RP Photo Contest
-              <span className="w-8 h-px bg-white/10" />
-            </div>
           </div>
         </div>
       </footer>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  Lock, Unlock, Trophy, Shield, Sparkles, LogIn, LogOut,
+  Lock, Unlock, Trophy, Shield, LogIn, LogOut,
   ChevronRight, ArrowRight, Eye, User, ShieldCheck, CheckCircle2,
   Clock, Flame
 } from 'lucide-react';
@@ -86,11 +86,6 @@ export function ContestClosedModal({
                 </div>
               </div>
 
-              {/* Brand Subtitle Pill */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md px-3.5 py-1 text-xs font-semibold tracking-wider text-fivem-orange uppercase mt-4 shadow-[0_0_15px_rgba(234,88,12,0.15)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange animate-pulse" />
-                <span className="text-[10px] text-white/80 font-mono font-bold tracking-widest">OFFICIAL PHOTO CONTEST</span>
-              </div>
             </div>
 
             {/* Heading */}
@@ -112,12 +107,11 @@ export function ContestClosedModal({
                 <Clock size={16} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-amber-200 mb-0.5 flex items-center gap-1.5">
-                  <span>Next Contest In Preparation</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <p className="text-xs font-bold text-amber-200 mb-0.5">
+                  Next round coming soon
                 </p>
                 <p className="text-[11px] text-white/50 leading-relaxed">
-                  Our team is actively working on the upcoming contest round. Please stay tuned and be patient while we get things ready!
+                  The team is setting up the next contest. Announcements go out on Discord.
                 </p>
               </div>
             </div>
@@ -134,15 +128,9 @@ export function ContestClosedModal({
                     <Trophy size={22} className="text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-black font-display uppercase tracking-wider text-amber-200 group-hover:text-amber-100">
-                        Explore Hall of Fame
-                      </span>
-                      <Sparkles size={13} className="text-amber-400 animate-pulse" />
-                    </div>
-                    <p className="text-xs text-white/50 line-clamp-1">
-                      Browse winning shots & historic contest archives
-                    </p>
+                    <span className="text-sm font-black font-display uppercase tracking-wider text-amber-200 group-hover:text-amber-100">
+                      Hall of Fame
+                    </span>
                   </div>
                 </div>
                 <div className="p-2 rounded-xl bg-amber-500/10 text-amber-300 group-hover:translate-x-1 transition-transform">
@@ -200,9 +188,6 @@ export function ContestClosedModal({
                       Administrator Detected
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full uppercase font-bold">
-                    Admin Access
-                  </span>
                 </div>
                 <p className="text-xs text-white/60">
                   You are authenticated as an administrator. You can bypass this lock screen to view the live platform or open the Admin Console.

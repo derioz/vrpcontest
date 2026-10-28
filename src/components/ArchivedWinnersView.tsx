@@ -422,15 +422,13 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
             
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.2)] shrink-0">
-                <Trophy size={18} className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+                <Trophy size={18} className="text-amber-400" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-base sm:text-xl font-black font-display tracking-wide leading-none text-white truncate">
                   <SparklesText text="Hall of Fame Vault" sparklesCount={3} colors={{ first: "#f59e0b", second: "#fbbf24" }} />
                 </h1>
                 <p className="text-[9px] sm:text-[10px] text-white/40 font-mono mt-1 uppercase tracking-widest flex items-center gap-1.5 truncate">
-                  <span className="hidden xs:inline">Immortalized Champions</span>
-                  <span className="hidden xs:inline w-1 h-1 rounded-full bg-amber-400" />
                   <span>{contests.length} Archives</span>
                   <span className="w-1 h-1 rounded-full bg-amber-400" />
                   <span>{winners.length} Winners</span>
@@ -490,10 +488,6 @@ export function ArchivedWinnersView({ currentUser, onClose }: ArchivedWinnersVie
                 {/* Vault Header & Badge */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest">
-                      <Sparkles size={11} className="text-amber-400 animate-pulse" />
-                      <span>Vault Archives</span>
-                    </div>
                     <span className="text-[10px] font-mono text-white/40">{contests.length} Editions</span>
                   </div>
                   <div>

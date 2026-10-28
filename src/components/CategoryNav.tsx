@@ -153,7 +153,6 @@ export const CategoryNav = React.memo(function CategoryNav({
             variants={notificationVariants as any}
           >
             <div className="relative rounded-full bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 px-3.5 py-1 text-white font-display text-[11px] font-black tracking-wider uppercase shadow-[0_4px_24px_rgba(234,88,12,0.6)] border border-orange-300/40 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               <span>{activeNotification}</span>
             </div>
             <motion.div

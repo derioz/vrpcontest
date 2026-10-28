@@ -12,7 +12,6 @@ import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   FileText,
-  ShieldCheck,
   Camera,
   Flame,
   Trophy,
@@ -115,19 +114,12 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-fivem-orange/25 bg-fivem-orange/8 backdrop-blur-md mb-4 text-[11px] font-mono font-bold text-fivem-orange uppercase tracking-widest">
-              <ShieldCheck size={13} className="text-fivem-orange" />
-              <span>Official Protocol</span>
-            </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
               Rules &{' '}
               <span className="text-fivem-orange">
                 Guidelines
               </span>
             </h2>
-            <p className="text-white/50 text-sm sm:text-base leading-relaxed max-w-xl">
-              Review the official competition standards before submitting your entries.
-            </p>
           </motion.div>
         </div>
 
@@ -150,7 +142,7 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
           const Icon = rule.icon;
           return (
             <motion.div
-              key={rule.number}
+              key={rule.title}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -176,12 +168,6 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
 
                   {/* Text */}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={cn('text-[10px] font-mono font-bold tracking-widest', c.numText)}>
-                        {rule.number}
-                      </span>
-                      <div className="h-px flex-1 bg-white/[0.06]" />
-                    </div>
                     <h3 className="text-sm sm:text-base font-bold font-display text-white mb-1">
                       {rule.title}
                     </h3>

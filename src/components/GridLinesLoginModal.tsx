@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Shield, CheckCircle2, X, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle2, X, ArrowRight, Loader2 } from 'lucide-react';
 import { Dialog, DialogPortal, DialogOverlay, DialogTitle, DialogDescription } from './ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '../lib/utils';
@@ -107,18 +107,12 @@ export function GridLinesLoginModal({
                 </div>
               </div>
 
-              {/* Title & Badge */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-fivem-orange/30 bg-fivem-orange/10 backdrop-blur-md mb-2.5 text-[10px] font-mono font-bold text-fivem-orange uppercase tracking-widest">
-                <Sparkles size={11} className="text-fivem-orange animate-pulse" />
-                <span>Community Sign In</span>
-              </div>
-
               <h2 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white mb-2">
-                Welcome to <span className="text-white">Vital RP</span>
+                Sign in to Vital RP
               </h2>
 
               <p className="text-xs sm:text-sm text-white/55 leading-relaxed max-w-xs mb-7 font-normal">
-                Connect your Discord account to submit contest photography, vote for co-champions, and earn custom victory heraldry.
+                Use your Discord account to submit photos and vote.
               </p>
 
               {/* High-Impact Discord Sign In Button */}
@@ -161,22 +155,12 @@ export function GridLinesLoginModal({
               <div className="mt-6 pt-5 w-full border-t border-white/[0.08] grid grid-cols-1 gap-2 text-left">
                 <div className="flex items-center gap-2.5 text-[11px] text-white/60">
                   <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                  <span>Automatic Vital RP Discord membership verification</span>
+                  <span>Checks your Vital RP Discord membership</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-[11px] text-white/60">
                   <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                  <span>Instant 1-click OAuth2 session — no password required</span>
+                  <span>No password needed</span>
                 </div>
-                <div className="flex items-center gap-2.5 text-[11px] text-white/60">
-                  <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                  <span>Cast verified community votes & track winner rankings</span>
-                </div>
-              </div>
-
-              {/* Footer Trust Marker */}
-              <div className="mt-4 flex items-center justify-center gap-1.5 text-[10px] font-mono text-white/30 uppercase tracking-widest">
-                <Shield size={11} className="text-fivem-orange/70" />
-                <span>Encrypted OAuth2 Protocol</span>
               </div>
 
             </div>
