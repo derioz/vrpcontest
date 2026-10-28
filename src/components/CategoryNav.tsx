@@ -74,16 +74,9 @@ const lineVariants = {
   },
 };
 
-// Curated radial gradients for vibrant category aesthetics
+// One restrained accent for every category; orange stays reserved for action
 const CATEGORY_GRADIENTS = [
-  'radial-gradient(circle, rgba(234,88,12,0.25) 0%, rgba(249,115,22,0.1) 50%, rgba(194,65,12,0) 100%)',
-  'radial-gradient(circle, rgba(245,158,11,0.25) 0%, rgba(217,119,6,0.1) 50%, rgba(180,83,9,0) 100%)',
-  'radial-gradient(circle, rgba(16,185,129,0.25) 0%, rgba(5,150,105,0.1) 50%, rgba(4,120,87,0) 100%)',
-  'radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(37,99,235,0.1) 50%, rgba(29,78,216,0) 100%)',
-  'radial-gradient(circle, rgba(168,85,247,0.25) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)',
-  'radial-gradient(circle, rgba(244,63,94,0.25) 0%, rgba(225,29,72,0.1) 50%, rgba(190,18,60,0) 100%)',
-  'radial-gradient(circle, rgba(20,184,166,0.25) 0%, rgba(13,148,136,0.1) 50%, rgba(15,118,110,0) 100%)',
-  'radial-gradient(circle, rgba(236,72,153,0.25) 0%, rgba(219,39,119,0.1) 50%, rgba(190,24,93,0) 100%)',
+  'radial-gradient(circle, rgba(234,88,12,0.18) 0%, rgba(249,115,22,0.06) 50%, rgba(194,65,12,0) 100%)',
 ];
 
 export const CategoryNav = React.memo(function CategoryNav({

@@ -22,7 +22,6 @@ import {
   ChevronUp,
   Scale,
 } from 'lucide-react';
-import { BorderBeam } from './ui/border-beam';
 import { MagicCard } from './ui/magic-card';
 import { cn } from '../lib/utils';
 
@@ -122,7 +121,7 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
               Rules &{' '}
-              <span className="bg-gradient-to-r from-fivem-orange via-orange-400 to-amber-300 bg-clip-text text-transparent">
+              <span className="text-fivem-orange">
                 Guidelines
               </span>
             </h2>
@@ -205,9 +204,6 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
         transition={{ duration: 0.5, delay: 0.2 }}
         className="relative rounded-2xl sm:rounded-3xl bg-[#09090d]/95 border border-white/[0.07] overflow-hidden"
       >
-        {/* BorderBeam accent */}
-        <BorderBeam size={220} duration={18} colorFrom="#ea580c" colorTo="#fb923c" borderWidth={1.5} />
-
         {/* Ambient glow */}
         <div className="absolute top-0 right-1/4 w-72 h-72 bg-fivem-orange/[0.06] blur-[100px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-1/6 w-60 h-60 bg-violet-500/[0.04] blur-[90px] rounded-full pointer-events-none" />

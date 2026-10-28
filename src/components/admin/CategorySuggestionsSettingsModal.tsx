@@ -762,7 +762,7 @@ export function CategorySuggestionsSettingsModal({
                   {/* Headline Preview */}
                   <h2 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white leading-tight">
                     {heroTitlePrefix || 'Help Shape'}{' '}
-                    <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">
+                    <span className="text-fivem-orange">
                       {heroMonthHighlight || 'October’s'}
                     </span>{' '}
                     {heroTitleSuffix || 'Loading Screen'}

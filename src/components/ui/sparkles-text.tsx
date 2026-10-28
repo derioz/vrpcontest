@@ -54,7 +54,7 @@ export function SparklesText({
   return (
     <span className={cn("relative inline-block", className)}>
       <span
-        className={cn("relative z-10 inline-block", gradient && "bg-gradient-to-r from-amber-400 via-orange-500 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(245,158,11,0.3)]")}
+        className={cn("relative z-10 inline-block", gradient && "text-amber-400")}
       >
         {content}
       </span>

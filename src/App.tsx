@@ -2929,7 +2929,7 @@ export default function App() {
                   </h1>
                   {themeSubtitle && (
                     <div className={cn("pt-1", !hasHeroItems && "flex justify-center")}>
-                      <span className="text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black font-display tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent drop-shadow-sm">
+                      <span className="text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black font-display tracking-tight text-white">
                         {themeSubtitle}
                       </span>
                     </div>

@@ -368,7 +368,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                     className="mb-8"
                 >
                     <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-2">
-                        Contest <span className="text-transparent bg-clip-text bg-gradient-to-r from-fivem-orange to-yellow-500">Analytics</span>
+                        Contest <span className="text-fivem-orange">Analytics</span>
                     </h1>
                     <p className="text-white/40 max-w-2xl text-sm">
                         Real-time insights and engagement metrics for the current photo competition.

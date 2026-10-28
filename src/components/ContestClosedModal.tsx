@@ -96,7 +96,7 @@ export function ContestClosedModal({
             {/* Heading */}
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black font-display text-white tracking-tight mb-3">
               Contest is{' '}
-              <span className="bg-gradient-to-r from-fivem-orange via-amber-400 to-yellow-400 bg-clip-text text-transparent">
+              <span className="text-fivem-orange">
                 Closed
               </span>
             </h2>

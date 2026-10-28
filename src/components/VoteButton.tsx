@@ -112,8 +112,8 @@ export function VoteButton({
                     !votingOpen
                         ? 'bg-black/60 border-white/10 text-white/40 cursor-not-allowed backdrop-blur-md'
                         : hasVoted
-                            ? 'bg-gradient-to-br from-emerald-500/25 to-teal-600/25 text-emerald-300 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:border-rose-500/50 hover:text-rose-300 hover:bg-rose-500/20'
-                            : 'bg-[#0e0e14]/90 hover:bg-gradient-to-br hover:from-fivem-orange/30 hover:to-amber-500/20 text-white border-white/15 hover:border-fivem-orange/60 hover:shadow-[0_0_25px_rgba(234,88,12,0.45)] backdrop-blur-md'
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/50 hover:border-white/30 hover:text-white/80 hover:bg-white/10'
+                            : 'bg-[#0e0e14]/90 hover:bg-fivem-orange/20 text-white border-white/15 hover:border-fivem-orange/60 backdrop-blur-md'
                 )}
                 onClick={handleClick}
             >
@@ -135,7 +135,7 @@ export function VoteButton({
                                     animate={{ scale: 1 }}
                                     exit={{ scale: 0 }}
                                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                    className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"
+                                    className="w-2 h-2 rounded-full bg-emerald-400"
                                 />
                             )}
                         </AnimatePresence>

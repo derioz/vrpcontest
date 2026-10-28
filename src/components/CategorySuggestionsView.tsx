@@ -1291,7 +1291,7 @@ export function CategorySuggestionsView({
               {/* Headline */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display tracking-tight text-white mb-3">
                 {heroTitlePrefix}{' '}
-                <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">
+                <span className="text-fivem-orange">
                   {heroMonthHighlight}
                 </span>{' '}
                 {heroTitleSuffix}

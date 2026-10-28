@@ -13,7 +13,6 @@ import { Sparkles, Shield, CheckCircle2, X, ArrowRight, Loader2 } from 'lucide-r
 import { Dialog, DialogPortal, DialogOverlay, DialogTitle, DialogDescription } from './ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '../lib/utils';
-import { BorderBeam } from './ui/border-beam';
 import { VITAL_RP_LOGO_URL } from '../config';
 
 interface GridLinesLoginModalProps {
@@ -53,8 +52,6 @@ export function GridLinesLoginModal({
 
             {/* ── Aceternity Grid Lines Container ── */}
             <div className="relative mx-auto w-full rounded-2xl bg-[#09090d] p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.9)] border border-white/10 overflow-hidden">
-            {/* Subtle Inner Border Beam Accent */}
-            <BorderBeam size={180} duration={12} colorFrom="#ea580c" colorTo="#5865F2" borderWidth={1.5} />
 
             {/* Corner Cross / Plus Markers (+) */}
             <span className="absolute -top-1.5 -left-1.5 z-20 font-mono text-[11px] text-white/30 select-none leading-none">+</span>
@@ -117,7 +114,7 @@ export function GridLinesLoginModal({
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white mb-2">
-                Welcome to <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">Vital RP</span>
+                Welcome to <span className="text-white">Vital RP</span>
               </h2>
 
               <p className="text-xs sm:text-sm text-white/55 leading-relaxed max-w-xs mb-7 font-normal">
