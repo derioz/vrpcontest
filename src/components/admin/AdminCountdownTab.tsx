@@ -567,10 +567,7 @@ export function AdminCountdownTab({
     <div className="space-y-8">
       {/* ── HEADER ── */}
       <AdminHeader
-        badge="PRECISION SCHEDULER"
-        badgeColor="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
         title="Countdown Timer & Target Schedule"
-        subtitle="Set a custom future deadline for the platform countdown flip clock, choose timezones, quick-schedule duration presets, and preview in real time."
         icon={<Clock size={20} className="text-emerald-400" />}
         iconBg="bg-emerald-500/15 border-emerald-500/30"
         actions={

@@ -669,10 +669,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     <div className="space-y-6">
       {/* Admin Header */}
       <AdminHeader
-        badge="STAFF CURATION & COMMUNITY IDEAS"
-        badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
         title="Category Suggestions Management"
-        subtitle="Review community ideas, inspect public user votes, vote on whether staff will use proposals in upcoming contest rounds, and promote top concepts."
         icon={<Sparkles size={20} className="text-orange-400" />}
         iconBg="bg-orange-500/15 border-orange-500/30"
         actions={

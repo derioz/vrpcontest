@@ -1084,10 +1084,7 @@ export function ChangelogTab() {
       
       {/* ── TOP SECTION: Platform Changelog Header ── */}
       <AdminHeader
-        badge="PUBLIC UPDATES"
-        badgeColor="bg-fivem-orange/15 text-fivem-orange border-fivem-orange/30"
         title="Platform Changelog"
-        subtitle="A clean, chronological record of product updates, visual enhancements, security patches, and performance upgrades."
         icon={<Layers size={20} className="text-fivem-orange" />}
         iconBg="bg-fivem-orange/15 border-fivem-orange/30"
         actions={

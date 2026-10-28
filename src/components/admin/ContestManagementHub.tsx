@@ -309,10 +309,6 @@ export function ContestManagementHub({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold tracking-wider uppercase">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        Active Contest
-                      </span>
                       <span
                         className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase border ${
                           activePhase === 'voting'
@@ -391,7 +387,6 @@ export function ContestManagementHub({
                     <p className="text-xl sm:text-2xl font-black font-display text-fivem-orange mt-1">
                       {allPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0)}
                     </p>
-                    <span className="text-[11px] text-white/50">Live tally</span>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
@@ -843,7 +838,7 @@ function SavedContestCard({
                 : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30'
             }`}
           >
-            {isPaused ? '⏸️ PAUSED' : '📦 ARCHIVED'}
+            {isPaused ? 'Paused' : 'Archived'}
           </span>
 
           <span className="text-[10px] font-mono text-white/40">
@@ -1043,7 +1038,7 @@ function PauseAndCreateModal({
 
       toast.success(
         publishImmediately
-          ? `🎉 Contest "${title.trim()}" published and active!`
+          ? `Contest "${title.trim()}" is published and active.`
           : `Contest draft saved.`
       );
       onSuccess();
@@ -1149,7 +1144,7 @@ function PauseAndCreateModal({
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. 🏆 Autumn Showdown 2026"
+                  placeholder="e.g. Autumn Showdown 2026"
                   className="bg-white/5 border-white/10 h-11 text-white font-bold"
                 />
               </div>
@@ -1179,7 +1174,7 @@ function PauseAndCreateModal({
                     onClick={() => applyDatePreset(3, 2)}
                     className="text-xs border-white/10 hover:border-fivem-orange/50 cursor-pointer"
                   >
-                    ⚡ Flash: 3d Submissions + 2d Voting
+                    Flash: 3d submissions + 2d voting
                   </Button>
                   <Button
                     type="button"
@@ -1187,7 +1182,7 @@ function PauseAndCreateModal({
                     onClick={() => applyDatePreset(7, 3)}
                     className="text-xs border-white/10 hover:border-fivem-orange/50 cursor-pointer"
                   >
-                    📅 Standard: 1 Week Submissions + 3d Voting
+                    Standard: 1 week submissions + 3d voting
                   </Button>
                   <Button
                     type="button"
@@ -1195,7 +1190,7 @@ function PauseAndCreateModal({
                     onClick={() => applyDatePreset(14, 5)}
                     className="text-xs border-white/10 hover:border-fivem-orange/50 cursor-pointer"
                   >
-                    🏆 Extended: 2 Weeks Submissions + 5d Voting
+                    Extended: 2 weeks submissions + 5d voting
                   </Button>
                 </div>
               </div>
@@ -1448,7 +1443,7 @@ function PauseAndCreateModal({
                   disabled={loading}
                   className="bg-gradient-to-r from-amber-500 to-fivem-orange hover:from-amber-400 hover:to-orange-500 text-black font-extrabold text-xs px-6 py-2 rounded-xl shadow-lg transition-all cursor-pointer"
                 >
-                  {loading ? 'Deploying...' : '🚀 Publish & Activate'}
+                  {loading ? 'Deploying...' : 'Publish & Activate'}
                 </Button>
               </>
             )}

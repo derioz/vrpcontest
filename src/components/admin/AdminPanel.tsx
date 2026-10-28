@@ -165,10 +165,7 @@ export default function AdminPanel(props: AdminPanelProps) {
         {currentActiveTab === 'analytics' && (
           <div className="space-y-6">
             <AdminHeader
-              badge="LIVE TELEMETRY"
-              badgeColor="bg-blue-500/15 text-blue-400 border-blue-500/30"
               title="Contest Telemetry & Analytics"
-              subtitle="Real-time vote progression, submission velocity charts, and category popularity distribution."
               icon={<BarChart3 size={20} className="text-blue-400" />}
               iconBg="bg-blue-500/15 border-blue-500/30"
               actions={
@@ -211,10 +208,7 @@ export default function AdminPanel(props: AdminPanelProps) {
         {currentActiveTab === 'submissions' && (
           <div className="space-y-6">
             <AdminHeader
-              badge="ENTRIES & MEDIA"
-              badgeColor="bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
               title="Submissions Management"
-              subtitle="Review decrypted photo submissions, inspect photographer details, and manage entries."
               icon={<ImageIcon size={20} className="text-cyan-400" />}
               iconBg="bg-cyan-500/15 border-cyan-500/30"
               actions={
@@ -249,10 +243,7 @@ export default function AdminPanel(props: AdminPanelProps) {
         {currentActiveTab === 'voters' && (
           <div className="space-y-6">
             <AdminHeader
-              badge="SECURITY & AUDIT"
-              badgeColor="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
               title="Voter Audit & Fraud Check"
-              subtitle="Search voters by Discord username or UID, inspect vote distribution, and clear flagged records."
               icon={<UserCheck size={20} className="text-emerald-400" />}
               iconBg="bg-emerald-500/15 border-emerald-500/30"
             />
@@ -573,10 +564,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                 {activeTab === 'analytics' && (
                   <div className="space-y-6">
                     <AdminHeader
-                      badge="LIVE TELEMETRY"
-                      badgeColor="bg-blue-500/15 text-blue-400 border-blue-500/30"
                       title="Contest Telemetry & Analytics"
-                      subtitle="Real-time vote progression, submission velocity charts, and category popularity distribution."
                       icon={<BarChart3 size={20} className="text-blue-400" />}
                       iconBg="bg-blue-500/15 border-blue-500/30"
                       actions={
@@ -619,10 +607,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                 {activeTab === 'submissions' && (
                   <div className="space-y-6">
                     <AdminHeader
-                      badge="ENTRIES & MEDIA"
-                      badgeColor="bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
                       title="Submissions Management"
-                      subtitle="Review decrypted photo submissions, inspect photographer details, and manage entries."
                       icon={<ImageIcon size={20} className="text-cyan-400" />}
                       iconBg="bg-cyan-500/15 border-cyan-500/30"
                       actions={
@@ -657,10 +642,7 @@ export default function AdminPanel(props: AdminPanelProps) {
                 {activeTab === 'voters' && (
                   <div className="space-y-6">
                     <AdminHeader
-                      badge="SECURITY & AUDIT"
-                      badgeColor="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                       title="Voter Audit & Fraud Check"
-                      subtitle="Search voters by Discord username or UID, inspect vote distribution, and clear flagged records."
                       icon={<UserCheck size={20} className="text-emerald-400" />}
                       iconBg="bg-emerald-500/15 border-emerald-500/30"
                     />
@@ -830,10 +812,8 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
     <div className="space-y-8">
       {/* Header */}
       <AdminHeader
-        badge="OPERATIONAL HUB"
-        badgeColor="bg-fivem-orange/15 text-fivem-orange border-fivem-orange/30"
         title="Contest Control Center"
-        subtitle={activeContest ? `Active Session: "${activeContest.name}" • Real-time telemetry, quick switches, and operational health.` : 'No active contest round configured.'}
+        subtitle={activeContest ? `Active contest: "${activeContest.name}"` : 'No active contest round configured.'}
         icon={<LayoutDashboard size={20} className="text-fivem-orange" />}
         iconBg="bg-fivem-orange/15 border-fivem-orange/30"
         actions={
@@ -1220,10 +1200,7 @@ function ControlsAndSecurityTab({
     <div className="space-y-8">
       {/* Header */}
       <AdminHeader
-        badge="SYSTEM PROTOCOL"
-        badgeColor="bg-purple-500/15 text-purple-400 border-purple-500/30"
         title="Controls & Security"
-        subtitle="Real-time animated switches, community access gates, anti-fraud enforcement, and cryptographic RSA keys."
         icon={<Zap size={20} className="text-purple-400" />}
         iconBg="bg-purple-500/15 border-purple-500/30"
       />
@@ -1398,11 +1375,11 @@ function ControlsAndSecurityTab({
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-4 bg-emerald-400 rounded-full" />
             <h3 className="text-xs font-mono text-emerald-300 uppercase tracking-[0.2em] font-bold">
-              Cryptographic End-to-End Encryption
+              Encryption keys
             </h3>
           </div>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-400">
-            {publicKey ? "RSA-2048 ACTIVE" : "KEYS UNCONFIGURED"}
+            {publicKey ? "Keys active" : "Keys not set up"}
           </span>
         </div>
 
@@ -1414,9 +1391,9 @@ function ControlsAndSecurityTab({
                 <Shield size={20} />
               </div>
               <div>
-                <h4 className="text-base font-bold font-display text-white mb-1">Generate 2048-Bit RSA Keys</h4>
+                <h4 className="text-base font-bold font-display text-white mb-1">Generate encryption keys</h4>
                 <p className="text-xs text-white/50 leading-relaxed">
-                  Generates an asymmetric cryptographic keypair to encrypt contestant submissions locally before storage.
+                  Creates the key pair that encrypts submissions before they are stored.
                 </p>
               </div>
             </div>
@@ -1464,10 +1441,8 @@ function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
   return (
     <div className="space-y-6">
       <AdminHeader
-        badge="CRITICAL ACTIONS"
-        badgeColor="bg-red-500/15 text-red-400 border-red-500/30"
         title="Danger Zone"
-        subtitle="Destructive actions that cannot be undone. Proceed with extreme caution."
+        subtitle="These actions cannot be undone."
         icon={<AlertCircle size={20} className="text-red-400" />}
         iconBg="bg-red-500/15 border-red-500/30"
       />

@@ -739,9 +739,6 @@ export function CategorySuggestionsSettingsModal({
                       Live Hero Preview
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                    Updates in real-time
-                  </span>
                 </div>
 
                 {/* Simulated Hero Element */}

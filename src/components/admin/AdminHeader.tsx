@@ -2,10 +2,8 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 export interface AdminHeaderProps {
-  badge: string;
-  badgeColor?: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   icon: React.ReactNode;
   iconBg?: string;
   actions?: React.ReactNode;
@@ -13,8 +11,6 @@ export interface AdminHeaderProps {
 }
 
 export function AdminHeader({
-  badge,
-  badgeColor = "bg-fivem-orange/15 text-fivem-orange border-fivem-orange/30",
   title,
   subtitle,
   icon,
@@ -29,16 +25,14 @@ export function AdminHeader({
           {icon}
         </div>
         <div>
-          <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-widest border mb-1.5 shadow-sm", badgeColor)}>
-            <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-            <span>{badge}</span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-black font-display text-white tracking-tight leading-tight">
             {title}
           </h2>
-          <p className="text-xs sm:text-sm text-white/50 mt-0.5 max-w-2xl leading-relaxed">
-            {subtitle}
-          </p>
+          {subtitle && (
+            <p className="text-xs sm:text-sm text-white/50 mt-0.5 max-w-2xl leading-relaxed">
+              {subtitle}
+            </p>
+          )}
         </div>
       </div>
 
