@@ -521,7 +521,7 @@ export function CategorySuggestionsView({
     // Check user limit authoritatively
     if (suggestionLimit.remaining <= 0 && !isAdmin) {
       toast.error('Suggestion Limit Reached', {
-        description: `You have already used all ${suggestionLimit.limit} of ${suggestionLimit.limit} allowed category suggestions.`
+        description: `You have already used all ${suggestionLimit.limit} allowed category suggestions.`
       });
       return;
     }
@@ -530,7 +530,7 @@ export function CategorySuggestionsView({
     const check = await checkUserDiscordEligibility(currentUser);
     if (!check.allowed) {
       toast.error('Discord Requirement Notice', {
-        description: check.message || 'You must be a member of the Vital RP Discord and possess the Whitelist Approved role to participate.'
+        description: check.message || 'You must be a member of the Vital RP Discord and have the Whitelist Approved role to participate.'
       });
       return;
     }
@@ -968,7 +968,7 @@ export function CategorySuggestionsView({
     try {
       await updateCategorySuggestionStatus(suggestionId, newStatus, effectiveUserId, currentUser?.discordId);
       if (newStatus === 'approved') {
-        toast.success('🏆 Marked as Selected for Contest!', {
+        toast.success('Marked as Selected for Contest', {
           description: `"${target.category_name}" has been marked as selected for an upcoming contest.`
         });
       } else if (newStatus === 'open') {
@@ -1427,7 +1427,7 @@ export function CategorySuggestionsView({
                 ) : (
                   <div className="py-4 text-center">
                     <p className="text-sm font-bold text-emerald-400 font-display uppercase tracking-wider">Community Suggestions Open</p>
-                    <p className="text-xs text-white/50 font-mono mt-1">Voting and submitting new ideas is active for this round.</p>
+                    <p className="text-xs text-white/50 font-mono mt-1">Voting and submitting ideas are open for this round.</p>
                   </div>
                 )}
 
@@ -1655,9 +1655,9 @@ export function CategorySuggestionsView({
               {searchQuery
                 ? `No suggestions matched "${searchQuery}". Try a different search term or clear the filter.`
                 : filterOption === 'my_suggestions'
-                ? 'Have an idea for a photo contest theme? Submit your concept today!'
+                ? 'Have an idea for a photo contest theme? Submit it here.'
                 : filterOption === 'voted_by_me'
-                ? 'Browse the suggestions below and vote for the categories you would love to see!'
+                ? 'Browse the suggestions below and vote for the ones you want.'
                 : 'Be the first person to suggest the next Vital RP photo contest category.'}
             </p>
             {searchQuery ? (
@@ -2266,7 +2266,7 @@ export function CategorySuggestionsView({
           {/* Author Initial Upvote Notification */}
           <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-300 flex items-center gap-2 font-mono">
             <Sparkles size={14} className="shrink-0 text-emerald-400" />
-            <span>Submitting automatically grants your suggestion your 1 initial upvote.</span>
+            <span>Your suggestion starts with your 1 upvote.</span>
           </div>
 
           {/* Duplicate Warning Pill */}

@@ -239,10 +239,10 @@ const LABEL_PRESETS = [
 
 // Completion Message Quick Templates
 const COMPLETED_MESSAGE_PRESETS = [
-  '⚠️ Category Submissions Closed. Community voting has ended and the final results are in.',
-  '⚠️ Suggestion window has expired. Staff is reviewing final rankings for the upcoming photo contest.',
-  '🎉 Category suggestions have concluded! Stay tuned for the official photo contest launch.',
-  '🏆 Voting has closed. The top voted theme categories will be featured on the upcoming loading screen!',
+  'Category Submissions Closed. Community voting has ended and the final results are in.',
+  'Suggestion window has expired. Staff is reviewing final rankings for the upcoming photo contest.',
+  'Category suggestions have concluded. Stay tuned for the official photo contest launch.',
+  'Voting has closed. The top voted theme categories will be featured on the upcoming loading screen.',
 ];
 
 /**
@@ -328,7 +328,7 @@ export const DEFAULT_PAGE_SETTINGS: CategorySuggestionsPageSettings = {
     eventDateLabel: 'Oct. 15 • Midnight EST',
     eventTimeLabel: '11:59 PM',
     eventTzLabel: 'EST',
-    completedMessage: '⚠️ Category Submissions Closed. Community voting has ended and the final results are in.',
+    completedMessage: 'Category Submissions Closed. Community voting has ended and the final results are in.',
     autoGenerateLabels: true,
     timeZone: 'America/New_York',
   }
@@ -367,7 +367,7 @@ export function CategorySuggestionsSettingsModal({
   const [customTimeLabel, setCustomTimeLabel] = useState('11:59 PM');
   const [customTzLabel, setCustomTzLabel] = useState('EST');
   const [completedMessage, setCompletedMessage] = useState(
-    '⚠️ Category Submissions Closed. Community voting has ended and the final results are in.'
+    'Category Submissions Closed. Community voting has ended and the final results are in.'
   );
 
   // Loading & Saving States
@@ -558,7 +558,7 @@ export function CategorySuggestionsSettingsModal({
     setCountdownLabel('Submission & Voting Window');
     setAutoGenerateLabels(true);
     setCustomDateLabel('Sept. 12 • Midnight EST');
-    setCompletedMessage('⚠️ Category Submissions Closed. Community voting has ended and the final results are in.');
+    setCompletedMessage('Category Submissions Closed. Community voting has ended and the final results are in.');
 
     const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     setDatetimeLocal(toDatetimeLocalValue(d, 'America/New_York'));
@@ -814,7 +814,7 @@ export function CategorySuggestionsSettingsModal({
                     placeholder="November’s"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-orange-500/40 text-orange-300 font-bold text-xs focus:outline-none focus:border-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.15)]"
                   />
-                  <span className="text-[10px] text-white/40 font-mono">Styled with the vibrant gradient</span>
+                  <span className="text-[10px] text-white/40 font-mono">Shown in orange</span>
                 </div>
 
                 <div className="space-y-1.5">
@@ -977,7 +977,7 @@ export function CategorySuggestionsSettingsModal({
                       Timer Disabled
                     </p>
                     <p className="text-xs text-white/50 font-mono mt-1">
-                      Suggestions & voting remain open with no countdown countdown card displayed.
+                      Suggestions & voting remain open with no countdown card displayed.
                     </p>
                   </div>
                 )}
@@ -1182,7 +1182,7 @@ export function CategorySuggestionsSettingsModal({
                   rows={2}
                   value={completedMessage}
                   onChange={(e) => setCompletedMessage(e.target.value)}
-                  placeholder="⚠️ Category Submissions Closed. Community voting has ended..."
+                  placeholder="Category Submissions Closed. Community voting has ended..."
                   className="w-full p-3 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50 leading-relaxed"
                 />
 
