@@ -626,6 +626,11 @@ body,
 }
 
 /* Shimmering skeleton (Wensity): sweeps a highlight across each placeholder box */
+:root {
+  --shimmer-base: rgb(255 255 255 / 0.06);
+  --shimmer-hi: rgb(255 255 255 / 0.09);
+}
+
 @keyframes wensity-shimmer-bg {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }

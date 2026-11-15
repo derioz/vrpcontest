@@ -1,5 +1,6 @@
 import React from 'react';
 import { Skeleton } from './skeleton';
+import { ShimmeringSkeletonWrapper } from './shimmering-skeleton-wrapper';
 import { cn } from '../../lib/utils';
 
 /**
@@ -58,11 +59,11 @@ export function UserRowSkeleton({ className }: { className?: string; key?: React
  */
 export function VoteListSkeleton({ count = 5 }: { count?: number }) {
   return (
-    <div className="space-y-1.5" aria-busy="true" aria-label="Loading voter list">
+    <ShimmeringSkeletonWrapper className="space-y-1.5" aria-label="Loading voter list">
       {Array.from({ length: count }).map((_, i) => (
         <UserRowSkeleton key={i} />
       ))}
-    </div>
+    </ShimmeringSkeletonWrapper>
   );
 }
 
@@ -159,9 +160,8 @@ export function SuggestionCardSkeleton({ className }: { className?: string; key?
  */
 export function SuggestionFeedSkeleton({ count = 5 }: { count?: number }) {
   return (
-    <div
+    <ShimmeringSkeletonWrapper
       className="space-y-4"
-      aria-busy="true"
       aria-label="Loading category suggestions"
       role="feed"
     >
@@ -171,6 +171,6 @@ export function SuggestionFeedSkeleton({ count = 5 }: { count?: number }) {
           className={cn(i >= 3 && 'hidden sm:flex', i === 4 && 'hidden lg:flex')}
         />
       ))}
-    </div>
+    </ShimmeringSkeletonWrapper>
   );
 }

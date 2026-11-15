@@ -50,7 +50,8 @@ function useSkeletonCtx(): Ctx {
   );
 }
 
-export interface ShimmeringSkeletonWrapperProps {
+export interface ShimmeringSkeletonWrapperProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   children: React.ReactNode;
   /** Show the skeleton state. When `false`, renders children with no shimmer. */
   loading?: boolean;
@@ -73,6 +74,7 @@ export function ShimmeringSkeletonWrapper({
   base,
   rounded,
   className,
+  ...rest
 }: ShimmeringSkeletonWrapperProps) {
   const reduce = useReducedMotion() ?? false;
 
@@ -90,6 +92,7 @@ export function ShimmeringSkeletonWrapper({
   return (
     <SkeletonCtx.Provider value={ctx}>
       <div
+        {...rest}
         aria-busy={loading || undefined}
         aria-live={loading ? "polite" : undefined}
         className={cn(
@@ -109,7 +112,8 @@ export function ShimmeringSkeletonWrapper({
 
 /* ───────────────── Skeleton primitives ───────────────── */
 
-interface SkeletonShellProps {
+interface SkeletonShellProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "style"> {
   className?: string;
   width?: number | string;
   height?: number | string;
@@ -123,17 +127,20 @@ function SkeletonShell({
   className,
   width,
   height,
-  radius = 10,
+  radius,
   delay = 0,
   style,
+  ...rest
 }: SkeletonShellProps) {
   const { loading, reduce, duration, highlight, base } = useSkeletonCtx();
 
+  // Leave the radius to the className unless one is passed explicitly.
   const r = typeof radius === "number" ? `${radius}px` : radius;
 
   if (!loading) {
     return (
       <div
+        {...rest}
         className={className}
         style={{ width, height, borderRadius: r, ...style }}
       />
@@ -141,10 +148,12 @@ function SkeletonShell({
   }
 
   // Resting fill is the base colour; the moving gradient lives ON the box.
-  const bgImage = `linear-gradient(90deg, ${base} 0%, ${base} 35%, ${highlight} 50%, ${base} 65%, ${base} 100%)`;
+  // The sweep is transparent at its edges so it never doubles up the base fill.
+  const bgImage = `linear-gradient(90deg, transparent 0%, transparent 35%, ${highlight} 50%, transparent 65%, transparent 100%)`;
 
   return (
     <div
+      {...rest}
       className={className}
       style={{
         width,
@@ -165,7 +174,8 @@ function SkeletonShell({
   );
 }
 
-export interface SkeletonBoxProps {
+export interface SkeletonBoxProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "style"> {
   className?: string;
   width?: number | string;
   height?: number | string;
@@ -173,8 +183,8 @@ export interface SkeletonBoxProps {
   delay?: number;
 }
 
-export function SkeletonBox(props: SkeletonBoxProps) {
-  return <SkeletonShell {...props} />;
+export function SkeletonBox({ className, ...props }: SkeletonBoxProps) {
+  return <SkeletonShell className={cn("rounded-[10px]", className)} {...props} />;
 }
 
 export interface SkeletonLineProps {
