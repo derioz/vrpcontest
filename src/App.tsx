@@ -49,7 +49,7 @@ import {
   Shield,
   ShieldCheck
 } from 'lucide-react';
-import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from './components/ui/toast';
 import ReactMarkdown from 'react-markdown';
@@ -86,7 +86,7 @@ import { Lens } from './components/ui/lens';
 import { FlipWords } from './components/ui/flip-words';
 import { CategoryNav } from './components/CategoryNav';
 import { Toolbar, ToolbarItem } from './components/ui/toolbar';
-import { HoverGradientNavBar, HoverGradientMenuItem } from './components/ui/hover-gradient-nav-bar';
+import { SiteHeader } from './components/SiteHeader';
 import RadialCarousel, { RadialCarouselItem } from './components/shadcn-studio/carousel/carousel-12';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
@@ -125,7 +125,6 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [activeNavId, setActiveNavId] = useState<string | null>('categories');
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const categoryCacheRef = useRef<Map<string, { photos: Photo[]; timestamp: number }>>(new Map());
@@ -142,10 +141,8 @@ export default function App() {
   const getStickyNavHeight = useCallback(() => {
     if (topNavContainerRef.current) {
       const rect = topNavContainerRef.current.getBoundingClientRect();
-      const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
-      // When at the very top, the navbar expands to 80px; when scrolled it shrinks to 56px (difference = 24px)
-      const isCurrentlyAtTop = currentScrollY < 60;
-      return isCurrentlyAtTop ? rect.height - 24 : rect.height;
+      // The header keeps a constant height, so the container height is the offset.
+      return rect.height;
     }
     return window.innerWidth >= 640 ? 126 : 108;
   }, []);
@@ -222,14 +219,6 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [categories]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 40);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Lock body scroll when category selection modal is active
   // Note: isMobileMenuOpen scroll lock is handled by Radix Dialog automatically
@@ -2181,12 +2170,6 @@ export default function App() {
   };
 
 
-  // ── Scroll-aware Signal Bar hooks ──
-  const navbarRef = useRef<HTMLDivElement>(null);
-  const { scrollY } = useScroll();
-  const rawNavH = useTransform(scrollY, [0, 80], [80, 56]);
-  const navH = useSpring(rawNavH, { stiffness: 200, damping: 30, mass: 0.5 });
-  const navBg = useTransform(scrollY, [0, 80], ['rgba(9,9,11,0.6)', 'rgba(9,9,11,0.95)']);
 
   const isSiteLocked = siteClosed && (!isAdmin || !adminBypassClosedModal);
 
@@ -2340,226 +2323,56 @@ export default function App() {
         
         {/* ── 1. UNIFIED FIXED TOP NAVIGATION CONTAINER ── */}
         <div ref={topNavContainerRef} className="fixed top-0 sm:top-2.5 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-7xl z-50 pointer-events-none flex flex-col gap-1 sm:gap-2 px-0">
-          <motion.header
-            ref={navbarRef}
-            style={{ height: navH }}
-            className="pointer-events-auto w-full sm:rounded-2xl transition-all duration-700 ease-out relative"
-          >
-        {/* ═══ OUTER CHROME SHELL ═══ */}
-        {/* Animated gradient border — travels along the edge */}
-        <div className="absolute inset-0 sm:rounded-2xl overflow-hidden pointer-events-none">
-          {/* Travelling gradient highlight along top edge */}
-          <div
-            className="absolute top-0 left-0 right-0 h-[1px]"
-            style={{
-              background: 'linear-gradient(90deg, transparent 0%, transparent 20%, rgba(234,88,12,0.6) 40%, rgba(251,191,36,0.4) 50%, rgba(234,88,12,0.6) 60%, transparent 80%, transparent 100%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 4s ease-in-out infinite',
-            }}
+          <SiteHeader
+            logoUrl={VITAL_RP_LOGO_URL}
+            activeId={activeNavId}
+            isAuthLoading={isAuthLoading}
+            signedIn={!!(user && !user.isAnonymous)}
+            displayName={user?.displayName || undefined}
+            avatarSrc={user ? getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle, user.avatarSource, user.discordPhotoURL) : undefined}
+            avatarFallback={user ? getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle) : undefined}
+            onProfile={() => setIsProfileSheetOpen(true)}
+            onSignIn={() => setShowSignInModal(true)}
+            onOpenMenu={() => setIsMobileMenuOpen(true)}
+            onLogoClick={handleLogoEasterEgg}
+            logoSpinning={easterEggActive}
+            items={[
+              {
+                id: 'categories',
+                label: 'Categories',
+                onClick: () => {
+                  setActiveNavId('categories');
+                  const el = document.getElementById('category-nav') || document.getElementById('submissions-area');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  else window.scrollTo({ top: 380, behavior: 'smooth' });
+                },
+              },
+              {
+                id: 'rules',
+                label: 'Rules',
+                onClick: () => {
+                  setActiveNavId('rules');
+                  document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
+                },
+              },
+              {
+                id: 'hall-of-fame',
+                label: 'Hall of Fame',
+                onClick: () => setShowArchivedWinners(true),
+              },
+              ...((isAdmin || isBetaTester) ? [{
+                id: 'suggest',
+                label: 'Suggestions',
+                badge: 'Beta',
+                onClick: () => setShowCategorySuggestions(true),
+              }] : []),
+              ...(isAdmin ? [{
+                id: 'admin',
+                label: 'Admin',
+                onClick: () => navigateTo('/admin'),
+              }] : []),
+            ]}
           />
-          {/* Left vertical accent */}
-          <div className="hidden sm:block absolute top-[20%] bottom-[20%] left-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/25 to-transparent" />
-          {/* Right vertical accent */}
-          <div className="hidden sm:block absolute top-[20%] bottom-[20%] right-0 w-[1px] bg-gradient-to-b from-transparent via-fivem-orange/25 to-transparent" />
-          {/* Bottom edge */}
-          <div className="absolute bottom-0 left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        </div>
-
-        {/* ═══ FROSTED GLASS INTERIOR ═══ */}
-        <motion.div
-          style={{ backgroundColor: navBg }}
-          className={cn(
-            "absolute inset-0 sm:inset-[1px] sm:rounded-[15px] backdrop-blur-2xl transition-all duration-500",
-            isScrolled
-              ? "bg-[#07070a]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.9)]"
-              : "bg-[#0a0a0e]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_40px_rgba(0,0,0,0.5)]"
-          )}
-        >
-          {/* Noise texture overlay for premium glass feel */}
-          <div
-            className="absolute inset-0 sm:rounded-[15px] opacity-[0.03] mix-blend-overlay pointer-events-none"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}
-          />
-          {/* Inner ambient glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-12 bg-fivem-orange/[0.04] blur-2xl rounded-full pointer-events-none" />
-        </motion.div>
-
-        {/* ═══ CONTENT LAYER ═══ */}
-        <div className="relative z-10 h-full max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
-
-          {/* ── LEFT: Brand Beacon ── */}
-          <motion.div
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="flex items-center gap-3 group/brand shrink-0"
-          >
-            {/* Brand Logo */}
-            <div
-              id="easter-egg-orb"
-              className="relative w-9 h-9 flex items-center justify-center cursor-pointer select-none rounded-xl bg-gradient-to-br from-fivem-orange/20 to-fivem-orange/5 border border-fivem-orange/30 transition-all duration-300 hover:border-fivem-orange/60 hover:shadow-[0_0_24px_rgba(234,88,12,0.3)] active:scale-95"
-              onClick={handleLogoEasterEgg}
-            >
-              {easterEggActive && (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                  className="absolute inset-[-10px]"
-                  style={{
-                    background: 'conic-gradient(from 0deg, #ea580c, #facc15, #34d399, #60a5fa, #a78bfa, #f472b6, #ea580c)',
-                  }}
-                />
-              )}
-              {easterEggActive && (
-                <div className="absolute inset-[2px] bg-fivem-dark rounded-[10px] z-5 pointer-events-none" />
-              )}
-              <motion.img
-                src={VITAL_RP_LOGO_URL}
-                alt="Vital RP"
-                className="w-5.5 h-5.5 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(234,88,12,0.8)]"
-                animate={easterEggActive ? { rotate: [0, 360], scale: [1, 1.2, 1] } : {}}
-                transition={easterEggActive ? { duration: 0.6, ease: 'easeInOut' } : {}}
-              />
-            </div>
-
-            {/* Wordmark */}
-            <div className="flex flex-col leading-none">
-              <div className="flex items-center gap-1.5">
-                <span className="text-white font-display font-black text-sm tracking-[0.2em] leading-none uppercase drop-shadow-sm">
-                  VITAL <span className="text-fivem-orange">RP</span>
-                </span>
-              </div>
-              <div className="hidden sm:flex items-center gap-1.5 mt-1">
-                <span className="text-white/40 font-mono text-[9px] uppercase tracking-[0.2em] leading-none font-bold">
-                  {activeContest?.name || 'Photo Contest'}
-                </span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ── CENTER: Perfectly Sized & Flowing HoverGradientNavBar ── */}
-          <div className="hidden lg:flex items-center justify-center flex-1 max-w-fit mx-auto min-w-0">
-            <HoverGradientNavBar
-              activeId={activeNavId}
-              items={[
-                {
-                  id: 'categories',
-                  icon: <Layers className="h-4 w-4" />,
-                  label: 'Categories',
-                  gradient: 'radial-gradient(circle, rgba(234,88,12,0.25) 0%, rgba(249,115,22,0.1) 50%, rgba(194,65,12,0) 100%)',
-                  iconColor: 'group-hover:text-fivem-orange text-orange-400',
-                  onClick: () => {
-                    setActiveNavId('categories');
-                    const el = document.getElementById('category-nav') || document.getElementById('submissions-area');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    else window.scrollTo({ top: 380, behavior: 'smooth' });
-                  }
-                },
-                {
-                  id: 'rules',
-                  icon: <FileText className="h-4 w-4" />,
-                  label: 'Rules',
-                  gradient: 'radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(37,99,235,0.1) 50%, rgba(29,78,216,0) 100%)',
-                  iconColor: 'group-hover:text-blue-400 text-blue-400',
-                  onClick: () => {
-                    setActiveNavId('rules');
-                    document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
-                  }
-                },
-                {
-                  id: 'hall-of-fame',
-                  icon: <Trophy className="h-4 w-4 text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />,
-                  label: 'Hall of Fame',
-                  gradient: 'radial-gradient(circle, rgba(245,158,11,0.3) 0%, rgba(217,119,6,0.15) 50%, rgba(180,83,9,0) 100%)',
-                  iconColor: 'group-hover:text-amber-300 text-amber-400',
-                  onClick: () => {
-                    setShowArchivedWinners(true);
-                  }
-                },
-                ...((isAdmin || isBetaTester) ? [
-                  {
-                    id: 'suggest',
-                    icon: <Sparkles className="h-4 w-4" />,
-                    label: 'Suggestion Categories',
-                    badge: 'BETA',
-                    badgeClassName: 'bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold',
-                    gradient: 'radial-gradient(circle, rgba(245,158,11,0.25) 0%, rgba(217,119,6,0.1) 50%, rgba(180,83,9,0) 100%)',
-                    iconColor: 'group-hover:text-amber-400 text-amber-400',
-                    onClick: () => {
-                      setShowCategorySuggestions(true);
-                    }
-                  }
-                ] : []),
-                ...(isAdmin ? [
-                  {
-                    id: 'admin',
-                    icon: <ShieldCheck className="h-4 w-4" />,
-                    label: 'Admin Hub',
-                    badge: 'Staff',
-                    badgeClassName: 'bg-red-500/25 text-red-300 border border-red-500/40 font-bold',
-                    gradient: 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, rgba(220,38,38,0.1) 50%, rgba(185,28,28,0) 100%)',
-                    iconColor: 'group-hover:text-red-400 text-red-400',
-                    onClick: () => {
-                      navigateTo('/admin');
-                    }
-                  }
-                ] : [])
-              ]}
-            />
-          </div>
-
-          {/* ── RIGHT: Far Right Profile Button (Avatar Only) / Sign In / Mobile Toggle ── */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {isAuthLoading ? (
-              <Skeleton className="w-9 h-9 rounded-full bg-white/10 shrink-0" />
-            ) : user && !user.isAnonymous ? (
-              <motion.button
-                type="button"
-                onClick={() => setIsProfileSheetOpen(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="group/avatar relative w-9 h-9 rounded-full bg-[#0c0c14] border border-white/20 hover:border-fivem-orange/60 p-0.5 shadow-[0_2px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_16px_rgba(234,88,12,0.4)] transition-all cursor-pointer flex items-center justify-center overflow-visible"
-                title={`Signed in as ${user.displayName || 'User'} • Open Profile`}
-                aria-label="Open Account & Profile Menu"
-              >
-                <img
-                  src={getProfileAvatar(user.photoURL, user.avatarSeed || user.uid, user.avatarStyle, user.avatarSource, user.discordPhotoURL)}
-                  alt="Profile Avatar"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    const fallback = getDiceBearAvatarUrl(user.avatarSeed || user.uid, user.avatarStyle);
-                    if (target.src !== fallback) target.src = fallback;
-                  }}
-                  className="w-full h-full rounded-full object-cover"
-                />
-                {/* Live Online Status Pip */}
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-[1.5px] border-[#09090b] shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
-              </motion.button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowSignInModal(true)}
-                className="group/login relative flex items-center gap-2 px-3.5 h-8 rounded-full
-                  bg-gradient-to-r from-fivem-orange via-orange-500 to-amber-500 hover:from-orange-500 hover:to-fivem-orange text-white transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-[0_4px_16px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_24px_rgba(234,88,12,0.5)] border border-orange-400/30"
-              >
-                <User className="w-3.5 h-3.5 relative z-10 opacity-90 group-hover/login:opacity-100 transition-opacity duration-200" size={13} />
-                <span className="relative z-10 text-[11px] font-display font-bold tracking-wider uppercase whitespace-nowrap">
-                  Sign In
-                </span>
-              </button>
-            )}
-
-            {/* Mobile Hamburger toggle */}
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-white/15 bg-white/[0.04] text-white/80 active:text-white cursor-pointer transition-all active:scale-95 shadow-sm"
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </motion.header>
 
       {/* ── Permanent Secondary Category Navigation ── */}
       {categories.length > 0 && (
