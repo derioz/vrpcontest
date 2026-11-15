@@ -1,16 +1,16 @@
 /**
  * Temporary seasonal theme.
  *
- * To remove it: delete this folder, then delete the `initSeason` and
- * `christmas.css` imports in main.tsx, the `seasonal-hero` class in App.tsx and
- * the `themed` palette in ui/shader-background.tsx.
+ * To remove it: delete this folder, the `initSeason` and `christmas.css`
+ * imports in main.tsx, the `seasonal-hero` class in App.tsx, the `seasonal-cap`
+ * class in PhotoCard.tsx and ContestRulesSection.tsx, and the `snowy` burst in
+ * VoteButton.tsx.
  * It also switches itself off after `until`, and `?theme=default` previews the
  * regular look.
  */
 const SEASON = {
   name: 'christmas',
   until: '2027-01-03',
-  themeColor: '#b8324d',
 };
 
 function isActive(): boolean {
@@ -25,12 +25,6 @@ function sync(): void {
   const themed = isActive() && !window.location.pathname.startsWith('/admin');
   if (themed) root.dataset.season = SEASON.name;
   else delete root.dataset.season;
-
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) {
-    if (!meta.hasAttribute('data-default')) meta.setAttribute('data-default', meta.getAttribute('content') || '');
-    meta.setAttribute('content', themed ? SEASON.themeColor : meta.getAttribute('data-default') || '');
-  }
 }
 
 export function initSeason(): void {

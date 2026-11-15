@@ -57,12 +57,11 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Orbs / Wave nodes (seasonal palette when a theme is active)
-    const themed = document.documentElement.dataset.season === 'christmas';
+    // Orbs / Wave nodes
     const nodes = [
-      { x: width * 0.2, y: height * 0.3, radius: 350, color: themed ? 'rgba(200, 52, 79, 0.15)' : 'rgba(234, 88, 12, 0.15)', vx: 0.3, vy: 0.2 },
-      { x: width * 0.8, y: height * 0.6, radius: 450, color: themed ? 'rgba(148, 163, 184, 0.12)' : 'rgba(245, 158, 11, 0.12)', vx: -0.2, vy: 0.3 },
-      { x: width * 0.5, y: height * 0.8, radius: 400, color: themed ? 'rgba(200, 52, 79, 0.18)' : 'rgba(234, 88, 12, 0.18)', vx: 0.4, vy: -0.3 },
+      { x: width * 0.2, y: height * 0.3, radius: 350, color: 'rgba(234, 88, 12, 0.15)', vx: 0.3, vy: 0.2 },
+      { x: width * 0.8, y: height * 0.6, radius: 450, color: 'rgba(245, 158, 11, 0.12)', vx: -0.2, vy: 0.3 },
+      { x: width * 0.5, y: height * 0.8, radius: 400, color: 'rgba(234, 88, 12, 0.18)', vx: 0.4, vy: -0.3 },
       { x: width * 0.1, y: height * 0.9, radius: 300, color: 'rgba(185, 28, 28, 0.08)', vx: -0.3, vy: -0.2 },
     ];
 

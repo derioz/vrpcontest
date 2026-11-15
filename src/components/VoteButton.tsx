@@ -29,6 +29,7 @@ export interface VotersButtonProps {
 
 const BURST_PARTICLES_VOTE = ['✨', '⭐', '⚡', '✨'] as const;
 const BURST_PARTICLES_UNVOTE = ['▫️', '▫️', '▫️', '▫️'] as const;
+const BURST_PARTICLES_SNOW = ['❄︎', '❅', '❆', '❄︎'] as const;
 
 /**
  * Official SeraUI Radio Voting Button
@@ -55,7 +56,8 @@ export function VoteButton({
         onVote();
     };
 
-    const burstParticles = hasVoted ? BURST_PARTICLES_UNVOTE : BURST_PARTICLES_VOTE;
+    const snowy = typeof document !== 'undefined' && document.documentElement.dataset.season === 'christmas';
+    const burstParticles = hasVoted ? BURST_PARTICLES_UNVOTE : snowy ? BURST_PARTICLES_SNOW : BURST_PARTICLES_VOTE;
     const particleOffsets = [
         { x: 0, y: -48 },
         { x: -20, y: -38 },

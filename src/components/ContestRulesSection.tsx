@@ -152,7 +152,7 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
                 gradientColor={c.gradient}
                 gradientSize={200}
                 className={cn(
-                  'p-5 sm:p-6 rounded-2xl bg-white/[0.015] border border-white/[0.07] cursor-default',
+                  'seasonal-cap p-5 sm:p-6 rounded-2xl bg-white/[0.015] border border-white/[0.07] cursor-default',
                   c.hoverBorder,
                   'transition-colors duration-300'
                 )}

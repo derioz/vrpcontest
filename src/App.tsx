@@ -2858,7 +2858,7 @@ export default function App() {
             {/* ── Aceternity Spotlight Beams ── */}
             <Spotlight
               className="-top-40 left-0 md:left-48 md:-top-20"
-              fill="var(--season-glow-strong, rgba(234, 88, 12, 0.32))"
+              fill="rgba(234, 88, 12, 0.32)"
             />
             <Spotlight
               className="top-10 right-0 md:left-full md:-translate-x-[75%] h-[80vh] w-[50vw] max-w-full pointer-events-none"
@@ -2898,7 +2898,7 @@ export default function App() {
                     <SparklesText
                       text={primaryTitle}
                       sparklesCount={8}
-                      colors={{ first: 'var(--season-spark-a, #f59e0b)', second: 'var(--season-spark-b, #fb923c)' }}
+                      colors={{ first: '#f59e0b', second: '#fb923c' }}
                       className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight"
                     />
                   </h1>
@@ -2955,9 +2955,9 @@ export default function App() {
                   {isSubmissionsOpen || (onePhotoPerUser && currentUserPhoto) ? (
                     <ShimmerButton
                       onClick={handleUploadClick}
-                      shimmerColor="var(--season-shimmer, #fb923c)"
+                      shimmerColor="#fb923c"
                       shimmerDuration="3s"
-                      background="var(--season-accent-fill, rgba(234,88,12,0.95))"
+                      background="rgba(234,88,12,0.95)"
                       borderRadius="0.85rem"
                       className="px-7 py-3.5 text-xs font-black uppercase tracking-wider cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(234,88,12,0.4)] transition-all duration-300 shadow-lg"
                     >
@@ -3060,7 +3060,7 @@ export default function App() {
       })() : (
         <section className="relative overflow-hidden border-b border-white/10 pt-36 sm:pt-48 pb-28 flex flex-col items-center justify-center text-center px-6">
           <div className="absolute inset-0 bg-[#060606]" />
-          <Spotlight className="-top-40 left-1/2 -translate-x-1/2" fill="var(--season-glow, rgba(234, 88, 12, 0.2))" />
+          <Spotlight className="-top-40 left-1/2 -translate-x-1/2" fill="rgba(234, 88, 12, 0.2)" />
           <DotPattern width={32} height={32} cr={0.8} className="opacity-[0.04] z-[1]" />
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative mb-6">
             <div className="absolute inset-0 bg-white/5 blur-3xl scale-150 rounded-full" />
