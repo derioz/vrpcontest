@@ -90,7 +90,6 @@ import { HoverGradientNavBar, HoverGradientMenuItem } from './components/ui/hove
 import RadialCarousel, { RadialCarouselItem } from './components/shadcn-studio/carousel/carousel-12';
 import { SparklesText } from './components/ui/sparkles-text';
 import { GlowLine } from './components/ui/glowline';
-import { VelocityScroll } from './components/ui/scroll-based-velocity';
 import { CountdownClock } from './components/ui/countdown-clock';
 
 
@@ -2634,7 +2633,6 @@ export default function App() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-white font-display">Hall of Fame</div>
-                  <div className="text-[10px] text-white/40 truncate">Explore past contest champions & winners</div>
                 </div>
                 <ChevronRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
               </button>
@@ -2656,7 +2654,6 @@ export default function App() {
                       <span className="text-sm font-bold text-white/80 block">Suggestion Categories</span>
                       <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 uppercase border border-amber-500/30">BETA</span>
                     </div>
-                    <span className="text-[10px] text-white/35 font-mono">Submit ideas & vote on themes</span>
                   </div>
                   <ChevronRight size={16} className="text-white/15 shrink-0" />
                 </button>
@@ -2676,7 +2673,6 @@ export default function App() {
                   </div>
                   <div className="flex-1 text-left">
                     <span className="text-sm font-bold text-fivem-orange/90 block">Admin Console</span>
-                    <span className="text-[10px] text-white/30 font-mono">Full-page dashboard</span>
                   </div>
                   <span className="px-2 py-0.5 rounded-md bg-fivem-orange/15 text-[9px] font-mono font-bold text-fivem-orange uppercase shrink-0">Admin</span>
                 </button>
@@ -2787,7 +2783,7 @@ export default function App() {
                   </h4>
                 </div>
                 <p className="text-[11px] text-white/70">
-                  The previous contest was safely paused or switched by an administrator. Fresh categories and entries are loaded below.
+                  An administrator paused or switched the previous contest. The new categories and entries are loaded below.
                 </p>
               </div>
             </div>
@@ -2868,17 +2864,6 @@ export default function App() {
             {/* ── DotPattern ── */}
             <DotPattern width={28} height={28} cr={0.75} className="opacity-[0.05] z-[1]" />
             
-            {/* ── Magic UI Ambient Velocity Scroll Background Layer ── */}
-            <div className="absolute inset-0 flex flex-col justify-around opacity-[0.028] pointer-events-none overflow-hidden select-none z-0">
-              <VelocityScroll
-                defaultVelocity={1.2}
-                numRows={2}
-                className="font-display font-black text-6xl sm:text-8xl lg:text-9xl uppercase tracking-tighter text-white"
-              >
-                {`VITAL RP PHOTO CONTEST • ${primaryTitle} • `}
-              </VelocityScroll>
-            </div>
-
             {/* ── Main Hero Layout ── */}
             <div className={cn(
               "relative z-10 max-w-7xl mx-auto px-4 sm:px-6 items-center",
@@ -3331,7 +3316,6 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="text-base font-black font-display text-white">Rename Display Name</h3>
-                    <p className="text-[10px] text-white/50 font-mono">Update your public contest handle</p>
                   </div>
                 </div>
                 <button

@@ -336,7 +336,7 @@ export const CategoryNav = React.memo(function CategoryNav({
                 <ImageIcon size={14} className="text-white/40" />
               )}
               <span>
-                {isStatsToggled ? `${totalPhotosCount} Photos Live` : `Total: ${totalPhotosCount}`}
+                {isStatsToggled ? `${totalPhotosCount} Photos` : `Total: ${totalPhotosCount}`}
               </span>
             </motion.button>
           </motion.div>

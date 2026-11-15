@@ -7,7 +7,6 @@ import {
     Heart,
     Download,
     Share2,
-    Monitor,
     Tv,
     CheckCircle2,
     Layers,
@@ -25,8 +24,7 @@ import {
     Maximize2,
     X,
     ChevronLeft,
-    ChevronRight,
-    ZoomIn
+    ChevronRight
 } from "lucide-react";
 import { downloadPhoto } from "../lib/download";
 import { MagicCard } from "./ui/magic-card";
@@ -204,9 +202,7 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
             anim.onfinish = () => el.remove();
         }
 
-        toast.success("🎉 Celebration Confetti Fired!", {
-            description: "Honoring all 5 co-champions across every category equally."
-        });
+        toast.success("Confetti launched");
     }, []);
 
     // Trigger an ambient celebration on initial render
@@ -333,13 +329,6 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
 
                 {/* ── Layer 2: Main Awards Stage Header ── */}
                 <div className="text-center max-w-4xl mx-auto mb-10 sm:mb-14">
-                    {/* Official Server Loading Screen Heraldry Ribbon */}
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 text-amber-300 text-xs font-mono font-bold uppercase tracking-widest mb-6 backdrop-blur-xl shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                        <Trophy size={14} className="text-amber-400" />
-                        <span>Vital RP · Official Loading Screen Co-Champions</span>
-                        <Trophy size={14} className="text-amber-400" />
-                    </div>
-
                     {/* Grand Title with Magic Sparkles */}
                     <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black font-display tracking-tight text-white leading-[1.1] mb-5">
                         <SparklesText
@@ -351,7 +340,7 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
                     </h1>
 
                     <p className="text-white/75 text-base sm:text-lg leading-relaxed font-sans max-w-2xl mx-auto mb-7">
-                        Congratulations to our 5 category winners! All 5 photos are honored as <strong className="text-white font-bold">equal co-champions</strong>, each permanently featured on the official FiveM Server Loading Screens.
+                        The 5 category winners are <strong className="text-white font-bold">equal co-champions</strong>. Their photos are featured on the FiveM server loading screens.
                     </p>
 
                     {/* ── Toolbar: Confetti Cannon & View Mode Switcher ── */}
@@ -402,22 +391,9 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
                     {/* Stats pills strip */}
                     <div className="flex flex-wrap items-center justify-center gap-3 mt-6 text-xs font-mono text-white/50">
                         <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2 backdrop-blur-md">
-                            <Trophy size={13} className="text-amber-400" />
-                            <span className="text-white font-bold">{winners.length}</span>
-                            <span>Equal Co-Champions</span>
-                        </div>
-                        <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2 backdrop-blur-md">
                             <Heart size={13} className="text-red-400 fill-red-400" />
                             <span className="text-white font-bold">{totalVotes.toLocaleString()}</span>
                             <span>Community Votes Cast</span>
-                        </div>
-                        <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2 backdrop-blur-md">
-                            <Tv size={13} className="text-fivem-orange" />
-                            <span className="text-emerald-400 font-bold">5 Server Screens</span>
-                        </div>
-                        <div className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2 backdrop-blur-md text-amber-300">
-                            <ZoomIn size={13} />
-                            <span>Click any photo to enlarge</span>
                         </div>
                     </div>
                 </div>
@@ -492,19 +468,6 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
                                                     />
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-300" />
 
-                                                    {/* Hover "Click to Enlarge" Floating Pill */}
-                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-300 bg-black/40 backdrop-blur-[2px]">
-                                                        <div className="px-3 py-1.5 rounded-xl bg-black/80 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xl scale-90 group-hover/img:scale-100 transition-transform">
-                                                            <Maximize2 size={13} />
-                                                            <span>Click to Enlarge</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Loading Screen Overlay Pill */}
-                                                    <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-mono font-bold uppercase text-white tracking-wider">
-                                                        <Tv size={10} className="text-amber-400" />
-                                                        <span>Featured Screen</span>
-                                                    </div>
 
                                                     {/* Community Votes Ticker Pill */}
                                                     <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/85 backdrop-blur-md border border-white/20 font-mono text-[11px] font-bold text-white shadow-md">
@@ -687,12 +650,6 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
                                                     </div>
                                                 </div>
 
-                                                {/* Vital RP Featured Pill */}
-                                                <div className="absolute top-3 left-3 bg-black/75 backdrop-blur-md border border-white/20 text-white font-bold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1.5">
-                                                    <Sparkles size={12} className="text-amber-400" />
-                                                    <span>Official Showcase</span>
-                                                </div>
-
                                                 {/* Votes Counter Pill with NumberTicker */}
                                                 <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/85 text-white border border-white/20 backdrop-blur-md rounded-full px-3 py-1 font-mono text-xs font-bold shadow-md">
                                                     <Heart size={12} className="text-red-500 fill-red-500" />
@@ -704,7 +661,7 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
                                             {/* Info & Caption */}
                                             <div className="flex flex-col flex-1 justify-between">
                                                 <p className="text-white/80 text-xs line-clamp-2 italic mb-4 leading-relaxed">
-                                                    "{winner.caption || 'Official Vital RP contest submission'}"
+                                                    {winner.caption ? `"${winner.caption}"` : ''}
                                                 </p>
 
                                                 {/* Photographer & Action Toolbar */}
@@ -755,14 +712,6 @@ export function WinnerAnnouncement({ winners, contestName, onPhotoClick }: Winne
                         </div>
                     </div>
                 )}
-
-                {/* ── Layer 3: Feature Guarantee Footnote ── */}
-                <div className="mt-14 text-center max-w-xl mx-auto p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md shadow-lg">
-                    <div className="flex items-center justify-center gap-2.5 text-xs font-mono text-white/65">
-                        <Monitor size={15} className="text-amber-400 shrink-0" />
-                        <span>All 5 category-winning photos are dynamically served to all connected clients during FiveM loading sequence.</span>
-                    </div>
-                </div>
 
             </div>
 
