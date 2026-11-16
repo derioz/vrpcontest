@@ -101,7 +101,8 @@ export function SiteHeader({
   );
 
   return (
-    <Navbar threshold={compactAfter}>
+    // The page's fixed top container ignores pointer events, so the header opts back in.
+    <Navbar threshold={compactAfter} className="pointer-events-auto">
       <NavBody>
         {brand}
         <NavItems items={items} activeId={activeId} />
