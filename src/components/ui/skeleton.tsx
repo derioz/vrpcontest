@@ -1,22 +1,23 @@
 /**
- * shadcn/ui — Skeleton component (Radix UI compatible)
- * Documentation Reference: https://ui.shadcn.com/docs/components/radix/skeleton
- *
- * Use to show a placeholder while content is loading.
+ * Skeleton placeholder. Renders the Wensity shimmering skeleton primitive, so
+ * every placeholder in the app shares one shimmer. Wrap a group in
+ * ShimmeringSkeletonWrapper (./shimmering-skeleton-wrapper) to control the
+ * speed and colors of everything inside it.
  */
 
 import React from "react";
 import { cn } from "../../lib/utils";
+import { SkeletonBox } from "./shimmering-skeleton-wrapper";
 
 function Skeleton({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
+    <SkeletonBox
       data-slot="skeleton"
       aria-hidden="true"
-      className={cn("animate-pulse rounded-xl bg-white/[0.08] border border-white/[0.04]", className)}
+      className={cn("rounded-xl border border-white/[0.04]", className)}
       {...props}
     />
   );
