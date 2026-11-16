@@ -120,17 +120,17 @@ const SUGGESTION_LABEL_PRESETS = [
 
 // Completion Message Quick Templates
 const COMPLETED_MESSAGE_PRESETS = [
-  '⚠️ Official deadline has arrived. Submissions closed. Community voting underway.',
-  '⚠️ Community voting has concluded. Winners will be announced in the Hall of Fame shortly!',
+  'Official deadline has arrived. Submissions closed. Community voting underway.',
+  'Community voting has concluded. Winners will be announced in the Hall of Fame shortly!',
   '🎉 The countdown has concluded! Stay tuned for official results and winner showcases.',
   '🏆 Contest concluded. Check the Hall of Fame for winning entries!',
 ];
 
 const SUGGESTION_COMPLETED_PRESETS = [
-  '⚠️ Category Submissions Closed. Community voting has concluded and the final results are in.',
-  '⚠️ Suggestion window has expired. Staff is reviewing final rankings for the upcoming photo contest.',
-  '🎉 Category suggestions have closed! Stay tuned for the official photo contest announcement.',
-  '🏆 Voting has closed. The winning theme categories will be featured on the upcoming loading screen!',
+  'Category Submissions Closed. Community voting has concluded and the final results are in.',
+  'Suggestion window has expired. Staff is reviewing final rankings for the upcoming photo contest.',
+  'Category suggestions have closed. Stay tuned for the official photo contest announcement.',
+  'Voting has closed. The winning theme categories will be featured on the upcoming loading screen!',
 ];
 
 /**
@@ -225,7 +225,7 @@ export function AdminCountdownTab({
   const [customTimeLabel, setCustomTimeLabel] = useState<string>('');
   const [customTzLabel, setCustomTzLabel] = useState<string>('EST');
   const [completedMessage, setCompletedMessage] = useState<string>(
-    '⚠️ Official deadline has arrived. Submissions closed. Community voting underway.'
+    'Official deadline has arrived. Submissions closed. Community voting underway.'
   );
 
   // Contest sync flags
@@ -309,7 +309,7 @@ export function AdminCountdownTab({
         applyCountdownToState(rawCategorySuggestionsSettings.countdownSettings, 'Submission & Voting Window');
       } else {
         setLabel('Submission & Voting Window');
-        setCompletedMessage('⚠️ Category Submissions Closed. Community voting has concluded and the final results are in.');
+        setCompletedMessage('Category Submissions Closed. Community voting has concluded and the final results are in.');
       }
     }
   };
@@ -536,7 +536,7 @@ export function AdminCountdownTab({
           targetDate: activeContest?.submissions_close_date || '2026-08-28T17:59:00-04:00',
           label: 'Submissions Close In',
           autoGenerateLabels: true,
-          completedMessage: '⚠️ Official deadline has arrived. Submissions closed. Community voting underway.',
+          completedMessage: 'Official deadline has arrived. Submissions closed. Community voting underway.',
           timeZone: 'America/New_York',
           updatedAt: new Date().toISOString(),
         },

@@ -318,11 +318,11 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
       if (voteResult.autoTransitioned) {
         if (voteResult.transitionType === 'opened_for_voting') {
-          toast.success(`🎉 2/2 Admin Votes Reached!`, {
+          toast.success(`2/2 Admin Votes Reached`, {
             description: `"${target.category_name}" has moved to Open for Voting!`
           });
         } else if (voteResult.transitionType === 'approved_for_contest') {
-          toast.success(`🏆 2/2 Admin Votes Reached!`, {
+          toast.success(`2/2 Admin Votes Reached`, {
             description: `"${target.category_name}" has been Approved for Contest!`
           });
         }
