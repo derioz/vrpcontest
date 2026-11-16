@@ -2654,7 +2654,7 @@ export default function App() {
 
         return (
           <section
-            className="relative overflow-hidden border-b border-white/10 pt-36 sm:pt-48 pb-16 sm:pb-24"
+            className="seasonal-hero relative overflow-hidden border-b border-white/10 pt-36 sm:pt-48 pb-16 sm:pb-24"
             style={{ minHeight: '540px' }}
           >
             {/* ── Deep luxury base ── */}

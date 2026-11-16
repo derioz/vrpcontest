@@ -1,0 +1,225 @@
+/*
+ * Christmas 2026 for Vital RP: a quiet winter-night layer over the existing orange identity.
+ * Evergreen, warm gold and warm white. Submitted photos are never touched: no selector in this
+ * file reaches an <img>, and the snow only falls behind the hero content.
+ *
+ * Scoped to html[data-season="christmas"] (see season.ts). To remove the theme, delete this
+ * folder and its references: main.tsx, App.tsx, CategoryNav.tsx, PhotoCard.tsx,
+ * ContestRulesSection.tsx and ui/shader-background.tsx.
+ */
+html[data-season="christmas"] {
+  --xmas-evergreen: #0f3b2c;
+  --xmas-evergreen-soft: #1a4d3a;
+  --xmas-gold: #d9b878;
+  --xmas-white: #f4ede1;
+  --xmas-red: #8f2d38;
+  --xmas-lights-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='26' viewBox='0 0 160 26'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%23ffe9c4' stop-opacity='.55'/%3E%3Cstop offset='1' stop-color='%23ffe9c4' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M0 2 Q40 20 80 2 Q120 20 160 2' fill='none' stroke='%231f3d31' stroke-width='1.1'/%3E%3Ccircle cx='16.0' cy='11.8' r='7' fill='url(%23g)'/%3E%3Crect x='15.0' y='7.8' width='2' height='2.4' fill='%231f3d31'/%3E%3Cellipse cx='16.0' cy='12.0' rx='1.9' ry='2.6' fill='%23ffeccb'/%3E%3Ccircle cx='64.0' cy='11.8' r='7' fill='url(%23g)'/%3E%3Crect x='63.0' y='7.8' width='2' height='2.4' fill='%231f3d31'/%3E%3Cellipse cx='64.0' cy='12.0' rx='1.9' ry='2.6' fill='%23e7c27a'/%3E%3Ccircle cx='120.0' cy='15.0' r='7' fill='url(%23g)'/%3E%3Crect x='119.0' y='11.0' width='2' height='2.4' fill='%231f3d31'/%3E%3Cellipse cx='120.0' cy='15.2' rx='1.9' ry='2.6' fill='%23ffeccb'/%3E%3C/svg%3E");
+  --xmas-lights-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='26' viewBox='0 0 160 26'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%23ffe9c4' stop-opacity='.55'/%3E%3Cstop offset='1' stop-color='%23ffe9c4' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='40.0' cy='15.0' r='7' fill='url(%23g)'/%3E%3Crect x='39.0' y='11.0' width='2' height='2.4' fill='%231f3d31'/%3E%3Cellipse cx='40.0' cy='15.2' rx='1.9' ry='2.6' fill='%23ffeccb'/%3E%3Ccircle cx='96.0' cy='11.8' r='7' fill='url(%23g)'/%3E%3Crect x='95.0' y='7.8' width='2' height='2.4' fill='%231f3d31'/%3E%3Cellipse cx='96.0' cy='12.0' rx='1.9' ry='2.6' fill='%23ffeccb'/%3E%3Ccircle cx='144.0' cy='11.8' r='7' fill='url(%23g)'/%3E%3Crect x='143.0' y='7.8' width='2' height='2.4' fill='%231f3d31'/%3E%3Cellipse cx='144.0' cy='12.0' rx='1.9' ry='2.6' fill='%23ffe3b0'/%3E%3C/svg%3E");
+  --xmas-bough-l: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'%3E%3Cdefs%3E%3CradialGradient id='l'%3E%3Cstop offset='0' stop-color='%23ffe9c4' stop-opacity='.9'/%3E%3Cstop offset='1' stop-color='%23ffe9c4' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg%3E%3Cpath d='M-10.0 -10.0 L19.3 -2.1 L48.6 8.3 L77.9 19.8 L107.1 32.1 L136.4 45.0 L165.7 58.2 L195.0 71.7 L224.3 85.4 L253.6 99.2 L282.9 113.2 L312.1 127.4 L341.4 141.7 L370.7 156.2 L400.0 170.8' fill='none' stroke='%23142e24' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M2 -7l22 -13M2 -7l21 -16M2 -7l4 16M2 -7l17 25M8 -6l17 -10M8 -6l14 -20M8 -6l3 24M8 -6l4 18M13 -4l23 -21M13 -4l22 -18M13 -4l3 16M13 -4l4 26M19 -2l14 -8M19 -2l15 -18M19 -2l5 30M19 -2l5 31M25 -0l24 -16M25 -0l26 -18M25 -0l1 17M25 -0l8 17M31 2l14 -18M31 2l15 -13M31 2l5 21M31 2l8 24M37 4l24 -19M37 4l23 -20M37 4l1 32M37 4l3 18M43 6l21 -23M43 6l16 -18M43 6l2 18M43 6l1 24M49 8l14 -7M49 8l21 -23M49 8l12 25M49 8l5 17M54 11l24 -13M54 11l11 -11M54 11l2 15M54 11l2 20M60 13l21 -22M60 13l25 -17M60 13l5 15M60 13l2 15M66 15l19 -9M66 15l13 -10M66 15l13 25M66 15l9 28M72 17l14 -15M72 17l19 -12M72 17l3 24M72 17l4 24M78 20l15 -16M78 20l22 -13M78 20l6 18M78 20l-1 22M84 22l12 -8M84 22l20 -12M84 22l11 21M84 22l2 15M90 25l17 -13M90 25l15 -12M90 25l2 25M90 25l7 13M95 27l22 -18M95 27l19 -9M95 27l3 18M95 27l5 18M101 30l20 -11M101 30l17 -9M101 30l1 14M101 30l4 25M107 32l15 -8M107 32l13 -12M107 32l7 19M107 32l1 15M113 35l16 -8M113 35l15 -14M113 35l-0 16M113 35l6 22M119 37l14 -14M119 37l14 -6M119 37l3 16M119 37l0 26M125 40l16 -6M125 40l17 -15M125 40l0 18M125 40l7 16M131 42l13 -11M131 42l17 -9M131 42l4 19M131 42l-1 15M136 45l25 -7M136 45l19 -19M136 45l6 26M136 45l-1 16M142 48l19 -16M142 48l16 -12M142 48l5 17M142 48l4 13M148 50l14 -9M148 50l10 -9M148 50l-1 22M148 50l-2 25M154 53l15 -14M154 53l22 -6M154 53l6 16M154 53l2 20M160 56l22 -12M160 56l14 -10M160 56l7 23M160 56l4 23M166 58l13 -7M166 58l20 -13M166 58l8 22M166 58l-2 23M172 61l9 -8M172 61l19 -14M172 61l6 14M172 61l6 18M177 64l16 -9M177 64l9 -8M177 64l5 13M177 64l5 12M183 66l16 -17M183 66l18 -6M183 66l4 15M183 66l5 20M189 69l14 -9M189 69l15 -6M189 69l7 18M189 69l1 17M195 72l13 -4M195 72l17 -9M195 72l0 17M195 72l-0 20M201 74l14 -8M201 74l18 -11M201 74l4 20M201 74l3 14M207 77l17 -11M207 77l16 -5M207 77l4 22M207 77l-1 16M213 80l15 -15M213 80l16 -7M213 80l8 20M213 80l1 22M218 83l15 -13M218 83l14 -11M218 83l7 17M218 83l5 12M224 85l9 -7M224 85l12 -4M224 85l-1 13M224 85l9 20M230 88l20 -7M230 88l17 -12M230 88l-2 18M230 88l-0 11M236 91l13 -11M236 91l10 -7M236 91l0 22M236 91l6 13M242 94l17 -11M242 94l12 -5M242 94l5 17M242 94l0 15M248 96l14 -7M248 96l14 -7M248 96l6 15M248 96l-2 15M254 99l10 -8M254 99l15 -11M254 99l1 16M254 99l3 18M259 102l9 -8M259 102l18 -6M259 102l-1 16M259 102l3 18M265 105l12 -5M265 105l16 -6M265 105l3 12M265 105l1 21M271 108l16 -7M271 108l17 -9M271 108l1 13M271 108l3 10M277 110l12 -7M277 110l13 -5M277 110l4 18M277 110l7 20M283 113l14 -8M283 113l16 -9M283 113l-1 16M283 113l3 17M289 116l10 -9M289 116l16 -12M289 116l2 12M289 116l5 17M295 119l16 -12M295 119l9 -8M295 119l4 12M295 119l5 16M300 122l14 -12M300 122l17 -7M300 122l3 13M300 122l0 10M306 125l17 -5M306 125l12 -5M306 125l2 16M306 125l5 12M312 127l12 -7M312 127l14 -5M312 127l-1 13M312 127l1 10M318 130l14 -6M318 130l17 -5M318 130l-1 10M318 130l-1 13M324 133l13 -10M324 133l14 -6M324 133l1 17M324 133l4 16M330 136l11 -11M330 136l8 -5M330 136l2 12M330 136l0 15M336 139l9 -5M336 139l12 -8M336 139l5 16M336 139l0 10M341 142l7 -7M341 142l14 -6M341 142l1 14M341 142l1 13M347 145l9 -4M347 145l14 -4M347 145l-0 13M347 145l0 12M353 147l11 -4M353 147l6 -6M353 147l1 10M353 147l-0 11M359 150l11 -5M359 150l13 -8M359 150l3 15M359 150l4 10M365 153l9 -3M365 153l11 -9M365 153l3 9M365 153l3 14M371 156l11 -9M371 156l8 -5M371 156l2 9M371 156l1 13M377 159l9 -3M377 159l6 -5M377 159l-1 15M377 159l-1 11M382 162l11 -6M382 162l13 -9M382 162l0 10M382 162l-1 12M388 165l11 -7M388 165l14 -3M388 165l0 12M388 165l1 11M394 168l11 -4M394 168l11 -3M394 168l0 11M394 168l1 15' fill='none' stroke='%230e2b20' stroke-opacity='0.95' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M2 -7l9 -12M2 -7l15 -17M2 -7l10 16M2 -7l7 13M8 -6l21 -18M8 -6l22 -15M8 -6l3 15M8 -6l2 22M13 -4l15 -19M13 -4l13 -13M13 -4l3 27M13 -4l2 20M19 -2l14 -14M19 -2l12 -6M19 -2l8 14M19 -2l9 18M25 -0l15 -14M25 -0l18 -13M25 -0l7 18M25 -0l2 19M31 2l23 -11M31 2l13 -12M31 2l7 19M31 2l3 16M37 4l15 -5M37 4l10 -10M37 4l4 15M37 4l6 14M43 6l13 -8M43 6l13 -5M43 6l8 18M43 6l6 11M49 8l15 -10M49 8l10 -9M49 8l5 17M49 8l12 23M54 11l12 -6M54 11l12 -8M54 11l3 17M54 11l6 12M60 13l12 -11M60 13l14 -13M60 13l-0 16M60 13l6 15M66 15l15 -15M66 15l12 -7M66 15l3 25M66 15l2 12M72 17l13 -4M72 17l12 -5M72 17l9 19M72 17l-0 15M78 20l12 -14M78 20l18 -17M78 20l-1 12M78 20l6 19M84 22l9 -10M84 22l21 -10M84 22l7 16M84 22l6 20M90 25l10 -10M90 25l16 -14M90 25l0 19M90 25l-1 17M95 27l13 -7M95 27l13 -12M95 27l4 13M95 27l1 20M101 30l13 -11M101 30l11 -7M101 30l1 12M101 30l4 21M107 32l10 -8M107 32l20 -9M107 32l2 23M107 32l-0 17M113 35l15 -15M113 35l14 -7M113 35l7 15M113 35l-1 13M119 37l10 -7M119 37l18 -6M119 37l4 11M119 37l7 18M125 40l9 -6M125 40l21 -9M125 40l6 17M125 40l5 20M131 42l17 -12M131 42l11 -7M131 42l4 11M131 42l-0 12M136 45l22 -7M136 45l20 -8M136 45l7 15M136 45l7 20M142 48l15 -11M142 48l16 -14M142 48l5 18M142 48l2 12M148 50l13 -12M148 50l10 -9M148 50l2 16M148 50l0 12M154 53l15 -7M154 53l16 -5M154 53l1 16M154 53l2 18M160 56l14 -6M160 56l10 -11M160 56l2 11M160 56l4 12M166 58l13 -13M166 58l16 -15M166 58l2 21M166 58l2 15M172 61l14 -15M172 61l11 -11M172 61l0 15M172 61l-2 21M177 64l19 -9M177 64l11 -4M177 64l1 14M177 64l3 17M183 66l18 -5M183 66l14 -6M183 66l5 18M183 66l0 13M189 69l13 -4M189 69l10 -5M189 69l6 17M189 69l1 21M195 72l14 -14M195 72l10 -5M195 72l4 14M195 72l2 16M201 74l17 -9M201 74l14 -6M201 74l-1 19M201 74l3 12M207 77l7 -6M207 77l15 -5M207 77l2 11M207 77l5 11M213 80l11 -9M213 80l12 -13M213 80l-1 10M213 80l3 9M218 83l11 -6M218 83l15 -4M218 83l5 12M218 83l5 17M224 85l11 -6M224 85l13 -4M224 85l1 16M224 85l-1 18M230 88l10 -4M230 88l14 -11M230 88l3 18M230 88l1 12M236 91l9 -3M236 91l15 -11M236 91l-1 14M236 91l1 19M242 94l11 -10M242 94l13 -7M242 94l4 10M242 94l1 19M248 96l11 -7M248 96l12 -6M248 96l-0 13M248 96l-1 10M254 99l13 -6M254 99l15 -8M254 99l-1 18M254 99l1 9M259 102l12 -8M259 102l10 -6M259 102l1 18M259 102l6 14M265 105l12 -6M265 105l13 -12M265 105l1 10M265 105l-1 10M271 108l15 -7M271 108l10 -5M271 108l-2 17M271 108l3 12M277 110l9 -4M277 110l16 -7M277 110l4 10M277 110l3 9M283 113l13 -8M283 113l11 -9M283 113l-0 8M283 113l5 17M289 116l10 -3M289 116l9 -5M289 116l1 9M289 116l5 16M295 119l15 -5M295 119l16 -6M295 119l1 14M295 119l3 8M300 122l7 -6M300 122l14 -5M300 122l-1 8M300 122l-1 13M306 125l8 -4M306 125l15 -7M306 125l2 9M306 125l3 8M312 127l14 -7M312 127l9 -3M312 127l-2 16M312 127l-1 10M318 130l14 -7M318 130l12 -7M318 130l2 8M318 130l3 14M324 133l10 -8M324 133l11 -6M324 133l2 12M324 133l-0 9M330 136l13 -8M330 136l7 -6M330 136l-2 14M330 136l3 9M336 139l7 -3M336 139l8 -8M336 139l-1 8M336 139l6 13M341 142l12 -10M341 142l9 -7M341 142l-0 8M341 142l1 11M347 145l11 -4M347 145l10 -5M347 145l2 9M347 145l3 12M353 147l10 -10M353 147l10 -9M353 147l4 14M353 147l2 8M359 150l11 -6M359 150l11 -5M359 150l4 14M359 150l2 10M365 153l12 -7M365 153l8 -8M365 153l2 11M365 153l4 9M371 156l9 -8M371 156l13 -3M371 156l3 14M371 156l2 8M377 159l11 -7M377 159l12 -6M377 159l0 9M377 159l2 10M382 162l8 -4M382 162l11 -7M382 162l1 7M382 162l3 9M388 165l6 -4M388 165l8 -2M388 165l2 6M388 165l1 13M394 168l10 -6M394 168l9 -8M394 168l-1 9M394 168l0 7' fill='none' stroke='%231d4d3a' stroke-opacity='0.85' stroke-width='1.4' stroke-linecap='round'/%3E%3Cpath d='M2 -7l12 -15M2 -7l9 25M8 -6l14 -9M8 -6l3 22M13 -4l12 -6M13 -4l5 12M19 -2l11 -12M19 -2l7 17M25 -0l15 -12M25 -0l4 22M31 2l12 -8M31 2l-0 23M37 4l18 -7M37 4l3 27M43 6l12 -5M43 6l5 18M49 8l16 -18M49 8l6 17M54 11l20 -15M54 11l7 17M60 13l20 -8M60 13l12 22M66 15l16 -12M66 15l7 14M72 17l20 -13M72 17l3 16M78 20l14 -16M78 20l3 14M84 22l21 -11M84 22l7 17M90 25l13 -10M90 25l1 24M95 27l15 -15M95 27l4 12M101 30l13 -8M101 30l8 21M107 32l20 -9M107 32l-1 13M113 35l11 -12M113 35l5 13M119 37l17 -5M119 37l5 21M125 40l9 -8M125 40l4 16M131 42l13 -5M131 42l6 19M136 45l11 -6M136 45l5 15M142 48l11 -8M142 48l1 13M148 50l14 -11M148 50l7 19M154 53l15 -8M154 53l2 18M160 56l10 -6M160 56l0 21M166 58l15 -9M166 58l6 20M172 61l10 -8M172 61l-0 22M177 64l19 -10M177 64l2 12M183 66l11 -9M183 66l1 17M189 69l15 -5M189 69l-1 15M195 72l16 -10M195 72l3 15M201 74l16 -10M201 74l3 10M207 77l12 -10M207 77l5 19M213 80l11 -11M213 80l-2 18M218 83l10 -8M218 83l7 15M224 85l10 -8M224 85l3 15M230 88l15 -6M230 88l2 13M236 91l14 -5M236 91l4 16M242 94l12 -4M242 94l4 12M248 96l8 -5M248 96l5 13M254 99l13 -5M254 99l3 9M259 102l15 -9M259 102l-1 14M265 105l8 -4M265 105l3 11M271 108l7 -7M271 108l-1 13M277 110l10 -5M277 110l-1 10M283 113l11 -7M283 113l3 10M289 116l11 -11M289 116l0 16M295 119l14 -4M295 119l0 10M300 122l15 -8M300 122l3 14M306 125l13 -5M306 125l3 12M312 127l14 -7M312 127l0 12M318 130l9 -7M318 130l-0 10M324 133l11 -6M324 133l2 8M330 136l12 -4M330 136l4 13M336 139l13 -8M336 139l-1 13M341 142l7 -3M341 142l1 13M347 145l6 -6M347 145l5 14M353 147l9 -7M353 147l0 8M359 150l10 -6M359 150l1 8M365 153l11 -4M365 153l-1 8M371 156l7 -2M371 156l-0 10M377 159l12 -7M377 159l1 8M382 162l5 -4M382 162l3 11M388 165l6 -2M388 165l1 9M394 168l5 -5M394 168l-0 9' fill='none' stroke='%232c6a4f' stroke-opacity='0.55' stroke-width='1.1' stroke-linecap='round'/%3E%3Ccircle cx='36.9' cy='14.0' r='9' fill='url(%23l)'/%3E%3Ccircle cx='36.9' cy='14.0' r='1.7' fill='%23e7c27a'/%3E%3Ccircle cx='89.6' cy='34.7' r='9' fill='url(%23l)'/%3E%3Ccircle cx='89.6' cy='34.7' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='142.3' cy='57.6' r='9' fill='url(%23l)'/%3E%3Ccircle cx='142.3' cy='57.6' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='195.0' cy='81.7' r='9' fill='url(%23l)'/%3E%3Ccircle cx='195.0' cy='81.7' r='1.7' fill='%23e7c27a'/%3E%3Ccircle cx='247.7' cy='106.4' r='9' fill='url(%23l)'/%3E%3Ccircle cx='247.7' cy='106.4' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='300.4' cy='131.7' r='9' fill='url(%23l)'/%3E%3Ccircle cx='300.4' cy='131.7' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='353.1' cy='157.5' r='9' fill='url(%23l)'/%3E%3Ccircle cx='353.1' cy='157.5' r='1.7' fill='%23e7c27a'/%3E%3C/g%3E%3C/svg%3E");
+  --xmas-bough-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'%3E%3Cdefs%3E%3CradialGradient id='l'%3E%3Cstop offset='0' stop-color='%23ffe9c4' stop-opacity='.9'/%3E%3Cstop offset='1' stop-color='%23ffe9c4' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg transform='translate(440,0) scale(-1,1)'%3E%3Cpath d='M-10.0 -10.0 L19.3 -2.1 L48.6 8.3 L77.9 19.8 L107.1 32.1 L136.4 45.0 L165.7 58.2 L195.0 71.7 L224.3 85.4 L253.6 99.2 L282.9 113.2 L312.1 127.4 L341.4 141.7 L370.7 156.2 L400.0 170.8' fill='none' stroke='%23142e24' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M2 -7l17 -14M2 -7l27 -15M2 -7l14 20M2 -7l2 17M8 -6l20 -17M8 -6l20 -9M8 -6l4 23M8 -6l3 18M13 -4l15 -9M13 -4l25 -20M13 -4l7 28M13 -4l10 27M19 -2l19 -9M19 -2l20 -19M19 -2l5 16M19 -2l7 17M25 -0l25 -15M25 -0l27 -14M25 -0l1 16M25 -0l8 22M31 2l21 -8M31 2l11 -13M31 2l3 17M31 2l6 30M37 4l14 -7M37 4l22 -9M37 4l8 14M37 4l7 30M43 6l18 -12M43 6l13 -11M43 6l3 17M43 6l5 30M49 8l22 -9M49 8l13 -11M49 8l11 29M49 8l-1 17M54 11l23 -20M54 11l22 -11M54 11l10 18M54 11l3 24M60 13l12 -11M60 13l25 -14M60 13l4 22M60 13l8 29M66 15l12 -9M66 15l14 -14M66 15l4 17M66 15l5 19M72 17l23 -9M72 17l25 -10M72 17l12 24M72 17l1 22M78 20l14 -12M78 20l16 -14M78 20l10 28M78 20l5 19M84 22l14 -14M84 22l13 -10M84 22l0 18M84 22l13 26M90 25l26 -11M90 25l15 -18M90 25l7 13M90 25l7 19M95 27l23 -17M95 27l14 -8M95 27l2 16M95 27l9 20M101 30l11 -9M101 30l21 -13M101 30l1 19M101 30l-0 16M107 32l19 -16M107 32l15 -15M107 32l6 13M107 32l3 16M113 35l12 -9M113 35l13 -11M113 35l7 14M113 35l4 21M119 37l14 -8M119 37l23 -14M119 37l4 27M119 37l12 25M125 40l15 -15M125 40l18 -11M125 40l-1 14M125 40l2 21M131 42l21 -10M131 42l11 -9M131 42l1 20M131 42l4 22M136 45l21 -7M136 45l23 -12M136 45l8 23M136 45l1 22M142 48l10 -9M142 48l18 -12M142 48l1 19M142 48l6 14M148 50l12 -9M148 50l17 -5M148 50l4 20M148 50l10 21M154 53l21 -10M154 53l25 -7M154 53l3 26M154 53l-3 24M160 56l16 -6M160 56l21 -9M160 56l5 15M160 56l5 13M166 58l18 -18M166 58l20 -10M166 58l4 19M166 58l5 20M172 61l14 -6M172 61l13 -8M172 61l5 24M172 61l6 12M177 64l10 -8M177 64l22 -9M177 64l2 15M177 64l6 14M183 66l20 -9M183 66l15 -16M183 66l-2 24M183 66l-1 24M189 69l9 -9M189 69l14 -6M189 69l2 18M189 69l6 22M195 72l13 -7M195 72l16 -7M195 72l2 19M195 72l3 14M201 74l14 -7M201 74l17 -6M201 74l7 20M201 74l1 13M207 77l13 -9M207 77l17 -9M207 77l0 23M207 77l0 14M213 80l13 -8M213 80l18 -5M213 80l4 22M213 80l5 21M218 83l11 -6M218 83l12 -9M218 83l2 12M218 83l9 21M224 85l12 -4M224 85l11 -4M224 85l-1 23M224 85l1 16M230 88l12 -12M230 88l18 -6M230 88l3 14M230 88l4 15M236 91l17 -6M236 91l13 -12M236 91l8 17M236 91l7 15M242 94l14 -13M242 94l14 -14M242 94l3 12M242 94l3 18M248 96l13 -5M248 96l11 -9M248 96l2 17M248 96l-1 11M254 99l18 -7M254 99l9 -7M254 99l4 12M254 99l3 21M259 102l12 -5M259 102l12 -9M259 102l-1 22M259 102l-2 18M265 105l9 -5M265 105l11 -9M265 105l3 17M265 105l-2 16M271 108l15 -14M271 108l13 -4M271 108l-1 19M271 108l-1 12M277 110l17 -10M277 110l15 -9M277 110l-1 12M277 110l7 18M283 113l10 -6M283 113l10 -8M283 113l4 12M283 113l6 13M289 116l11 -9M289 116l7 -7M289 116l4 11M289 116l1 12M295 119l12 -9M295 119l16 -10M295 119l-0 19M295 119l4 13M300 122l10 -10M300 122l13 -6M300 122l6 17M300 122l1 10M306 125l10 -10M306 125l14 -6M306 125l-1 13M306 125l5 10M312 127l14 -4M312 127l16 -7M312 127l3 9M312 127l2 10M318 130l10 -5M318 130l14 -5M318 130l-1 13M318 130l1 12M324 133l10 -10M324 133l16 -4M324 133l3 9M324 133l7 16M330 136l10 -7M330 136l13 -8M330 136l6 15M330 136l0 18M336 139l14 -4M336 139l14 -8M336 139l3 15M336 139l-1 12M341 142l15 -9M341 142l17 -5M341 142l3 12M341 142l4 16M347 145l13 -8M347 145l16 -5M347 145l-1 15M347 145l3 10M353 147l8 -4M353 147l9 -8M353 147l-1 10M353 147l1 16M359 150l10 -7M359 150l12 -3M359 150l3 16M359 150l-2 17M365 153l7 -7M365 153l10 -3M365 153l4 8M365 153l1 10M371 156l9 -6M371 156l15 -6M371 156l5 15M371 156l2 14M377 159l13 -4M377 159l7 -6M377 159l2 13M377 159l2 14M382 162l9 -6M382 162l12 -8M382 162l2 12M382 162l1 12M388 165l10 -3M388 165l11 -8M388 165l4 11M388 165l1 12M394 168l12 -4M394 168l10 -7M394 168l-1 12M394 168l4 9' fill='none' stroke='%230e2b20' stroke-opacity='0.95' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M2 -7l10 -11M2 -7l14 -20M2 -7l3 16M2 -7l15 22M8 -6l15 -13M8 -6l19 -16M8 -6l9 23M8 -6l13 25M13 -4l13 -13M13 -4l21 -16M13 -4l9 22M13 -4l2 27M19 -2l21 -12M19 -2l19 -16M19 -2l9 17M19 -2l7 24M25 -0l11 -8M25 -0l22 -12M25 -0l1 21M25 -0l12 21M31 2l11 -13M31 2l14 -10M31 2l11 21M31 2l6 13M37 4l9 -11M37 4l17 -17M37 4l7 17M37 4l9 21M43 6l15 -18M43 6l17 -12M43 6l6 22M43 6l6 15M49 8l12 -11M49 8l14 -18M49 8l5 12M49 8l3 14M54 11l17 -12M54 11l13 -13M54 11l5 23M54 11l7 16M60 13l12 -12M60 13l9 -10M60 13l8 16M60 13l4 17M66 15l17 -8M66 15l17 -18M66 15l2 16M66 15l2 14M72 17l22 -8M72 17l13 -6M72 17l0 14M72 17l5 13M78 20l15 -15M78 20l12 -5M78 20l-0 14M78 20l2 21M84 22l15 -11M84 22l13 -8M84 22l2 14M84 22l3 15M90 25l21 -11M90 25l17 -12M90 25l1 12M90 25l1 23M95 27l14 -12M95 27l17 -17M95 27l4 13M95 27l3 11M101 30l12 -5M101 30l16 -5M101 30l8 16M101 30l-0 21M107 32l20 -7M107 32l20 -8M107 32l2 18M107 32l5 24M113 35l21 -9M113 35l12 -5M113 35l4 11M113 35l-0 14M119 37l12 -8M119 37l19 -10M119 37l2 14M119 37l1 13M125 40l19 -6M125 40l15 -14M125 40l2 23M125 40l-1 18M131 42l17 -7M131 42l17 -10M131 42l3 12M131 42l4 12M136 45l15 -12M136 45l12 -8M136 45l1 16M136 45l2 13M142 48l11 -12M142 48l11 -7M142 48l3 16M142 48l4 19M148 50l16 -8M148 50l10 -7M148 50l-0 12M148 50l6 20M154 53l13 -5M154 53l19 -11M154 53l-1 13M154 53l2 20M160 56l12 -8M160 56l11 -4M160 56l5 10M160 56l1 17M166 58l20 -6M166 58l10 -11M166 58l5 20M166 58l1 19M172 61l17 -7M172 61l10 -5M172 61l5 12M172 61l4 13M177 64l11 -10M177 64l11 -4M177 64l6 14M177 64l2 11M183 66l12 -7M183 66l15 -4M183 66l4 11M183 66l0 15M189 69l14 -7M189 69l13 -11M189 69l-2 18M189 69l5 20M195 72l12 -3M195 72l13 -5M195 72l3 14M195 72l1 14M201 74l15 -9M201 74l14 -14M201 74l3 14M201 74l-2 19M207 77l8 -7M207 77l13 -6M207 77l4 14M207 77l-1 14M213 80l11 -7M213 80l13 -9M213 80l3 10M213 80l0 18M218 83l10 -5M218 83l15 -5M218 83l2 19M218 83l1 15M224 85l16 -10M224 85l8 -8M224 85l4 10M224 85l8 17M230 88l10 -10M230 88l12 -10M230 88l1 13M230 88l-1 12M236 91l9 -3M236 91l13 -11M236 91l-1 17M236 91l4 12M242 94l16 -7M242 94l12 -3M242 94l1 15M242 94l4 9M248 96l10 -4M248 96l8 -5M248 96l-0 14M248 96l1 12M254 99l7 -7M254 99l8 -8M254 99l2 14M254 99l1 14M259 102l7 -6M259 102l12 -7M259 102l1 10M259 102l0 9M265 105l9 -2M265 105l7 -7M265 105l0 9M265 105l1 11M271 108l13 -9M271 108l11 -8M271 108l0 8M271 108l4 10M277 110l14 -7M277 110l10 -3M277 110l2 11M277 110l4 10M283 113l8 -2M283 113l8 -7M283 113l0 11M283 113l0 16M289 116l13 -3M289 116l11 -10M289 116l5 14M289 116l0 10M295 119l11 -8M295 119l14 -5M295 119l-0 9M295 119l2 13M300 122l12 -3M300 122l8 -8M300 122l2 16M300 122l-1 16M306 125l16 -5M306 125l10 -5M306 125l5 14M306 125l1 12M312 127l11 -6M312 127l8 -5M312 127l0 10M312 127l6 15M318 130l14 -4M318 130l9 -7M318 130l1 10M318 130l4 15M324 133l11 -9M324 133l7 -4M324 133l-0 16M324 133l3 12M330 136l15 -5M330 136l6 -5M330 136l0 13M330 136l2 12M336 139l9 -9M336 139l13 -7M336 139l1 14M336 139l1 13M341 142l9 -7M341 142l8 -4M341 142l1 13M341 142l1 8M347 145l10 -7M347 145l7 -5M347 145l-1 13M347 145l-0 8M353 147l10 -4M353 147l14 -4M353 147l3 8M353 147l-0 9M359 150l10 -6M359 150l7 -2M359 150l0 14M359 150l-0 8M365 153l9 -4M365 153l13 -3M365 153l-1 14M365 153l-1 13M371 156l11 -5M371 156l5 -4M371 156l5 13M371 156l5 13M377 159l8 -4M377 159l12 -6M377 159l0 7M377 159l-0 9M382 162l8 -6M382 162l8 -7M382 162l3 13M382 162l-1 10M388 165l9 -5M388 165l7 -5M388 165l-1 9M388 165l-2 10M394 168l9 -9M394 168l6 -2M394 168l1 10M394 168l2 8' fill='none' stroke='%231d4d3a' stroke-opacity='0.85' stroke-width='1.4' stroke-linecap='round'/%3E%3Cpath d='M2 -7l12 -8M2 -7l7 20M8 -6l21 -16M8 -6l8 23M13 -4l14 -15M13 -4l5 16M19 -2l19 -18M19 -2l0 25M25 -0l13 -17M25 -0l8 26M31 2l10 -9M31 2l1 21M37 4l13 -14M37 4l4 21M43 6l20 -16M43 6l6 21M49 8l9 -10M49 8l1 22M54 11l11 -7M54 11l3 14M60 13l18 -8M60 13l4 25M66 15l18 -14M66 15l2 12M72 17l12 -7M72 17l2 16M78 20l13 -10M78 20l7 14M84 22l12 -13M84 22l2 19M90 25l18 -11M90 25l-1 20M95 27l12 -11M95 27l4 11M101 30l10 -7M101 30l6 17M107 32l12 -7M107 32l5 23M113 35l16 -11M113 35l-2 19M119 37l14 -15M119 37l0 19M125 40l12 -13M125 40l5 19M131 42l15 -5M131 42l-1 13M136 45l13 -7M136 45l2 21M142 48l16 -8M142 48l6 12M148 50l16 -9M148 50l-1 21M154 53l12 -7M154 53l-0 21M160 56l14 -12M160 56l1 15M166 58l12 -8M166 58l1 21M172 61l17 -8M172 61l4 10M177 64l13 -5M177 64l3 14M183 66l8 -7M183 66l-1 13M189 69l14 -6M189 69l3 16M195 72l16 -5M195 72l5 11M201 74l14 -6M201 74l0 10M207 77l14 -4M207 77l5 17M213 80l15 -13M213 80l-2 20M218 83l14 -6M218 83l5 14M224 85l13 -10M224 85l-2 13M230 88l16 -9M230 88l-0 11M236 91l15 -8M236 91l7 16M242 94l11 -11M242 94l5 14M248 96l17 -6M248 96l3 9M254 99l10 -5M254 99l-1 11M259 102l12 -4M259 102l3 14M265 105l9 -9M265 105l-1 10M271 108l15 -8M271 108l-1 15M277 110l17 -5M277 110l3 14M283 113l9 -3M283 113l3 15M289 116l9 -7M289 116l4 13M295 119l9 -5M295 119l3 8M300 122l14 -4M300 122l-2 15M306 125l10 -7M306 125l3 12M312 127l13 -7M312 127l-1 11M318 130l13 -5M318 130l-2 16M324 133l10 -10M324 133l-1 11M330 136l7 -5M330 136l-1 9M336 139l11 -9M336 139l-1 10M341 142l6 -4M341 142l-1 12M347 145l9 -3M347 145l2 11M353 147l8 -4M353 147l2 13M359 150l9 -5M359 150l3 14M365 153l9 -7M365 153l5 12M371 156l11 -5M371 156l1 7M377 159l10 -6M377 159l3 11M382 162l6 -2M382 162l3 9M388 165l7 -3M388 165l3 12M394 168l9 -5M394 168l-1 8' fill='none' stroke='%232c6a4f' stroke-opacity='0.55' stroke-width='1.1' stroke-linecap='round'/%3E%3Ccircle cx='36.9' cy='14.0' r='9' fill='url(%23l)'/%3E%3Ccircle cx='36.9' cy='14.0' r='1.7' fill='%23e7c27a'/%3E%3Ccircle cx='89.6' cy='34.7' r='9' fill='url(%23l)'/%3E%3Ccircle cx='89.6' cy='34.7' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='142.3' cy='57.6' r='9' fill='url(%23l)'/%3E%3Ccircle cx='142.3' cy='57.6' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='195.0' cy='81.7' r='9' fill='url(%23l)'/%3E%3Ccircle cx='195.0' cy='81.7' r='1.7' fill='%23e7c27a'/%3E%3Ccircle cx='247.7' cy='106.4' r='9' fill='url(%23l)'/%3E%3Ccircle cx='247.7' cy='106.4' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='300.4' cy='131.7' r='9' fill='url(%23l)'/%3E%3Ccircle cx='300.4' cy='131.7' r='1.7' fill='%23ffeccb'/%3E%3Ccircle cx='353.1' cy='157.5' r='9' fill='url(%23l)'/%3E%3Ccircle cx='353.1' cy='157.5' r='1.7' fill='%23e7c27a'/%3E%3C/g%3E%3C/svg%3E");
+  --xmas-treeline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='44' viewBox='0 0 600 44'%3E%3Cpolygon points='24.2,21.1 28.8,25.7 26.6,26.8 31.2,31.4 28.9,32.5 33.5,37.1 31.3,38.3 33.6,44.0 14.8,44.0 17.2,38.3 14.9,37.1 19.5,32.5 17.3,31.4 21.9,26.8 19.6,25.7' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='61.4,21.1 66.2,25.7 63.9,26.8 68.7,31.4 66.3,32.6 71.1,37.1 68.7,38.3 71.2,44.0 51.7,44.0 54.1,38.3 51.8,37.1 56.5,32.6 54.2,31.4 59.0,26.8 56.6,25.7' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='85.8,24.4 90.6,28.3 88.3,29.3 93.1,33.2 90.7,34.2 95.6,38.1 93.2,39.1 95.7,44.0 76.0,44.0 78.5,39.1 76.1,38.1 80.9,34.2 78.6,33.2 83.4,29.3 81.0,28.3' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='118.9,19.2 122.5,24.2 120.7,25.4 124.3,30.4 122.6,31.6 126.2,36.6 124.4,37.8 126.3,44.0 111.6,44.0 113.4,37.8 111.6,36.6 115.2,31.6 113.5,30.4 117.1,25.4 115.3,24.2' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='149.5,27.0 153.7,30.4 151.6,31.3 155.9,34.7 153.8,35.5 158.0,38.9 156.0,39.8 158.1,44.0 140.9,44.0 143.0,39.8 140.9,38.9 145.2,35.5 143.1,34.7 147.3,31.3 145.3,30.4' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='181.5,29.8 185.3,32.7 183.4,33.4 187.2,36.2 185.3,36.9 189.1,39.8 187.3,40.5 189.2,44.0 173.9,44.0 175.8,40.5 173.9,39.8 177.7,36.9 175.9,36.2 179.6,33.4 177.8,32.7' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='209.4,19.0 214.0,24.0 211.8,25.3 216.3,30.3 214.1,31.5 218.6,36.5 216.4,37.8 218.7,44.0 200.1,44.0 202.5,37.8 200.2,36.5 204.8,31.5 202.6,30.3 207.1,25.3 204.9,24.0' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='235.7,20.4 239.3,25.1 237.5,26.3 241.2,31.0 239.4,32.2 243.0,36.9 241.2,38.1 243.1,44.0 228.2,44.0 230.1,38.1 228.3,36.9 232.0,32.2 230.2,31.0 233.8,26.3 232.0,25.1' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='268.3,28.5 271.7,31.6 270.1,32.4 273.5,35.5 271.8,36.2 275.2,39.3 273.6,40.1 275.3,44.0 261.3,44.0 263.1,40.1 261.4,39.3 264.8,36.2 263.1,35.5 266.6,32.4 264.9,31.6' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='304.5,27.5 308.3,30.8 306.4,31.6 310.2,34.9 308.3,35.7 312.1,39.0 310.2,39.9 312.2,44.0 296.9,44.0 298.8,39.9 296.9,39.0 300.7,35.7 298.9,34.9 302.6,31.6 300.8,30.8' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='342.3,19.5 346.1,24.4 344.2,25.6 348.1,30.5 346.2,31.8 350.1,36.7 348.2,37.9 350.1,44.0 334.4,44.0 336.4,37.9 334.5,36.7 338.3,31.8 336.4,30.5 340.3,25.6 338.4,24.4' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='379.7,23.5 384.1,27.6 382.0,28.6 386.4,32.7 384.2,33.8 388.7,37.9 386.5,38.9 388.8,44.0 370.7,44.0 372.9,38.9 370.8,37.9 375.2,33.8 373.0,32.7 377.5,28.6 375.3,27.6' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='406.6,18.7 411.0,23.8 408.9,25.0 413.3,30.1 411.1,31.4 415.6,36.4 413.4,37.7 415.7,44.0 397.5,44.0 399.8,37.7 397.6,36.4 402.1,31.4 399.9,30.1 404.3,25.0 402.1,23.8' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='444.1,19.3 448.0,24.2 446.1,25.5 450.0,30.4 448.1,31.6 451.9,36.6 450.0,37.8 452.0,44.0 436.2,44.0 438.2,37.8 436.3,36.6 440.2,31.6 438.3,30.4 442.1,25.5 440.3,24.2' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='473.2,28.0 476.8,31.2 475.0,32.0 478.7,35.2 476.9,36.0 480.5,39.2 478.8,40.0 480.6,44.0 465.7,44.0 467.6,40.0 465.8,39.2 469.5,36.0 467.7,35.2 471.3,32.0 469.5,31.2' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='498.1,26.4 502.4,29.9 500.3,30.8 504.6,34.3 502.5,35.2 506.8,38.7 504.7,39.6 506.9,44.0 489.3,44.0 491.5,39.6 489.4,38.7 493.7,35.2 491.6,34.3 495.9,30.8 493.8,29.9' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='522.1,21.9 526.1,26.3 524.1,27.4 528.1,31.8 526.1,32.9 530.1,37.4 528.1,38.5 530.2,44.0 514.1,44.0 516.1,38.5 514.2,37.4 518.1,32.9 516.2,31.8 520.1,27.4 518.2,26.3' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='550.5,20.2 554.6,24.9 552.6,26.1 556.7,30.9 554.7,32.1 558.8,36.9 556.8,38.0 558.9,44.0 542.0,44.0 544.1,38.0 542.1,36.9 546.3,32.1 544.2,30.9 548.4,26.1 546.3,24.9' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='578.9,24.2 583.4,28.2 581.2,29.2 585.6,33.1 583.5,34.1 587.9,38.1 585.7,39.1 588.0,44.0 569.8,44.0 572.1,39.1 569.9,38.1 574.3,34.1 572.2,33.1 576.6,29.2 574.4,28.2' fill='%2312362a' fill-opacity='0.55'/%3E%3Cpolygon points='27.8,23.5 33.6,27.6 30.8,28.7 36.6,32.7 33.8,33.8 39.6,37.9 36.8,38.9 39.8,44.0 15.8,44.0 18.8,38.9 15.9,37.9 21.8,33.8 18.9,32.7 24.8,28.7 21.9,27.6' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='71.6,23.6 77.5,27.7 74.6,28.7 80.6,32.8 77.7,33.8 83.6,37.9 80.7,38.9 83.7,44.0 59.4,44.0 62.5,38.9 59.5,37.9 65.5,33.8 62.6,32.8 68.5,28.7 65.6,27.7' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='108.7,12.4 113.1,18.7 111.0,20.3 115.4,26.6 113.2,28.2 117.7,34.5 115.5,36.1 117.7,44.0 99.7,44.0 101.9,36.1 99.8,34.5 104.2,28.2 102.0,26.6 106.4,20.3 104.3,18.7' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='141.4,20.4 147.6,25.1 144.6,26.3 150.8,31.0 147.8,32.2 154.1,36.9 151.0,38.1 154.2,44.0 128.5,44.0 131.7,38.1 128.7,36.9 134.9,32.2 131.9,31.0 138.2,26.3 135.1,25.1' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='176.1,8.9 182.3,15.9 179.3,17.7 185.5,24.7 182.5,26.4 188.7,33.5 185.7,35.2 188.8,44.0 163.4,44.0 166.6,35.2 163.5,33.5 169.8,26.4 166.7,24.7 172.9,17.7 169.9,15.9' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='221.3,17.1 226.4,22.5 223.9,23.8 229.0,29.2 226.5,30.6 231.6,35.9 229.1,37.3 231.7,44.0 210.9,44.0 213.5,37.3 211.0,35.9 216.1,30.6 213.6,29.2 218.7,23.8 216.2,22.5' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='260.6,8.5 265.3,15.6 263.0,17.4 267.6,24.5 265.4,26.2 270.0,33.3 267.7,35.1 270.1,44.0 251.2,44.0 253.6,35.1 251.3,33.3 255.9,26.2 253.7,24.5 258.3,17.4 256.0,15.6' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='303.1,8.1 309.2,15.2 306.2,17.0 312.3,24.2 309.3,26.0 315.4,33.2 312.5,35.0 315.6,44.0 290.7,44.0 293.8,35.0 290.8,33.2 296.9,26.0 293.9,24.2 300.0,17.0 297.0,15.2' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='335.6,5.1 340.2,12.9 338.0,14.8 342.6,22.6 340.3,24.5 344.9,32.3 342.7,34.3 345.0,44.0 326.3,44.0 328.6,34.3 326.4,32.3 331.0,24.5 328.7,22.6 333.3,14.8 331.0,12.9' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='372.4,11.8 378.6,18.2 375.6,19.8 381.8,26.3 378.7,27.9 385.0,34.3 381.9,35.9 385.1,44.0 359.7,44.0 362.9,35.9 359.9,34.3 366.1,27.9 363.0,26.3 369.2,19.8 366.2,18.2' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='409.2,5.5 414.6,13.2 412.0,15.1 417.4,22.8 414.8,24.8 420.2,32.5 417.6,34.4 420.3,44.0 398.0,44.0 400.8,34.4 398.1,32.5 403.6,24.8 400.9,22.8 406.4,15.1 403.7,13.2' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='445.5,17.7 450.3,22.9 448.0,24.2 452.7,29.5 450.4,30.8 455.2,36.1 452.8,37.4 455.3,44.0 435.8,44.0 438.3,37.4 435.9,36.1 440.7,30.8 438.4,29.5 443.1,24.2 440.8,22.9' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='478.6,21.0 484.4,25.6 481.6,26.8 487.3,31.4 484.5,32.5 490.3,37.1 487.5,38.3 490.4,44.0 466.9,44.0 469.8,38.3 467.0,37.1 472.8,32.5 469.9,31.4 475.7,26.8 472.9,25.6' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='524.6,20.8 529.1,25.4 526.9,26.6 531.4,31.2 529.2,32.4 533.7,37.0 531.5,38.2 533.8,44.0 515.4,44.0 517.7,38.2 515.5,37.0 520.0,32.4 517.8,31.2 522.3,26.6 520.1,25.4' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Cpolygon points='570.4,13.3 575.6,19.5 573.1,21.0 578.3,27.1 575.7,28.7 580.9,34.8 578.4,36.3 581.0,44.0 559.8,44.0 562.4,36.3 559.9,34.8 565.1,28.7 562.5,27.1 567.7,21.0 565.2,19.5' fill='%230c2a1f' fill-opacity='0.85'/%3E%3Crect x='0' y='42' width='600' height='2' fill='%230c2a1f' fill-opacity='.9'/%3E%3C/svg%3E");
+  --xmas-sprig: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M2 20 Q10 12 20 3' fill='none' stroke='%232f7a5a' stroke-width='1.9' stroke-linecap='round'/%3E%3Cg stroke='%233f8f6b' stroke-width='1.6' stroke-linecap='round'%3E%3Cline x1='6' y1='16.5' x2='3' y2='13'/%3E%3Cline x1='6' y1='16.5' x2='9' y2='19'/%3E%3Cline x1='10' y1='12.8' x2='7' y2='9'/%3E%3Cline x1='10' y1='12.8' x2='13.5' y2='15'/%3E%3Cline x1='14' y1='9' x2='11.5' y2='5.2'/%3E%3Cline x1='14' y1='9' x2='17.5' y2='10.8'/%3E%3Cline x1='17.5' y1='5.6' x2='16' y2='2.4'/%3E%3Cline x1='17.5' y1='5.6' x2='20.4' y2='6.4'/%3E%3C/g%3E%3Ccircle cx='8.2' cy='14.6' r='1.5' fill='%23d9b878'/%3E%3Ccircle cx='15.6' cy='7.4' r='1.2' fill='%23f4ede1'/%3E%3C/svg%3E");
+  --xmas-snow: radial-gradient(2.4px 2.4px at 94px 224px, rgb(244 237 225 / 0.46), rgb(244 237 225 / 0) 100%), radial-gradient(1.7px 1.7px at 255px 441px, rgb(244 237 225 / 0.5), rgb(244 237 225 / 0) 100%), radial-gradient(1.7px 1.7px at 423px 272px, rgb(244 237 225 / 0.43), rgb(244 237 225 / 0) 100%), radial-gradient(1.4px 1.4px at 413px 11px, rgb(244 237 225 / 0.53), rgb(244 237 225 / 0) 100%), radial-gradient(1.6px 1.6px at 229px 45px, rgb(244 237 225 / 0.49), rgb(244 237 225 / 0) 100%), radial-gradient(2.4px 2.4px at 481px 129px, rgb(244 237 225 / 0.41), rgb(244 237 225 / 0) 100%), radial-gradient(2.6px 2.6px at 388px 404px, rgb(244 237 225 / 0.45), rgb(244 237 225 / 0) 100%), radial-gradient(2.2px 2.2px at 27px 178px, rgb(244 237 225 / 0.47), rgb(244 237 225 / 0) 100%), radial-gradient(1.4px 1.4px at 342px 198px, rgb(244 237 225 / 0.49), rgb(244 237 225 / 0) 100%), radial-gradient(2.5px 2.5px at 55px 73px, rgb(244 237 225 / 0.3), rgb(244 237 225 / 0) 100%), radial-gradient(2.4px 2.4px at 92px 292px, rgb(244 237 225 / 0.4), rgb(244 237 225 / 0) 100%), radial-gradient(2.3px 2.3px at 87px 105px, rgb(244 237 225 / 0.42), rgb(244 237 225 / 0) 100%), radial-gradient(1.5px 1.5px at 429px 130px, rgb(244 237 225 / 0.35), rgb(244 237 225 / 0) 100%), radial-gradient(2.7px 2.7px at 354px 421px, rgb(244 237 225 / 0.49), rgb(244 237 225 / 0) 100%), radial-gradient(2.8px 2.8px at 400px 307px, rgb(244 237 225 / 0.32), rgb(244 237 225 / 0) 100%), radial-gradient(2.2px 2.2px at 296px 253px, rgb(244 237 225 / 0.4), rgb(244 237 225 / 0) 100%), radial-gradient(2.6px 2.6px at 184px 84px, rgb(244 237 225 / 0.4), rgb(244 237 225 / 0) 100%), radial-gradient(2.1px 2.1px at 196px 241px, rgb(244 237 225 / 0.38), rgb(244 237 225 / 0) 100%), radial-gradient(1.8px 1.8px at 258px 207px, rgb(244 237 225 / 0.51), rgb(244 237 225 / 0) 100%), radial-gradient(2.4px 2.4px at 91px 377px, rgb(244 237 225 / 0.55), rgb(244 237 225 / 0) 100%), radial-gradient(4.9px 4.9px at 302px 95px, rgb(244 237 225 / 0.15), rgb(244 237 225 / 0) 100%), radial-gradient(5.0px 5.0px at 151px 255px, rgb(244 237 225 / 0.15), rgb(244 237 225 / 0) 100%), radial-gradient(4.3px 4.3px at 475px 280px, rgb(244 237 225 / 0.14), rgb(244 237 225 / 0) 100%), radial-gradient(4.5px 4.5px at 325px 267px, rgb(244 237 225 / 0.14), rgb(244 237 225 / 0) 100%);
+}
+
+/* Cooler winter-night ground under the existing dark theme. */
+html[data-season="christmas"],
+html[data-season="christmas"] body {
+  background-color: #06080b !important;
+}
+
+/* ── Header: warm-white lights draped along the top edge ───────────────────── */
+html[data-season="christmas"] body::before,
+html[data-season="christmas"] body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 26px;
+  z-index: 60;
+  pointer-events: none;
+  background-repeat: repeat-x;
+  background-position: top left;
+  background-size: 160px 26px;
+}
+
+html[data-season="christmas"] body::before {
+  background-image: var(--xmas-lights-a);
+  animation: xmas-twinkle-a 5s ease-in-out infinite;
+}
+
+html[data-season="christmas"] body::after {
+  background-image: var(--xmas-lights-b);
+  animation: xmas-twinkle-b 5s ease-in-out infinite;
+}
+
+@keyframes xmas-twinkle-a {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@keyframes xmas-twinkle-b {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* A small evergreen sprig on the logo's shoulder; the logo itself is untouched. */
+html[data-season="christmas"] #easter-egg-orb {
+  position: relative;
+}
+
+html[data-season="christmas"] #easter-egg-orb::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: -10px;
+  width: 24px;
+  height: 24px;
+  background: var(--xmas-sprig) center / contain no-repeat;
+  pointer-events: none;
+}
+
+/* ── Hero: winter atmosphere, boughs in the corners, slow snow behind the content ─ */
+html[data-season="christmas"] .seasonal-hero {
+  background-image:
+    radial-gradient(ellipse 55% 45% at 12% 0%, rgb(217 184 120 / 0.1), transparent 70%),
+    linear-gradient(to top, rgb(15 59 44 / 0.34), transparent 55%);
+}
+
+html[data-season="christmas"] .seasonal-hero::before,
+html[data-season="christmas"] .seasonal-hero::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+/* corner boughs */
+html[data-season="christmas"] .seasonal-hero::before {
+  inset: 0;
+  z-index: 2;
+  background-image: var(--xmas-bough-l), var(--xmas-bough-r);
+  background-repeat: no-repeat;
+  background-position: left -22px top 132px, right -22px top 132px;
+  background-size: min(300px, 40vw) auto, min(300px, 40vw) auto;
+  opacity: 0.55;
+}
+
+/* snow, moved by transform only */
+html[data-season="christmas"] .seasonal-hero::after {
+  top: -460px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  background-image: var(--xmas-snow);
+  background-size: 520px 460px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 460px, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 460px, #000 78%, transparent 100%);
+  animation: xmas-snow 80s linear infinite;
+  will-change: transform;
+}
+
+@keyframes xmas-snow {
+  to { transform: translateY(460px); }
+}
+
+/* a fine gold rule under the contest title */
+html[data-season="christmas"] .seasonal-hero h1::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 1px;
+  margin-top: 16px;
+  background: linear-gradient(90deg, var(--xmas-gold), transparent);
+}
+
+html[data-season="christmas"] .seasonal-hero .text-center h1::after {
+  margin-inline: auto;
+  background: linear-gradient(90deg, transparent, var(--xmas-gold), transparent);
+}
+
+/* ── Category cards: a small mark in the corner, a different one per card ─────── */
+html[data-season="christmas"] .seasonal-category::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  z-index: 20;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--xmas-gold);
+  opacity: 0.8;
+}
+
+html[data-season="christmas"] .seasonal-category:nth-child(5n + 1)::after { background: var(--xmas-evergreen-soft); box-shadow: 0 0 0 1px rgb(244 237 225 / 0.18); }
+html[data-season="christmas"] .seasonal-category:nth-child(5n + 2)::after { background: var(--xmas-gold); }
+html[data-season="christmas"] .seasonal-category:nth-child(5n + 3)::after { background: var(--xmas-white); opacity: 0.65; }
+html[data-season="christmas"] .seasonal-category:nth-child(5n + 4)::after { background: var(--xmas-red); box-shadow: 0 0 0 1px rgb(244 237 225 / 0.2); }
+html[data-season="christmas"] .seasonal-category:nth-child(5n)::after { background: var(--xmas-evergreen-soft); box-shadow: 0 0 0 1px rgb(217 184 120 / 0.5); }
+
+/* ── Gallery and rule cards: a warm hairline on the frame, nothing over the image ─ */
+html[data-season="christmas"] .seasonal-cap {
+  position: relative;
+  border-color: rgb(217 184 120 / 0.16);
+}
+
+html[data-season="christmas"] .seasonal-cap::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, rgb(244 237 225 / 0.7) 22%, rgb(244 237 225 / 0.7) 78%, transparent);
+}
+
+/* rule cards clip their contents, so their line sits just inside the frame */
+html[data-season="christmas"] .seasonal-cap-in {
+  border-color: rgb(217 184 120 / 0.14);
+}
+
+html[data-season="christmas"] .seasonal-cap-in::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, rgb(217 184 120 / 0.55) 25%, rgb(217 184 120 / 0.55) 75%, transparent);
+}
+
+/* ── Footer: an evergreen treeline along the page's lower edge ──────────────── */
+html[data-season="christmas"] footer {
+  background-image: linear-gradient(to top, rgb(15 59 44 / 0.4), transparent 75%);
+}
+
+html[data-season="christmas"] footer::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--xmas-treeline) bottom left / 600px 44px repeat-x;
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-season="christmas"] body::before,
+  html[data-season="christmas"] body::after {
+    animation: none;
+    opacity: 0.9;
+  }
+  html[data-season="christmas"] .seasonal-hero::after {
+    display: none;
+  }
+}

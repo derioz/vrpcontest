@@ -200,7 +200,7 @@ export const CategoryNav = React.memo(function CategoryNav({
               return (
                 <div
                   key={cat.id}
-                  className="relative flex-1 min-w-0"
+                  className="seasonal-category relative flex-1 min-w-0"
                 >
                   <motion.div
                     className={cn(

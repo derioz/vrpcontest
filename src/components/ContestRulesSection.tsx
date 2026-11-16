@@ -152,7 +152,7 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
                 gradientColor={c.gradient}
                 gradientSize={200}
                 className={cn(
-                  'p-5 sm:p-6 rounded-2xl bg-white/[0.015] border border-white/[0.07] cursor-default',
+                  'seasonal-cap-in p-5 sm:p-6 rounded-2xl bg-white/[0.015] border border-white/[0.07] cursor-default',
                   c.hoverBorder,
                   'transition-colors duration-300'
                 )}
@@ -188,7 +188,7 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="relative rounded-2xl sm:rounded-3xl bg-[#09090d]/95 border border-white/[0.07] overflow-hidden"
+        className="seasonal-cap-in relative rounded-2xl sm:rounded-3xl bg-[#09090d]/95 border border-white/[0.07] overflow-hidden"
       >
         {/* Ambient glow */}
         <div className="absolute top-0 right-1/4 w-72 h-72 bg-fivem-orange/[0.06] blur-[100px] rounded-full pointer-events-none" />

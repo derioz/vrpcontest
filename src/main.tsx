@@ -4,6 +4,10 @@ import App from './App.tsx';
 import { ToastProvider } from './components/ui/toast.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import './index.css';
+import './seasonal/christmas.css';
+import { initSeason } from './seasonal/season';
+
+initSeason();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

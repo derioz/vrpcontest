@@ -75,7 +75,7 @@ export const PhotoCard = memo(function PhotoCard({
         borderBeamProps={{ size: 280, duration: 10, colorFrom: "#ea580c", colorTo: "#fcd34d", borderWidth: 2 }}
         gradientColor="rgba(234, 88, 12, 0.16)"
         className={cn(
-          "relative group bg-fivem-card rounded-2xl border transition-all h-full group-hover:z-30",
+          "seasonal-cap relative group bg-fivem-card rounded-2xl border transition-all h-full group-hover:z-30",
           photo.is_disqualified
             ? "ring-2 ring-red-500/80 border-red-500/50"
             : isTopFirst

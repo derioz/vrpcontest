@@ -60,7 +60,8 @@ export function ShaderBackground({ className, children }: ShaderBackgroundProps)
     // Orbs / Wave nodes
     const nodes = [
       { x: width * 0.2, y: height * 0.3, radius: 350, color: 'rgba(234, 88, 12, 0.15)', vx: 0.3, vy: 0.2 },
-      { x: width * 0.8, y: height * 0.6, radius: 450, color: 'rgba(245, 158, 11, 0.12)', vx: -0.2, vy: 0.3 },
+      // Seasonal theme swaps the amber orb for evergreen.
+      { x: width * 0.8, y: height * 0.6, radius: 450, color: document.documentElement.dataset.season === 'christmas' ? 'rgba(26, 77, 58, 0.12)' : 'rgba(245, 158, 11, 0.12)', vx: -0.2, vy: 0.3 },
       { x: width * 0.5, y: height * 0.8, radius: 400, color: 'rgba(234, 88, 12, 0.18)', vx: 0.4, vy: -0.3 },
       { x: width * 0.1, y: height * 0.9, radius: 300, color: 'rgba(185, 28, 28, 0.08)', vx: -0.3, vy: -0.2 },
     ];
