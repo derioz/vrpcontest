@@ -11,7 +11,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  FileText,
   Camera,
   Flame,
   Trophy,
@@ -143,8 +142,9 @@ export function ContestRulesSection({ rulesMarkdown, onePhotoPerUser = false }: 
         </motion.button>
       </div>
 
-      {/* ── Quick Rule Cards (2×2 grid) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8">
+      {/* ── Default rule cards, shown only while staff have not written rules ── */}
+      {!rulesMarkdown && (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {quickRules.map((rule, i) => {
           const c = COLOR_MAP[rule.color];
           const Icon = rule.icon;
@@ -189,8 +189,10 @@ export function ContestRulesSection({ rulesMarkdown, onePhotoPerUser = false }: 
           );
         })}
       </div>
+      )}
 
-      {/* ── Full Rules Canvas ── */}
+      {/* ── Written rules ── */}
+      {rulesMarkdown && (
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -203,7 +205,6 @@ export function ContestRulesSection({ rulesMarkdown, onePhotoPerUser = false }: 
         <div className="absolute bottom-0 left-1/6 w-60 h-60 bg-violet-500/[0.04] blur-[90px] rounded-full pointer-events-none" />
 
         {/* Content */}
-        {rulesMarkdown ? (
           <>
             <div
               className={cn(
@@ -262,16 +263,8 @@ export function ContestRulesSection({ rulesMarkdown, onePhotoPerUser = false }: 
               </motion.button>
             </div>
           </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center relative z-10 px-6">
-            <FileText size={48} className="text-white/[0.08] mb-4" />
-            <h3 className="text-lg font-bold font-display text-white/50 mb-2">No Rules Published Yet</h3>
-            <p className="text-white/30 max-w-sm text-sm">
-              Contest administrators have not posted specific rules for this round yet.
-            </p>
-          </div>
-        )}
       </motion.div>
+      )}
 
       {/* ── Footer ── */}
       <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono text-white/30 px-1">

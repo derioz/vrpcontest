@@ -75,7 +75,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/u
 import { Sheet, SheetContent } from './components/ui/sheet';
 import { VoteButton, VotersButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
-import { NumberTicker } from './components/ui/number-ticker';
 import { DotPattern } from './components/ui/dot-pattern';
 import { MagicCard } from './components/ui/magic-card';
 import { BlurFade } from './components/ui/blur-fade';
@@ -100,7 +99,6 @@ import { collection, query, where, getDocs, doc, getDoc, onSnapshot, limit, setD
 import { Category, Photo, Rule, Theme, ArchivedWinner, CountdownSettings } from './types';
 
 import UploadForm from './components/UploadForm';
-import { ContestInfoSidebar } from './components/ContestInfoSidebar';
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView'));
 import { CATEGORY_SUGGESTION_MODE, VITAL_RP_LOGO_URL, CONTEST_PRIZE_LINES, DEFAULT_PRIZE_LINE } from './config';
@@ -2811,6 +2809,16 @@ export default function App() {
                   </motion.div>
                 )}
 
+                {/* Where voting stands */}
+                {(votingOpen || isSubmissionsOpen) && (
+                  <motion.p variants={heroItemVariants} className={cn(
+                    "mb-6 text-sm text-white/70",
+                    !hasHeroItems && "text-center"
+                  )}>
+                    {votingOpen ? 'Community voting is open now.' : 'Community voting starts after submissions close.'}
+                  </motion.p>
+                )}
+
                 {/* Secondary actions */}
                 <motion.div variants={heroItemVariants} className={cn(
                   "flex flex-wrap gap-3 mb-8",
@@ -2841,32 +2849,6 @@ export default function App() {
                   )}
                 </motion.div>
 
-                {/* Non-Redundant Telemetry Matrix */}
-                <motion.div
-                  variants={heroItemVariants}
-                  className="relative grid grid-cols-3 gap-3 p-3.5 rounded-2xl border border-white/10 bg-[#0c0c14] max-w-md"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-lg font-black font-display text-white">
-                      <NumberTicker value={categories.length} delay={0.3} />
-                    </span>
-                    <span className="text-xs text-white/60">Categories</span>
-                  </div>
-
-                  <div className="flex flex-col border-l border-white/10 pl-3">
-                    <span className="text-lg font-black font-display text-white">
-                      <NumberTicker value={activeContestPhotos.length} delay={0.3} />
-                    </span>
-                    <span className="text-xs text-white/60">Submissions</span>
-                  </div>
-
-                  <div className="flex flex-col border-l border-white/10 pl-3">
-                    <span className="text-lg font-black font-display text-white">
-                      <NumberTicker value={activeContestPhotos.reduce((s, p) => s + (p.vote_count || 0), 0)} delay={0.3} />
-                    </span>
-                    <span className="text-xs text-white/60">Votes cast</span>
-                  </div>
-                </motion.div>
               </motion.div>
 
               {/* RIGHT — 16:9 Radial Carousel (All Categories) */}
@@ -2927,9 +2909,8 @@ export default function App() {
       {/* ── Redesigned Full-Width Wide Contest Rules & Guidelines ── */}
       <ContestRulesSection rulesMarkdown={rulesMarkdown} onePhotoPerUser={onePhotoPerUser} />
 
-      <main id="submissions-area" className="scroll-mt-36 sm:scroll-mt-44 max-w-7xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
-        {/* Main Content – 3 cols */}
-        <div className="lg:col-span-3 space-y-12 sm:space-y-20 min-w-0">
+      <main id="submissions-area" className="scroll-mt-36 sm:scroll-mt-44 w-full max-w-7xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12 pb-16">
+        <div className="space-y-12 sm:space-y-20 min-w-0">
           <section ref={categoryHeaderRef} id="category-header-anchor" className="scroll-mt-36 sm:scroll-mt-44">
             <motion.div
               layout
@@ -3074,24 +3055,6 @@ export default function App() {
 
         </div>
 
-        {/* Contest Info Sidebar – 1 col (SeraUI Design) */}
-        <div className="lg:col-span-1 min-w-0">
-          <ContestInfoSidebar
-            activeContest={activeContest}
-            votingOpen={votingOpen}
-            submissionsOpen={submissionsOpen}
-            categories={categories}
-            allPhotos={activeContestPhotos}
-            user={user}
-            currentUserPhoto={currentUserPhoto}
-            userSubmissionCount={userContestSubmissionCount}
-            onePhotoPerUser={onePhotoPerUser}
-            archivedWinners={archivedWinners}
-            onUploadClick={handleUploadClick}
-            onOpenHallOfFame={() => setShowArchivedWinners(true)}
-            onSignInClick={() => setShowSignInModal(true)}
-          />
-        </div>
       </main>
 
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
