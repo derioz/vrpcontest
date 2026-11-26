@@ -26,7 +26,12 @@ import { cn } from '../lib/utils';
 
 interface ContestRulesSectionProps {
   rulesMarkdown: string;
+  /** Matches the admin "one photo per user" switch, so the rules card states the real limit. */
+  onePhotoPerUser?: boolean;
 }
+
+const ONE_PER_PLAYER_DESC =
+  'One submission per player. Discord-verified authentication ensures anti-fraud vote integrity.';
 
 /* ── Quick rule data ── */
 const QUICK_RULES = [
@@ -95,7 +100,10 @@ const COLOR_MAP = {
   },
 };
 
-export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps) {
+export function ContestRulesSection({ rulesMarkdown, onePhotoPerUser = false }: ContestRulesSectionProps) {
+  const quickRules = QUICK_RULES.map((rule) =>
+    onePhotoPerUser && rule.title === 'Fair Play & Integrity' ? { ...rule, desc: ONE_PER_PLAYER_DESC } : rule
+  );
   const [isRulesExpanded, setIsRulesExpanded] = useState(false);
 
   const scrollToTop = () => {
@@ -137,7 +145,7 @@ export function ContestRulesSection({ rulesMarkdown }: ContestRulesSectionProps)
 
       {/* ── Quick Rule Cards (2×2 grid) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8">
-        {QUICK_RULES.map((rule, i) => {
+        {quickRules.map((rule, i) => {
           const c = COLOR_MAP[rule.color];
           const Icon = rule.icon;
           return (

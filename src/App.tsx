@@ -77,19 +77,16 @@ import { VoteButton, VotersButton } from './components/VoteButton';
 import { WinnerAnnouncement } from './components/WinnerAnnouncement';
 import { NumberTicker } from './components/ui/number-ticker';
 import { DotPattern } from './components/ui/dot-pattern';
-import { ShimmerButton } from './components/ui/shimmer-button';
 import { MagicCard } from './components/ui/magic-card';
 import { BlurFade } from './components/ui/blur-fade';
 import { RetroGrid } from './components/ui/retro-grid';
 import { Spotlight } from './components/ui/spotlight';
 import { Lens } from './components/ui/lens';
-import { FlipWords } from './components/ui/flip-words';
 import { CategoryNav } from './components/CategoryNav';
 import { Toolbar, ToolbarItem } from './components/ui/toolbar';
 import { SiteHeader } from './components/SiteHeader';
 import RadialCarousel, { RadialCarouselItem } from './components/shadcn-studio/carousel/carousel-12';
 import { SparklesText } from './components/ui/sparkles-text';
-import { GlowLine } from './components/ui/glowline';
 import { CountdownClock } from './components/ui/countdown-clock';
 
 
@@ -105,7 +102,7 @@ import UploadForm from './components/UploadForm';
 import { ContestInfoSidebar } from './components/ContestInfoSidebar';
 const ArchivedWinnersView = lazy(() => import('./components/ArchivedWinnersView').then(m => ({ default: m.ArchivedWinnersView })));
 const CategorySuggestionsView = lazy(() => import('./components/CategorySuggestionsView'));
-import { CATEGORY_SUGGESTION_MODE, VITAL_RP_LOGO_URL } from './config';
+import { CATEGORY_SUGGESTION_MODE, VITAL_RP_LOGO_URL, CONTEST_PRIZE_LINES, DEFAULT_PRIZE_LINE } from './config';
 import { CreatorPill } from './components/ui/CreatorPill';
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
@@ -473,6 +470,14 @@ export default function App() {
 
   const currentUserPhoto = currentUserContestPhotos[0] || null;
   const userContestSubmissionCount = currentUserContestPhotos.length;
+
+  // One wording for every submit button, so the entry points never disagree.
+  const hasEntryToManage = !!(onePhotoPerUser && currentUserPhoto);
+  const submitLabel = hasEntryToManage
+    ? 'Manage your entry'
+    : !isAuthLoading && (!user || user.isAnonymous)
+      ? 'Sign in with Discord to submit'
+      : 'Submit your photo';
 
   // Dynamic Countdown Clock configuration based on custom admin settings or contest phase
   const countdownConfig = useMemo(() => {
@@ -2211,6 +2216,17 @@ export default function App() {
 
   const isSiteLocked = siteClosed && (!isAdmin || !adminBypassClosedModal);
 
+  // Below the `sm` breakpoint the category bar is placed in the page flow instead of the fixed header,
+  // where its wrapped rows would cover the contest title.
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia('(max-width: 639px)').matches);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 639px)');
+    const update = () => setIsPhone(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
   // ── Router Check: If URL starts with /admin, render Dedicated AdminCN Dashboard ──
   if (isAdminRoute) {
     if (isAuthLoading) {
@@ -2413,7 +2429,7 @@ export default function App() {
           />
 
       {/* ── Permanent Secondary Category Navigation ── */}
-      {categories.length > 0 && (
+      {!isPhone && categories.length > 0 && (
         <CategoryNav
           categories={categories}
           selectedCategory={selectedCategory}
@@ -2692,7 +2708,7 @@ export default function App() {
 
         return (
           <section
-            className="seasonal-hero relative overflow-hidden border-b border-white/10 pt-36 sm:pt-48 pb-16 sm:pb-24"
+            className="seasonal-hero relative overflow-hidden border-b border-white/10 pt-20 sm:pt-48 pb-16 sm:pb-24"
             style={{ minHeight: '540px' }}
           >
             {/* ── Deep luxury base ── */}
@@ -2747,31 +2763,56 @@ export default function App() {
                   )}
                 </motion.div>
 
-                {/* Animated Tagline via FlipWords */}
-                <motion.div variants={heroItemVariants} className={cn(
-                  "text-white/65 text-sm sm:text-base leading-relaxed mb-6 max-w-lg font-medium h-[2.8em]",
+                {/* Prize */}
+                <motion.p variants={heroItemVariants} className={cn(
+                  "mb-5 max-w-lg text-base sm:text-lg font-semibold leading-snug text-white/90 text-balance",
                   !hasHeroItems && "text-center mx-auto"
                 )}>
-                  <FlipWords
-                    words={[
-                      "Capture the visual spirit of Los Santos through your lens.",
-                      "Submit your finest high-resolution in-game photography.",
-                      "Community votes decide the five round co-champions.",
-                      "Win eternal glory, custom badges, and server loading screen fame.",
-                    ]}
-                    duration={3600}
-                    className="text-white/70 font-sans"
-                  />
+                  {CONTEST_PRIZE_LINES[activeContest.id] || DEFAULT_PRIZE_LINE}
+                </motion.p>
+
+                {/* Actions */}
+                <motion.div variants={heroItemVariants} className={cn(
+                  "flex flex-wrap items-center gap-x-4 gap-y-3 mb-4",
+                  !hasHeroItems && "justify-center"
+                )}>
+                  {hasEntryToManage || (isSubmissionsOpen && (activeContest as any).status !== 'paused') ? (
+                    <button
+                      type="button"
+                      onClick={handleUploadClick}
+                      className="flex min-h-12 w-full sm:w-auto items-center justify-center gap-2.5 rounded-xl bg-fivem-orange px-7 py-3.5 text-xs font-black uppercase tracking-wider text-white transition-colors hover:bg-orange-500 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    >
+                      <Upload size={16} aria-hidden="true" />
+                      {submitLabel}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="flex min-h-12 w-full sm:w-auto items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white/10 px-7 py-3.5 text-xs font-bold uppercase tracking-wider text-white/60 cursor-not-allowed"
+                    >
+                      <Lock size={15} aria-hidden="true" />
+                      {(activeContest as any).status === 'paused' ? 'Contest paused' : 'Submissions closed'}
+                    </button>
+                  )}
+                  {onePhotoPerUser && isSubmissionsOpen && !currentUserPhoto && (
+                    <span className="text-sm font-semibold text-white/70">One entry per player</span>
+                  )}
                 </motion.div>
 
-                {/* SeraUI GlowLine subtle separator */}
-                <motion.div variants={heroItemVariants} className="w-full max-w-md mb-6 opacity-60">
-                  <GlowLine color="orange" />
-                </motion.div>
+                {/* Requirements */}
+                {isSubmissionsOpen && !currentUserPhoto && (
+                  <motion.p variants={heroItemVariants} className={cn(
+                    "mb-6 max-w-lg text-sm leading-relaxed text-white/60",
+                    !hasHeroItems && "text-center mx-auto"
+                  )}>
+                    You need the Whitelist Approved role in the Vital RP Discord and a screenshot of at least 1920×1080.
+                  </motion.p>
+                )}
 
                 {/* Animated Mechanical Flip Countdown Clock */}
                 {countdownConfig.enabled !== false && (
-                  <motion.div variants={heroItemVariants} className="mb-8 w-full max-w-xl">
+                  <motion.div variants={heroItemVariants} className="mt-2 mb-6 w-full max-w-xl">
                     <CountdownClock
                       targetDate={countdownConfig.targetDate}
                       label={countdownConfig.label}
@@ -2783,43 +2824,18 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {/* High Impact Actions */}
+                {/* Secondary actions */}
                 <motion.div variants={heroItemVariants} className={cn(
-                  "flex flex-wrap gap-3.5 mb-10",
+                  "flex flex-wrap gap-3 mb-8",
                   !hasHeroItems && "justify-center"
                 )}>
-                  {isSubmissionsOpen || (onePhotoPerUser && currentUserPhoto) ? (
-                    <ShimmerButton
-                      onClick={handleUploadClick}
-                      shimmerColor="#fb923c"
-                      shimmerDuration="3s"
-                      background="rgba(234,88,12,0.95)"
-                      borderRadius="0.85rem"
-                      className="px-7 py-3.5 text-xs font-black uppercase tracking-wider cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(234,88,12,0.4)] transition-all duration-300 shadow-lg"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                        <circle cx="12" cy="13" r="4" />
-                      </svg>
-                      {onePhotoPerUser && currentUserPhoto ? 'Manage Photo Entry' : 'Submit Photo Entry'}
-                    </ShimmerButton>
-                  ) : (
-                    <button
-                      disabled
-                      className="group relative flex items-center gap-2.5 font-bold px-7 py-3.5 rounded-2xl text-xs uppercase tracking-wider bg-white/10 text-white/30 cursor-not-allowed border border-white/10 shadow-sm"
-                    >
-                      <Lock size={15} className="relative z-10" />
-                      <span className="relative z-10">Submissions Closed</span>
-                    </button>
-                  )}
-
                   <a
                     href="#rules"
                     onClick={(e) => {
                       e.preventDefault();
                       document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-white/[0.08] border border-white/15 hover:border-white/25 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
+                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-white/[0.08] border border-white/15 hover:border-white/25 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-colors text-xs uppercase tracking-wider cursor-pointer"
                   >
                     <FileText size={14} className="text-fivem-orange" />
                     Rules & Guidelines
@@ -2829,11 +2845,11 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setShowCategorySuggestions(true)}
-                      className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-amber-500/15 border border-white/15 hover:border-amber-500/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-all hover:-translate-y-0.5 text-xs uppercase tracking-wider backdrop-blur-md cursor-pointer shadow-md active:scale-95"
+                      className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-amber-500/15 border border-white/15 hover:border-amber-500/40 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-colors text-xs uppercase tracking-wider cursor-pointer"
                     >
                       <Sparkles size={14} className="text-amber-400" />
                       <span>Suggestion Categories</span>
-                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40">BETA</span>
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-xs font-bold text-amber-300 border border-amber-500/40">Beta</span>
                     </button>
                   )}
                 </motion.div>
@@ -2908,8 +2924,21 @@ export default function App() {
       )}
 
 
+      {/* Phones: the category bar scrolls with the page */}
+      {isPhone && activeContest && categories.length > 0 && (
+        <div className="px-3 pt-4">
+          <CategoryNav
+            className="scroll-mt-20"
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleCategorySelect}
+            allPhotos={activeContestPhotos}
+          />
+        </div>
+      )}
+
       {/* ── Redesigned Full-Width Wide Contest Rules & Guidelines ── */}
-      <ContestRulesSection rulesMarkdown={rulesMarkdown} />
+      <ContestRulesSection rulesMarkdown={rulesMarkdown} onePhotoPerUser={onePhotoPerUser} />
 
       <main id="submissions-area" className="scroll-mt-36 sm:scroll-mt-44 max-w-7xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
         {/* Main Content – 3 cols */}
@@ -2998,7 +3027,7 @@ export default function App() {
                     onClick={handleUploadClick}
                     className="mt-6 flex items-center gap-2 bg-fivem-orange/20 border border-fivem-orange/30 text-fivem-orange font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-fivem-orange hover:text-white transition-all cursor-pointer"
                   >
-                    <Upload size={16} /> {onePhotoPerUser && currentUserPhoto ? 'Manage Entry' : 'Submit Entry'}
+                    <Upload size={16} /> {submitLabel}
                   </button>
                 )}
               </motion.div>
@@ -3083,7 +3112,7 @@ export default function App() {
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-black flex items-center gap-2">
               <Sparkles className="text-fivem-orange" size={20} />
-              {onePhotoPerUser && currentUserPhoto ? 'Manage Contest Entry' : 'Submit Contest Entry'}
+              {submitLabel}
             </DialogTitle>
           </DialogHeader>
           <ErrorBoundary fallbackTitle="Submission Form Error" onReset={() => setShowUploadModal(false)}>

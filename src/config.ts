@@ -31,6 +31,17 @@ export interface SiteConfig {
   };
 }
 
+/** Prize line shown in the hero for any contest without its own entry below. */
+export const DEFAULT_PRIZE_LINE =
+  'Category winners get Vitcoin and their photo on the Vital RP loading screen.';
+
+/** Prize lines for specific contests, keyed by contest ID, so an amount never carries into another round. */
+export const CONTEST_PRIZE_LINES: Record<string, string> = {
+  // December 2026: Unwrap December
+  aSX6JR0ELZjVEBt972OR:
+    'Category winners get 2,000 Vitcoin and their photo on the Vital RP loading screen.',
+};
+
 export const SITE_CONFIG: SiteConfig = {
   categorySuggestions: {
     suggestionModeEnabled: false,
