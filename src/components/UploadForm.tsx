@@ -3,22 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { toast } from './ui/toast';
 import { motion, useReducedMotion } from 'motion/react';
 import { EASE_OUT, EntryConfirmation, UploadStages, type UploadStage } from './EntryMotion';
-import {
-  Info,
-  AlertCircle,
-  User,
-  Upload,
-  CheckCircle,
-  XCircle,
-  Sparkles,
-  Lock,
-  RefreshCw,
-  Trash2,
-  Check,
-  Tag,
-  Trophy,
-  Ban
-} from 'lucide-react';
+import { Upload, XCircle, Lock, RefreshCw, Trash2, Check, Ban } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -72,7 +57,6 @@ export default function UploadForm({
   const [imageMeta, setImageMeta] = useState<{
     width: number;
     height: number;
-    aspectRatio: string;
     fileSizeBytes: number;
     fileName: string;
   } | null>(null);
@@ -104,13 +88,9 @@ export default function UploadForm({
       img.onload = () => {
         const w = img.width;
         const h = img.height;
-        const ratioNum = (w / h).toFixed(2);
-        const aspectRatioStr = parseFloat(ratioNum) >= 1.7 ? '16:9 Landscape' : parseFloat(ratioNum) >= 2.1 ? '21:9 Ultrawide' : `${w}:${h}`;
-
         const meta = {
           width: w,
           height: h,
-          aspectRatio: aspectRatioStr,
           fileSizeBytes,
           fileName
         };
@@ -118,17 +98,10 @@ export default function UploadForm({
         setImageMeta(meta);
         setImage(dataUrl);
 
-        // Strict 1920x1080 resolution validation
-        if (w < 1920 || h < 1080) {
-          const errMsg = `Image resolution too low: ${w}x${h}. Contest rules require at least 1920x1080 (1080p Full HD). Please upload a higher resolution screenshot.`;
-          setResolutionError(errMsg);
-          toast.error(`Resolution Rejected (${w}x${h}): Minimum 1920x1080 required.`, {
-            duration: 5000,
-          });
-        } else {
-          setResolutionError(null);
-          toast.success(`Image Accepted (${w}x${h} HD)`);
-        }
+        // Strict 1920x1080 resolution validation, reported once, next to the picture
+        setResolutionError(
+          w < 1920 || h < 1080 ? `This image is ${w}×${h}. Choose one at least 1920×1080.` : null
+        );
       };
 
       img.onerror = () => {
@@ -141,7 +114,7 @@ export default function UploadForm({
     reader.readAsDataURL(file);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open: openFilePicker } = useDropzone({
     onDrop,
     accept: { 'image/jpeg': [], 'image/png': [], 'image/webp': [] },
     maxFiles: 1,
@@ -152,11 +125,6 @@ export default function UploadForm({
     setImage(null);
     setImageMeta(null);
     setResolutionError(null);
-  };
-
-  const handleAppendPromptTag = (tag: string) => {
-    if (caption.length + tag.length + 1 > 300) return;
-    setCaption(prev => (prev ? `${prev} ${tag}` : tag));
   };
 
   const handleDeleteExistingPhoto = async () => {
@@ -173,7 +141,7 @@ export default function UploadForm({
         if (existingPhoto.category_id) {
           setSelectedCategoryId(existingPhoto.category_id);
         }
-        toast.success('Your previous entry was deleted. You can now submit a new photo!');
+        toast.success('Entry deleted');
       }
     } catch (err) {
       console.error('Failed deleting existing photo:', err);
@@ -247,361 +215,210 @@ export default function UploadForm({
     );
   }
 
+  const needed = [!image && 'a screenshot', !formPlayerName.trim() && 'your character name'].filter(Boolean).join(' and ');
+  const labelClass = 'block text-xs font-bold text-white/80';
+  const fieldClass = 'w-full rounded-xl border border-white/15 bg-black/60 text-sm text-white outline-none transition-colors focus:border-fivem-orange';
+
   return (
-    <div className="space-y-5 text-white">
-      {/* ── Submissions Closed Banner ── */}
-      {!submissionsOpen && (
-        <div className="p-4 bg-red-500/15 border border-red-500/30 rounded-2xl flex items-center gap-3">
-          <Lock className="text-red-400 shrink-0" size={20} />
-          <div>
-            <p className="text-xs font-bold text-red-400 uppercase tracking-wider">Submissions Closed</p>
-            <p className="text-[11px] text-white/60">The contest administrators have currently closed new entry submissions.</p>
-          </div>
-        </div>
+    <div className="space-y-4 text-white">
+      {!submissionsOpen && !hasActiveExistingPhoto && (
+        <p className="flex items-center gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+          <Lock size={16} className="shrink-0" aria-hidden="true" />
+          Submissions are closed.
+        </p>
       )}
 
-      {/* ── 1 Photo Per User Reached View ── */}
       {hasActiveExistingPhoto && existingPhoto ? (
-        <div className="p-5 bg-gradient-to-b from-amber-500/10 via-red-500/10 to-[#121218] border border-amber-500/30 rounded-3xl space-y-4 shadow-xl">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 text-amber-400">
-              <AlertCircle size={20} />
-            </div>
-            <div>
-              <h4 className="text-sm font-black font-display text-white uppercase tracking-wider">
-                1 Entry Limit Active
-              </h4>
-              <p className="text-xs text-white/70 leading-relaxed mt-0.5">
-                You have already submitted a photo to this contest. The <strong>1-photo-per-user</strong> rule is currently active.
-              </p>
-            </div>
-          </div>
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed text-white/70">
+            {submissionsOpen
+              ? 'One entry per player. Delete this one to submit a different photo.'
+              : "Submissions are closed. You can delete your entry, but you can't submit another."}
+          </p>
 
-          {/* Disqualification Status Alert if entry is disqualified */}
           {existingPhoto.is_disqualified && (
-            <div className="p-3 bg-red-600/20 border border-red-500/40 rounded-2xl flex items-center gap-2.5 text-xs text-red-300 font-bold">
-              <Ban size={16} className="text-red-400 shrink-0" />
+            <p className="flex items-start gap-2.5 rounded-xl border border-red-500/40 bg-red-500/15 p-3 text-sm text-red-300">
+              <Ban size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
               <span>
-                This entry is currently marked as <strong>Disqualified</strong>
-                {existingPhoto.disqualification_reason ? ` (${existingPhoto.disqualification_reason})` : ''}.
-                The photo remains visible in the contest gallery, but cannot receive votes.
+                <strong>Disqualified</strong>
+                {existingPhoto.disqualification_reason ? `: ${existingPhoto.disqualification_reason}` : ''}. It stays in the
+                gallery but can't receive votes.
               </span>
-            </div>
+            </p>
           )}
 
-          {/* Existing Photo Preview Card */}
-          <div className={cn(
-            "relative rounded-2xl border bg-black/60 overflow-hidden p-3 flex gap-3.5 items-center",
-            existingPhoto.is_disqualified ? "border-red-500/40 ring-1 ring-red-500/50" : "border-white/15"
-          )}>
-            <img
-              src={existingPhoto.image_url}
-              alt="Current Entry"
-              className={cn(
-                "w-24 h-20 rounded-xl object-cover border shrink-0",
-                existingPhoto.is_disqualified ? "grayscale-[40%] opacity-80 border-red-500/50" : "border-white/20"
-              )}
-            />
-            <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                {existingPhoto.is_disqualified && (
-                  <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-mono text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                    <Ban size={10} className="stroke-[2.5]" />
-                    DISQUALIFIED
-                  </span>
-                )}
-                <span className="px-2.5 py-0.5 rounded-full bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange font-mono text-[10px] font-bold uppercase tracking-wider">
-                  {categories.find(c => c.id === existingPhoto.category_id)?.name || 'Category'}
-                </span>
-                <span className="text-[10px] font-mono text-white/50 flex items-center gap-1">
-                  <Trophy size={11} className="text-amber-400" />
-                  {existingPhoto.vote_count || 0} Votes Received
-                </span>
-              </div>
-              <p className="text-xs font-bold text-white truncate">
-                {existingPhoto.caption || 'No caption provided'}
-              </p>
-              <p className="text-[10px] font-mono text-white/40">
-                Submitted by {existingPhoto.player_name || existingPhoto.discord_name}
-              </p>
-            </div>
-          </div>
-
-          {/* Delete Option to Submit New Entry */}
-          <div className="p-3.5 bg-red-500/15 border border-red-500/30 rounded-2xl space-y-3">
-            <p className="text-xs text-red-200 font-medium leading-relaxed">
-              {submissionsOpen
-                ? 'Want to replace this submission with a new photo? Delete your current photo below to unlock a new submission.'
-                : 'Submissions are currently closed. You can remove your entry if desired, but new entries cannot be submitted until submissions reopen.'}
+          <img
+            src={existingPhoto.image_url}
+            alt="Your current entry"
+            className="aspect-video w-full rounded-xl border border-white/10 bg-black object-contain"
+          />
+          <div className="space-y-1">
+            <p className="text-sm font-bold">
+              {categories.find(c => c.id === existingPhoto.category_id)?.name || 'Category'}
             </p>
-
-            <Button
-              onClick={handleDeleteExistingPhoto}
-              disabled={isDeleting}
-              className="w-full h-11 bg-red-500 hover:bg-red-600 text-white font-bold font-display rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-red-500/25 transition-all cursor-pointer"
-            >
-              {isDeleting ? (
-                <span className="flex items-center gap-2">
-                  <RefreshCw size={15} className="animate-spin" /> Deleting Current Entry...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Trash2 size={16} /> {submissionsOpen ? 'Delete Current Submission & Upload New Photo' : 'Delete Current Submission'}
-                </span>
-              )}
-            </Button>
+            {existingPhoto.caption && <p className="text-sm text-white/70">{existingPhoto.caption}</p>}
+            <p className="text-xs text-white/60">
+              {existingPhoto.player_name || existingPhoto.discord_name}, {existingPhoto.vote_count || 0} votes
+            </p>
           </div>
+
+          <Button
+            onClick={handleDeleteExistingPhoto}
+            disabled={isDeleting}
+            className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/15 font-display font-bold text-red-300 hover:bg-red-500 hover:text-white"
+          >
+            {isDeleting ? (
+              <><RefreshCw size={15} className="animate-spin" aria-hidden="true" /> Deleting</>
+            ) : (
+              <><Trash2 size={16} aria-hidden="true" /> Delete entry</>
+            )}
+          </Button>
         </div>
       ) : (
-        <>
-          {/* ── Info & Verification Notice ── */}
-          <div className="p-4 bg-gradient-to-r from-fivem-orange/15 via-amber-500/10 to-transparent border border-fivem-orange/30 rounded-2xl space-y-2">
-            <div className="flex items-start gap-3">
-              <Info className="text-fivem-orange shrink-0 mt-0.5" size={16} />
-              <p className="text-xs text-white/90 leading-relaxed">
-                Submissions are verified against your <strong className="text-fivem-orange">Discord Account</strong>. Make sure your screenshot meets the <strong className="text-white">1920x1080 minimum resolution</strong> requirement.
-              </p>
-            </div>
-            {onePhotoPerUser && (
-              <div className="flex items-center gap-2 pt-1 border-t border-white/10 text-[10px] font-mono text-amber-300 font-semibold">
-                <AlertCircle size={12} className="text-amber-400 shrink-0" />
-                <span>Notice: 1 photo per user limit is active for this contest.</span>
-              </div>
+        <div className="space-y-4">
+          <p className="text-sm text-white/60">
+            {onePhotoPerUser && 'One entry per player. '}Submitting as <span className="font-semibold text-white/80">{discordName}</span>.
+          </p>
+
+          <div className="space-y-1.5">
+            <label htmlFor="entry-category" className={labelClass}>Category</label>
+            <select
+              id="entry-category"
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              disabled={!submissionsOpen}
+              className={cn(fieldClass, 'h-11 cursor-pointer px-3.5')}
+            >
+              <option value="" disabled className="bg-neutral-900 text-white/60">Choose a category</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id} className="bg-neutral-900 text-white">
+                  {c.emoji ? `${c.emoji} ` : ''}{c.name}
+                </option>
+              ))}
+            </select>
+            {selectedCategoryObj?.description && (
+              <p className="text-xs leading-relaxed text-white/60">{selectedCategoryObj.description}</p>
             )}
           </div>
 
-          {/* ── Main Form Fields ── */}
-          <div className="space-y-4">
-
-            {/* 1. Category Selection */}
-            <div className="space-y-2">
-              <label className="text-xs font-mono font-bold text-white/60 uppercase tracking-wider flex items-center justify-between">
-                <span>1. Select Category *</span>
-                {selectedCategoryObj && (
-                  <span className="text-fivem-orange font-normal normal-case font-display text-[11px]">
-                    {selectedCategoryObj.emoji} {selectedCategoryObj.name}
-                  </span>
-                )}
-              </label>
-
-              <select
-                value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                disabled={!submissionsOpen}
-                className="w-full bg-[#121218] border border-white/15 rounded-xl h-11 px-3.5 text-sm outline-none focus:border-fivem-orange text-white appearance-none cursor-pointer transition-colors"
-              >
-                <option value="" disabled className="bg-neutral-900 text-white/40">Choose a Category...</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id} className="bg-neutral-900 text-white py-2">
-                    {c.emoji ? `${c.emoji} ` : ''}{c.name}
-                  </option>
-                ))}
-              </select>
-
-              {selectedCategoryObj?.description && (
-                <p className="text-[11px] text-white/50 bg-white/[0.03] p-2.5 rounded-xl border border-white/[0.06] italic">
-                  "{selectedCategoryObj.description}"
-                </p>
-              )}
-            </div>
-
-            {/* 2. Character Name & Discord Profile */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono font-bold text-white/60 uppercase tracking-wider">
-                  2. Character Name *
-                </label>
-                <Input
-                  type="text"
-                  value={formPlayerName}
-                  onChange={(e) => setFormPlayerName(e.target.value)}
-                  placeholder="e.g. Marcus Vance"
-                  disabled={!submissionsOpen}
-                  className="bg-[#121218] border-white/15 h-10 text-sm focus:border-fivem-orange"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono font-bold text-white/60 uppercase tracking-wider">
-                  Discord Handle
-                </label>
-                <div className="bg-emerald-500/10 border border-emerald-500/25 h-10 rounded-xl px-3 flex items-center justify-between text-emerald-400 font-mono text-xs">
-                  <span className="flex items-center gap-2 truncate">
-                    <User size={13} className="shrink-0" />
-                    <span className="truncate">{discordName}</span>
-                  </span>
-                  <span className="text-[9px] font-bold uppercase tracking-widest bg-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
-                    Verified
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Photo Dropzone & Resolution Inspector */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-mono font-bold text-white/60 uppercase tracking-wider">
-                  3. Upload Screenshot (Min 1920x1080) *
-                </label>
-                {imageMeta && (
-                  <span className={cn(
-                    "text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1",
-                    isResolutionValid
-                      ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400"
-                      : "bg-red-500/20 border border-red-500/40 text-red-400"
-                  )}>
-                    {isResolutionValid ? <Check size={11} /> : <XCircle size={11} />}
-                    {imageMeta.width}x{imageMeta.height}
-                  </span>
-                )}
-              </div>
-
-              {/* Explicit Resolution Error Banner */}
-              {resolutionError && (
-                <motion.div
-                  role="alert"
-                  initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, ease: EASE_OUT }}
-                  className="p-3 bg-red-500/20 border border-red-500/40 rounded-xl flex items-start gap-2.5 text-red-300 text-xs"
-                >
-                  <XCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
-                  <div className="flex-1 leading-snug">
-                    <strong className="block text-red-400 font-bold uppercase tracking-wider text-[11px] mb-0.5">
-                      Resolution Rejected: {imageMeta?.width}x{imageMeta?.height}
-                    </strong>
-                    {resolutionError}
-                  </div>
-                </motion.div>
-              )}
-
-              <div
-                {...getRootProps()}
-                className={cn(
-                  "aspect-[16/9] max-h-56 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative",
-                  isDragActive ? "border-fivem-orange bg-fivem-orange/10 scale-[1.01]" : "border-white/20 hover:border-fivem-orange/50 bg-[#121218]/90",
-                  image && isResolutionValid && "border-emerald-500/40 bg-black/60",
-                  image && !isResolutionValid && "border-red-500/50 bg-red-950/20"
-                )}
-              >
-                <input {...getInputProps()} disabled={!submissionsOpen} />
-
-                {image ? (
-                  <div className="relative w-full h-full group">
-                    <motion.img
-                      key={`${imageMeta?.fileName}-${imageMeta?.fileSizeBytes}`}
-                      src={image}
-                      className="w-full h-full object-cover"
-                      alt="Preview"
-                      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, clipPath: 'inset(48% 0% 48% 0%)' }}
-                      animate={reduceMotion ? { opacity: 1 } : { opacity: 1, clipPath: 'inset(0% 0% 0% 0%)' }}
-                      transition={{ duration: reduceMotion ? 0.2 : 0.45, ease: EASE_OUT }}
-                    />
-                    
-                    {/* Resolution Badge Overlay on Image */}
-                    <motion.div
-                      key={`verdict-${imageMeta?.fileName}-${imageMeta?.fileSizeBytes}`}
-                      initial={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25, delay: reduceMotion ? 0 : 0.3, ease: EASE_OUT }}
-                      className="absolute top-3 left-3 z-10 flex items-center gap-2"
-                    >
-                      <span className={cn(
-                        "text-xs font-mono font-black px-3 py-1 rounded-xl shadow-lg backdrop-blur-md border flex items-center gap-1.5",
-                        isResolutionValid
-                          ? "bg-emerald-950/90 border-emerald-400/40 text-emerald-300 shadow-emerald-500/20"
-                          : "bg-red-950/90 border-red-400/40 text-red-300 shadow-red-500/20"
-                      )}>
-                        {isResolutionValid ? <Check size={13} /> : <XCircle size={13} />}
-                        {imageMeta?.width} x {imageMeta?.height}
-                        <span className="opacity-60 text-[10px]">({imageMeta?.aspectRatio})</span>
-                      </span>
-                    </motion.div>
-
-                    {/* Change / Replace Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-xs">
-                      <p className="text-xs font-bold uppercase tracking-widest text-white flex items-center gap-2">
-                        <RefreshCw size={14} /> Click or Drop to Replace Photo
-                      </p>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClearImage();
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-red-500/30 border border-red-500/50 text-red-300 text-xs font-bold hover:bg-red-500/50 transition-colors"
-                      >
-                        Remove Photo
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-6 text-center space-y-3">
-                    <div className="w-12 h-12 mx-auto rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 flex items-center justify-center text-fivem-orange">
-                      <Upload size={24} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white">Drag & Drop your screenshot here</p>
-                      <p className="text-xs text-white/40 mt-1">or click to browse files (PNG, JPG, WebP)</p>
-                    </div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[10px] font-mono text-white/60">
-                      <Sparkles size={11} className="text-fivem-orange" />
-                      Minimum Resolution: <strong className="text-white">1920 x 1080 (1080p Full HD)</strong>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 4. Caption & Prompt Ideas */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-mono font-bold text-white/60 uppercase tracking-wider">
-                  4. Caption (Optional)
-                </label>
-                <span className="text-[10px] font-mono text-white/40">
-                  {caption.length}/300
-                </span>
-              </div>
-
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value.slice(0, 300))}
-                placeholder="Tell the community about this shot..."
-                disabled={!submissionsOpen}
-                className="w-full bg-[#121218] border border-white/15 rounded-xl p-3.5 text-sm outline-none focus:border-fivem-orange transition-colors min-h-[85px] resize-none text-white placeholder:text-white/30"
-              />
-
-              {/* Quick Idea Tag Pills */}
-              <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                <span className="text-[10px] font-mono text-white/40 flex items-center gap-1 mr-1">
-                  <Tag size={10} /> Quick tags:
-                </span>
-                {['🌅 Sunset', '🏎️ Vehicle', '🌃 Cityscape', '⚡ Cinematic', '🎭 Action'].map(tag => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => handleAppendPromptTag(tag)}
-                    disabled={!submissionsOpen}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
-                  >
-                    + {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="space-y-1.5">
+            <label htmlFor="entry-name" className={labelClass}>Character name</label>
+            <Input
+              id="entry-name"
+              type="text"
+              value={formPlayerName}
+              onChange={(e) => setFormPlayerName(e.target.value)}
+              placeholder="e.g. Marcus Vance"
+              disabled={!submissionsOpen}
+              className={cn(fieldClass, 'h-11')}
+            />
           </div>
-        </>
+
+          <div className="space-y-1.5">
+            <span className={labelClass}>Screenshot</span>
+            <div
+              {...getRootProps()}
+              className={cn(
+                'relative flex aspect-[16/9] max-h-56 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors',
+                isDragActive ? 'border-fivem-orange bg-fivem-orange/10' : 'border-white/20 bg-black/60 hover:border-fivem-orange/60',
+                image && isResolutionValid && 'border-emerald-500/40',
+                image && !isResolutionValid && 'border-red-500/50'
+              )}
+            >
+              <input {...getInputProps()} disabled={!submissionsOpen} />
+
+              {image ? (
+                <>
+                  <motion.img
+                    key={`${imageMeta?.fileName}-${imageMeta?.fileSizeBytes}`}
+                    src={image}
+                    className="h-full w-full object-cover"
+                    alt="Preview"
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, clipPath: 'inset(48% 0% 48% 0%)' }}
+                    animate={reduceMotion ? { opacity: 1 } : { opacity: 1, clipPath: 'inset(0% 0% 0% 0%)' }}
+                    transition={{ duration: reduceMotion ? 0.2 : 0.45, ease: EASE_OUT }}
+                  />
+                  <motion.span
+                    key={`verdict-${imageMeta?.fileName}-${imageMeta?.fileSizeBytes}`}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: reduceMotion ? 0 : 0.3, ease: EASE_OUT }}
+                    className={cn(
+                      'absolute left-2 top-2 flex items-center gap-1.5 rounded-lg bg-black/80 px-2.5 py-1 text-xs font-bold',
+                      isResolutionValid ? 'text-emerald-300' : 'text-red-300'
+                    )}
+                  >
+                    {isResolutionValid ? <Check size={13} aria-hidden="true" /> : <XCircle size={13} aria-hidden="true" />}
+                    {imageMeta?.width}{'×'}{imageMeta?.height}
+                  </motion.span>
+                  {/* Always visible, so touch screens can reach them */}
+                  <div className="absolute bottom-2 right-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); openFilePicker(); }}
+                      className="min-h-11 cursor-pointer rounded-lg border border-white/20 bg-black/80 px-3.5 text-xs font-bold text-white hover:bg-black"
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleClearImage(); }}
+                      className="min-h-11 cursor-pointer rounded-lg border border-red-500/50 bg-black/80 px-3.5 text-xs font-bold text-red-300 hover:bg-black"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2 p-4 text-center">
+                  <Upload size={22} className="mx-auto text-fivem-orange" aria-hidden="true" />
+                  <p className="text-sm font-bold">Drop a screenshot here, or browse</p>
+                  <p className="text-xs text-white/60">PNG, JPG or WebP, at least 1920{'×'}1080</p>
+                </div>
+              )}
+            </div>
+
+            {resolutionError && (
+              <motion.p
+                role="alert"
+                initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: EASE_OUT }}
+                className="flex items-start gap-2 text-sm text-red-300"
+              >
+                <XCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                {resolutionError}
+              </motion.p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="entry-caption" className={labelClass}>Caption (optional)</label>
+              <span className="text-xs tabular-nums text-white/60">{caption.length}/300</span>
+            </div>
+            <textarea
+              id="entry-caption"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value.slice(0, 300))}
+              placeholder="Tell the community about this shot"
+              disabled={!submissionsOpen}
+              className={cn(fieldClass, 'min-h-[80px] resize-none p-3.5 placeholder:text-white/50')}
+            />
+          </div>
+        </div>
       )}
 
-      {/* ── Actions / Submit Button ── */}
-      <div className="space-y-3 pt-3 border-t border-white/10">
+      <div className="space-y-3 border-t border-white/10 pt-3">
         {isUploading && <UploadStages stage={stage} />}
+        {!hasActiveExistingPhoto && submissionsOpen && !isUploading && needed && (
+          <p className="text-xs text-white/60">To submit, add {needed}.</p>
+        )}
         <div className="flex gap-3">
           <Button
             variant="secondary"
             onClick={onClose}
-            className="flex-1 h-11 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/80"
+            className="h-11 flex-1 rounded-xl border border-white/15 bg-white/5 text-white/80 hover:bg-white/10"
           >
             Cancel
           </Button>
@@ -611,26 +428,16 @@ export default function UploadForm({
               onClick={handleSubmit}
               disabled={!isFormValid || isUploading}
               className={cn(
-                "flex-1 h-11 rounded-xl font-bold font-display transition-all cursor-pointer shadow-lg",
-                isFormValid
-                  ? "bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white shadow-fivem-orange/30"
-                  : "bg-white/10 text-white/30 border border-white/10 cursor-not-allowed"
+                'h-11 flex-1 cursor-pointer rounded-xl font-display font-bold',
+                isFormValid ? 'bg-fivem-orange text-white hover:bg-orange-500' : 'cursor-not-allowed border border-white/10 bg-white/10 text-white/50'
               )}
             >
               {isUploading ? (
                 <span className="flex items-center gap-2">
-                  <RefreshCw size={15} className="animate-spin" /> Uploading Entry...
+                  <RefreshCw size={15} className="animate-spin" aria-hidden="true" /> Uploading
                 </span>
-              ) : !submissionsOpen ? (
-                "Submissions Closed"
-              ) : !image ? (
-                "Upload Photo First"
-              ) : !isResolutionValid ? (
-                "Resolution Too Low (Min 1920x1080)"
-              ) : !formPlayerName.trim() ? (
-                "Enter Character Name"
               ) : (
-                "Submit Contest Entry"
+                'Submit entry'
               )}
             </Button>
           )}

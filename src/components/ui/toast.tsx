@@ -202,7 +202,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, warning, info, loading, dismiss }}>
       {children}
       {/* Floating Toast Viewport */}
-      <div className="fixed bottom-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-4 sm:px-0">
+      <div data-toast-region className="fixed bottom-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-4 sm:px-0">
         <AnimatePresence mode="popLayout">
           {toasts.map((item) => {
             const config = toastConfig[item.type] || toastConfig.info;

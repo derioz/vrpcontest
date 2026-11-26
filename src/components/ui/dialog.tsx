@@ -32,7 +32,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onInteractOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 pointer-events-none overflow-hidden">
@@ -42,6 +42,11 @@ const DialogContent = React.forwardRef<
           "pointer-events-auto relative w-full max-w-lg max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] border border-white/10 bg-gradient-to-b from-[#0e0e14]/98 via-[#0a0a0f]/98 to-[#08080c]/98 shadow-[0_30px_90px_rgba(0,0,0,0.95)] backdrop-blur-2xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-3xl flex flex-col overflow-hidden text-white my-auto",
           className
         )}
+        onInteractOutside={(event) => {
+          // Pop-up messages sit outside the dialog; pressing one must not close it.
+          if ((event.target as Element | null)?.closest?.('[data-toast-region]')) event.preventDefault();
+          onInteractOutside?.(event);
+        }}
         {...props}
       >
         <div className="overflow-y-auto flex-1 p-5 sm:p-7 pr-7 sm:pr-9 space-y-4 custom-scrollbar min-h-0">
