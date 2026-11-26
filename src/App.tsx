@@ -86,6 +86,7 @@ import { CategoryNav } from './components/CategoryNav';
 import { Toolbar, ToolbarItem } from './components/ui/toolbar';
 import { SiteHeader } from './components/SiteHeader';
 import RadialCarousel, { RadialCarouselItem } from './components/shadcn-studio/carousel/carousel-12';
+import type { UploadStage } from './components/EntryMotion';
 import { SparklesText } from './components/ui/sparkles-text';
 import { CountdownClock } from './components/ui/countdown-clock';
 
@@ -1556,22 +1557,27 @@ export default function App() {
     }
   };
 
-  const handleUpload = async (imageData: string, caption: string, discordName: string, formPlayerName: string, categoryId: string) => {
+  /** Resolves true only when the entry was saved, so the form can tell success from failure. */
+  const handleUpload = async (imageData: string, caption: string, discordName: string, formPlayerName: string, categoryId: string, onStage?: (stage: UploadStage) => void): Promise<boolean> => {
     if (!isSubmissionsOpen) {
       toast.error('Submissions are currently closed');
-      return;
+      return false;
     }
     if (!activeContest || (activeContest as any).status === 'paused') {
       toast.error('The contest is currently paused. Submissions are temporarily suspended.');
-      return;
+      return false;
     }
     // Enforce 1-photo-per-user limit server-side guard
     if (onePhotoPerUser && userContestSubmissionCount >= 1) {
       toast.error('Only 1 submission per user is allowed in this contest. Please remove your existing entry first.');
-      return;
+      return false;
     }
-    if (!categoryId || !formPlayerName || !discordName) return;
-    if (!(await hasDiscordAccess(user))) return;
+    if (!categoryId || !formPlayerName || !discordName) return false;
+    if (!(await hasDiscordAccess(user))) {
+      // The requirements window sits beneath this dialog, so close the dialog to show it.
+      setShowUploadModal(false);
+      return false;
+    }
 
     try {
       toast.loading("Encrypting and uploading securely...", { id: "upload-toast" });
@@ -1592,6 +1598,7 @@ export default function App() {
 
       const headers = { 'Authorization': 'IHo5KJCgcYdVYCqAZsnYokzPAYoUnTsK' };
 
+      onStage?.('uploading');
       const [uploadRes, censoredUploadRes] = await Promise.all([
         fetch('https://api.fivemanage.com/api/image', { method: 'POST', headers, body: formData }),
         fetch('https://api.fivemanage.com/api/image', { method: 'POST', headers, body: censoredFormData })
@@ -1635,20 +1642,22 @@ export default function App() {
         vote_count: 0
       };
 
+      onStage?.('saving');
       await addDoc(collection(db, 'photos'), newPhoto);
 
       // Invalidate category cache to ensure freshly uploaded photo displays
       categoryCacheRef.current.delete(categoryId);
 
       toast.success('Secure upload successful!', { id: "upload-toast" });
-      setShowUploadModal(false);
 
       setPlayerName(formPlayerName);
       localStorage.setItem('fivem_player_name', formPlayerName);
       localStorage.setItem('fivem_discord_name', discordName);
+      return true;
     } catch (error) {
       console.error("Upload Error:", error);
-      toast.error('Failed to upload photo');
+      toast.error('Failed to upload photo. Your details are still here, so you can try again.', { id: "upload-toast" });
+      return false;
     }
   };
 
@@ -3105,9 +3114,8 @@ export default function App() {
                 return await handleDeletePhoto(photoId, discordName, true);
               }}
               onClose={() => setShowUploadModal(false)}
-              onUpload={async (imageData, caption, discordName, formPlayerName, categoryId) => {
-                await handleUpload(imageData, caption, discordName, formPlayerName, categoryId);
-              }}
+              censored={censorSubmissions && !votingOpen}
+              onUpload={handleUpload}
             />
           </ErrorBoundary>
         </DialogContent>

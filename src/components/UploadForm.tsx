@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from './ui/toast';
-import { ProgressBar } from './ui/progress';
+import { motion, useReducedMotion } from 'motion/react';
+import { EASE_OUT, EntryConfirmation, UploadStages, type UploadStage } from './EntryMotion';
 import {
   Info,
   AlertCircle,
@@ -29,9 +30,12 @@ interface UploadFormProps {
   discordName: string;
   submissionsOpen?: boolean;
   onePhotoPerUser?: boolean;
+  /** Whether submissions show pixelated until voting, so the confirmation can say so. */
+  censored?: boolean;
   existingPhoto?: Photo | null;
   onDeleteExisting?: (photoId: string, discordName: string) => Promise<boolean>;
-  onUpload: (imageData: string, caption: string, discordName: string, playerName: string, categoryId: string) => Promise<void>;
+  /** Resolves true only when the entry was saved. */
+  onUpload: (imageData: string, caption: string, discordName: string, playerName: string, categoryId: string, onStage: (stage: UploadStage) => void) => Promise<boolean>;
   onClose: () => void;
 }
 
@@ -41,6 +45,7 @@ export default function UploadForm({
   discordName,
   submissionsOpen = true,
   onePhotoPerUser = false,
+  censored = false,
   existingPhoto = null,
   onDeleteExisting,
   onUpload,
@@ -51,6 +56,9 @@ export default function UploadForm({
   const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId || (categories[0]?.id || ''));
   const [formPlayerName, setFormPlayerName] = useState(localStorage.getItem('fivem_player_name') || '');
   const [isUploading, setIsUploading] = useState(false);
+  const [stage, setStage] = useState<UploadStage>('preparing');
+  const [submitted, setSubmitted] = useState(false);
+  const reduceMotion = useReducedMotion();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletedExistingId, setDeletedExistingId] = useState<string | null>(null);
 
@@ -175,7 +183,7 @@ export default function UploadForm({
   };
 
   const hasActiveExistingPhoto = Boolean(
-    onePhotoPerUser && existingPhoto && existingPhoto.id !== deletedExistingId
+    !isUploading && onePhotoPerUser && existingPhoto && existingPhoto.id !== deletedExistingId
   );
 
   const handleSubmit = async () => {
@@ -210,10 +218,12 @@ export default function UploadForm({
     }
 
     localStorage.setItem('fivem_player_name', formPlayerName.trim());
+    setStage('preparing');
     setIsUploading(true);
     try {
-      await onUpload(image, caption.trim(), discordName, formPlayerName.trim(), selectedCategoryId);
-      onClose();
+      // On failure the form stays open with everything the player entered.
+      const saved = await onUpload(image, caption.trim(), discordName, formPlayerName.trim(), selectedCategoryId, setStage);
+      if (saved) setSubmitted(true);
     } catch (err: any) {
       console.error('Submission upload error:', err);
     } finally {
@@ -224,6 +234,18 @@ export default function UploadForm({
   // Determine submit button state & label
   const isResolutionValid = imageMeta ? (imageMeta.width >= 1920 && imageMeta.height >= 1080) : false;
   const isFormValid = image && isResolutionValid && selectedCategoryId && formPlayerName.trim() && submissionsOpen && !hasActiveExistingPhoto;
+
+  // Checked before the entry-limit view: once saved, the new photo is also the "existing" one.
+  if (submitted && image) {
+    return (
+      <EntryConfirmation
+        image={image}
+        categoryName={selectedCategoryObj?.name || 'your category'}
+        censored={censored}
+        onDone={onClose}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5 text-white">
@@ -426,7 +448,7 @@ export default function UploadForm({
                     "text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1",
                     isResolutionValid
                       ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400"
-                      : "bg-red-500/20 border border-red-500/40 text-red-400 animate-pulse"
+                      : "bg-red-500/20 border border-red-500/40 text-red-400"
                   )}>
                     {isResolutionValid ? <Check size={11} /> : <XCircle size={11} />}
                     {imageMeta.width}x{imageMeta.height}
@@ -436,7 +458,13 @@ export default function UploadForm({
 
               {/* Explicit Resolution Error Banner */}
               {resolutionError && (
-                <div className="p-3 bg-red-500/20 border border-red-500/40 rounded-xl flex items-start gap-2.5 text-red-300 text-xs animate-shake">
+                <motion.div
+                  role="alert"
+                  initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, ease: EASE_OUT }}
+                  className="p-3 bg-red-500/20 border border-red-500/40 rounded-xl flex items-start gap-2.5 text-red-300 text-xs"
+                >
                   <XCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
                   <div className="flex-1 leading-snug">
                     <strong className="block text-red-400 font-bold uppercase tracking-wider text-[11px] mb-0.5">
@@ -444,7 +472,7 @@ export default function UploadForm({
                     </strong>
                     {resolutionError}
                   </div>
-                </div>
+                </motion.div>
               )}
 
               <div
@@ -460,10 +488,24 @@ export default function UploadForm({
 
                 {image ? (
                   <div className="relative w-full h-full group">
-                    <img src={image} className="w-full h-full object-cover" alt="Preview" />
+                    <motion.img
+                      key={`${imageMeta?.fileName}-${imageMeta?.fileSizeBytes}`}
+                      src={image}
+                      className="w-full h-full object-cover"
+                      alt="Preview"
+                      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, clipPath: 'inset(48% 0% 48% 0%)' }}
+                      animate={reduceMotion ? { opacity: 1 } : { opacity: 1, clipPath: 'inset(0% 0% 0% 0%)' }}
+                      transition={{ duration: reduceMotion ? 0.2 : 0.45, ease: EASE_OUT }}
+                    />
                     
                     {/* Resolution Badge Overlay on Image */}
-                    <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+                    <motion.div
+                      key={`verdict-${imageMeta?.fileName}-${imageMeta?.fileSizeBytes}`}
+                      initial={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25, delay: reduceMotion ? 0 : 0.3, ease: EASE_OUT }}
+                      className="absolute top-3 left-3 z-10 flex items-center gap-2"
+                    >
                       <span className={cn(
                         "text-xs font-mono font-black px-3 py-1 rounded-xl shadow-lg backdrop-blur-md border flex items-center gap-1.5",
                         isResolutionValid
@@ -474,7 +516,7 @@ export default function UploadForm({
                         {imageMeta?.width} x {imageMeta?.height}
                         <span className="opacity-60 text-[10px]">({imageMeta?.aspectRatio})</span>
                       </span>
-                    </div>
+                    </motion.div>
 
                     {/* Change / Replace Hover Overlay */}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-xs">
@@ -554,17 +596,7 @@ export default function UploadForm({
 
       {/* ── Actions / Submit Button ── */}
       <div className="space-y-3 pt-3 border-t border-white/10">
-        {isUploading && (
-          <ProgressBar
-            value={85}
-            size="sm"
-            variant="default"
-            animated
-            glow
-            label="Uploading & Optimizing High-Resolution Photo..."
-            showValue
-          />
-        )}
+        {isUploading && <UploadStages stage={stage} />}
         <div className="flex gap-3">
           <Button
             variant="secondary"
