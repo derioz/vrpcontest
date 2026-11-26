@@ -214,7 +214,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
                 className={cn(
                   'relative w-full aspect-[16/9] overflow-hidden rounded-2xl transition-all duration-300',
                   isCenter
-                    ? 'shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(234,88,12,0.35)] ring-2 ring-fivem-orange/70 border border-white/20'
+                    ? 'shadow-[0_20px_60px_rgba(0,0,0,0.6)] ring-1 ring-fivem-orange/60 border border-white/10'
                     : 'shadow-xl border border-white/10 opacity-75 hover:opacity-100 hover:border-white/25'
                 )}
               >
@@ -257,8 +257,8 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
 
                 {/* Pixelated / Voting Closed Badge */}
                 {isPixelated && (
-                  <div className="absolute top-2.5 left-2.5 bg-amber-500/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-500/50 flex items-center gap-1.5 text-[9px] sm:text-[10px] font-mono text-amber-300 font-bold z-20 shadow-md">
-                    <EyeOff size={11} className="text-amber-300" />
+                  <div className="absolute top-2.5 left-2.5 bg-black/75 px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 text-[9px] sm:text-[10px] font-mono text-white font-bold z-20 shadow-md">
+                    <EyeOff size={11} className="text-white/70" />
                     <span>Pixelated until voting</span>
                   </div>
                 )}
@@ -340,7 +340,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
               className={cn(
                 'rounded-full transition-all duration-300 cursor-pointer',
                 idx === active
-                  ? 'w-1.5 h-6 bg-fivem-orange shadow-[0_0_8px_rgba(234,88,12,0.7)]'
+                  ? 'w-1.5 h-6 bg-fivem-orange'
                   : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/60'
               )}
               aria-label={`Go to slide ${idx + 1}`}

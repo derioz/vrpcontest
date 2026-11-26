@@ -46,22 +46,22 @@ html[data-season="christmas"] body::after {
 
 html[data-season="christmas"] body::before {
   background-image: var(--xmas-lights-a);
-  animation: xmas-twinkle-a 5s ease-in-out infinite;
+  animation: xmas-twinkle-a 9s ease-in-out infinite;
 }
 
 html[data-season="christmas"] body::after {
   background-image: var(--xmas-lights-b);
-  animation: xmas-twinkle-b 5s ease-in-out infinite;
+  animation: xmas-twinkle-b 9s ease-in-out infinite;
 }
 
 @keyframes xmas-twinkle-a {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 0.45; }
 }
 
 @keyframes xmas-twinkle-b {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.65; }
 }
 
 /* A small evergreen sprig on the logo's shoulder; the logo itself is untouched. */
@@ -83,8 +83,8 @@ html[data-season="christmas"] #easter-egg-orb::after {
 /* ── Hero: winter atmosphere, boughs in the corners, slow snow behind the content ─ */
 html[data-season="christmas"] .seasonal-hero {
   background-image:
-    radial-gradient(ellipse 55% 45% at 12% 0%, rgb(217 184 120 / 0.1), transparent 70%),
-    linear-gradient(to top, rgb(15 59 44 / 0.34), transparent 55%);
+    radial-gradient(ellipse 55% 45% at 12% 0%, rgb(217 184 120 / 0.05), transparent 70%),
+    linear-gradient(to top, rgb(15 59 44 / 0.2), transparent 55%);
 }
 
 html[data-season="christmas"] .seasonal-hero::before,
@@ -102,7 +102,7 @@ html[data-season="christmas"] .seasonal-hero::before {
   background-repeat: no-repeat;
   background-position: left -22px top 132px, right -22px top 132px;
   background-size: min(300px, 40vw) auto, min(300px, 40vw) auto;
-  opacity: 0.55;
+  opacity: 0.4;
 }
 
 /* snow, moved by transform only */
@@ -116,7 +116,8 @@ html[data-season="christmas"] .seasonal-hero::after {
   background-size: 520px 460px;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 460px, #000 78%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0, #000 460px, #000 78%, transparent 100%);
-  animation: xmas-snow 80s linear infinite;
+  opacity: 0.7;
+  animation: xmas-snow 100s linear infinite;
   will-change: transform;
 }
 
@@ -210,14 +211,14 @@ html[data-season="christmas"] footer::after {
   z-index: 0;
   pointer-events: none;
   background: var(--xmas-treeline) bottom left / 600px 44px repeat-x;
-  opacity: 0.8;
+  opacity: 0.55;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html[data-season="christmas"] body::before,
   html[data-season="christmas"] body::after {
     animation: none;
-    opacity: 0.9;
+    opacity: 0.55;
   }
   html[data-season="christmas"] .seasonal-hero::after {
     display: none;

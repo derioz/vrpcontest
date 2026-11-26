@@ -2714,23 +2714,6 @@ export default function App() {
             {/* ── Deep luxury base ── */}
             <div className="absolute inset-0 bg-[#050508]" />
 
-            {/* ── Radial Ambient Aura behind Hero ── */}
-            <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-br from-fivem-orange/20 via-amber-500/10 to-transparent blur-[120px] rounded-full pointer-events-none" />
-            <div className="absolute top-1/3 right-10 w-[400px] h-[400px] bg-gradient-to-bl from-purple-500/10 via-pink-500/5 to-transparent blur-[140px] rounded-full pointer-events-none" />
-
-            {/* ── Aceternity Spotlight Beams ── */}
-            <Spotlight
-              className="-top-40 left-0 md:left-48 md:-top-20"
-              fill="rgba(234, 88, 12, 0.32)"
-            />
-            <Spotlight
-              className="top-10 right-0 md:left-full md:-translate-x-[75%] h-[80vh] w-[50vw] max-w-full pointer-events-none"
-              fill="rgba(251, 146, 60, 0.15)"
-            />
-
-            {/* ── DotPattern ── */}
-            <DotPattern width={28} height={28} cr={0.75} className="opacity-[0.05] z-[1]" />
-            
             {/* ── Main Hero Layout ── */}
             <div className={cn(
               "relative z-10 max-w-7xl mx-auto px-4 sm:px-6 items-center",
@@ -2746,17 +2729,12 @@ export default function App() {
               >
                 {/* Main Headline with SparklesText and Dual-Tone Hierarchy */}
                 <motion.div variants={heroItemVariants} className={cn("mb-4 space-y-1.5", !hasHeroItems && "text-center")}>
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.08] text-white">
-                    <SparklesText
-                      text={primaryTitle}
-                      sparklesCount={8}
-                      colors={{ first: '#f59e0b', second: '#fb923c' }}
-                      className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight"
-                    />
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.08] text-white text-balance">
+                    {primaryTitle}
                   </h1>
                   {themeSubtitle && (
                     <div className={cn("pt-1", !hasHeroItems && "flex justify-center")}>
-                      <span className="text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black font-display tracking-tight text-white">
+                      <span className="text-xl sm:text-2xl lg:text-3xl font-bold font-display tracking-tight text-white/80">
                         {themeSubtitle}
                       </span>
                     </div>
@@ -2857,27 +2835,27 @@ export default function App() {
                 {/* Non-Redundant Telemetry Matrix */}
                 <motion.div
                   variants={heroItemVariants}
-                  className="relative grid grid-cols-3 gap-3 p-3.5 rounded-2xl border border-white/10 bg-[#0c0c14]/90 backdrop-blur-xl max-w-md shadow-xl"
+                  className="relative grid grid-cols-3 gap-3 p-3.5 rounded-2xl border border-white/10 bg-[#0c0c14] max-w-md"
                 >
                   <div className="flex flex-col">
                     <span className="text-lg font-black font-display text-white">
                       <NumberTicker value={categories.length} delay={0.3} />
                     </span>
-                    <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Categories</span>
+                    <span className="text-xs text-white/60">Categories</span>
                   </div>
 
                   <div className="flex flex-col border-l border-white/10 pl-3">
                     <span className="text-lg font-black font-display text-white">
                       <NumberTicker value={activeContestPhotos.length} delay={0.3} />
                     </span>
-                    <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Submissions</span>
+                    <span className="text-xs text-white/60">Submissions</span>
                   </div>
 
                   <div className="flex flex-col border-l border-white/10 pl-3">
-                    <span className="text-lg font-black font-display text-fivem-orange">
+                    <span className="text-lg font-black font-display text-white">
                       <NumberTicker value={activeContestPhotos.reduce((s, p) => s + (p.vote_count || 0), 0)} delay={0.3} />
                     </span>
-                    <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">Votes Cast</span>
+                    <span className="text-xs text-white/60">Votes cast</span>
                   </div>
                 </motion.div>
               </motion.div>

@@ -210,23 +210,13 @@ const MechanicalFlipCard = React.memo(({ value, label, colorScheme, isOverdrive 
           'relative w-full aspect-[1/1.16] max-w-[72px] xs:max-w-[84px] sm:max-w-[104px] md:max-w-[118px] lg:max-w-[128px]',
           'rounded-xl sm:rounded-2xl p-[2px] sm:p-1',
           'bg-gradient-to-b from-[#202128] via-[#131418] to-[#090a0d]',
-          'border border-white/10 shadow-[0_12px_28px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.12)]',
+          'border border-white/10',
           'transition-all duration-300 group-hover:-translate-y-1',
           theme.borderHover,
           isOverdrive && 'ring-2 ring-orange-500/50 shadow-[0_0_24px_rgba(234,88,12,0.35)]'
         )}
-        style={{
-          boxShadow: `0 8px 24px rgba(0,0,0,0.6), 0 0 16px ${theme.glow}`,
-        }}
       >
-        {/* Corner Rivet Fasteners */}
-        <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
-        <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
-        <div className="absolute bottom-1 left-1 sm:bottom-1.5 sm:left-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
-        <div className="absolute bottom-1 right-1 sm:bottom-1.5 sm:right-1.5 w-1 h-1 rounded-full bg-zinc-600 border border-zinc-400/40 opacity-70" />
 
-        {/* Dynamic Top Sheen */}
-        <div className={cn('absolute inset-x-2 -top-px h-px bg-gradient-to-r rounded-full opacity-60', theme.sheen)} />
 
         {/* 3D Flap Arena */}
         <div
@@ -264,13 +254,10 @@ const MechanicalFlipCard = React.memo(({ value, label, colorScheme, isOverdrive 
         </div>
       </div>
 
-      {/* Under-Card Minimalist Label */}
-      <div className="flex items-center gap-1 sm:gap-1.5">
-        <div className={cn('w-1 h-1 rounded-full opacity-80', theme.labelDot)} />
-        <span className={cn('text-[9px] xs:text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-[0.2em]', theme.labelText)}>
-          {label}
-        </span>
-      </div>
+      {/* Under-card label */}
+      <span className="text-xs font-medium text-white/60">
+        {label.charAt(0) + label.slice(1).toLowerCase()}
+      </span>
     </div>
   );
 });
@@ -541,38 +528,16 @@ export function CountdownClock({
         className="w-full flex flex-wrap items-center gap-2 sm:gap-3 cursor-pointer group transition-opacity hover:opacity-95"
         title="Interactive Countdown • Click to cycle mechanical cascade"
       >
-        {/* Live Status Indicator */}
-        <div className="flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
-            <span
-              className={cn(
-                'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
-                isCompleted ? 'bg-red-400' : 'bg-orange-400'
-              )}
-            />
-            <span
-              className={cn(
-                'relative inline-flex rounded-full h-2 w-2',
-                isCompleted ? 'bg-red-500' : 'bg-orange-500'
-              )}
-            />
-          </span>
-          <span className="text-[11px] sm:text-xs font-mono font-black uppercase tracking-[0.18em] text-orange-400">
-            {isCompleted ? 'DEADLINE REACHED' : label}
-          </span>
-        </div>
-
-        <span className="text-white/20 hidden xs:inline">•</span>
+        {/* Deadline label, as entered in the admin console */}
+        <span className="text-sm font-semibold text-white/80">
+          {isCompleted ? 'Deadline reached' : label}
+        </span>
 
         {/* Full Event Date */}
-        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-display font-black tracking-wide text-white/90 uppercase">
-          <Calendar size={13} className="text-orange-400/90 shrink-0" />
-          <span>{formattedEventDate.dateStr}</span>
-          <span className="text-orange-400 font-bold">•</span>
-          <span className="text-orange-300 font-mono font-bold">{formattedEventDate.timeStr}</span>
-          <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-300 border border-orange-500/25 font-mono font-bold">
-            {formattedEventDate.tzStr}
-          </span>
+        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white">
+          <Calendar size={14} className="text-white/60 shrink-0" />
+          <span className="capitalize">{formattedEventDate.dateStr.toLowerCase()}</span>
+          <span className="text-white/60">{formattedEventDate.timeStr} {formattedEventDate.tzStr}</span>
         </div>
 
         {/* Easter Egg Message */}
@@ -582,7 +547,7 @@ export function CountdownClock({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-bold text-orange-400 animate-pulse ml-auto"
+              className="flex items-center gap-1 text-xs font-medium text-white/60 ml-auto"
             >
               <Sparkles size={11} />
               <span>{easterEggMessage}</span>
