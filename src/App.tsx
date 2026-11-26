@@ -59,7 +59,7 @@ import Picker from '@emoji-mart/react';
 import { cn, pixelateImage } from './lib/utils';
 import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
 import { downloadPhoto } from './lib/download';
-import { verifyDiscordGuildAndRole, fetchFreshDiscordAvatar } from './lib/discord';
+import { verifyDiscordGuildAndRole, checkUserDiscordEligibility, fetchFreshDiscordAvatar, type DiscordVerificationResult } from './lib/discord';
 import { getProfileAvatar, getDiceBearAvatarUrl, AVAILABLE_DICEBEAR_STYLES, DiceBearStyleName } from './lib/dicebear';
 import { DiscordRequirementsModal } from './components/DiscordRequirementsModal';
 import { BugReportModal } from './components/BugReportModal';
@@ -318,6 +318,19 @@ export default function App() {
   const [isProfileSheetOpen, setIsProfileSheetOpen] = useState(false);
   const [discordReqReason, setDiscordReqReason] = useState<'not_in_server' | 'missing_role' | 'api_error' | null>(null);
   const [discordReqMessage, setDiscordReqMessage] = useState<string | null>(null);
+
+  const showDiscordRequirement = (check: DiscordVerificationResult) => {
+    setDiscordReqReason(check.reason || 'api_error');
+    setDiscordReqMessage(check.message || null);
+    setShowDiscordReqModal(true);
+  };
+
+  /** Re-checks membership and role before an action; opens the requirements modal if it fails. */
+  const hasDiscordAccess = async (member: unknown) => {
+    const check = await checkUserDiscordEligibility(member);
+    if (!check.allowed) showDiscordRequirement(check);
+    return check.allowed;
+  };
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [editedDisplayName, setEditedDisplayName] = useState('');
   const [notAdminClickCount, setNotAdminClickCount] = useState(0);
@@ -959,6 +972,28 @@ export default function App() {
         return;
       }
 
+      const discordId =
+        session.user.user_metadata?.provider_id ||
+        session.user.user_metadata?.sub ||
+        session.user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.provider_id ||
+        session.user.identities?.find((i: any) => i.provider === 'discord')?.identity_data?.sub ||
+        session.user.identities?.find((i: any) => i.provider === 'discord')?.id;
+
+      // Only Vital RP Discord members with the Whitelist Approved role may stay signed in.
+      const check = await verifyDiscordGuildAndRole({
+        providerToken: session.provider_token || null,
+        discordId: discordId ? String(discordId) : null,
+      });
+
+      if (!check.allowed) {
+        console.warn('Discord server/role check failed:', check.reason);
+        showDiscordRequirement(check);
+        await supabase.auth.signOut();
+        localStorage.removeItem('discord_provider_token');
+        await handleSessionUser(null);
+        return;
+      }
+
       await handleSessionUser(session.user);
     };
 
@@ -1330,6 +1365,8 @@ export default function App() {
       return;
     }
 
+    if (!(await hasDiscordAccess(user))) return;
+
     const voterUid = user.uid;
 
     const targetPhoto = allPhotos.find((p) => p.id === photoId);
@@ -1529,6 +1566,7 @@ export default function App() {
       return;
     }
     if (!categoryId || !formPlayerName || !discordName) return;
+    if (!(await hasDiscordAccess(user))) return;
 
     try {
       toast.loading("Encrypting and uploading securely...", { id: "upload-toast" });
@@ -2162,7 +2200,7 @@ export default function App() {
     }
 
     if (user) {
-      setShowUploadModal(true);
+      if (await hasDiscordAccess(user)) setShowUploadModal(true);
       return;
     }
 
@@ -2404,7 +2442,7 @@ export default function App() {
 
               {submissionsOpen ? (
                 <button
-                  onClick={() => { if (!user) setShowSignInModal(true); else setShowUploadModal(true); setIsMobileMenuOpen(false); }}
+                  onClick={() => { setIsMobileMenuOpen(false); handleUploadClick(); }}
                   className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-fivem-orange/[0.06] border border-fivem-orange/20 active:bg-fivem-orange/15 transition-all cursor-pointer"
                 >
                   <div className="w-10 h-10 rounded-xl bg-fivem-orange/20 border border-fivem-orange/30 flex items-center justify-center">

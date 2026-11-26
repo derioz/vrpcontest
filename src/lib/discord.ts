@@ -1,6 +1,11 @@
 /**
- * Discord API Helper for verifying Guild Membership and Roles
- * Supports both User OAuth Provider Token and Discord Bot Token verification.
+ * Discord API helper: the Vital RP access check.
+ *
+ * Participating requires membership of the Vital RP Discord AND the Whitelist Approved role.
+ * The check uses the signed-in user's own OAuth token (scope guilds.members.read) and fails
+ * closed: if membership and role cannot both be confirmed, access is denied.
+ *
+ * This runs in the browser, so it controls the interface. It does not protect the database.
  */
 
 export interface DiscordVerificationResult {
@@ -16,34 +21,126 @@ export interface VerifyOptions {
   forceRefresh?: boolean;
 }
 
+// Public Discord snowflake IDs; the environment variables override them.
+const VITAL_GUILD_ID = import.meta.env.VITE_DISCORD_GUILD_ID || '730015674348601384';
+const WHITELIST_ROLE_ID = import.meta.env.VITE_DISCORD_WHITELIST_ROLE_ID || '1241050651677556806';
+
+const TOKEN_KEY = 'discord_provider_token';
+
 // In-memory verification cache (5-minute TTL) to eliminate redundant Discord API requests
 interface CachedVerification {
   result: DiscordVerificationResult;
   timestamp: number;
 }
 const verificationCache = new Map<string, CachedVerification>();
+const inFlight = new Map<string, Promise<DiscordVerificationResult>>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Explicit allowed list of Discord IDs that are permanently whitelisted / unbanned
-export const EXPLICIT_ALLOWED_DISCORD_IDS = new Set<string>([
-  '345694065393926164', // ohgeesy2926
-]);
+const NOT_IN_SERVER: DiscordVerificationResult = {
+  allowed: false,
+  reason: 'not_in_server',
+  message: 'You must be a member of the Vital RP Discord to participate.',
+};
 
-export const EXPLICIT_ALLOWED_USERNAMES = new Set<string>([
-  'ohgeesy2926',
-  'ohgeesy',
-]);
+const SIGN_IN_AGAIN: DiscordVerificationResult = {
+  allowed: false,
+  reason: 'api_error',
+  message: 'Sign in with Discord again so we can check your membership.',
+};
 
-export async function verifyDiscordGuildAndRole(_options: VerifyOptions = {}): Promise<DiscordVerificationResult> {
-  // Blocking checks completely removed — all users are permitted
-  return { allowed: true };
+const UNREACHABLE: DiscordVerificationResult = {
+  allowed: false,
+  reason: 'api_error',
+  message: 'We could not reach Discord to check your membership. Please try again in a minute.',
+};
+
+async function lookUpMember(token: string, discordId: string | null): Promise<DiscordVerificationResult> {
+  const url = `https://discord.com/api/v10/users/@me/guilds/${VITAL_GUILD_ID}/member`;
+  const request = () => fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
+  try {
+    let response = await request();
+
+    // Rate limited: wait as long as Discord asks (capped) and try once more.
+    if (response.status === 429) {
+      const body = await response.json().catch(() => ({}));
+      const waitMs = Math.min(Number(body?.retry_after) || 1, 5) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      response = await request();
+    }
+
+    if (response.status === 404) return NOT_IN_SERVER;
+
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem(TOKEN_KEY);
+      return SIGN_IN_AGAIN;
+    }
+
+    if (!response.ok) return UNREACHABLE;
+
+    const member = await response.json();
+
+    // A stored token left over from another account must not vouch for this one.
+    if (discordId && member.user?.id && String(member.user.id) !== discordId) {
+      localStorage.removeItem(TOKEN_KEY);
+      return SIGN_IN_AGAIN;
+    }
+
+    const roles: string[] = member.roles || [];
+    if (!roles.includes(WHITELIST_ROLE_ID)) {
+      return {
+        allowed: false,
+        reason: 'missing_role',
+        message: 'You need the Whitelist Approved role in the Vital RP Discord to participate.',
+        guildMember: member,
+      };
+    }
+
+    return { allowed: true, guildMember: member };
+  } catch (error) {
+    console.warn('Discord membership check failed:', error);
+    return UNREACHABLE;
+  }
+}
+
+export async function verifyDiscordGuildAndRole(options: VerifyOptions = {}): Promise<DiscordVerificationResult> {
+  if (options.providerToken) {
+    localStorage.setItem(TOKEN_KEY, options.providerToken);
+  }
+
+  const token = options.providerToken || localStorage.getItem(TOKEN_KEY);
+  if (!token) return SIGN_IN_AGAIN;
+
+  const discordId = options.discordId ? String(options.discordId) : null;
+  const cacheKey = `${discordId || ''}:${token}`;
+
+  if (!options.forceRefresh) {
+    const cached = verificationCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.result;
+  }
+
+  // Sign-in fires several session events at once; share one request between them.
+  let pending = inFlight.get(cacheKey);
+  if (!pending) {
+    pending = lookUpMember(token, discordId)
+      .then((result) => {
+        // Only definite answers are cached, so a temporary failure can be retried at once.
+        if (result.reason !== 'api_error') {
+          verificationCache.set(cacheKey, { result, timestamp: Date.now() });
+        }
+        return result;
+      })
+      .finally(() => inFlight.delete(cacheKey));
+    inFlight.set(cacheKey, pending);
+  }
+  return pending;
 }
 
 /**
- * Check user eligibility for suggestions and voting.
- * Always permits authenticated users without blocking.
+ * Check user eligibility for submitting, voting and suggesting.
+ * Allowed only for Vital RP Discord members with the Whitelist Approved role.
  */
-export async function checkUserDiscordEligibility(user: any, _forceRefresh = false): Promise<DiscordVerificationResult> {
+export async function checkUserDiscordEligibility(user: any, forceRefresh = false): Promise<DiscordVerificationResult> {
   if (!user) {
     return {
       allowed: false,
@@ -51,7 +148,7 @@ export async function checkUserDiscordEligibility(user: any, _forceRefresh = fal
       message: 'Please sign in with Discord to participate.',
     };
   }
-  return { allowed: true };
+  return verifyDiscordGuildAndRole({ discordId: user.discordId, forceRefresh });
 }
 
 /**

@@ -55,13 +55,15 @@ export function DiscordRequirementsModal({
 
             {/* Message Description */}
             <p className="text-sm text-white/70 leading-relaxed mb-6">
-              {message || "You must be a member of Vital RP Discord and possess the Whitelist Approved role to participate and vote in this contest."}
+              {message || "You must be a member of Vital RP Discord and have the Whitelist Approved role to participate and vote in this contest."}
             </p>
 
           {/* Verification Requirements Checklist */}
           <div className="space-y-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] mb-6">
             <div className="flex items-center gap-3">
-              {reason === 'not_in_server' ? (
+              {reason === 'api_error' ? (
+                <div className="w-4 h-4 rounded-full border border-white/20 shrink-0" />
+              ) : reason === 'not_in_server' ? (
                 <AlertTriangle size={16} className="text-red-400 shrink-0" />
               ) : (
                 <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
@@ -74,7 +76,7 @@ export function DiscordRequirementsModal({
             <div className="flex items-center gap-3">
               {reason === 'missing_role' ? (
                 <AlertTriangle size={16} className="text-red-400 shrink-0" />
-              ) : reason === 'not_in_server' ? (
+              ) : reason === 'not_in_server' || reason === 'api_error' ? (
                 <div className="w-4 h-4 rounded-full border border-white/20 shrink-0" />
               ) : (
                 <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
