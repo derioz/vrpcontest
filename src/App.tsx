@@ -1752,9 +1752,9 @@ export default function App() {
     }
   };
 
-  const handleGenerateKeys = async () => {
+  const handleGenerateKeys = async (confirmed?: boolean) => {
     if (!isAdmin) return;
-    if (publicKey && !window.confirm("Keys already exist. Generating new keys will completely break existing encrypted images. Continue?")) return;
+    if (publicKey && confirmed !== true && !window.confirm("Keys already exist. Generating new keys will completely break existing encrypted images. Continue?")) return;
 
     try {
       const keys = await generateRSAKeyPair();

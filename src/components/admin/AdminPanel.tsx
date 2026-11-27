@@ -14,6 +14,7 @@ import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 import { AdminSuggestionsTab } from './AdminSuggestionsTab';
 import { AdminCountdownTab } from './AdminCountdownTab';
 import { Button, EmptyState, PageHeader, Panel, Row, Switch } from './kit';
+import { useConfirm } from './confirm';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 
@@ -43,14 +44,17 @@ interface AdminPanelProps {
   onToggleSiteClosed?: (closed: boolean) => void;
   onToggleCensorSubmissions?: (enabled: boolean) => void;
   onToggleCategorySuggestionMode?: (enabled: boolean) => void;
-  onGenerateKeys: () => void;
+  onGenerateKeys: (confirmed?: boolean) => void;
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
-  onDeletePhoto: (photoId: string, discordName: string) => void;
+  onDeletePhoto: (photoId: string, discordName: string, confirmed?: boolean) => void;
   onToggleDisqualifyPhoto?: (photoId: string, disqualify: boolean, reason?: string) => void;
   onResetVotes?: () => void;
   initialTab?: AdminTab;
   onTabChange?: (tab: AdminTab) => void;
+  /** An entry chosen in the command menu, to be opened in Submissions. */
+  openEntryId?: string | null;
+  onEntryOpened?: () => void;
 }
 
 export default function AdminPanel(props: AdminPanelProps) {
@@ -58,7 +62,7 @@ export default function AdminPanel(props: AdminPanelProps) {
     isAdmin, user, activeContest, categories = [], allPhotos = [], votingOpen, submissionsOpen,
     rulesMarkdown, winners = [], siteClosed = false,
     onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes,
-    initialTab = 'dashboard', onTabChange,
+    initialTab = 'dashboard', onTabChange, openEntryId, onEntryOpened,
   } = props;
 
   if (!isAdmin) return null;
@@ -82,6 +86,8 @@ export default function AdminPanel(props: AdminPanelProps) {
           categories={categories}
           onDeletePhoto={onDeletePhoto}
           onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
+          openEntryId={openEntryId}
+          onEntryOpened={onEntryOpened}
         />
       );
     case 'voters':
@@ -154,6 +160,7 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
   const [loadingBugs, setLoadingBugs] = useState(true);
   const [expandedBugId, setExpandedBugId] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   // Subscribe to bug reports collection
   useEffect(() => {
@@ -203,7 +210,7 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
   };
 
   const handleDeleteBug = async (id: string) => {
-    if (!window.confirm('Delete this bug report?')) return;
+    if (!(await confirm({ title: 'Delete this bug report?', body: 'This cannot be undone.', confirmLabel: 'Delete report', tone: 'danger' }))) return;
     try {
       await deleteDoc(doc(db, 'bug_reports', id));
       toast.success('Bug report deleted');
@@ -357,6 +364,19 @@ function ControlsTab({
   onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed,
   onToggleCensorSubmissions, onToggleCategorySuggestionMode, onGenerateKeys, onToggleReveal,
 }: AdminPanelProps) {
+  const confirm = useConfirm();
+
+  const replaceKeys = async () => {
+    if (!publicKey) return onGenerateKeys();
+    const ok = await confirm({
+      title: 'Replace the encryption keys?',
+      body: 'Entries already encrypted with the current keys can no longer be opened.',
+      confirmLabel: 'Replace keys',
+      tone: 'danger',
+    });
+    if (ok) onGenerateKeys(true);
+  };
+
   const control = (label: string, description: string, checked: boolean, onChange: (v: boolean) => void, extra?: { disabled?: boolean; tone?: 'accent' | 'danger' }) => (
     <Row label={label} description={description}>
       <Switch label={label} checked={checked} onChange={onChange} {...extra} />
@@ -378,14 +398,14 @@ function ControlsTab({
 
       <Panel title="Entry encryption" description={publicKey ? 'Keys are set up.' : 'No keys yet.'}>
         <Row label="Encryption keys" description="Creates the key pair used to encrypt entries. Replacing keys breaks entries already encrypted.">
-          <Button size="sm" onClick={onGenerateKeys}>{publicKey ? 'Replace keys' : 'Generate keys'}</Button>
+          <Button size="sm" onClick={replaceKeys}>{publicKey ? 'Replace keys' : 'Generate keys'}</Button>
         </Row>
         {control(
           'Reveal entries',
           'Publishes the private key, so anyone can see who submitted each photo and open the full image.',
           !!privateKey,
-          (next) => {
-            if (!next || window.confirm('Reveal all entries? Names and full images become visible to anyone.')) onToggleReveal(next);
+          async (next) => {
+            if (!next || (await confirm({ title: 'Reveal all entries?', body: 'Player names and full images become visible to anyone.', confirmLabel: 'Reveal entries', tone: 'danger' }))) onToggleReveal(next);
           },
           { disabled: !publicKey },
         )}
@@ -399,8 +419,8 @@ function ControlsTab({
             'Lock the public site',
             'Visitors see a closed notice. Only admins can browse.',
             siteClosed,
-            (next) => {
-              if (!next || window.confirm('Lock the public site? Visitors will not be able to browse until you unlock it.')) onToggleSiteClosed(next);
+            async (next) => {
+              if (!next || (await confirm({ title: 'Lock the public site?', body: 'Visitors cannot browse until you unlock it. Admins still can.', confirmLabel: 'Lock site', tone: 'danger' }))) onToggleSiteClosed(next);
             },
             { tone: 'danger' },
           )}
@@ -414,6 +434,8 @@ function ControlsTab({
 function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
   activeContest: any; categories: Category[]; allPhotos: Photo[]; onResetVotes?: () => void;
 }) {
+  const confirm = useConfirm();
+
   return (
     <div className="max-w-3xl space-y-5">
       <PageHeader title="Danger zone" description="These actions cannot be undone." />
@@ -423,10 +445,14 @@ function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
           <Button
             variant="danger"
             size="sm"
-            onClick={() => {
-              if (window.confirm('Are you sure you want to reset ALL votes to 0? This cannot be undone.')) {
-                onResetVotes?.();
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: 'Reset all votes to 0?',
+                body: 'Every vote record is deleted. This cannot be undone.',
+                confirmLabel: 'Reset votes',
+                tone: 'danger',
+              });
+              if (ok) onResetVotes?.();
             }}
           >
             Reset votes

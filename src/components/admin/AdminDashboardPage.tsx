@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   LayoutDashboard, Image as ImageIcon, Trophy, Clock, SlidersHorizontal, Lightbulb,
-  UserCheck, BarChart3, History, TriangleAlert, ArrowLeft, Menu,
+  UserCheck, BarChart3, History, TriangleAlert, ArrowLeft, Menu, Search,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getProfileAvatar } from '../../lib/dicebear';
@@ -11,6 +11,8 @@ import { Category, Photo } from '../../types';
 import { VITAL_RP_LOGO_URL } from '../../config';
 import { Sheet, SheetContent, SheetTitle } from '../ui/sheet';
 import AdminPanel from './AdminPanel';
+import { CommandMenu, Command } from './CommandMenu';
+import { ConfirmProvider } from './confirm';
 
 export type AdminRouteTab =
   | 'dashboard'
@@ -52,14 +54,28 @@ export interface AdminDashboardPageProps {
   onToggleCensorSubmissions?: (enabled: boolean) => void;
   categorySuggestionMode?: boolean;
   onToggleCategorySuggestionMode?: (enabled: boolean) => void;
-  onGenerateKeys: () => void;
+  onGenerateKeys: (confirmed?: boolean) => void;
   onToggleReveal: (reveal: boolean) => void;
   onDownloadWinners: () => void;
-  onDeletePhoto: (photoId: string, discordName: string) => void;
+  onDeletePhoto: (photoId: string, discordName: string, confirmed?: boolean) => void;
   onToggleDisqualifyPhoto?: (photoId: string, disqualify: boolean, reason?: string) => void;
   onResetVotes?: () => void;
   onOpenAnalytics?: () => void;
 }
+
+/** Words that should find a screen in the command menu. */
+const FIND_BY: Partial<Record<AdminRouteTab, string>> = {
+  dashboard: 'home status bug reports',
+  submissions: 'entries photos disqualify delete download',
+  voters: 'votes audit reconcile fraud',
+  analytics: 'charts statistics',
+  contest: 'categories rules archive winners pause new restore',
+  countdown: 'timer deadline clock',
+  controls: 'submissions voting open close lock encryption keys reveal pixelate winners',
+  suggestions: 'ideas proposals',
+  changelogs: 'releases updates history',
+  danger: 'reset votes archive',
+};
 
 interface NavItem {
   id: AdminRouteTab;
@@ -141,11 +157,57 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
     window.scrollTo(0, 0);
   };
 
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [entryToOpen, setEntryToOpen] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsMenuOpen(false);
+        setIsSearchOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const commands: Command[] = [
+    ...NAV.flatMap((g) => g.items).map((item) => ({
+      id: item.id,
+      group: 'Go to',
+      label: item.label,
+      keywords: FIND_BY[item.id],
+      icon: item.icon,
+      run: () => goTo(item.id),
+    })),
+    { id: 'site', group: 'Go to', label: 'Back to site', keywords: 'public home exit', icon: ArrowLeft, run: onNavigateHome },
+  ];
+  const categoryNames = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
+  const categoryName = useCallback((id: string) => categoryNames.get(id) || 'No category', [categoryNames]);
+  const openEntry = (photoId: string) => {
+    setEntryToOpen(photoId);
+    goTo('submissions');
+  };
+  const clearEntry = useCallback(() => setEntryToOpen(null), []);
+
   const brand = (
     <div className="flex items-center gap-2.5">
       <img src={VITAL_RP_LOGO_URL} alt="Vital RP" className="h-7 w-7 object-contain" />
       <span className="text-sm font-bold font-display text-white">Contest admin</span>
     </div>
+  );
+
+  const searchButton = (
+    <button
+      type="button"
+      onClick={() => { setIsMenuOpen(false); setIsSearchOpen(true); }}
+      className="flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-md border border-white/10 px-2.5 text-sm text-white/55 transition-colors hover:border-white/25 hover:text-white focus-visible:outline-2 focus-visible:outline-fivem-orange"
+    >
+      <Search size={15} aria-hidden="true" />
+      <span className="flex-1 text-left">Search</span>
+      <kbd className="font-sans text-xs text-white/45">Ctrl K</kbd>
+    </button>
   );
 
   const navigation = (
@@ -207,15 +269,26 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   );
 
   return (
+    <ConfirmProvider>
     <div className="min-h-screen w-full bg-[#07070a] text-white antialiased selection:bg-fivem-orange selection:text-white lg:flex">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-white/10 bg-[#09090d] lg:flex">
         <div className="flex h-14 shrink-0 items-center border-b border-white/10 px-4">{brand}</div>
+        <div className="px-2 pt-3">{searchButton}</div>
         {navigation}
         {account}
       </aside>
 
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-white/10 bg-[#09090d] px-4 lg:hidden">
         {brand}
+        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIsSearchOpen(true)}
+          aria-label="Search"
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-white/15 text-white/85"
+        >
+          <Search size={16} aria-hidden="true" />
+        </button>
         <button
           type="button"
           onClick={() => setIsMenuOpen(true)}
@@ -223,8 +296,9 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
           className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-white/15 px-3 text-sm font-medium text-white/85"
         >
           <Menu size={16} aria-hidden="true" />
-          {current?.label || 'Menu'}
+          <span className="max-w-28 truncate">{current?.label || 'Menu'}</span>
         </button>
+        </div>
       </header>
 
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -272,10 +346,22 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
             onResetVotes={onResetVotes}
               initialTab={currentTab}
             onTabChange={onNavigateTab}
+          openEntryId={entryToOpen}
+          onEntryOpened={clearEntry}
           />
         </div>
       </main>
+
+      <CommandMenu
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        commands={commands}
+        photos={allPhotos}
+        categoryName={categoryName}
+        onOpenEntry={openEntry}
+      />
     </div>
+    </ConfirmProvider>
   );
 }
 

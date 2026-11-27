@@ -9,6 +9,7 @@ import { db } from '../../lib/firebase';
 import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
 import { Button, EmptyState, PageHeader, Panel, SearchField } from './kit';
+import { useConfirm } from './confirm';
 import { cn } from '../../lib/utils';
 import { toast } from '../ui/toast';
 import { getProfileAvatar, type DiceBearStyleName } from '../../lib/dicebear';
@@ -56,6 +57,7 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const confirm = useConfirm();
   const [selectedVoterId, setSelectedVoterId] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
 
@@ -161,9 +163,11 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
 
   // Reconcile and fix any desynchronized photo vote_counts from raw votes collection
   const handleRecalculateAllVoteCounts = async () => {
-    const confirmSync = window.confirm(
-      "Re-sync all photo vote counts?\n\nThis will scan all verified votes in the database and reconcile each photo's vote tally to match 100% accurately."
-    );
+    const confirmSync = await confirm({
+      title: 'Reconcile vote counts?',
+      body: "Every recorded vote is counted again and each photo's total is set to match.",
+      confirmLabel: 'Reconcile',
+    });
     if (!confirmSync) return;
 
     const toastId = toast.loading('Re-syncing and reconciling all photo vote counts...');

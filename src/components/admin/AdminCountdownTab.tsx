@@ -41,6 +41,8 @@ import { db } from '../../lib/firebase';
 import { CountdownSettings, CategorySuggestionsPageSettings } from '../../types';
 import { CountdownClock } from '../ui/countdown-clock';
 import { AdminHeader } from './AdminHeader';
+import { useConfirm } from './confirm';
+import { toast } from '../ui/toast';
 import { Button as KitButton, Panel, Segmented } from './kit';
 import { AnimatedSwitch } from '../ui/animated-switch';
 import { ShimmerButton } from '../ui/shimmer-button';
@@ -209,6 +211,7 @@ export function AdminCountdownTab({
   initialSettings,
   onSettingsSaved,
 }: AdminCountdownTabProps) {
+  const confirm = useConfirm();
   // Local form state
   const [enabled, setEnabled] = useState<boolean>(true);
   const [mode, setMode] = useState<'custom' | 'submissions' | 'voting'>('custom');
@@ -417,7 +420,7 @@ export function AdminCountdownTab({
   // Import date from Active Contest Submissions Close Date
   const handleImportSubmissionsClose = () => {
     if (!activeContest?.submissions_close_date) {
-      alert('No submissions close date found on the currently active contest.');
+      toast.error('No submissions close date found on the currently active contest.');
       return;
     }
     try {
@@ -427,14 +430,14 @@ export function AdminCountdownTab({
       setMode('submissions');
       setPreviewExpired(false);
     } catch {
-      alert('Invalid submissions close date format in active contest.');
+      toast.error('Invalid submissions close date format in active contest.');
     }
   };
 
   // Import date from Active Contest Voting End Date
   const handleImportVotingEnd = () => {
     if (!activeContest?.voting_end_date) {
-      alert('No voting end date found on the currently active contest.');
+      toast.error('No voting end date found on the currently active contest.');
       return;
     }
     try {
@@ -444,7 +447,7 @@ export function AdminCountdownTab({
       setMode('voting');
       setPreviewExpired(false);
     } catch {
-      alert('Invalid voting end date format in active contest.');
+      toast.error('Invalid voting end date format in active contest.');
     }
   };
 
@@ -524,9 +527,13 @@ export function AdminCountdownTab({
 
   // Revert back to Contest Phase Defaults
   const handleResetDefaults = async () => {
-    if (!window.confirm('Reset countdown timer to automatic contest-phase defaults? This will remove custom date overrides.')) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Reset the countdown?',
+      body: 'Custom dates and labels are replaced with the defaults for the current contest phase.',
+      confirmLabel: 'Reset countdown',
+      tone: 'danger',
+    });
+    if (!ok) return;
 
     setSaving(true);
     try {

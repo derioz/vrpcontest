@@ -113,54 +113,21 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
             animate="visible"
             className="w-full space-y-6"
         >
-            {/* --- TOP ROW: KPI CARDS --- */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-blue-500/40 transition-all shadow-sm">
-                    <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Total Submissions</span>
-                        <div className="p-2 bg-blue-500/15 text-blue-400 rounded-md border border-blue-500/30">
-                            <ImageIcon size={16} />
-                        </div>
+            {/* --- Summary --- */}
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 lg:grid-cols-4">
+                {[
+                    { label: 'Entries', value: totalSubmissions, note: '' },
+                    { label: 'Votes', value: totalVotes, note: '' },
+                    { label: 'Busiest category', value: mostActiveCategory?.name || 'None', note: mostActiveCategory ? `${mostActiveCategory.count} entries, ${mostActiveCategory.votes} votes` : '' },
+                    { label: 'Most voted player', value: topContributor?.name || 'None', note: topContributor ? `${topContributor.votes} votes` : '' },
+                ].map((stat) => (
+                    <div key={stat.label} className="min-w-0 bg-[#0c0c10] px-4 py-3">
+                        <dt className="text-xs text-white/60">{stat.label}</dt>
+                        <dd className="mt-0.5 truncate text-xl font-bold tabular-nums text-white">{stat.value}</dd>
+                        {stat.note && <dd className="truncate text-xs text-white/55">{stat.note}</dd>}
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold font-display text-white">{totalSubmissions}</p>
-                    <p className="text-xs text-white/55 tabular-nums mt-1">Uploaded contest entries</p>
-                </motion.div>
-
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-pink-500/40 transition-all shadow-sm">
-                    <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Total Votes Cast</span>
-                        <div className="p-2 bg-pink-500/15 text-pink-400 rounded-md border border-pink-500/30">
-                            <Heart size={16} />
-                        </div>
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-bold font-display text-white">{totalVotes}</p>
-                    <p className="text-xs text-white/55 tabular-nums mt-1">Verified community votes</p>
-                </motion.div>
-
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-emerald-500/40 transition-all shadow-sm">
-                    <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Top Category</span>
-                        <div className="p-2 bg-emerald-500/15 text-emerald-400 rounded-md border border-emerald-500/30">
-                            <Activity size={16} />
-                        </div>
-                    </div>
-                    <p className="text-lg sm:text-xl font-bold font-display text-white truncate">{mostActiveCategory?.name || 'N/A'}</p>
-                    <p className="text-xs text-emerald-400/80 tabular-nums mt-1">{mostActiveCategory?.count || 0} {mostActiveCategory?.count === 1 ? 'photo' : 'photos'} ({mostActiveCategory?.votes || 0} votes)</p>
-                </motion.div>
-
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-amber-500/40 transition-all shadow-sm">
-                    <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Top Contributor</span>
-                        <div className="p-2 bg-amber-500/15 text-amber-400 rounded-md border border-amber-500/30">
-                            <Award size={16} />
-                        </div>
-                    </div>
-                    <p className="text-lg sm:text-xl font-bold font-display text-white truncate">{topContributor?.name || 'N/A'}</p>
-                    <p className="text-xs text-amber-400/80 tabular-nums mt-1">{topContributor?.votes || 0} Total Votes</p>
-                </motion.div>
-
-            </div>
+                ))}
+            </dl>
 
             {/* --- MIDDLE ROW: MAIN CHART --- */}
             <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 sm:p-7 relative overflow-hidden">

@@ -11,6 +11,7 @@ import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
 import { Button, EmptyState, PageHeader, Panel, SearchField, fieldClass } from './kit';
+import { useConfirm } from './confirm';
 
 export type ChangelogLabel = 'UI' | 'FIX' | 'ENHANCE' | 'NEW' | 'PERFORMANCE' | 'MOBILE' | 'ADMIN' | 'SECURITY' | 'BACKEND';
 
@@ -863,6 +864,7 @@ export function ChangelogTab() {
   const [isAllExpanded, setIsAllExpanded] = useState<boolean>(false);
   // Release dates drawn at once; the full history is long
   const [visibleDates, setVisibleDates] = useState(10);
+  const confirm = useConfirm();
 
   // Form State for Admin New Entry Modal
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -994,6 +996,13 @@ export function ChangelogTab() {
   };
 
   const handleDeleteEntry = async (id: string) => {
+    const ok = await confirm({
+      title: 'Delete this update?',
+      body: 'It is removed from the changelog.',
+      confirmLabel: 'Delete update',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       if (!id.startsWith('entry-') && !id.startsWith('local-')) {
         await deleteDoc(doc(db, 'changelogs', id));
