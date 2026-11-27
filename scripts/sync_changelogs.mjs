@@ -34,13 +34,19 @@ const sa = JSON.parse(jsonPortion);
 
 // 2. Read entries from ChangelogTab.tsx
 const tabPath = path.join(cwd, 'src/components/admin/ChangelogTab.tsx');
-const tabFile = fs.readFileSync(tabPath, 'utf8');
+// Windows checkouts use CRLF line endings, so normalise before searching
+const tabFile = fs.readFileSync(tabPath, 'utf8').replace(/\r\n/g, '\n');
 const startMarker = 'export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [';
 const startIndex = tabFile.indexOf(startMarker);
-const endMarker = '];\n\nexport function ChangelogTab()';
-const endIndex = tabFile.indexOf(endMarker, startIndex);
+// The list ends at the first "];" that starts a line
+const endIndex = tabFile.indexOf('\n];', startIndex);
 
-const entriesCode = tabFile.substring(startIndex + startMarker.length - 1, endIndex + 1);
+if (startIndex === -1 || endIndex === -1) {
+  console.error(`Could not find INITIAL_CHANGELOG_ENTRIES in ${tabPath}`);
+  process.exit(1);
+}
+
+const entriesCode = tabFile.substring(startIndex + startMarker.length - 1, endIndex + '\n]'.length);
 const entries = eval(`(${entriesCode.replace(/as const/g, '')})`);
 
 console.log(`[Changelog Sync] Loaded ${entries.length} entries from ChangelogTab.tsx.`);
