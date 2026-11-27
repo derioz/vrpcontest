@@ -78,11 +78,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 <div className="mt-5 flex justify-end gap-2">
                   {/* Without a text field, Cancel comes first in focus order so Enter is safe */}
                   <Button onClick={() => answer(null)}>Cancel</Button>
-                  <Button
-                    type="submit"
-                    variant={request.tone === 'danger' ? 'secondary' : 'primary'}
-                    className={cn(request.tone === 'danger' && 'border-transparent bg-red-600 text-white hover:bg-red-500')}
-                  >
+                  <Button type="submit" variant={request.tone === 'danger' ? 'danger' : 'primary'}>
                     {request.confirmLabel}
                   </Button>
                 </div>

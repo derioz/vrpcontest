@@ -236,7 +236,7 @@ function MarkdownToolbar({
       {/* Templates & Quick Actions */}
       <div className="flex items-center gap-1.5 relative">
         <div className="relative">
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => setShowTemplates(!showTemplates)}
             className="px-2 py-1 text-xs tabular-nums text-fivem-orange hover:text-amber-300 hover:bg-fivem-orange/10 rounded-lg border border-fivem-orange/30 transition-all flex items-center gap-1 cursor-pointer"
@@ -672,7 +672,7 @@ export function EditContestManager({
                 className="bg-white/5 border-white/15 h-12 text-base font-bold text-white font-display rounded-lg focus:border-fivem-orange flex-1"
               />
               <div className="relative static-emoji-wrapper">
-                <Button
+                <Button data-btn="secondary"
                   type="button"
                   variant="outline"
                   className="h-12 px-4 bg-white/5 hover:bg-white/10 border-white/15 rounded-lg text-lg flex items-center justify-center cursor-pointer text-white"
@@ -711,7 +711,7 @@ export function EditContestManager({
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <span className="text-xs tabular-nums text-white/55">{categories.length} configured</span>
-              <Button
+              <Button data-btn="success"
                 type="button"
                 onClick={handleSaveCategoriesOnly}
                 disabled={savingCategoriesOnly}
@@ -739,7 +739,7 @@ export function EditContestManager({
                   </p>
                 </div>
               </div>
-              <Button
+              <Button data-btn="primary"
                 type="button"
                 onClick={handleDeduplicateCategories}
                 disabled={isDeduplicating}
@@ -764,7 +764,7 @@ export function EditContestManager({
                 </div>
               </div>
               <div className="flex items-center justify-end gap-2">
-                <Button
+                <Button data-btn="ghost"
                   type="button"
                   variant="ghost"
                   size="sm"
@@ -774,7 +774,7 @@ export function EditContestManager({
                 >
                   Cancel
                 </Button>
-                <Button
+                <Button data-btn="danger"
                   type="button"
                   size="sm"
                   onClick={handleConfirmDeleteCategory}
@@ -795,7 +795,7 @@ export function EditContestManager({
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1">
                     <div className="relative static-emoji-wrapper">
-                      <button
+                      <button data-btn="secondary"
                         type="button"
                         onClick={() => setEditingEmojiIdx(editingEmojiIdx === idx ? null : idx)}
                         className="text-2xl p-2 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-transform"
@@ -829,7 +829,7 @@ export function EditContestManager({
                       placeholder="Category Name"
                     />
                   </div>
-                  <Button
+                  <Button data-btn="ghost"
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -862,7 +862,7 @@ export function EditContestManager({
             </h4>
             <div className="flex items-center gap-3">
               <div className="relative static-emoji-wrapper">
-                <Button
+                <Button data-btn="secondary"
                   type="button"
                   variant="outline"
                   className="h-11 px-3 bg-white/5 hover:bg-white/10 border-white/15 rounded-md text-lg flex items-center justify-center cursor-pointer text-white"
@@ -899,7 +899,7 @@ export function EditContestManager({
               onChange={e => setCatDesc(e.target.value)}
               className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-md p-3 text-xs text-white outline-none focus:border-fivem-orange transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
             />
-            <Button
+            <Button data-btn="secondary"
               type="button"
               variant="secondary"
               onClick={addCategory}
@@ -923,7 +923,7 @@ export function EditContestManager({
 
             {/* Quick Instant Save Button */}
             <div className="flex items-center gap-2 shrink-0">
-              <Button
+              <Button data-btn="success"
                 type="button"
                 onClick={handleSaveRulesOnly}
                 disabled={savingRulesOnly}
@@ -1009,7 +1009,7 @@ export function EditContestManager({
           )}
         </div>
 
-        <Button
+        <Button data-btn="primary"
           type="button"
           onClick={handleUpdate}
           disabled={loading}
@@ -1211,10 +1211,10 @@ export function ArchiveContest({
             </div>
           </div>
           <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirming(null)} disabled={loading} className="text-xs text-white/60 hover:text-white cursor-pointer">
+            <Button data-btn="ghost" variant="ghost" onClick={() => setConfirming(null)} disabled={loading} className="text-xs text-white/60 hover:text-white cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={handleArchive} disabled={loading} className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs cursor-pointer">
+            <Button data-btn="danger" onClick={handleArchive} disabled={loading} className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs cursor-pointer">
               {loading ? 'Archiving...' : 'Yes, Archive Contest'}
             </Button>
           </div>
@@ -1234,10 +1234,10 @@ export function ArchiveContest({
             </div>
           </div>
           <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirming(null)} disabled={loading} className="text-xs text-white/60 hover:text-white cursor-pointer">
+            <Button data-btn="ghost" variant="ghost" onClick={() => setConfirming(null)} disabled={loading} className="text-xs text-white/60 hover:text-white cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={handleHardDestroy} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer">
+            <Button data-btn="danger" onClick={handleHardDestroy} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer">
               {loading ? 'Destroying...' : 'Yes, Permanently Destroy'}
             </Button>
           </div>
@@ -1246,7 +1246,7 @@ export function ArchiveContest({
 
       {/* Actions */}
       <div className="flex justify-end">
-        <Button
+        <Button data-btn="danger"
           onClick={() => setConfirming('archive')}
           disabled={loading || confirming !== null}
           className="bg-transparent hover:bg-red-500/15 text-red-300 hover:text-red-200 border border-red-500/40 text-xs font-semibold px-3 h-8 rounded-md transition-colors cursor-pointer"
@@ -1444,7 +1444,7 @@ export function CreateContestManager({
                   </div>
 
                   {/* Remove Button */}
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={() => removeCategory(c.id)}
                     className="p-2.5 hover:bg-red-500/20 text-white/55 hover:text-red-400 rounded-md border border-transparent hover:border-red-500/30 transition-all shrink-0 cursor-pointer"
@@ -1481,7 +1481,7 @@ export function CreateContestManager({
           </p>
           <div className="flex items-center gap-2.5">
             <div className="relative shrink-0 static-emoji-wrapper">
-              <Button variant="outline" className="h-11 w-12 bg-white/20 hover:bg-white/30 border-white/30 text-xl flex items-center justify-center p-0 rounded-lg cursor-pointer text-white " onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
+              <Button data-btn="secondary" variant="outline" className="h-11 w-12 bg-white/20 hover:bg-white/30 border-white/30 text-xl flex items-center justify-center p-0 rounded-lg cursor-pointer text-white " onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
                 {catEmoji}
               </Button>
               {showEmojiPicker && (
@@ -1513,7 +1513,7 @@ export function CreateContestManager({
             style={{ fieldSizing: 'content' } as any}
             className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-md p-3 text-xs text-white outline-none focus:border-emerald-400 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
           />
-          <Button variant="secondary" onClick={addCategory} className="w-full bg-emerald-500/20 hover:bg-emerald-500 hover:text-black border border-emerald-500/40 text-emerald-300 h-11 font-bold text-xs rounded-md flex items-center justify-center gap-2 cursor-pointer transition-all">
+          <Button data-btn="secondary" variant="secondary" onClick={addCategory} className="w-full bg-emerald-500/20 hover:bg-emerald-500 hover:text-black border border-emerald-500/40 text-emerald-300 h-11 font-bold text-xs rounded-md flex items-center justify-center gap-2 cursor-pointer transition-all">
             <Plus size={16} /> Add Category
           </Button>
         </div>
@@ -1569,7 +1569,7 @@ export function CreateContestManager({
       </div>
 
       {/* Launch Action */}
-      <Button
+      <Button data-btn="success"
         onClick={handleLaunch}
         disabled={loading}
         className="w-full h-14 bg-emerald-600 text-black font-display font-bold text-base tracking-wide rounded-lg mt-4 transition-all cursor-pointer"
@@ -1620,7 +1620,7 @@ export function StandaloneRulesEditor({
           <span>·</span>
           <span>{charCount} chars</span>
         </div>
-        <Button
+        <Button data-btn="success"
           type="button"
           onClick={handleSave}
           disabled={saving}

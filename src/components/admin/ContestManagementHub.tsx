@@ -379,7 +379,7 @@ export function ContestManagementHub({
               {/* Status Filter Chips */}
               <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/10 rounded-md">
                 {(['all', 'paused', 'archived'] as const).map((filter) => (
-                  <button
+                  <button data-choice aria-pressed={statusFilter === filter}
                     key={filter}
                     onClick={() => setStatusFilter(filter)}
                     className={`px-3 py-1 rounded-lg text-xs tabular-nums font-bold capitalize transition-all cursor-pointer ${
@@ -588,7 +588,7 @@ export function ContestManagementHub({
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
+              <Button data-btn="ghost"
                 variant="ghost"
                 onClick={() => setPausingActiveModal(false)}
                 disabled={isActionLoading}
@@ -596,7 +596,7 @@ export function ContestManagementHub({
               >
                 Cancel
               </Button>
-              <Button
+              <Button data-btn="primary"
                 onClick={handleConfirmPauseActive}
                 disabled={isActionLoading}
                 className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-5 py-2 rounded-md transition-all cursor-pointer"
@@ -630,7 +630,7 @@ export function ContestManagementHub({
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
+              <Button data-btn="ghost"
                 variant="ghost"
                 onClick={() => setDeletingContest(null)}
                 disabled={isActionLoading}
@@ -638,7 +638,7 @@ export function ContestManagementHub({
               >
                 Cancel
               </Button>
-              <Button
+              <Button data-btn="danger"
                 onClick={async () => {
                   setIsActionLoading(true);
                   try {
@@ -749,7 +749,7 @@ function SavedContestCard({
 
       {/* Action buttons */}
       <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-        <Button
+        <Button data-btn="secondary"
           onClick={onRestore}
           className="flex-1 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black border border-emerald-500/30 text-xs font-bold py-2 rounded-md transition-all cursor-pointer"
         >
@@ -758,7 +758,7 @@ function SavedContestCard({
         </Button>
 
         {onDelete && (
-          <button
+          <button data-btn="secondary"
             onClick={onDelete}
             className="p-2 rounded-md bg-white/5 hover:bg-red-500/20 text-white/55 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
             title="Delete permanently"
@@ -926,7 +926,7 @@ function PauseAndCreateModal({
               </p>
             </div>
           </div>
-          <button
+          <button data-btn="secondary"
             onClick={onClose}
             className="p-2 rounded-md bg-white/5 hover:bg-white/10 text-white/60 hover:text-white cursor-pointer"
           >
@@ -936,36 +936,36 @@ function PauseAndCreateModal({
 
         {/* Wizard Step Navigation */}
         <div className="flex items-center justify-between px-6 py-2.5 bg-white/[0.02] border-b border-white/5 text-xs tabular-nums shrink-0">
-          <button
+          <button data-choice aria-pressed={step === 1}
             onClick={() => setStep(1)}
-            className={`flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
               step === 1 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
             <span>1. Info & Dates</span>
           </button>
           <span className="text-white/55">→</span>
-          <button
+          <button data-choice aria-pressed={step === 2}
             onClick={() => setStep(2)}
-            className={`flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
               step === 2 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
             <span>2. Categories ({categories.length})</span>
           </button>
           <span className="text-white/55">→</span>
-          <button
+          <button data-choice aria-pressed={step === 3}
             onClick={() => setStep(3)}
-            className={`flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
               step === 3 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
             <span>3. Rules & Guidelines</span>
           </button>
           <span className="text-white/55">→</span>
-          <button
+          <button data-choice aria-pressed={step === 4}
             onClick={() => setStep(4)}
-            className={`flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
               step === 4 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
@@ -1026,7 +1026,7 @@ function PauseAndCreateModal({
                   Quick Schedule Presets
                 </label>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Button
+                  <Button data-btn="secondary"
                     type="button"
                     variant="outline"
                     onClick={() => applyDatePreset(3, 2)}
@@ -1034,7 +1034,7 @@ function PauseAndCreateModal({
                   >
                     Flash: 3d submissions + 2d voting
                   </Button>
-                  <Button
+                  <Button data-btn="secondary"
                     type="button"
                     variant="outline"
                     onClick={() => applyDatePreset(7, 3)}
@@ -1042,7 +1042,7 @@ function PauseAndCreateModal({
                   >
                     Standard: 1 week submissions + 3d voting
                   </Button>
-                  <Button
+                  <Button data-btn="secondary"
                     type="button"
                     variant="outline"
                     onClick={() => applyDatePreset(14, 5)}
@@ -1150,7 +1150,7 @@ function PauseAndCreateModal({
                   placeholder="Category description / instructions for participants..."
                   className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-xs text-white outline-none focus:border-fivem-orange font-sans"
                 />
-                <Button
+                <Button data-btn="secondary"
                   type="button"
                   onClick={handleAddCategory}
                   className="w-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs py-2 rounded-md cursor-pointer"
@@ -1171,7 +1171,7 @@ function PauseAndCreateModal({
                   <p className="text-xs text-white/55">Markdown formatted rules visible to participants.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
+                  <Button data-btn="secondary"
                     type="button"
                     variant="outline"
                     onClick={() => setRules(SHORT_RULES_TEMPLATE)}
@@ -1179,7 +1179,7 @@ function PauseAndCreateModal({
                   >
                     Short Template
                   </Button>
-                  <Button
+                  <Button data-btn="secondary"
                     type="button"
                     variant="outline"
                     onClick={() => setRules(STANDARD_RULES_TEMPLATE)}
@@ -1259,7 +1259,7 @@ function PauseAndCreateModal({
         <div className="p-6 border-t border-white/10 bg-black/40 flex items-center justify-between gap-3 shrink-0">
           <div>
             {step > 1 && (
-              <Button
+              <Button data-btn="ghost"
                 variant="ghost"
                 onClick={() => setStep((s) => (s - 1) as any)}
                 disabled={loading}
@@ -1271,7 +1271,7 @@ function PauseAndCreateModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
+            <Button data-btn="ghost"
               variant="ghost"
               onClick={onClose}
               disabled={loading}
@@ -1281,7 +1281,7 @@ function PauseAndCreateModal({
             </Button>
 
             {step < 4 ? (
-              <Button
+              <Button data-btn="primary"
                 onClick={() => setStep((s) => (s + 1) as any)}
                 className="bg-fivem-orange hover:bg-orange-500 text-black font-bold text-xs px-5 py-2 rounded-md transition-all cursor-pointer"
               >
@@ -1289,14 +1289,14 @@ function PauseAndCreateModal({
               </Button>
             ) : (
               <>
-                <Button
+                <Button data-btn="secondary"
                   onClick={() => handleLaunch(false)}
                   disabled={loading}
                   className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-4 py-2 rounded-md cursor-pointer"
                 >
                   Save as Draft
                 </Button>
-                <Button
+                <Button data-btn="primary"
                   onClick={() => handleLaunch(true)}
                   disabled={loading}
                   className="bg-fivem-orange text-black font-bold text-xs px-6 py-2 rounded-md transition-all cursor-pointer"
@@ -1473,7 +1473,7 @@ function RestoreContestModal({
               Currently Active Contest Action
             </label>
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <button data-radio-card role="radio" aria-checked={activeAction === 'pause'}
                 type="button"
                 onClick={() => setActiveAction('pause')}
                 className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
@@ -1491,7 +1491,7 @@ function RestoreContestModal({
                 </p>
               </button>
 
-              <button
+              <button data-radio-card role="radio" aria-checked={activeAction === 'archive'}
                 type="button"
                 onClick={() => setActiveAction('archive')}
                 className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
@@ -1514,7 +1514,7 @@ function RestoreContestModal({
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-2">
-          <Button
+          <Button data-btn="ghost"
             variant="ghost"
             onClick={onClose}
             disabled={loading}
@@ -1522,7 +1522,7 @@ function RestoreContestModal({
           >
             Cancel
           </Button>
-          <Button
+          <Button data-btn="success"
             onClick={handleConfirmRestore}
             disabled={loading}
             className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-6 py-2.5 rounded-md transition-all cursor-pointer"

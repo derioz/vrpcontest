@@ -45,7 +45,6 @@ import { useConfirm } from './confirm';
 import { toast } from '../ui/toast';
 import { Button as KitButton, Panel, Segmented } from './kit';
 import { AnimatedSwitch } from '../ui/animated-switch';
-import { ShimmerButton } from '../ui/shimmer-button';
 import { CategorySuggestionsSettingsModal } from './CategorySuggestionsSettingsModal';
 import { setDynamicCategorySuggestionDeadline } from '../../config';
 import { cn } from '../../lib/utils';
@@ -581,7 +580,7 @@ export function AdminCountdownTab({
         iconBg="bg-emerald-500/15 border-emerald-500/30"
         actions={
           <div className="flex items-center gap-2.5">
-            <button
+            <button data-btn="secondary"
               type="button"
               onClick={handleResetDefaults}
               disabled={saving}
@@ -591,7 +590,7 @@ export function AdminCountdownTab({
               <RotateCcw size={13} />
               <span>Reset Defaults</span>
             </button>
-            <button
+            <button data-btn={saveSuccess ? 'success' : 'primary'}
               type="button"
               onClick={handleSaveSettings}
               disabled={saving || !targetIsoString}
@@ -717,10 +716,9 @@ export function AdminCountdownTab({
               </div>
             </div>
             <AnimatedSwitch
+              ariaLabel="Show the countdown on the public site"
               checked={enabled}
               onCheckedChange={setEnabled}
-              activeColor="from-emerald-500 to-teal-500"
-              glowColor="rgba(16, 185, 129, 0.4)"
               size="md"
             />
           </div>
@@ -745,8 +743,8 @@ export function AdminCountdownTab({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-            <button
+          <div role="radiogroup" aria-label="Countdown source" className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <button data-radio-card role="radio" aria-checked={mode === 'custom'}
               type="button"
               onClick={() => {
                 setMode('custom');
@@ -763,14 +761,13 @@ export function AdminCountdownTab({
                 <span className={cn("text-xs font-bold", mode === 'custom' ? "text-purple-300" : "text-white")}>
                   Custom Deadline
                 </span>
-                {mode === 'custom' && <Check size={14} className="text-purple-400" />}
               </div>
               <p className="text-xs text-white/55 leading-normal">
                 Set any arbitrary future date, hour, and minute via manual controls.
               </p>
             </button>
 
-            <button
+            <button data-radio-card role="radio" aria-checked={mode === 'submissions'}
               type="button"
               onClick={handleImportSubmissionsClose}
               className={cn(
@@ -784,14 +781,13 @@ export function AdminCountdownTab({
                 <span className={cn("text-xs font-bold", mode === 'submissions' ? "text-cyan-300" : "text-white")}>
                   Submissions Close
                 </span>
-                {mode === 'submissions' && <Check size={14} className="text-cyan-400" />}
               </div>
               <p className="text-xs text-white/55 leading-normal">
                 Synchronize directly with active contest submissions deadline.
               </p>
             </button>
 
-            <button
+            <button data-radio-card role="radio" aria-checked={mode === 'voting'}
               type="button"
               onClick={handleImportVotingEnd}
               className={cn(
@@ -805,7 +801,6 @@ export function AdminCountdownTab({
                 <span className={cn("text-xs font-bold", mode === 'voting' ? "text-amber-300" : "text-white")}>
                   Voting Closes
                 </span>
-                {mode === 'voting' && <Check size={14} className="text-amber-400" />}
               </div>
               <p className="text-xs text-white/55 leading-normal">
                 Synchronize directly with active contest community voting deadline.
@@ -837,84 +832,84 @@ export function AdminCountdownTab({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(1)}
             className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +1 Hour
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(3)}
             className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +3 Hours
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(6)}
             className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +6 Hours
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(12)}
             className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +12 Hours
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(24)}
             className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +24 Hours (Tomorrow)
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(48)}
             className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +48 Hours (2 Days)
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(72)}
             className="px-3 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +3 Days
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(168)}
             className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +1 Week (7 Days)
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={() => handleAddDuration(336)}
             className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +2 Weeks (14 Days)
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={handleSetThisFriday}
             className="px-3.5 py-2 rounded-md bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             Next Friday (5:59 PM)
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={handleSetThisSunday}
             className="px-3.5 py-2 rounded-md bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             Next Sunday (11:59 PM)
           </button>
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={handleSetEndOfMonth}
             className="px-3.5 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
@@ -1033,7 +1028,7 @@ export function AdminCountdownTab({
             />
             <div className="flex flex-wrap gap-1.5 pt-1">
               {LABEL_PRESETS.map((lp) => (
-                <button
+                <button data-choice aria-pressed={label === lp}
                   key={lp}
                   type="button"
                   onClick={() => setLabel(lp)}
@@ -1061,7 +1056,7 @@ export function AdminCountdownTab({
                 <AnimatedSwitch
                   checked={autoGenerateLabels}
                   onCheckedChange={setAutoGenerateLabels}
-                  activeColor="from-blue-500 to-indigo-600"
+                  ariaLabel="Compute date and time labels automatically"
                   size="sm"
                 />
               </div>
@@ -1117,7 +1112,7 @@ export function AdminCountdownTab({
           />
           <div className="flex flex-wrap gap-1.5 pt-1">
             {COMPLETED_MESSAGE_PRESETS.map((cmp, idx) => (
-              <button
+              <button data-choice aria-pressed={completedMessage === cmp}
                 key={idx}
                 type="button"
                 onClick={() => setCompletedMessage(cmp)}
@@ -1154,7 +1149,7 @@ export function AdminCountdownTab({
                 type="checkbox"
                 checked={syncToSubmissionsClose}
                 onChange={(e) => setSyncToSubmissionsClose(e.target.checked)}
-                className="mt-0.5 rounded border-white/20 text-fivem-orange focus:ring-0 cursor-pointer"
+                className="pretty-check mt-0.5"
               />
               <div className="text-xs">
                 <span className="font-bold text-white block">Sync Submissions Close Date</span>
@@ -1169,7 +1164,7 @@ export function AdminCountdownTab({
                 type="checkbox"
                 checked={syncToVotingEnd}
                 onChange={(e) => setSyncToVotingEnd(e.target.checked)}
-                className="mt-0.5 rounded border-white/20 text-fivem-orange focus:ring-0 cursor-pointer"
+                className="pretty-check mt-0.5"
               />
               <div className="text-xs">
                 <span className="font-bold text-white block">Sync Voting End Date</span>
@@ -1192,7 +1187,7 @@ export function AdminCountdownTab({
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
+          <button data-btn={saveSuccess ? 'success' : 'primary'}
             type="button"
             onClick={handleSaveSettings}
             disabled={saving || !targetIsoString}

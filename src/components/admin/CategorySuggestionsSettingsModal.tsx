@@ -652,7 +652,7 @@ export function CategorySuggestionsSettingsModal({
             </div>
           </div>
 
-          <button
+          <button data-btn="secondary"
             onClick={onClose}
             className="p-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white transition-all cursor-pointer border border-white/5"
           >
@@ -662,7 +662,7 @@ export function CategorySuggestionsSettingsModal({
 
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 px-6 pt-3 pb-2 border-b border-white/5 bg-black/20">
-          <button
+          <button data-choice aria-pressed={activeTab === 'hero'}
             type="button"
             onClick={() => setActiveTab('hero')}
             className={cn(
@@ -676,7 +676,7 @@ export function CategorySuggestionsSettingsModal({
             <span>Hero Section & Monthly Theme</span>
           </button>
 
-          <button
+          <button data-choice aria-pressed={activeTab === 'countdown'}
             type="button"
             onClick={() => setActiveTab('countdown')}
             className={cn(
@@ -712,7 +712,7 @@ export function CategorySuggestionsSettingsModal({
 
                 <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
                   {MONTH_PRESETS.map((m) => (
-                    <button
+                    <button data-choice aria-pressed={heroMonthHighlight.toLowerCase().includes(m.monthName.toLowerCase())}
                       key={m.key}
                       type="button"
                       onClick={() => handleApplyMonthPreset(m)}
@@ -914,6 +914,7 @@ export function CategorySuggestionsSettingsModal({
                 </div>
 
                 <AnimatedSwitch
+                  ariaLabel="Show the countdown"
                   checked={countdownEnabled}
                   onCheckedChange={setCountdownEnabled}
                 />
@@ -1036,49 +1037,49 @@ export function CategorySuggestionsSettingsModal({
                   <span>Quick Duration Jumpers</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={() => handleAddDuration(1)}
                     className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +1 Hour
                   </button>
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={() => handleAddDuration(12)}
                     className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +12 Hours
                   </button>
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={() => handleAddDuration(24)}
                     className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +24 Hours
                   </button>
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={() => handleAddDuration(72)}
                     className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +3 Days
                   </button>
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={() => handleAddDuration(168)}
                     className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +1 Week
                   </button>
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={handleSetThisSunday}
                     className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     This Sunday
                   </button>
-                  <button
+                  <button data-btn="secondary"
                     type="button"
                     onClick={handleSetEndOfMonth}
                     className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
@@ -1103,7 +1104,7 @@ export function CategorySuggestionsSettingsModal({
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {LABEL_PRESETS.map((lbl) => (
-                    <button
+                    <button data-choice aria-pressed={countdownLabel === lbl}
                       key={lbl}
                       type="button"
                       onClick={() => setCountdownLabel(lbl)}
@@ -1132,6 +1133,7 @@ export function CategorySuggestionsSettingsModal({
                     </p>
                   </div>
                   <AnimatedSwitch
+                    ariaLabel="Compute date and time labels automatically"
                     checked={autoGenerateLabels}
                     onCheckedChange={setAutoGenerateLabels}
                   />
@@ -1188,7 +1190,7 @@ export function CategorySuggestionsSettingsModal({
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {COMPLETED_MESSAGE_PRESETS.map((msg, i) => (
-                    <button
+                    <button data-choice aria-pressed={completedMessage === msg}
                       key={i}
                       type="button"
                       onClick={() => setCompletedMessage(msg)}
@@ -1211,7 +1213,7 @@ export function CategorySuggestionsSettingsModal({
 
         {/* Modal Footer Actions */}
         <div className="p-4 sm:p-5 border-t border-white/10 bg-black/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={handleResetToDefaults}
             disabled={saving}
@@ -1222,7 +1224,7 @@ export function CategorySuggestionsSettingsModal({
           </button>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
+            <button data-btn="secondary"
               type="button"
               onClick={onClose}
               disabled={saving}
@@ -1231,7 +1233,7 @@ export function CategorySuggestionsSettingsModal({
               Cancel
             </button>
 
-            <motion.button
+            <motion.button data-btn={saveSuccess ? 'success' : 'primary'}
               type="button"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

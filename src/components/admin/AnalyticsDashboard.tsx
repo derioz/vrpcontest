@@ -305,7 +305,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center justify-between mb-8 md:mb-12 pt-4"
                 >
-                    <button
+                    <button data-btn="secondary"
                         onClick={onClose}
                         className="flex items-center gap-2 text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-md border border-white/10 transition-colors cursor-pointer"
                     >

@@ -723,7 +723,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
         {/* Stable vs Live Stream Toggle & Sort */}
         <div className="flex items-center gap-2 self-end sm:self-auto overflow-x-auto pb-1 sm:pb-0">
-          <button
+          <button data-choice aria-pressed={autoReorder}
             onClick={() => {
               if (!autoReorder) {
                 handleApplyRanking();
@@ -779,7 +779,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                 Live vote activity: <span className="text-amber-300">{pendingRankShifts} {pendingRankShifts === 1 ? 'idea has' : 'ideas have'} moved rank in the background</span>
               </span>
             </div>
-            <button
+            <button data-btn="primary"
               onClick={handleApplyRanking}
               className="px-3.5 py-1.5 rounded-md bg-fivem-orange text-white text-xs font-bold transition-all cursor-pointer   flex items-center gap-1.5 shrink-0"
             >
@@ -1043,7 +1043,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                         </div>
 
                         {/* Admin Vote Toggle Button */}
-                        <button
+                        <button data-btn={currentAdminHasVoted ? 'success' : 'secondary'}
                           onClick={() => handleAdminContestVote(suggestion.id)}
                           disabled={votingLocks[suggestion.id]}
                           className={cn(
@@ -1093,7 +1093,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   </div>
 
                   {/* Edit Title & Description */}
-                  <button
+                  <button data-btn="secondary"
                     onClick={() => handleOpenEditModal(suggestion)}
                     title="Edit title & description"
                     className="p-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-amber-300 hover:text-white transition-colors cursor-pointer"
@@ -1102,7 +1102,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   </button>
 
                   {/* Copy Details */}
-                  <button
+                  <button data-btn="secondary"
                     onClick={() => handleCopyDetails(suggestion)}
                     title="Copy concept details to clipboard"
                     className="p-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
@@ -1111,7 +1111,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   </button>
 
                   {/* Delete */}
-                  <button
+                  <button data-btn="danger"
                     onClick={() => setDeletingSuggestion(suggestion)}
                     title="Delete suggestion"
                     className="p-2.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors cursor-pointer"
@@ -1141,14 +1141,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
           </DialogHeader>
 
           <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-white/10">
-            <button
+            <button data-btn="secondary"
               onClick={() => setDeletingSuggestion(null)}
               disabled={isDeleting}
               className="px-4 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold"
             >
               Cancel
             </button>
-            <button
+            <button data-btn="danger"
               onClick={handleDelete}
               disabled={isDeleting}
               className="px-5 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
@@ -1214,14 +1214,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-              <button
+              <button data-btn="secondary"
                 type="button"
                 onClick={() => setEditingSuggestion(null)}
                 className="px-4 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold"
               >
                 Cancel
               </button>
-              <button
+              <button data-btn="primary"
                 type="submit"
                 disabled={isSavingEdit || !editCategoryName.trim()}
                 className="px-5 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
@@ -1290,14 +1290,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-              <button
+              <button data-btn="secondary"
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
                 className="px-4 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold"
               >
                 Cancel
               </button>
-              <button
+              <button data-btn="primary"
                 type="submit"
                 disabled={isCreatingSuggestion || !newCategoryName.trim()}
                 className="px-5 py-2 rounded-md bg-fivem-orange text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"

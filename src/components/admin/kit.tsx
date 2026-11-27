@@ -5,6 +5,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { AnimatedSwitch } from '../ui/animated-switch';
 
 export function PageHeader({
   title,
@@ -81,25 +82,19 @@ export function Row({
   );
 }
 
-const buttonStyles = {
-  primary: 'bg-fivem-orange text-white hover:bg-orange-500',
-  secondary: 'border border-white/15 bg-white/[0.03] text-white/85 hover:bg-white/[0.08] hover:text-white',
-  ghost: 'text-white/70 hover:bg-white/[0.06] hover:text-white',
-  danger: 'border border-red-500/40 text-red-300 hover:bg-red-500/15 hover:text-red-200',
-};
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 
 export const Button = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof buttonStyles; size?: 'sm' | 'md' }
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: 'sm' | 'md' }
 >(({ variant = 'secondary', size = 'md', className, type = 'button', ...props }, ref) => (
   <button
     ref={ref}
     type={type}
+    data-btn={variant}
     className={cn(
-      'inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md font-semibold transition-colors',
-      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fivem-orange disabled:cursor-not-allowed disabled:opacity-50',
+      'inline-flex shrink-0 items-center justify-center gap-1.5 font-semibold',
       size === 'sm' ? 'h-8 px-2.5 text-xs' : 'h-9 px-3.5 text-sm',
-      buttonStyles[variant],
       className,
     )}
     {...props}
@@ -120,27 +115,7 @@ export function Switch({
   disabled?: boolean;
   tone?: 'accent' | 'danger';
 }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        'relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-40',
-        checked ? (tone === 'danger' ? 'bg-red-600' : 'bg-fivem-orange') : 'bg-white/15',
-      )}
-    >
-      <span
-        className={cn(
-          'absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150',
-          checked && 'translate-x-5',
-        )}
-      />
-    </button>
-  );
+  return <AnimatedSwitch checked={checked} onCheckedChange={onChange} ariaLabel={label} disabled={disabled} tone={tone} />;
 }
 
 export function Segmented<T extends string>({
@@ -155,16 +130,17 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex w-fit max-w-full items-center gap-0.5 overflow-x-auto rounded-md border border-white/10 p-0.5 [scrollbar-width:none]">
+    <div role="group" aria-label={label} className="flex w-fit max-w-full items-center gap-0.5 overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-1 [scrollbar-width:none]">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           aria-pressed={value === o.value}
+          data-segment
           onClick={() => onChange(o.value)}
           className={cn(
             'h-7 cursor-pointer whitespace-nowrap rounded px-2.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-fivem-orange',
-            value === o.value ? 'bg-white/12 text-white' : 'text-white/60 hover:text-white',
+            value === o.value ? 'text-white' : 'text-white/60 hover:text-white',
           )}
         >
           {o.label}{o.count !== undefined && ' '}

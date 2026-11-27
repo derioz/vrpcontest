@@ -1089,11 +1089,11 @@ export function ChangelogTab() {
         description={`${filteredEntries.length} updates across ${groupedByDate.length} release dates`}
         actions={
           <>
-            <Button onClick={handleSyncAllToFirestore} disabled={isSyncing} title="Copy the built-in entries to the database">
+            <Button data-btn="primary" onClick={handleSyncAllToFirestore} disabled={isSyncing} title="Copy the built-in entries to the database">
               <RefreshCw size={14} aria-hidden="true" className={cn(isSyncing && 'animate-spin')} />
               {isSyncing ? 'Syncing' : 'Sync to database'}
             </Button>
-            <Button variant="primary" onClick={() => setShowAddModal(true)}>
+            <Button data-btn="primary" variant="primary" onClick={() => setShowAddModal(true)}>
               <Plus size={15} aria-hidden="true" /> Publish update
             </Button>
           </>
@@ -1113,7 +1113,7 @@ export function ChangelogTab() {
             <option key={lbl} value={lbl}>{lbl.charAt(0) + lbl.slice(1).toLowerCase()}</option>
           ))}
         </select>
-        <Button onClick={handleToggleAll}>{isAllExpanded ? 'Collapse all' : 'Expand all'}</Button>
+        <Button data-btn="primary" onClick={handleToggleAll}>{isAllExpanded ? 'Collapse all' : 'Expand all'}</Button>
       </div>
 
       {groupedByDate.length === 0 ? (
@@ -1143,7 +1143,7 @@ export function ChangelogTab() {
                       </span>
                     </button>
                     {entry.id && (
-                      <Button size="sm" variant="ghost" aria-label={`Delete entry: ${entry.title}`} onClick={() => handleDeleteEntry(entry.id!)}>
+                      <Button data-btn="primary" size="sm" variant="ghost" aria-label={`Delete entry: ${entry.title}`} onClick={() => handleDeleteEntry(entry.id!)}>
                         <Trash2 size={13} aria-hidden="true" />
                       </Button>
                     )}
@@ -1164,7 +1164,7 @@ export function ChangelogTab() {
 
       {groupedByDate.length > visibleDates && (
         <div className="flex justify-center">
-          <Button onClick={() => setVisibleDates((n) => n + 10)}>Show older updates</Button>
+          <Button data-btn="primary" onClick={() => setVisibleDates((n) => n + 10)}>Show older updates</Button>
         </div>
       )}
 
@@ -1203,7 +1203,7 @@ export function ChangelogTab() {
                       const isSelected = newLabels.includes(lbl);
                       const conf = LABEL_CONFIG[lbl];
                       return (
-                        <button
+                        <button data-choice aria-pressed={isSelected}
                           key={lbl}
                           type="button"
                           onClick={() => {
@@ -1267,7 +1267,7 @@ export function ChangelogTab() {
                   >
                     Cancel
                   </button>
-                  <button
+                  <button data-btn="primary"
                     type="submit"
                     disabled={isSubmitting}
                     className="px-5 py-2.5 rounded-md bg-fivem-orange hover:bg-amber-500 text-black font-bold text-xs transition-all cursor-pointer disabled:opacity-50"

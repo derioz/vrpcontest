@@ -78,7 +78,7 @@ export function AdminRouteGuard({ user, onNavigateHome, onOpenSignIn }: AdminRou
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-2.5">
-          <button
+          <button data-btn="secondary"
             type="button"
             onClick={onNavigateHome}
             className="w-full py-2.5 px-4 rounded-md bg-white/[0.06] hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-display font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -88,7 +88,7 @@ export function AdminRouteGuard({ user, onNavigateHome, onOpenSignIn }: AdminRou
           </button>
 
           {!user && (
-            <button
+            <button data-btn="primary"
               type="button"
               onClick={onOpenSignIn}
               className="w-full py-2.5 px-4 rounded-md bg-fivem-orange text-white text-xs font-display font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
