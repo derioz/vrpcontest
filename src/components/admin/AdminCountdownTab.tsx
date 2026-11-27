@@ -41,6 +41,7 @@ import { db } from '../../lib/firebase';
 import { CountdownSettings, CategorySuggestionsPageSettings } from '../../types';
 import { CountdownClock } from '../ui/countdown-clock';
 import { AdminHeader } from './AdminHeader';
+import { Button as KitButton, Panel, Segmented } from './kit';
 import { AnimatedSwitch } from '../ui/animated-switch';
 import { ShimmerButton } from '../ui/shimmer-button';
 import { CategorySuggestionsSettingsModal } from './CategorySuggestionsSettingsModal';
@@ -564,10 +565,11 @@ export function AdminCountdownTab({
     : targetIsoString;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* ── HEADER ── */}
       <AdminHeader
-        title="Countdown Timer & Target Schedule"
+        title="Countdown"
+        subtitle={!enabled ? 'Hidden on the public site.' : timeRemaining.isPast ? 'The target time has passed.' : `${timeRemaining.days}d ${timeRemaining.hours}h ${timeRemaining.minutes}m remaining.`}
         icon={<Clock size={20} className="text-emerald-400" />}
         iconBg="bg-emerald-500/15 border-emerald-500/30"
         actions={
@@ -576,7 +578,7 @@ export function AdminCountdownTab({
               type="button"
               onClick={handleResetDefaults}
               disabled={saving}
-              className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 text-xs font-mono transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+              className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 text-xs tabular-nums transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
               title="Reset countdown clock to contest phase defaults"
             >
               <RotateCcw size={13} />
@@ -587,10 +589,10 @@ export function AdminCountdownTab({
               onClick={handleSaveSettings}
               disabled={saving || !targetIsoString}
               className={cn(
-                "px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-lg cursor-pointer active:scale-95",
+                "px-5 py-2.5 rounded-md font-bold text-xs flex items-center gap-2 transition-all cursor-pointer",
                 saveSuccess
-                  ? "bg-emerald-500 text-black shadow-emerald-500/30"
-                  : "bg-fivem-orange hover:bg-orange-500 text-white shadow-fivem-orange/30 hover:shadow-fivem-orange/50",
+                  ? "bg-emerald-500 text-black"
+                  : "bg-fivem-orange hover:bg-orange-500 text-white",
                 saving && "opacity-60 cursor-wait"
               )}
             >
@@ -615,46 +617,20 @@ export function AdminCountdownTab({
         }
       />
 
-      {/* ── DUAL TIMER TARGET SELECTOR (PHOTO CONTEST vs CATEGORY SUGGESTIONS) ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/10">
-        <div className="flex items-center gap-2 p-1 rounded-xl bg-white/[0.03] border border-white/5">
-          <button
-            type="button"
-            onClick={() => handleSwitchTimerTarget('contest')}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer",
-              timerTarget === 'contest'
-                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20"
-                : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-            )}
-          >
-            <Clock size={13} />
-            <span>Photo Contest Timer</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSwitchTimerTarget('suggestions')}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer",
-              timerTarget === 'suggestions'
-                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20"
-                : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-            )}
-          >
-            <Sparkles size={13} />
-            <span>Category Suggestions Timer</span>
-          </button>
-        </div>
-
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Segmented
+          label="Which countdown"
+          value={timerTarget}
+          onChange={(v) => handleSwitchTimerTarget(v)}
+          options={[
+            { value: 'contest', label: 'Photo contest' },
+            { value: 'suggestions', label: 'Category suggestions' },
+          ]}
+        />
         {timerTarget === 'suggestions' && (
-          <button
-            type="button"
-            onClick={() => setIsHeroCustomizerOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 hover:text-white border border-orange-500/30 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-          >
-            <Sliders size={13} className="text-orange-400" />
-            <span>Customize Month Title & Theme</span>
-          </button>
+          <KitButton size="sm" onClick={() => setIsHeroCustomizerOpen(true)}>
+            <Sliders size={13} aria-hidden="true" /> Edit month title and theme
+          </KitButton>
         )}
       </div>
 
@@ -665,7 +641,7 @@ export function AdminCountdownTab({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-3"
+            className="p-4 rounded-md bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-3"
           >
             <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -679,7 +655,7 @@ export function AdminCountdownTab({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-3 shadow-lg shadow-emerald-950/40"
+            className="p-4 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-3"
           >
             <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
             <div className="flex-1">
@@ -689,92 +665,16 @@ export function AdminCountdownTab({
         )}
       </AnimatePresence>
 
-      {/* ── LIVE TELEMETRY STRIP ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 p-4 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl">
-        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02]">
-          <span className={cn(
-            "w-3 h-3 rounded-full shrink-0",
-            !enabled ? "bg-zinc-600" : timeRemaining.isPast ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse" : "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] animate-pulse"
-          )} />
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-white/40">Status</p>
-            <p className="text-xs font-bold font-display text-white truncate">
-              {!enabled ? "HIDDEN / DISABLED" : timeRemaining.isPast ? "EXPIRED / ZERO" : "ACTIVE & TICKING"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02]">
-          <Timer size={16} className="text-fivem-orange shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-white/40">Time Remaining</p>
-            <p className="text-xs font-mono font-bold text-fivem-orange truncate">
-              {timeRemaining.isPast
-                ? "00D 00H 00M 00S"
-                : `${timeRemaining.days}d ${timeRemaining.hours}h ${timeRemaining.minutes}m ${timeRemaining.seconds}s`}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02]">
-          <Calendar size={16} className="text-cyan-400 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-white/40">Target Date</p>
-            <p className="text-xs font-mono font-bold text-cyan-300 truncate">
-              {effectiveEventDateLabel || 'Not configured'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02]">
-          <Clock size={16} className="text-purple-400 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-white/40">Target Time</p>
-            <p className="text-xs font-mono font-bold text-purple-300 truncate">
-              {effectiveEventTimeLabel ? `${effectiveEventTimeLabel} ${effectiveEventTzLabel}` : 'Not configured'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── LIVE MECHANICAL FLIP CLOCK PREVIEW STAGE ── */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#0e0e15] to-[#08080c] p-6 sm:p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-fivem-orange/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-fivem-orange/10 border border-fivem-orange/25 text-fivem-orange">
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold font-display uppercase tracking-wider text-white">
-                  Hero Countdown Flip Clock — Live Preview
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[9px] font-mono font-bold uppercase tracking-widest">
-                  Live Interactive
-                </span>
-              </div>
-              <p className="text-xs text-white/40 mt-0.5">
-                Exact mechanical sound effects, split-flap 3D cards, and layout as seen by public visitors.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPreviewExpired(!previewExpired)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer",
-                previewExpired
-                  ? "bg-amber-500/20 border-amber-500/40 text-amber-300 font-bold"
-                  : "bg-white/5 border-white/10 text-white/60 hover:text-white"
-              )}
-            >
-              {previewExpired ? "Simulating Expired Banner" : "Simulate Expired State"}
-            </button>
-          </div>
-        </div>
+      <Panel
+        title="Preview"
+        description="As visitors see it."
+        actions={
+          <KitButton size="sm" aria-pressed={previewExpired} onClick={() => setPreviewExpired(!previewExpired)}>
+            {previewExpired ? 'Show running clock' : 'Show finished message'}
+          </KitButton>
+        }
+      >
+      <div className="p-4">
 
         {/* Live Clock Component */}
         <div className="w-full flex justify-center py-4">
@@ -790,41 +690,23 @@ export function AdminCountdownTab({
           </div>
         </div>
 
-        {/* Technical Timestamp Diagnostics Readout */}
-        <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-white/50">
-          <div className="flex items-center gap-2">
-            <span className="text-white/30">Target ISO:</span>
-            <code className="bg-black/60 px-2 py-1 rounded border border-white/10 text-emerald-400">
-              {targetIsoString || 'None'}
-            </code>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-white/30">Epoch Timestamp:</span>
-            <code className="bg-black/60 px-2 py-1 rounded border border-white/10 text-cyan-400">
-              {targetTimestampMs || 0}
-            </code>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-white/30">Timezone:</span>
-            <span className="text-purple-300 font-bold">{timeZone}</span>
-          </div>
-        </div>
       </div>
+      </Panel>
 
       {/* ── SECTION 1: MASTER CONTROLS & MODE SELECTOR ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Enable Hero Clock Toggle Card */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
+        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-fivem-orange">
+              <div className="p-2 rounded-md bg-orange-500/10 border border-orange-500/20 text-fivem-orange">
                 {enabled ? <Eye size={16} /> : <EyeOff size={16} />}
               </div>
               <div>
-                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                <h4 className="text-xs tabular-nums font-bold text-white">
                   Hero Clock Visibility
                 </h4>
-                <p className="text-[11px] text-white/40">Toggle public display on the main page</p>
+                <p className="text-xs text-white/55">Toggle public display on the main page</p>
               </div>
             </div>
             <AnimatedSwitch
@@ -835,7 +717,7 @@ export function AdminCountdownTab({
               size="md"
             />
           </div>
-          <p className="text-xs text-white/60 leading-relaxed bg-black/30 p-3 rounded-xl border border-white/5">
+          <p className="text-xs text-white/60 leading-relaxed bg-black/30 p-3 rounded-md border border-white/5">
             {enabled
               ? "🟢 The countdown flip clock is actively rendered on the homepage hero banner."
               : "⚪ The countdown flip clock is hidden from public view."}
@@ -843,16 +725,16 @@ export function AdminCountdownTab({
         </div>
 
         {/* Operating Target Mode Card */}
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-3">
+        <div className="lg:col-span-2 rounded-lg border border-white/10 bg-white/[0.02] p-5 space-y-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+            <div className="p-2 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400">
               <Radio size={16} />
             </div>
             <div>
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <h4 className="text-xs tabular-nums font-bold text-white">
                 Countdown Mode & Target Source
               </h4>
-              <p className="text-[11px] text-white/40">Choose whether the deadline is custom or contest-linked</p>
+              <p className="text-xs text-white/55">Choose whether the deadline is custom or contest-linked</p>
             </div>
           </div>
 
@@ -864,9 +746,9 @@ export function AdminCountdownTab({
                 setPreviewExpired(false);
               }}
               className={cn(
-                "p-3 rounded-xl border text-left transition-all cursor-pointer",
+                "p-3 rounded-md border text-left transition-all cursor-pointer",
                 mode === 'custom'
-                  ? "bg-purple-500/15 border-purple-500/40 shadow-lg shadow-purple-950/30"
+                  ? "bg-purple-500/15 border-purple-500/40"
                   : "bg-white/[0.01] border-white/10 hover:border-white/20 text-white/60"
               )}
             >
@@ -876,7 +758,7 @@ export function AdminCountdownTab({
                 </span>
                 {mode === 'custom' && <Check size={14} className="text-purple-400" />}
               </div>
-              <p className="text-[10px] text-white/40 leading-normal">
+              <p className="text-xs text-white/55 leading-normal">
                 Set any arbitrary future date, hour, and minute via manual controls.
               </p>
             </button>
@@ -885,9 +767,9 @@ export function AdminCountdownTab({
               type="button"
               onClick={handleImportSubmissionsClose}
               className={cn(
-                "p-3 rounded-xl border text-left transition-all cursor-pointer",
+                "p-3 rounded-md border text-left transition-all cursor-pointer",
                 mode === 'submissions'
-                  ? "bg-cyan-500/15 border-cyan-500/40 shadow-lg shadow-cyan-950/30"
+                  ? "bg-cyan-500/15 border-cyan-500/40"
                   : "bg-white/[0.01] border-white/10 hover:border-white/20 text-white/60"
               )}
             >
@@ -897,7 +779,7 @@ export function AdminCountdownTab({
                 </span>
                 {mode === 'submissions' && <Check size={14} className="text-cyan-400" />}
               </div>
-              <p className="text-[10px] text-white/40 leading-normal">
+              <p className="text-xs text-white/55 leading-normal">
                 Synchronize directly with active contest submissions deadline.
               </p>
             </button>
@@ -906,9 +788,9 @@ export function AdminCountdownTab({
               type="button"
               onClick={handleImportVotingEnd}
               className={cn(
-                "p-3 rounded-xl border text-left transition-all cursor-pointer",
+                "p-3 rounded-md border text-left transition-all cursor-pointer",
                 mode === 'voting'
-                  ? "bg-amber-500/15 border-amber-500/40 shadow-lg shadow-amber-950/30"
+                  ? "bg-amber-500/15 border-amber-500/40"
                   : "bg-white/[0.01] border-white/10 hover:border-white/20 text-white/60"
               )}
             >
@@ -918,7 +800,7 @@ export function AdminCountdownTab({
                 </span>
                 {mode === 'voting' && <Check size={14} className="text-amber-400" />}
               </div>
-              <p className="text-[10px] text-white/40 leading-normal">
+              <p className="text-xs text-white/55 leading-normal">
                 Synchronize directly with active contest community voting deadline.
               </p>
             </button>
@@ -927,22 +809,22 @@ export function AdminCountdownTab({
       </div>
 
       {/* ── SECTION 2: QUICK JUMP DURATION PRESETS ── */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+      <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <div className="p-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
               <Zap size={16} />
             </div>
             <div>
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <h4 className="text-xs tabular-nums font-bold text-white">
                 Quick Duration Jumpers (1-Click Presets)
               </h4>
-              <p className="text-[11px] text-white/40">
+              <p className="text-xs text-white/55">
                 Immediately schedule the countdown timer relative to the current moment
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono text-emerald-400/80 uppercase">
+          <span className="text-xs tabular-nums text-emerald-400/80">
             Offset from Now
           </span>
         </div>
@@ -951,84 +833,84 @@ export function AdminCountdownTab({
           <button
             type="button"
             onClick={() => handleAddDuration(1)}
-            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs font-mono transition-all cursor-pointer active:scale-95"
+            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +1 Hour
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(3)}
-            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs font-mono transition-all cursor-pointer active:scale-95"
+            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +3 Hours
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(6)}
-            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs font-mono transition-all cursor-pointer active:scale-95"
+            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +6 Hours
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(12)}
-            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs font-mono transition-all cursor-pointer active:scale-95"
+            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +12 Hours
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(24)}
-            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +24 Hours (Tomorrow)
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(48)}
-            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +48 Hours (2 Days)
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(72)}
-            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs font-mono transition-all cursor-pointer active:scale-95"
+            className="px-3 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums transition-all cursor-pointer"
           >
             +3 Days
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(168)}
-            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +1 Week (7 Days)
           </button>
           <button
             type="button"
             onClick={() => handleAddDuration(336)}
-            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             +2 Weeks (14 Days)
           </button>
           <button
             type="button"
             onClick={handleSetThisFriday}
-            className="px-3.5 py-2 rounded-xl bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-md bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             Next Friday (5:59 PM)
           </button>
           <button
             type="button"
             onClick={handleSetThisSunday}
-            className="px-3.5 py-2 rounded-xl bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-md bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             Next Sunday (11:59 PM)
           </button>
           <button
             type="button"
             onClick={handleSetEndOfMonth}
-            className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
           >
             End of Month (11:59 PM)
           </button>
@@ -1038,21 +920,21 @@ export function AdminCountdownTab({
       {/* ── SECTION 3: PRECISION DATE, TIME & TIMEZONE PICKER ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Date & Time Input */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <div className="p-2 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400">
               <CalendarClock size={16} />
             </div>
             <div>
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <h4 className="text-xs tabular-nums font-bold text-white">
                 Target Date & Time
               </h4>
-              <p className="text-[11px] text-white/40">Select the exact target deadline</p>
+              <p className="text-xs text-white/55">Select the exact target deadline</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-white/50 block">
+            <label className="text-xs tabular-nums text-white/50 block">
               Deadline Date & Time Picker
             </label>
             <div className="relative">
@@ -1063,33 +945,33 @@ export function AdminCountdownTab({
                   setDatetimeLocal(e.target.value);
                   setPreviewExpired(false);
                 }}
-                className="w-full px-4 py-3 bg-black/60 border border-white/15 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-fivem-orange transition-all shadow-inner [color-scheme:dark]"
+                className="w-full px-4 py-3 bg-black/60 border border-white/15 rounded-md text-white tabular-nums text-sm focus:outline-none focus:border-fivem-orange transition-all [color-scheme:dark]"
               />
             </div>
-            <p className="text-[10px] text-white/40">
-              Selected: <span className="text-emerald-400 font-mono font-bold">{datetimeLocal || 'None'}</span> (in {timeZone})
+            <p className="text-xs text-white/55">
+              Selected: <span className="text-emerald-400 tabular-nums font-bold">{datetimeLocal || 'None'}</span> (in {timeZone})
             </p>
           </div>
         </div>
 
         {/* Timezone Selector */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="p-2 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
               <Settings2 size={16} />
             </div>
             <div>
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <h4 className="text-xs tabular-nums font-bold text-white">
                 Target Timezone
               </h4>
-              <p className="text-[11px] text-white/40">
+              <p className="text-xs text-white/55">
                 Determines offset and public display abbreviation
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-white/50 block">
+            <label className="text-xs tabular-nums text-white/50 block">
               Timezone Region
             </label>
             <select
@@ -1098,7 +980,7 @@ export function AdminCountdownTab({
                 setTimeZone(e.target.value);
                 setPreviewExpired(false);
               }}
-              className="w-full px-4 py-3 bg-black/60 border border-white/15 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-fivem-orange transition-all cursor-pointer"
+              className="w-full px-4 py-3 bg-black/60 border border-white/15 rounded-md text-white tabular-nums text-xs focus:outline-none focus:border-fivem-orange transition-all cursor-pointer"
             >
               {TIMEZONE_OPTIONS.map((tz) => (
                 <option key={tz.value} value={tz.value} className="bg-zinc-900 text-white">
@@ -1106,24 +988,24 @@ export function AdminCountdownTab({
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-white/40">
-              Offset: <span className="text-purple-300 font-mono font-bold">{getTimezoneOffsetForDate(datetimeLocal, timeZone)}</span> • Standard: <span className="text-white/70">{TIMEZONE_OPTIONS.find(t => t.value === timeZone)?.description}</span>
+            <p className="text-xs text-white/55">
+              Offset: <span className="text-purple-300 tabular-nums font-bold">{getTimezoneOffsetForDate(datetimeLocal, timeZone)}</span> • Standard: <span className="text-white/70">{TIMEZONE_OPTIONS.find(t => t.value === timeZone)?.description}</span>
             </p>
           </div>
         </div>
       </div>
 
       {/* ── SECTION 4: LABELS, HEADERS & FINISHED MESSAGES ── */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-6">
+      <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-6">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+          <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400">
             <Sliders size={16} />
           </div>
           <div>
-            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+            <h4 className="text-xs tabular-nums font-bold text-white">
               Clock Labels, Header & Finished Banner
             </h4>
-            <p className="text-[11px] text-white/40">
+            <p className="text-xs text-white/55">
               Customize text badges, auto-formatted dates, and completion messages
             </p>
           </div>
@@ -1132,7 +1014,7 @@ export function AdminCountdownTab({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Header Badge Label */}
           <div className="space-y-3">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-white/50 block">
+            <label className="text-xs tabular-nums text-white/50 block">
               Header Badge Text (Above Clock)
             </label>
             <input
@@ -1140,7 +1022,7 @@ export function AdminCountdownTab({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Submissions Close In"
-              className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-xl text-white text-sm focus:outline-none focus:border-fivem-orange transition-all"
+              className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-md text-white text-sm focus:outline-none focus:border-fivem-orange transition-all"
             />
             <div className="flex flex-wrap gap-1.5 pt-1">
               {LABEL_PRESETS.map((lp) => (
@@ -1149,7 +1031,7 @@ export function AdminCountdownTab({
                   type="button"
                   onClick={() => setLabel(lp)}
                   className={cn(
-                    "px-2.5 py-1 rounded-lg text-[10px] font-mono border transition-all cursor-pointer",
+                    "px-2.5 py-1 rounded-lg text-xs tabular-nums border transition-all cursor-pointer",
                     label === lp
                       ? "bg-fivem-orange/20 border-fivem-orange/40 text-fivem-orange font-bold"
                       : "bg-white/5 border-white/10 text-white/60 hover:text-white"
@@ -1164,11 +1046,11 @@ export function AdminCountdownTab({
           {/* Auto Format vs Manual Sub-Labels */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-mono uppercase tracking-wider text-white/50 block">
+              <label className="text-xs tabular-nums text-white/50 block">
                 Date & Time Sub-Labels
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-white/40 font-mono">Auto-Compute:</span>
+                <span className="text-xs text-white/55 tabular-nums">Auto-Compute:</span>
                 <AnimatedSwitch
                   checked={autoGenerateLabels}
                   onCheckedChange={setAutoGenerateLabels}
@@ -1179,10 +1061,10 @@ export function AdminCountdownTab({
             </div>
 
             {autoGenerateLabels ? (
-              <div className="p-3 bg-black/40 rounded-xl border border-white/10 space-y-1 text-xs">
-                <p className="text-white/50 text-[10px] font-mono uppercase">Automatically Generated From Target:</p>
-                <p className="text-white font-mono font-bold text-xs">{effectiveEventDateLabel || 'Loading...'}</p>
-                <p className="text-emerald-400 font-mono text-xs">{effectiveEventTimeLabel} {effectiveEventTzLabel}</p>
+              <div className="p-3 bg-black/40 rounded-md border border-white/10 space-y-1 text-xs">
+                <p className="text-white/50 text-xs tabular-nums">Automatically Generated From Target:</p>
+                <p className="text-white tabular-nums font-bold text-xs">{effectiveEventDateLabel || 'Loading...'}</p>
+                <p className="text-emerald-400 tabular-nums text-xs">{effectiveEventTimeLabel} {effectiveEventTzLabel}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1191,7 +1073,7 @@ export function AdminCountdownTab({
                   value={customDateLabel}
                   onChange={(e) => setCustomDateLabel(e.target.value)}
                   placeholder="Custom Date (e.g. FRIDAY, OCTOBER 31, 2026)"
-                  className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-fivem-orange"
+                  className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-md text-white text-xs tabular-nums focus:outline-none focus:border-fivem-orange"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -1199,14 +1081,14 @@ export function AdminCountdownTab({
                     value={customTimeLabel}
                     onChange={(e) => setCustomTimeLabel(e.target.value)}
                     placeholder="Time (e.g. 5:59 PM)"
-                    className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-fivem-orange"
+                    className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-md text-white text-xs tabular-nums focus:outline-none focus:border-fivem-orange"
                   />
                   <input
                     type="text"
                     value={customTzLabel}
                     onChange={(e) => setCustomTzLabel(e.target.value)}
                     placeholder="TZ (e.g. EST)"
-                    className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-fivem-orange"
+                    className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-md text-white text-xs tabular-nums focus:outline-none focus:border-fivem-orange"
                   />
                 </div>
               </div>
@@ -1216,7 +1098,7 @@ export function AdminCountdownTab({
 
         {/* Completion Message Banner */}
         <div className="space-y-2 pt-2 border-t border-white/10">
-          <label className="text-[11px] font-mono uppercase tracking-wider text-white/50 block">
+          <label className="text-xs tabular-nums text-white/50 block">
             Completed / Expired Message (Displays when clock reaches 00:00:00)
           </label>
           <textarea
@@ -1224,7 +1106,7 @@ export function AdminCountdownTab({
             onChange={(e) => setCompletedMessage(e.target.value)}
             rows={2}
             placeholder="Banner message displayed when countdown expires..."
-            className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-xl text-white text-xs leading-relaxed focus:outline-none focus:border-fivem-orange transition-all"
+            className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-md text-white text-xs leading-relaxed focus:outline-none focus:border-fivem-orange transition-all"
           />
           <div className="flex flex-wrap gap-1.5 pt-1">
             {COMPLETED_MESSAGE_PRESETS.map((cmp, idx) => (
@@ -1232,7 +1114,7 @@ export function AdminCountdownTab({
                 key={idx}
                 type="button"
                 onClick={() => setCompletedMessage(cmp)}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-mono border bg-white/5 border-white/10 text-white/60 hover:text-white transition-all cursor-pointer truncate max-w-xs text-left"
+                className="px-2.5 py-1 rounded-lg text-xs tabular-nums border bg-white/5 border-white/10 text-white/60 hover:text-white transition-all cursor-pointer truncate max-w-xs text-left"
                 title={cmp}
               >
                 Template {idx + 1}
@@ -1244,23 +1126,23 @@ export function AdminCountdownTab({
 
       {/* ── SECTION 5: CONTEST LINKAGE & AUTOMATION OPTIONS ── */}
       {activeContest && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+            <div className="p-2 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
               <Sparkles size={16} />
             </div>
             <div>
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <h4 className="text-xs tabular-nums font-bold text-white">
                 Active Contest Synchronization: {activeContest.name}
               </h4>
-              <p className="text-[11px] text-white/40">
+              <p className="text-xs text-white/55">
                 Optionally sync this custom target date into the active contest round document
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <label className="flex items-start gap-3 p-3.5 rounded-xl border border-white/10 bg-black/30 hover:border-white/20 transition-all cursor-pointer">
+            <label className="flex items-start gap-3 p-3.5 rounded-md border border-white/10 bg-black/30 hover:border-white/20 transition-all cursor-pointer">
               <input
                 type="checkbox"
                 checked={syncToSubmissionsClose}
@@ -1269,13 +1151,13 @@ export function AdminCountdownTab({
               />
               <div className="text-xs">
                 <span className="font-bold text-white block">Sync Submissions Close Date</span>
-                <span className="text-[11px] text-white/40 block mt-0.5">
+                <span className="text-xs text-white/55 block mt-0.5">
                   Update <code className="text-cyan-400">submissions_close_date</code> on <code className="text-white/60">{activeContest.id}</code>
                 </span>
               </div>
             </label>
 
-            <label className="flex items-start gap-3 p-3.5 rounded-xl border border-white/10 bg-black/30 hover:border-white/20 transition-all cursor-pointer">
+            <label className="flex items-start gap-3 p-3.5 rounded-md border border-white/10 bg-black/30 hover:border-white/20 transition-all cursor-pointer">
               <input
                 type="checkbox"
                 checked={syncToVotingEnd}
@@ -1284,7 +1166,7 @@ export function AdminCountdownTab({
               />
               <div className="text-xs">
                 <span className="font-bold text-white block">Sync Voting End Date</span>
-                <span className="text-[11px] text-white/40 block mt-0.5">
+                <span className="text-xs text-white/55 block mt-0.5">
                   Update <code className="text-amber-400">voting_end_date</code> on <code className="text-white/60">{activeContest.id}</code>
                 </span>
               </div>
@@ -1294,7 +1176,7 @@ export function AdminCountdownTab({
       )}
 
       {/* ── BOTTOM STICKY ACTION BAR ── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-white/[0.03] to-transparent border border-white/10">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-lg bg-white/[0.03] border border-white/10">
         <div className="flex items-center gap-2 text-xs text-white/50">
           <Info size={14} className="text-fivem-orange shrink-0" />
           <span>
@@ -1308,10 +1190,10 @@ export function AdminCountdownTab({
             onClick={handleSaveSettings}
             disabled={saving || !targetIsoString}
             className={cn(
-              "w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xl cursor-pointer active:scale-95",
+              "w-full sm:w-auto px-6 py-3 rounded-md font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer",
               saveSuccess
-                ? "bg-emerald-500 text-black shadow-emerald-500/40"
-                : "bg-gradient-to-r from-fivem-orange to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white shadow-fivem-orange/30",
+                ? "bg-emerald-500 text-black"
+                : "bg-fivem-orange text-white",
               saving && "opacity-60 cursor-wait"
             )}
           >

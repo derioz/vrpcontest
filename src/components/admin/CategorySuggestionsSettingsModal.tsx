@@ -632,17 +632,17 @@ export function CategorySuggestionsSettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden bg-[#0c0d12] border border-white/10 text-white shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden bg-[#0c0d12] border border-white/10 text-white">
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-white/10 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent flex items-center justify-between">
+        <div className="p-5 sm:p-6 border-b border-white/10 bg-white/[0.03] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-md bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-sm shrink-0">
               <Sparkles size={20} />
             </div>
             <div>
               <DialogTitle className="text-lg sm:text-xl font-bold font-display text-white flex items-center gap-2">
                 <span>Category Suggestions Customizer</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                <span className="text-xs tabular-nums px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
                   Staff Admin
                 </span>
               </DialogTitle>
@@ -654,7 +654,7 @@ export function CategorySuggestionsSettingsModal({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white transition-all cursor-pointer border border-white/5"
+            className="p-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white transition-all cursor-pointer border border-white/5"
           >
             <X size={16} />
           </button>
@@ -666,9 +666,9 @@ export function CategorySuggestionsSettingsModal({
             type="button"
             onClick={() => setActiveTab('hero')}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer",
+              "px-4 py-2 rounded-md text-xs font-bold tabular-nums   flex items-center gap-2 transition-all cursor-pointer",
               activeTab === 'hero'
-                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20"
+                ? "bg-fivem-orange text-white"
                 : "text-white/60 hover:text-white hover:bg-white/[0.05]"
             )}
           >
@@ -680,9 +680,9 @@ export function CategorySuggestionsSettingsModal({
             type="button"
             onClick={() => setActiveTab('countdown')}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer",
+              "px-4 py-2 rounded-md text-xs font-bold tabular-nums   flex items-center gap-2 transition-all cursor-pointer",
               activeTab === 'countdown'
-                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20"
+                ? "bg-fivem-orange text-white"
                 : "text-white/60 hover:text-white hover:bg-white/[0.05]"
             )}
           >
@@ -697,15 +697,15 @@ export function CategorySuggestionsSettingsModal({
           {activeTab === 'hero' && (
             <div className="space-y-6">
               {/* Quick Monthly Presets Strip */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2.5">
+              <div className="p-4 rounded-lg bg-white/[0.02] border border-white/10 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CalendarDays size={14} className="text-orange-400" />
-                    <span className="text-xs font-bold font-display uppercase tracking-wider text-white">
+                    <span className="text-xs font-bold font-display text-white">
                       1-Click Monthly Theme Presets
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-white/40">
+                  <span className="text-xs tabular-nums text-white/55">
                     Click any month to auto-fill title, badge & description
                   </span>
                 </div>
@@ -717,9 +717,9 @@ export function CategorySuggestionsSettingsModal({
                       type="button"
                       onClick={() => handleApplyMonthPreset(m)}
                       className={cn(
-                        "px-2 py-2 rounded-xl text-xs font-bold font-mono transition-all text-center border cursor-pointer",
+                        "px-2 py-2 rounded-md text-xs font-bold tabular-nums transition-all text-center border cursor-pointer",
                         heroMonthHighlight.toLowerCase().includes(m.monthName.toLowerCase())
-                          ? "bg-orange-500/20 text-orange-300 border-orange-500/50 shadow-[0_0_12px_rgba(249,115,22,0.3)]"
+                          ? "bg-orange-500/20 text-orange-300 border-orange-500/50"
                           : "bg-white/[0.03] hover:bg-white/[0.08] text-white/70 hover:text-white border-white/5"
                       )}
                       title={`Load ${m.monthName} template`}
@@ -731,33 +731,33 @@ export function CategorySuggestionsSettingsModal({
               </div>
 
               {/* Real-time Hero Preview Card */}
-              <div className="p-5 rounded-2xl bg-gradient-to-b from-white/[0.04] to-black/40 border border-white/10 relative overflow-hidden">
+              <div className="p-5 rounded-lg bg-white/[0.03] border border-white/10 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Eye size={13} className="text-orange-400" />
-                    <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-white/60">
+                    <span className="text-xs tabular-nums font-bold text-white/60">
                       Live Hero Preview
                     </span>
                   </div>
                 </div>
 
                 {/* Simulated Hero Element */}
-                <div className="p-4 rounded-xl bg-black/60 border border-white/5 space-y-3">
+                <div className="p-4 rounded-md bg-black/60 border border-white/5 space-y-3">
                   {/* Pills */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-wider">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs tabular-nums font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 " />
                       <span>Community Suggestions Open</span>
                     </div>
 
-                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs tabular-nums font-bold">
                       <Sparkles size={10} className="text-amber-400" />
                       <span>{heroThemeBadge || 'Monthly Theme'}</span>
                     </div>
                   </div>
 
                   {/* Headline Preview */}
-                  <h2 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white leading-tight">
+                  <h2 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-white leading-tight">
                     {heroTitlePrefix || 'Help Shape'}{' '}
                     <span className="text-fivem-orange">
                       {heroMonthHighlight || 'October’s'}
@@ -779,7 +779,7 @@ export function CategorySuggestionsSettingsModal({
 
                   {/* Disclaimer Preview */}
                   {heroDisclaimer && (
-                    <p className="text-[10px] text-white/45 italic leading-relaxed">
+                    <p className="text-xs text-white/55 italic leading-relaxed">
                       {heroDisclaimer}
                     </p>
                   )}
@@ -789,7 +789,7 @@ export function CategorySuggestionsSettingsModal({
               {/* Title & Theme Form Controls */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs tabular-nums font-bold text-white/80   flex items-center gap-1.5">
                     <span>Title Prefix</span>
                   </label>
                   <input
@@ -797,13 +797,13 @@ export function CategorySuggestionsSettingsModal({
                     value={heroTitlePrefix}
                     onChange={(e) => setHeroTitlePrefix(e.target.value)}
                     placeholder="Help Shape"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
                   />
-                  <span className="text-[10px] text-white/40 font-mono">e.g. "Help Shape" or "Vote for"</span>
+                  <span className="text-xs text-white/55 tabular-nums">e.g. "Help Shape" or "Vote for"</span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs tabular-nums font-bold text-orange-400   flex items-center gap-1.5">
                     <Sparkles size={12} />
                     <span>Month / Theme Highlight</span>
                   </label>
@@ -812,13 +812,13 @@ export function CategorySuggestionsSettingsModal({
                     value={heroMonthHighlight}
                     onChange={(e) => setHeroMonthHighlight(e.target.value)}
                     placeholder="November’s"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-orange-500/40 text-orange-300 font-bold text-xs focus:outline-none focus:border-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.15)]"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-orange-500/40 text-orange-300 font-bold text-xs focus:outline-none focus:border-orange-400"
                   />
-                  <span className="text-[10px] text-white/40 font-mono">Shown in orange</span>
+                  <span className="text-xs text-white/55 tabular-nums">Shown in orange</span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs tabular-nums font-bold text-white/80   flex items-center gap-1.5">
                     <span>Title Suffix</span>
                   </label>
                   <input
@@ -826,15 +826,15 @@ export function CategorySuggestionsSettingsModal({
                     value={heroTitleSuffix}
                     onChange={(e) => setHeroTitleSuffix(e.target.value)}
                     placeholder="Loading Screen"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
                   />
-                  <span className="text-[10px] text-white/40 font-mono">e.g. "Loading Screen" or "Themes"</span>
+                  <span className="text-xs text-white/55 tabular-nums">e.g. "Loading Screen" or "Themes"</span>
                 </div>
               </div>
 
               {/* Theme Badge */}
               <div className="space-y-1.5">
-                <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                <label className="text-xs tabular-nums font-bold text-white/80   flex items-center gap-1.5">
                   <Sparkles size={12} className="text-amber-400" />
                   <span>Theme Badge Label</span>
                 </label>
@@ -843,14 +843,14 @@ export function CategorySuggestionsSettingsModal({
                   value={heroThemeBadge}
                   onChange={(e) => setHeroThemeBadge(e.target.value)}
                   placeholder="November Theme"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
+                  className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
                 />
-                <span className="text-[10px] text-white/40 font-mono">Displays in the golden pill in the hero section</span>
+                <span className="text-xs text-white/55 tabular-nums">Displays in the golden pill in the hero section</span>
               </div>
 
               {/* Description */}
               <div className="space-y-1.5">
-                <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                <label className="text-xs tabular-nums font-bold text-white/80   flex items-center gap-1.5">
                   <AlignLeft size={12} />
                   <span>Hero Description / Guidelines</span>
                 </label>
@@ -859,14 +859,14 @@ export function CategorySuggestionsSettingsModal({
                   value={heroDescription}
                   onChange={(e) => setHeroDescription(e.target.value)}
                   placeholder="Suggest and vote on photo contest categories for next month..."
-                  className="w-full p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50 leading-relaxed"
+                  className="w-full p-3.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50 leading-relaxed"
                 />
               </div>
 
               {/* Guideline Note & Staff Disclaimer */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
+                  <label className="text-xs tabular-nums font-bold text-amber-400">
                     Theme Relevance Guideline Note
                   </label>
                   <input
@@ -874,13 +874,13 @@ export function CategorySuggestionsSettingsModal({
                     value={heroGuideline}
                     onChange={(e) => setHeroGuideline(e.target.value)}
                     placeholder="Keep suggestions relevant to November."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
                   />
-                  <span className="text-[10px] text-white/40 font-mono">Shown in bold amber text below description</span>
+                  <span className="text-xs text-white/55 tabular-nums">Shown in bold amber text below description</span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/60 uppercase tracking-wider">
+                  <label className="text-xs tabular-nums font-bold text-white/60">
                     Staff Moderation Disclaimer
                   </label>
                   <input
@@ -888,9 +888,9 @@ export function CategorySuggestionsSettingsModal({
                     value={heroDisclaimer}
                     onChange={(e) => setHeroDisclaimer(e.target.value)}
                     placeholder="Staff reserves the right to deny or remove..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
                   />
-                  <span className="text-[10px] text-white/40 font-mono">Shown in subtle italicized note</span>
+                  <span className="text-xs text-white/55 tabular-nums">Shown in subtle italicized note</span>
                 </div>
               </div>
             </div>
@@ -900,11 +900,11 @@ export function CategorySuggestionsSettingsModal({
           {activeTab === 'countdown' && (
             <div className="space-y-6">
               {/* Enable/Disable Master Toggle */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between gap-4">
+              <div className="p-4 rounded-lg bg-white/[0.02] border border-white/10 flex items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Timer size={16} className={countdownEnabled ? "text-orange-400" : "text-white/40"} />
-                    <span className="text-sm font-bold font-display uppercase tracking-wider text-white">
+                    <Timer size={16} className={countdownEnabled ? "text-orange-400" : "text-white/55"} />
+                    <span className="text-sm font-bold font-display text-white">
                       Category Suggestions Countdown Timer
                     </span>
                   </div>
@@ -920,15 +920,15 @@ export function CategorySuggestionsSettingsModal({
               </div>
 
               {/* Real-time Clock Preview Box */}
-              <div className="p-5 rounded-2xl bg-gradient-to-b from-[#0e0f17] to-[#07070a] border border-white/10 shadow-lg relative overflow-hidden">
+              <div className="p-5 rounded-lg bg-white/10 border border-white/10  relative overflow-hidden">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <Clock size={15} className="text-orange-400" />
-                    <span className="text-xs font-bold font-display uppercase tracking-wider text-white">
+                    <span className="text-xs font-bold font-display text-white">
                       {countdownLabel || 'Submission & Voting Window'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/25">
+                  <span className="text-xs tabular-nums font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/25">
                     {effectiveEventDateLabel}
                   </span>
                 </div>
@@ -936,53 +936,53 @@ export function CategorySuggestionsSettingsModal({
                 {countdownEnabled ? (
                   !previewRemaining.isPast ? (
                     <div className="grid grid-cols-4 gap-2.5 text-center my-3">
-                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                        <span className="block text-2xl sm:text-3xl font-black font-mono text-white">
+                      <div className="p-3 rounded-md bg-white/[0.03] border border-white/10">
+                        <span className="block text-2xl sm:text-3xl font-bold tabular-nums text-white">
                           {previewRemaining.days}
                         </span>
-                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider mt-0.5">Days</span>
+                        <span className="block text-xs tabular-nums text-white/55 mt-0.5">Days</span>
                       </div>
-                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                        <span className="block text-2xl sm:text-3xl font-black font-mono text-white">
+                      <div className="p-3 rounded-md bg-white/[0.03] border border-white/10">
+                        <span className="block text-2xl sm:text-3xl font-bold tabular-nums text-white">
                           {previewRemaining.hours}
                         </span>
-                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider mt-0.5">Hours</span>
+                        <span className="block text-xs tabular-nums text-white/55 mt-0.5">Hours</span>
                       </div>
-                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                        <span className="block text-2xl sm:text-3xl font-black font-mono text-white">
+                      <div className="p-3 rounded-md bg-white/[0.03] border border-white/10">
+                        <span className="block text-2xl sm:text-3xl font-bold tabular-nums text-white">
                           {previewRemaining.minutes}
                         </span>
-                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider mt-0.5">Mins</span>
+                        <span className="block text-xs tabular-nums text-white/55 mt-0.5">Mins</span>
                       </div>
-                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                        <span className="block text-2xl sm:text-3xl font-black font-mono text-orange-400 animate-pulse">
+                      <div className="p-3 rounded-md bg-white/[0.03] border border-white/10">
+                        <span className="block text-2xl sm:text-3xl font-bold tabular-nums text-orange-400">
                           {previewRemaining.seconds}
                         </span>
-                        <span className="block text-[9px] font-mono text-white/40 uppercase tracking-wider mt-0.5">Secs</span>
+                        <span className="block text-xs tabular-nums text-white/55 mt-0.5">Secs</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="py-5 text-center bg-amber-500/5 rounded-xl border border-amber-500/20 my-2">
-                      <p className="text-sm font-bold text-amber-400 font-display uppercase tracking-wider">
+                    <div className="py-5 text-center bg-amber-500/5 rounded-md border border-amber-500/20 my-2">
+                      <p className="text-sm font-bold text-amber-400 font-display">
                         Countdown Timer Expired
                       </p>
-                      <p className="text-xs text-white/60 font-mono mt-1 px-4">
+                      <p className="text-xs text-white/60 tabular-nums mt-1 px-4">
                         {completedMessage}
                       </p>
                     </div>
                   )
                 ) : (
-                  <div className="py-5 text-center bg-white/[0.02] rounded-xl border border-white/5 my-2">
-                    <p className="text-sm font-bold text-emerald-400 font-display uppercase tracking-wider">
+                  <div className="py-5 text-center bg-white/[0.02] rounded-md border border-white/5 my-2">
+                    <p className="text-sm font-bold text-emerald-400 font-display">
                       Timer Disabled
                     </p>
-                    <p className="text-xs text-white/50 font-mono mt-1">
+                    <p className="text-xs text-white/50 tabular-nums mt-1">
                       Suggestions & voting remain open with no countdown card displayed.
                     </p>
                   </div>
                 )}
 
-                <p className="text-[10px] font-mono text-white/40 text-center mt-2">
+                <p className="text-xs tabular-nums text-white/55 text-center mt-2">
                   Target Timestamp: <span className="text-white/60">{targetIsoString || 'None configured'}</span>
                 </p>
               </div>
@@ -991,7 +991,7 @@ export function CategorySuggestionsSettingsModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date & Time Input */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs tabular-nums font-bold text-white/80   flex items-center gap-1.5">
                     <CalendarClock size={13} className="text-orange-400" />
                     <span>Target Date & Time</span>
                   </label>
@@ -999,23 +999,23 @@ export function CategorySuggestionsSettingsModal({
                     type="datetime-local"
                     value={datetimeLocal}
                     onChange={(e) => setDatetimeLocal(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-orange-400/50"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs tabular-nums focus:outline-none focus:border-orange-400/50"
                   />
-                  <span className="text-[10px] text-white/40 font-mono">
+                  <span className="text-xs text-white/55 tabular-nums">
                     Local system input converted to selected timezone offset ({tzOffset})
                   </span>
                 </div>
 
                 {/* Timezone Selector */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs tabular-nums font-bold text-white/80   flex items-center gap-1.5">
                     <Clock size={13} className="text-orange-400" />
                     <span>Timezone</span>
                   </label>
                   <select
                     value={timeZone}
                     onChange={(e) => setTimeZone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#111218] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-orange-400/50 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-[#111218] border border-white/10 text-white text-xs tabular-nums focus:outline-none focus:border-orange-400/50 cursor-pointer"
                   >
                     {TIMEZONE_OPTIONS.map((tz) => (
                       <option key={tz.value} value={tz.value}>
@@ -1023,7 +1023,7 @@ export function CategorySuggestionsSettingsModal({
                       </option>
                     ))}
                   </select>
-                  <span className="text-[10px] text-white/40 font-mono">
+                  <span className="text-xs text-white/55 tabular-nums">
                     Vital RP server operates primarily on Eastern Time (ET)
                   </span>
                 </div>
@@ -1031,7 +1031,7 @@ export function CategorySuggestionsSettingsModal({
 
               {/* Quick Duration Jumpers (Just like Photo Contest Voting!) */}
               <div className="space-y-2">
-                <label className="text-xs font-mono font-bold text-white/70 uppercase tracking-wider flex items-center gap-1.5">
+                <label className="text-xs tabular-nums font-bold text-white/70   flex items-center gap-1.5">
                   <Flame size={12} className="text-amber-400" />
                   <span>Quick Duration Jumpers</span>
                 </label>
@@ -1039,49 +1039,49 @@ export function CategorySuggestionsSettingsModal({
                   <button
                     type="button"
                     onClick={() => handleAddDuration(1)}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +1 Hour
                   </button>
                   <button
                     type="button"
                     onClick={() => handleAddDuration(12)}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +12 Hours
                   </button>
                   <button
                     type="button"
                     onClick={() => handleAddDuration(24)}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +24 Hours
                   </button>
                   <button
                     type="button"
                     onClick={() => handleAddDuration(72)}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +3 Days
                   </button>
                   <button
                     type="button"
                     onClick={() => handleAddDuration(168)}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     +1 Week
                   </button>
                   <button
                     type="button"
                     onClick={handleSetThisSunday}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     This Sunday
                   </button>
                   <button
                     type="button"
                     onClick={handleSetEndOfMonth}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-xs tabular-nums text-white/80 hover:text-white transition-all cursor-pointer"
                   >
                     End of Month
                   </button>
@@ -1090,7 +1090,7 @@ export function CategorySuggestionsSettingsModal({
 
               {/* Header Label & Presets */}
               <div className="space-y-2">
-                <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider">
+                <label className="text-xs tabular-nums font-bold text-white/80">
                   Countdown Header Label
                 </label>
                 <input
@@ -1098,7 +1098,7 @@ export function CategorySuggestionsSettingsModal({
                   value={countdownLabel}
                   onChange={(e) => setCountdownLabel(e.target.value)}
                   placeholder="Submission & Voting Window"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
+                  className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50"
                 />
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -1108,7 +1108,7 @@ export function CategorySuggestionsSettingsModal({
                       type="button"
                       onClick={() => setCountdownLabel(lbl)}
                       className={cn(
-                        "px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all border cursor-pointer",
+                        "px-2.5 py-1 rounded-lg text-xs tabular-nums transition-all border cursor-pointer",
                         countdownLabel === lbl
                           ? "bg-orange-500/20 text-orange-300 border-orange-500/40"
                           : "bg-white/[0.03] text-white/60 hover:text-white border-white/5"
@@ -1121,13 +1121,13 @@ export function CategorySuggestionsSettingsModal({
               </div>
 
               {/* Display Badges (Auto vs Custom) */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              <div className="p-4 rounded-lg bg-white/[0.02] border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <span className="text-xs font-bold font-display uppercase tracking-wider text-white">
+                    <span className="text-xs font-bold font-display text-white">
                       Auto-Compute Display Badges
                     </span>
-                    <p className="text-[11px] text-white/50">
+                    <p className="text-xs text-white/50">
                       Format date badge automatically from the chosen timestamp
                     </p>
                   </div>
@@ -1140,33 +1140,33 @@ export function CategorySuggestionsSettingsModal({
                 {!autoGenerateLabels && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                     <div>
-                      <label className="text-[10px] font-mono text-white/60 uppercase">Date Badge</label>
+                      <label className="text-xs tabular-nums text-white/60">Date Badge</label>
                       <input
                         type="text"
                         value={customDateLabel}
                         onChange={(e) => setCustomDateLabel(e.target.value)}
                         placeholder="Sept. 12 • Midnight EST"
-                        className="w-full mt-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs"
+                        className="w-full mt-1 px-3 py-2 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-mono text-white/60 uppercase">Time Label</label>
+                      <label className="text-xs tabular-nums text-white/60">Time Label</label>
                       <input
                         type="text"
                         value={customTimeLabel}
                         onChange={(e) => setCustomTimeLabel(e.target.value)}
                         placeholder="11:59 PM"
-                        className="w-full mt-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs"
+                        className="w-full mt-1 px-3 py-2 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-mono text-white/60 uppercase">TZ Label</label>
+                      <label className="text-xs tabular-nums text-white/60">TZ Label</label>
                       <input
                         type="text"
                         value={customTzLabel}
                         onChange={(e) => setCustomTzLabel(e.target.value)}
                         placeholder="EST"
-                        className="w-full mt-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs"
+                        className="w-full mt-1 px-3 py-2 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs"
                       />
                     </div>
                   </div>
@@ -1175,7 +1175,7 @@ export function CategorySuggestionsSettingsModal({
 
               {/* Expiration Message */}
               <div className="space-y-2">
-                <label className="text-xs font-mono font-bold text-white/80 uppercase tracking-wider">
+                <label className="text-xs tabular-nums font-bold text-white/80">
                   Expiration / Completed Message
                 </label>
                 <textarea
@@ -1183,7 +1183,7 @@ export function CategorySuggestionsSettingsModal({
                   value={completedMessage}
                   onChange={(e) => setCompletedMessage(e.target.value)}
                   placeholder="Category Submissions Closed. Community voting has ended..."
-                  className="w-full p-3 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50 leading-relaxed"
+                  className="w-full p-3 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-400/50 leading-relaxed"
                 />
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -1193,7 +1193,7 @@ export function CategorySuggestionsSettingsModal({
                       type="button"
                       onClick={() => setCompletedMessage(msg)}
                       className={cn(
-                        "px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all border cursor-pointer truncate max-w-xs",
+                        "px-2.5 py-1 rounded-lg text-xs tabular-nums transition-all border cursor-pointer truncate max-w-xs",
                         completedMessage === msg
                           ? "bg-orange-500/20 text-orange-300 border-orange-500/40"
                           : "bg-white/[0.03] text-white/60 hover:text-white border-white/5"
@@ -1215,7 +1215,7 @@ export function CategorySuggestionsSettingsModal({
             type="button"
             onClick={handleResetToDefaults}
             disabled={saving}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-white/60 hover:text-white border border-white/10 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 rounded-md bg-white/[0.03] hover:bg-white/[0.08] text-white/60 hover:text-white border border-white/10 text-xs tabular-nums font-bold   flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
             <RotateCcw size={13} />
             <span>Reset to Defaults</span>
@@ -1226,7 +1226,7 @@ export function CategorySuggestionsSettingsModal({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white/80 hover:text-white border border-white/10 text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-white/80 hover:text-white border border-white/10 text-xs tabular-nums font-bold transition-all cursor-pointer"
             >
               Cancel
             </button>
@@ -1238,10 +1238,10 @@ export function CategorySuggestionsSettingsModal({
               onClick={handleSave}
               disabled={saving}
               className={cn(
-                "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer",
+                "flex-1 sm:flex-initial px-6 py-2.5 rounded-md text-xs tabular-nums font-bold   flex items-center justify-center gap-2 transition-all cursor-pointer",
                 saveSuccess
-                  ? "bg-emerald-500 text-white shadow-emerald-500/30"
-                  : "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/25"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-fivem-orange text-white"
               )}
             >
               {saving ? (

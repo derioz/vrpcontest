@@ -10,7 +10,7 @@ import { collection, query, orderBy, getDocs, addDoc, setDoc, deleteDoc, doc, se
 import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
-import { AdminHeader } from './AdminHeader';
+import { Button, EmptyState, PageHeader, Panel, SearchField, fieldClass } from './kit';
 
 export type ChangelogLabel = 'UI' | 'FIX' | 'ENHANCE' | 'NEW' | 'PERFORMANCE' | 'MOBILE' | 'ADMIN' | 'SECURITY' | 'BACKEND';
 
@@ -860,7 +860,9 @@ export function ChangelogTab() {
   const [selectedLabelFilter, setSelectedLabelFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
-  const [isAllExpanded, setIsAllExpanded] = useState<boolean>(true);
+  const [isAllExpanded, setIsAllExpanded] = useState<boolean>(false);
+  // Release dates drawn at once; the full history is long
+  const [visibleDates, setVisibleDates] = useState(10);
 
   // Form State for Admin New Entry Modal
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -938,17 +940,9 @@ export function ChangelogTab() {
   };
 
   const handleToggleAll = () => {
-    if (isAllExpanded) {
-      setExpandedEntries(new Set());
-      setIsAllExpanded(false);
-    } else {
-      const allIds = new Set<string>();
-      entries.forEach((e) => {
-        allIds.add(e.id || `${e.dateKey}-${e.timeStr}`);
-      });
-      setExpandedEntries(allIds);
-      setIsAllExpanded(true);
-    }
+    // Individual rows record exceptions to this setting, so clearing them applies it to all
+    setIsAllExpanded((open) => !open);
+    setExpandedEntries(new Set());
   };
 
   const handleAddEntry = async (e: React.FormEvent) => {
@@ -1080,285 +1074,100 @@ export function ChangelogTab() {
   };
 
   return (
-    <div className="space-y-8 relative">
-      
-      {/* ── TOP SECTION: Platform Changelog Header ── */}
-      <AdminHeader
-        title="Platform Changelog"
-        icon={<Layers size={20} className="text-fivem-orange" />}
-        iconBg="bg-fivem-orange/15 border-fivem-orange/30"
+    <div className="max-w-4xl space-y-4">
+      <PageHeader
+        title="Changelog"
+        description={`${filteredEntries.length} updates across ${groupedByDate.length} release dates`}
         actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSyncAllToFirestore}
-              disabled={isSyncing}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/10 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-              title="Ensure all local changelog entries are synced to Firestore"
-            >
-              <RefreshCw size={14} className={cn(isSyncing && "animate-spin text-fivem-orange")} />
-              <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 text-fivem-orange border border-fivem-orange/40 font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
-            >
-              <Plus size={15} />
-              <span>Publish Update</span>
-            </button>
-          </div>
+          <>
+            <Button onClick={handleSyncAllToFirestore} disabled={isSyncing} title="Copy the built-in entries to the database">
+              <RefreshCw size={14} aria-hidden="true" className={cn(isSyncing && 'animate-spin')} />
+              {isSyncing ? 'Syncing' : 'Sync to database'}
+            </Button>
+            <Button variant="primary" onClick={() => setShowAddModal(true)}>
+              <Plus size={15} aria-hidden="true" /> Publish update
+            </Button>
+          </>
         }
       />
 
-      {/* ── FILTER & SEARCH TOOLBAR ── */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md">
-        
-        {/* Label Filters */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0">
-          <button
-            type="button"
-            onClick={() => setSelectedLabelFilter('All')}
-            className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 border",
-              selectedLabelFilter === 'All'
-                ? "bg-white/15 text-white border-white/20 shadow-sm"
-                : "bg-white/[0.02] text-white/40 border-transparent hover:text-white hover:bg-white/5"
-            )}
-          >
-            All Updates
-          </button>
-
-          {allAvailableLabels.map((lbl) => {
-            const conf = LABEL_CONFIG[lbl];
-            const isSelected = selectedLabelFilter === lbl;
-            return (
-              <button
-                key={lbl}
-                type="button"
-                onClick={() => setSelectedLabelFilter(isSelected ? 'All' : lbl)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all cursor-pointer shrink-0 border",
-                  isSelected
-                    ? `${conf.bg} ${conf.text} ${conf.border} shadow-sm scale-105`
-                    : "bg-white/[0.02] text-white/40 border-transparent hover:text-white hover:bg-white/5"
-                )}
-              >
-                {lbl}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Search & Expand Controls */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={handleToggleAll}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white transition-all cursor-pointer shrink-0"
-            title={isAllExpanded ? "Collapse all update details" : "Expand all update details"}
-          >
-            <ChevronsUpDown size={13} className="text-fivem-orange" />
-            <span>{isAllExpanded ? 'Collapse' : 'Expand All'}</span>
-          </button>
-
-          <div className="relative w-full sm:w-60">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-            <input
-              type="text"
-              placeholder="Search updates..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-8 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-fivem-orange/50 transition-colors font-mono"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs cursor-pointer"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search updates" className="min-w-52 flex-1 sm:max-w-xs" />
+        <select
+          aria-label="Type of change"
+          value={selectedLabelFilter}
+          onChange={(e) => setSelectedLabelFilter(e.target.value)}
+          className={cn(fieldClass, 'cursor-pointer')}
+        >
+          <option value="All">All types</option>
+          {allAvailableLabels.map((lbl) => (
+            <option key={lbl} value={lbl}>{lbl.charAt(0) + lbl.slice(1).toLowerCase()}</option>
+          ))}
+        </select>
+        <Button onClick={handleToggleAll}>{isAllExpanded ? 'Collapse all' : 'Expand all'}</Button>
       </div>
 
-      {/* ── SUMMARY STATS BAR ── */}
-      <div className="flex items-center justify-between text-xs text-white/40 px-2 font-mono">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-fivem-orange animate-pulse" />
-          <span>Showing <strong>{filteredEntries.length}</strong> updates across <strong>{groupedByDate.length}</strong> release dates</span>
-        </div>
-        {selectedLabelFilter !== 'All' && (
-          <span className="text-fivem-orange font-bold">Filtered by {selectedLabelFilter}</span>
-        )}
-      </div>
+      {groupedByDate.length === 0 ? (
+        <Panel><EmptyState title="No updates found">Try a different search or type.</EmptyState></Panel>
+      ) : (
+        groupedByDate.slice(0, visibleDates).map((group) => (
+          <Panel key={group.dateKey} title={group.dateKey}>
+            {group.items.map((entry, eIdx) => {
+              const entryKey = entry.id || `${entry.dateKey}-${entry.timeStr}-${eIdx}`;
+              const isExpanded = isAllExpanded !== expandedEntries.has(entryKey);
 
-      {/* ── CHANGELOG TIMELINE LIST (GROUPED BY DATE) ── */}
-      <div className="space-y-12 relative">
-        {groupedByDate.length === 0 ? (
-          <div className="text-center py-16 px-4 border border-dashed border-white/10 rounded-3xl bg-white/[0.01]">
-            <Layers className="mx-auto text-white/20 mb-3" size={32} />
-            <h4 className="text-base font-bold text-white font-display mb-1">No updates found</h4>
-            <p className="text-xs text-white/40 font-mono">Try adjusting your search query or label filter.</p>
-          </div>
-        ) : (
-          groupedByDate.map((group, gIdx) => (
-            <section key={group.dateKey} className="space-y-6">
-              
-              {/* ── DATE GROUP HEADER ── */}
-              <div className="sticky top-20 z-20 flex items-center gap-3 py-2 bg-[#09090b]/80 backdrop-blur-md border-y border-white/10 sm:border-y-0 sm:bg-transparent">
-                <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-white/[0.06] border border-white/15 text-white shadow-md">
-                  <Calendar size={13} className="text-fivem-orange" />
-                  <span className="text-xs font-bold font-display tracking-tight">{group.dateKey}</span>
-                </div>
-                <div className="h-px flex-1 bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
-                <span className="text-[10px] font-mono text-white/40 tracking-wider">
-                  {group.items.length} {group.items.length === 1 ? 'update' : 'updates'}
-                </span>
-              </div>
-
-              {/* ── TIMELINE ENTRIES UNDER THIS DATE ── */}
-              <div className="relative pl-4 sm:pl-8 space-y-6">
-                
-                {/* Continuous Left Vertical Timeline Axis */}
-                <div className="absolute left-[7px] sm:left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-fivem-orange/50 via-white/15 to-transparent pointer-events-none" />
-
-                {group.items.map((entry, eIdx) => {
-                  const entryKey = entry.id || `${entry.dateKey}-${entry.timeStr}-${eIdx}`;
-                  const isExpanded = expandedEntries.has(entryKey) || isAllExpanded;
-                  const isFirstToday = gIdx === 0 && eIdx === 0;
-
-                  return (
-                    <motion.div
-                      key={entryKey}
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: eIdx * 0.04, duration: 0.25 }}
-                      className="relative group"
+              return (
+                <article key={entryKey} className="border-b border-white/[0.07] px-4 py-3 last:border-b-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => handleToggleEntry(entryKey)}
+                      className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-left focus-visible:outline-2 focus-visible:outline-fivem-orange"
                     >
-                      {/* Timeline Node Icon */}
-                      <div className={cn(
-                        "absolute -left-[1.35rem] sm:-left-[2.35rem] top-3.5 w-3.5 h-3.5 rounded-full border-2 bg-[#09090b] flex items-center justify-center transition-all z-10",
-                        isFirstToday
-                          ? "border-fivem-orange shadow-[0_0_10px_rgba(234,88,12,0.8)] ring-2 ring-fivem-orange/30"
-                          : "border-white/30 group-hover:border-fivem-orange group-hover:shadow-[0_0_8px_rgba(234,88,12,0.5)]"
-                      )}>
-                        <div className={cn(
-                          "w-1 h-1 rounded-full",
-                          isFirstToday ? "bg-fivem-orange" : "bg-white/60 group-hover:bg-fivem-orange"
-                        )} />
-                      </div>
+                      <ChevronDown size={14} aria-hidden="true" className={cn('mt-0.5 shrink-0 text-white/55 transition-transform', isExpanded && 'rotate-180')} />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-white">{entry.title || entry.bullets[0]}</span>
+                        <span className="block text-xs text-white/55">
+                          {[entry.timeStr, ...entry.labels.map((l) => l.toLowerCase())].filter(Boolean).join(', ')}
+                        </span>
+                      </span>
+                    </button>
+                    {entry.id && (
+                      <Button size="sm" variant="ghost" aria-label={`Delete entry: ${entry.title}`} onClick={() => handleDeleteEntry(entry.id!)}>
+                        <Trash2 size={13} aria-hidden="true" />
+                      </Button>
+                    )}
+                  </div>
+                  {isExpanded && (
+                    <ul className="mt-2 max-w-prose list-disc space-y-1 pl-10 text-sm leading-relaxed text-white/75">
+                      {entry.bullets.map((bullet, bIdx) => (
+                        <li key={bIdx}>{bullet}</li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
+              );
+            })}
+          </Panel>
+        ))
+      )}
 
-                      {/* Glassmorphic Update Card */}
-                      <div className="rounded-2xl border border-white/10 bg-[#0c0c10]/95 hover:bg-[#101017]/95 p-5 sm:p-6 transition-all hover:border-fivem-orange/40 shadow-lg group-hover:shadow-2xl">
-                        
-                        {/* Header Row: Time + Labels + Delete */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {/* Time Pill */}
-                            {entry.timeStr && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-white/70 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/10">
-                                <Clock size={11} className="text-fivem-orange" />
-                                {entry.timeStr}
-                              </span>
-                            )}
-
-                            {/* Change-Type Labels (1-3 max) */}
-                            {entry.labels.map((lbl) => {
-                              const conf = LABEL_CONFIG[lbl] || LABEL_CONFIG['NEW'];
-                              return (
-                                <span
-                                  key={lbl}
-                                  className={cn(
-                                    "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border",
-                                    conf.bg, conf.text, conf.border
-                                  )}
-                                >
-                                  {lbl}
-                                </span>
-                              );
-                            })}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono text-white/30 hidden sm:inline">
-                              by {entry.author || 'Damon'}
-                            </span>
-                            {entry.id && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteEntry(entry.id!)}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20 text-white/30 hover:text-red-400 rounded-lg transition-all cursor-pointer"
-                                title="Delete Entry"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Title */}
-                        {entry.title && (
-                          <h3 className="text-sm sm:text-base font-bold text-white font-display mb-3 tracking-tight group-hover:text-amber-300/90 transition-colors">
-                            {entry.title}
-                          </h3>
-                        )}
-
-                        {/* Bulleted List */}
-                        <div className="space-y-2">
-                          <ul className="space-y-2 text-xs sm:text-sm text-white/80 leading-relaxed font-sans">
-                            {(isExpanded ? entry.bullets : entry.bullets.slice(0, 2)).map((bullet, bIdx) => (
-                              <li key={bIdx} className="flex items-start gap-2.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-fivem-orange/80 mt-2 shrink-0 shadow-[0_0_4px_rgba(234,88,12,0.6)]" />
-                                <span className="flex-1">{bullet}</span>
-                              </li>
-                            ))}
-                          </ul>
-
-                          {/* Show more/less if more than 2 bullets */}
-                          {entry.bullets.length > 2 && (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleEntry(entryKey)}
-                              className="text-[11px] font-mono text-fivem-orange hover:text-amber-400 font-bold flex items-center gap-1 pt-1 cursor-pointer transition-colors"
-                            >
-                              {isExpanded ? (
-                                <>
-                                  <ChevronUp size={12} />
-                                  <span>Show less</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ChevronDown size={12} />
-                                  <span>+ {entry.bullets.length - 2} more improvements</span>
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </section>
-          ))
-        )}
-      </div>
+      {groupedByDate.length > visibleDates && (
+        <div className="flex justify-center">
+          <Button onClick={() => setVisibleDates((n) => n + 10)}>Show older updates</Button>
+        </div>
+      )}
 
       {/* ── NEW ENTRY MODAL FORM ── */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-lg rounded-3xl border border-white/15 bg-[#0d0d10] p-6 shadow-2xl space-y-4"
+              className="relative w-full max-w-lg rounded-lg border border-white/15 bg-[#0d0d10] p-6 space-y-4"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
@@ -1368,7 +1177,7 @@ export function ChangelogTab() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="p-1 text-white/40 hover:text-white rounded-lg cursor-pointer"
+                  className="p-1 text-white/55 hover:text-white rounded-lg cursor-pointer"
                 >
                   ✕
                 </button>
@@ -1377,7 +1186,7 @@ export function ChangelogTab() {
               <form onSubmit={handleAddEntry} className="space-y-4">
                 {/* Labels Selector */}
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1.5">
+                  <label className="block text-xs tabular-nums text-white/55 mb-1.5">
                     Select Change Labels (1-3 max)
                   </label>
                   <div className="flex flex-wrap gap-1.5">
@@ -1398,10 +1207,10 @@ export function ChangelogTab() {
                             }
                           }}
                           className={cn(
-                            "px-2.5 py-1 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border transition-all cursor-pointer",
+                            "px-2.5 py-1 rounded-md text-xs tabular-nums font-bold   border transition-all cursor-pointer",
                             isSelected
                               ? `${conf.bg} ${conf.text} ${conf.border} shadow-sm`
-                              : "bg-white/[0.02] text-white/40 border-white/10 hover:text-white"
+                              : "bg-white/[0.02] text-white/55 border-white/10 hover:text-white"
                           )}
                         >
                           {lbl}
@@ -1413,7 +1222,7 @@ export function ChangelogTab() {
 
                 {/* Release Title */}
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">
+                  <label className="block text-xs tabular-nums text-white/55 mb-1">
                     Short Update Title
                   </label>
                   <input
@@ -1421,14 +1230,14 @@ export function ChangelogTab() {
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. 16:9 Vertical 3D Hero Carousel"
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange"
+                    className="w-full bg-black/50 border border-white/10 rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange"
                     required
                   />
                 </div>
 
                 {/* Bullets */}
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-white/40 mb-1">
+                  <label className="block text-xs tabular-nums text-white/55 mb-1">
                     Bullet Improvements (One per line)
                   </label>
                   <textarea
@@ -1436,7 +1245,7 @@ export function ChangelogTab() {
                     onChange={(e) => setNewBulletsText(e.target.value)}
                     placeholder="• Upgraded hero showcase with 3D rolling physics&#10;• Added mouse wheel and swipe gestures&#10;• Streamlined navigation controls"
                     rows={5}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange font-sans leading-relaxed"
+                    className="w-full bg-black/50 border border-white/10 rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:border-fivem-orange font-sans leading-relaxed"
                     required
                   />
                 </div>
@@ -1445,14 +1254,14 @@ export function ChangelogTab() {
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 cursor-pointer"
+                    className="px-4 py-2 rounded-md text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2.5 rounded-xl bg-fivem-orange hover:bg-amber-500 text-black font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2.5 rounded-md bg-fivem-orange hover:bg-amber-500 text-black font-bold text-xs transition-all cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting ? 'Publishing...' : 'Publish Update'}
                   </button>

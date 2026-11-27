@@ -109,74 +109,67 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
     const content = (
         <motion.div
             variants={containerVariants}
-            initial="hidden"
+            initial={false}
             animate="visible"
             className="w-full space-y-6"
         >
             {/* --- TOP ROW: KPI CARDS --- */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 relative overflow-hidden group hover:border-blue-500/40 transition-all shadow-sm">
+                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-blue-500/40 transition-all shadow-sm">
                     <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider font-semibold text-white/50">Total Submissions</span>
-                        <div className="p-2 bg-blue-500/15 text-blue-400 rounded-xl border border-blue-500/30">
+                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Total Submissions</span>
+                        <div className="p-2 bg-blue-500/15 text-blue-400 rounded-md border border-blue-500/30">
                             <ImageIcon size={16} />
                         </div>
                     </div>
-                    <p className="text-2xl sm:text-3xl font-black font-display text-white">{totalSubmissions}</p>
-                    <p className="text-[10px] text-white/40 font-mono mt-1">Uploaded contest entries</p>
+                    <p className="text-2xl sm:text-3xl font-bold font-display text-white">{totalSubmissions}</p>
+                    <p className="text-xs text-white/55 tabular-nums mt-1">Uploaded contest entries</p>
                 </motion.div>
 
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 relative overflow-hidden group hover:border-pink-500/40 transition-all shadow-sm">
+                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-pink-500/40 transition-all shadow-sm">
                     <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider font-semibold text-white/50">Total Votes Cast</span>
-                        <div className="p-2 bg-pink-500/15 text-pink-400 rounded-xl border border-pink-500/30">
+                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Total Votes Cast</span>
+                        <div className="p-2 bg-pink-500/15 text-pink-400 rounded-md border border-pink-500/30">
                             <Heart size={16} />
                         </div>
                     </div>
-                    <p className="text-2xl sm:text-3xl font-black font-display text-white">{totalVotes}</p>
-                    <p className="text-[10px] text-white/40 font-mono mt-1">Verified community votes</p>
+                    <p className="text-2xl sm:text-3xl font-bold font-display text-white">{totalVotes}</p>
+                    <p className="text-xs text-white/55 tabular-nums mt-1">Verified community votes</p>
                 </motion.div>
 
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 relative overflow-hidden group hover:border-emerald-500/40 transition-all shadow-sm">
+                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-emerald-500/40 transition-all shadow-sm">
                     <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider font-semibold text-white/50">Top Category</span>
-                        <div className="p-2 bg-emerald-500/15 text-emerald-400 rounded-xl border border-emerald-500/30">
+                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Top Category</span>
+                        <div className="p-2 bg-emerald-500/15 text-emerald-400 rounded-md border border-emerald-500/30">
                             <Activity size={16} />
                         </div>
                     </div>
-                    <p className="text-lg sm:text-xl font-black font-display text-white truncate">{mostActiveCategory?.name || 'N/A'}</p>
-                    <p className="text-[10px] text-emerald-400/80 font-mono mt-1">{mostActiveCategory?.count || 0} Photos ({mostActiveCategory?.votes || 0} votes)</p>
+                    <p className="text-lg sm:text-xl font-bold font-display text-white truncate">{mostActiveCategory?.name || 'N/A'}</p>
+                    <p className="text-xs text-emerald-400/80 tabular-nums mt-1">{mostActiveCategory?.count || 0} {mostActiveCategory?.count === 1 ? 'photo' : 'photos'} ({mostActiveCategory?.votes || 0} votes)</p>
                 </motion.div>
 
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 relative overflow-hidden group hover:border-amber-500/40 transition-all shadow-sm">
+                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:border-amber-500/40 transition-all shadow-sm">
                     <div className="flex items-center justify-between text-white/60 mb-3">
-                        <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider font-semibold text-white/50">Top Contributor</span>
-                        <div className="p-2 bg-amber-500/15 text-amber-400 rounded-xl border border-amber-500/30">
+                        <span className="text-xs sm:text-xs tabular-nums font-semibold text-white/50">Top Contributor</span>
+                        <div className="p-2 bg-amber-500/15 text-amber-400 rounded-md border border-amber-500/30">
                             <Award size={16} />
                         </div>
                     </div>
-                    <p className="text-lg sm:text-xl font-black font-display text-white truncate">{topContributor?.name || 'N/A'}</p>
-                    <p className="text-[10px] text-amber-400/80 font-mono mt-1">{topContributor?.votes || 0} Total Votes</p>
+                    <p className="text-lg sm:text-xl font-bold font-display text-white truncate">{topContributor?.name || 'N/A'}</p>
+                    <p className="text-xs text-amber-400/80 tabular-nums mt-1">{topContributor?.votes || 0} Total Votes</p>
                 </motion.div>
 
             </div>
 
             {/* --- MIDDLE ROW: MAIN CHART --- */}
-            <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-3xl p-5 sm:p-7 relative overflow-hidden">
+            <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 sm:p-7 relative overflow-hidden">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
                     <div>
                         <div className="flex items-center gap-2">
                             <h2 className="text-base sm:text-lg font-bold text-white tracking-wide font-display">Submission Velocity</h2>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-fivem-orange/15 text-fivem-orange border border-fivem-orange/30">
-                                Live Telemetry
-                            </span>
                         </div>
-                        <p className="text-xs text-white/40 mt-0.5">Volume of photo uploads recorded across contest timeline dates.</p>
-                    </div>
-                    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-white/60">
-                        <TrendingUp size={14} className="text-fivem-orange" />
-                        <span>Daily Tracking</span>
+                        <p className="text-xs text-white/55 mt-0.5">Volume of photo uploads recorded across contest timeline dates.</p>
                     </div>
                 </div>
 
@@ -199,7 +192,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                                     axisLine={false}
                                     dy={8}
                                 />
-                                <YAxis
+                                <YAxis allowDecimals={false}
                                     stroke="rgba(255,255,255,0.3)"
                                     fontSize={11}
                                     tickLine={false}
@@ -211,7 +204,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                                     itemStyle={{ color: '#ea580c', fontWeight: 'bold' }}
                                     labelStyle={{ color: 'rgba(255,255,255,0.7)', marginBottom: '4px', fontFamily: 'monospace' }}
                                 />
-                                <Area
+                                <Area isAnimationActive={false}
                                     type="monotone"
                                     dataKey="submissions"
                                     stroke="#ea580c"
@@ -223,7 +216,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                             </AreaChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-mono italic">
+                        <div className="w-full h-full flex items-center justify-center text-white/55 text-xs tabular-nums italic">
                             No submission telemetry recorded yet.
                         </div>
                     )}
@@ -234,56 +227,56 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
                 {/* Top Players Table */}
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-3xl p-5 sm:p-7">
+                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 sm:p-7">
                     <div className="flex items-center gap-3 mb-5">
-                        <div className="p-2 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange">
+                        <div className="p-2 rounded-md bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange">
                             <Users size={18} />
                         </div>
                         <div>
                             <h2 className="text-base font-bold text-white tracking-wide font-display">Top Ranked Participants</h2>
-                            <p className="text-xs text-white/40">Photographers with the highest total vote accumulation.</p>
+                            <p className="text-xs text-white/55">Photographers with the highest total vote accumulation.</p>
                         </div>
                     </div>
 
                     <div className="space-y-2.5">
                         {playerStats.slice(0, 5).map((player, idx) => (
-                            <div key={player.name} className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
+                            <div key={player.name} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className={cn(
-                                        "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0",
-                                        idx === 0 ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.3)]" :
+                                        "w-6 h-6 rounded-full flex items-center justify-center text-xs tabular-nums font-bold shrink-0",
+                                        idx === 0 ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 " :
                                             idx === 1 ? "bg-slate-300/20 text-slate-200 border border-slate-300/40" :
                                                 idx === 2 ? "bg-amber-700/20 text-amber-500 border border-amber-700/40" :
-                                                    "bg-white/5 text-white/40 border border-white/10"
+                                                    "bg-white/5 text-white/55 border border-white/10"
                                     )}>
                                         {idx + 1}
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs sm:text-sm font-bold text-white truncate">{player.name}</p>
-                                        <p className="text-[10px] text-white/40 font-mono">{player.submissions} Entry{player.submissions > 1 ? 's' : ''}</p>
+                                        <p className="text-xs text-white/55 tabular-nums">{player.submissions} {player.submissions === 1 ? 'entry' : 'entries'}</p>
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <p className="text-sm font-black font-display text-fivem-orange">{player.votes}</p>
-                                    <p className="text-[9px] text-white/40 uppercase tracking-wider font-mono">Votes</p>
+                                    <p className="text-sm font-bold font-display text-fivem-orange">{player.votes}</p>
+                                    <p className="text-xs text-white/55 tabular-nums">Votes</p>
                                 </div>
                             </div>
                         ))}
                         {playerStats.length === 0 && (
-                            <p className="text-xs text-white/30 text-center py-6 font-mono">No participant votes logged yet.</p>
+                            <p className="text-xs text-white/55 text-center py-6 tabular-nums">No participant votes logged yet.</p>
                         )}
                     </div>
                 </motion.div>
 
                 {/* Category Distribution Bar Chart */}
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-3xl p-5 sm:p-7">
+                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 sm:p-7">
                     <div className="flex items-center gap-3 mb-5">
-                        <div className="p-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                        <div className="p-2 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-400">
                             <BarChart3 size={18} />
                         </div>
                         <div>
                             <h2 className="text-base font-bold text-white tracking-wide font-display">Category Distribution</h2>
-                            <p className="text-xs text-white/40">Submissions distribution per category.</p>
+                            <p className="text-xs text-white/55">Submissions distribution per category.</p>
                         </div>
                     </div>
 
@@ -307,7 +300,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                                         contentStyle={{ backgroundColor: '#09090e', borderColor: 'rgba(255,255,255,0.15)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
                                         itemStyle={{ color: '#60a5fa' }}
                                     />
-                                    <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={24}>
+                                    <Bar isAnimationActive={false} dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={24}>
                                         {categoryStats.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : 'rgba(59, 130, 246, 0.45)'} />
                                         ))}
@@ -315,7 +308,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-mono italic">
+                            <div className="w-full h-full flex items-center justify-center text-white/55 text-xs tabular-nums italic">
                                 No categories configured.
                             </div>
                         )}
@@ -334,7 +327,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
         <div className="fixed inset-0 z-[100] bg-[#060606] overflow-y-auto">
             {/* Background Decor */}
             <div className="absolute inset-x-0 top-0 h-[500px] pointer-events-none opacity-50">
-                <div className="absolute inset-0 bg-gradient-to-b from-fivem-orange/10 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-white/[0.03]" />
                 <div className="absolute top-[-100px] left-1/4 w-[600px] h-[300px] bg-fivem-orange/20 blur-[120px] rounded-full mix-blend-screen" />
             </div>
 
@@ -347,7 +340,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                 >
                     <button
                         onClick={onClose}
-                        className="flex items-center gap-2 text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/10 transition-colors cursor-pointer"
+                        className="flex items-center gap-2 text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-md border border-white/10 transition-colors cursor-pointer"
                     >
                         <ChevronLeft size={16} />
                         <span className="text-sm font-medium">Back to Settings</span>
@@ -355,8 +348,8 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
 
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-xs font-mono text-emerald-500 uppercase tracking-widest">Live Connect</span>
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 " />
+                            <span className="text-xs tabular-nums text-emerald-500">Live Connect</span>
                         </div>
                     </div>
                 </motion.div>
@@ -370,7 +363,7 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                     <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-2">
                         Contest <span className="text-fivem-orange">Analytics</span>
                     </h1>
-                    <p className="text-white/40 max-w-2xl text-sm">
+                    <p className="text-white/55 max-w-2xl text-sm">
                         Real-time insights and engagement metrics for the current photo competition.
                     </p>
                 </motion.div>

@@ -32,6 +32,7 @@ import {
   X,
   History,
 } from 'lucide-react';
+import { Button as KitButton, EmptyState, PageHeader, Panel, Row, Segmented } from './kit';
 import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { Button } from '../ui/button';
@@ -221,228 +222,84 @@ export function ContestManagementHub({
   };
 
   return (
-    <div className="space-y-8">
-      {/* ── TOP NAVIGATION SUB-TABS ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/10">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <button
-            onClick={() => setActiveSubTab('dashboard')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold font-display transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              activeSubTab === 'dashboard'
-                ? 'bg-fivem-orange text-black shadow-lg shadow-fivem-orange/20'
-                : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10'
-            }`}
-          >
-            <Trophy size={14} />
-            <span>Contest Dashboard</span>
-          </button>
+    <div className="space-y-5">
+      <PageHeader
+        title="Contest setup"
+        actions={
+          <>
+            <KitButton onClick={refreshData} disabled={isRefreshing} aria-label="Refresh contest records">
+              <RefreshCw size={14} aria-hidden="true" className={isRefreshing ? 'animate-spin' : ''} />
+            </KitButton>
+            <KitButton variant="primary" onClick={() => setShowPauseWizard(true)}>
+              <Plus size={15} aria-hidden="true" /> {activeContest ? 'Pause and create new' : 'Create contest'}
+            </KitButton>
+          </>
+        }
+      />
 
-          <button
-            onClick={() => setActiveSubTab('saved')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold font-display transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              activeSubTab === 'saved'
-                ? 'bg-fivem-orange text-black shadow-lg shadow-fivem-orange/20'
-                : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10'
-            }`}
-          >
-            <Pause size={14} />
-            <span>Saved Contests ({savedContests.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('edit')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold font-display transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              activeSubTab === 'edit'
-                ? 'bg-fivem-orange text-black shadow-lg shadow-fivem-orange/20'
-                : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10'
-            }`}
-          >
-            <Edit3 size={14} />
-            <span>Edit Categories & Rules</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('audit')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold font-display transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              activeSubTab === 'audit'
-                ? 'bg-fivem-orange text-black shadow-lg shadow-fivem-orange/20'
-                : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10'
-            }`}
-          >
-            <History size={14} />
-            <span>Audit Trail</span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            onClick={() => setShowPauseWizard(true)}
-            className="bg-gradient-to-r from-amber-500 to-fivem-orange hover:from-amber-400 hover:to-orange-500 text-black font-extrabold text-xs px-4 py-2 rounded-xl shadow-lg shadow-fivem-orange/25 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-          >
-            <Sparkles size={14} />
-            <span>Pause & Create New Contest</span>
-          </Button>
-
-          <button
-            onClick={refreshData}
-            disabled={isRefreshing}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10 transition-colors cursor-pointer"
-            title="Refresh contest records"
-          >
-            <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-          </button>
-        </div>
-      </div>
+      <Segmented
+        label="Contest view"
+        value={activeSubTab}
+        onChange={(v) => setActiveSubTab(v)}
+        options={[
+          { value: 'dashboard', label: 'Current' },
+          { value: 'saved', label: 'Saved', count: savedContests.length },
+          { value: 'edit', label: 'Categories and rules' },
+          { value: 'audit', label: 'History' },
+        ]}
+      />
 
       {/* ── TAB 1: DASHBOARD VIEW ── */}
       {activeSubTab === 'dashboard' && (
         <div className="space-y-8">
-          {/* Active Contest Hero Card */}
           {activeContest ? (
-            <div className="relative overflow-hidden rounded-3xl border border-fivem-orange/30 bg-gradient-to-b from-[#141216] to-[#0c0b10] p-6 sm:p-8 shadow-2xl">
-              {/* Background Ambient Glow */}
-              <div className="absolute -top-24 -right-24 w-80 h-80 bg-fivem-orange/15 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-fivem-orange to-transparent" />
-
-              <div className="relative z-10 space-y-6">
-                {/* Header row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase border ${
-                          activePhase === 'voting'
-                            ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                            : activePhase === 'submissions'
-                            ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                            : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30'
-                        }`}
-                      >
-                        Phase: {activePhase.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <h2 className="text-xl sm:text-2xl font-black font-display text-white tracking-tight">
-                      {activeContest.name}
-                    </h2>
-                    {activeContest.description && (
-                      <p className="text-xs text-white/60 max-w-2xl leading-relaxed">
-                        {activeContest.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Actions Bar */}
-                  <div className="flex items-center gap-2 flex-wrap sm:self-start">
-                    <Button
-                      onClick={() => setShowPauseWizard(true)}
-                      className="bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/40 text-xs font-bold rounded-xl px-4 py-2 transition-all cursor-pointer"
-                    >
-                      <Pause size={14} className="mr-1.5" />
-                      Pause & Switch
-                    </Button>
-
-                    <Button
-                      onClick={() => setPausingActiveModal(true)}
-                      className="bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-bold rounded-xl px-3.5 py-2 transition-all cursor-pointer"
-                    >
-                      <Pause size={14} className="mr-1.5" />
-                      Pause
-                    </Button>
-
-                    <Button
-                      onClick={() => setActiveSubTab('edit')}
-                      className="bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-bold rounded-xl px-3.5 py-2 transition-all cursor-pointer"
-                    >
-                      <Edit3 size={14} className="mr-1.5" />
-                      Edit
-                    </Button>
-
-                    <Button
-                      onClick={onDownloadWinners}
-                      className="bg-white/5 hover:bg-amber-500/20 text-white/80 hover:text-amber-300 border border-white/10 hover:border-amber-500/30 text-xs font-bold rounded-xl px-3.5 py-2 transition-all cursor-pointer"
-                      title="Download 1st place winners as ZIP"
-                    >
-                      <Download size={14} />
-                    </Button>
-                  </div>
+            <Panel
+              title={activeContest.name}
+              description={`Phase: ${activePhase}`}
+              actions={
+                <div className="flex flex-wrap items-center gap-2">
+                  <KitButton size="sm" onClick={() => setPausingActiveModal(true)}>
+                    <Pause size={14} aria-hidden="true" /> Pause
+                  </KitButton>
+                  <KitButton size="sm" onClick={() => setActiveSubTab('edit')}>
+                    <Edit3 size={14} aria-hidden="true" /> Edit
+                  </KitButton>
+                  <KitButton size="sm" onClick={onDownloadWinners} title="Download first place winners as a ZIP">
+                    <Download size={14} aria-hidden="true" /> Winners
+                  </KitButton>
                 </div>
-
-                {/* Key Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-2">
-                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                    <span className="text-[10px] font-mono uppercase text-white/40 tracking-wider">
-                      Submissions
-                    </span>
-                    <p className="text-xl sm:text-2xl font-black font-display text-white mt-1">
-                      {allPhotos.length}
-                    </p>
-                    <span className="text-[11px] text-white/50">Across {categories.length} categories</span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                    <span className="text-[10px] font-mono uppercase text-white/40 tracking-wider">
-                      Total Votes
-                    </span>
-                    <p className="text-xl sm:text-2xl font-black font-display text-fivem-orange mt-1">
-                      {allPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0)}
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                    <span className="text-[10px] font-mono uppercase text-white/40 tracking-wider">
-                      Submissions Deadline
-                    </span>
-                    <p className="text-xs sm:text-sm font-bold text-white mt-1.5 truncate">
-                      {activeContestRemainingSubmissionsMs != null
-                        ? formatRemainingTime(activeContestRemainingSubmissionsMs)
-                        : 'No deadline'}
-                    </p>
-                    <span className="text-[10px] font-mono text-white/40 truncate block mt-0.5">
-                      {activeContest.submissions_close_date
-                        ? new Date(activeContest.submissions_close_date).toLocaleDateString()
-                        : 'Open'}
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                    <span className="text-[10px] font-mono uppercase text-white/40 tracking-wider">
-                      Voting Deadline
-                    </span>
-                    <p className="text-xs sm:text-sm font-bold text-white mt-1.5 truncate">
-                      {activeContestRemainingVotingMs != null
-                        ? formatRemainingTime(activeContestRemainingVotingMs)
-                        : 'No deadline'}
-                    </p>
-                    <span className="text-[10px] font-mono text-white/40 truncate block mt-0.5">
-                      {activeContest.voting_end_date
-                        ? new Date(activeContest.voting_end_date).toLocaleDateString()
-                        : 'Pending'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="p-8 rounded-3xl border border-dashed border-white/20 bg-white/[0.02] text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
-                <AlertTriangle size={24} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-white font-display">No Active Contest Online</h3>
-                <p className="text-xs text-white/50 max-w-md mx-auto">
-                  The contest platform is currently in hiatus or all contests are paused. You can restore a
-                  previously saved contest below or launch a brand new contest round.
-                </p>
-              </div>
-              <Button
-                onClick={() => setShowPauseWizard(true)}
-                className="bg-fivem-orange hover:bg-orange-500 text-black font-extrabold text-xs px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg"
+              }
+            >
+              {activeContest.description && (
+                <p className="max-w-prose border-b border-white/[0.07] px-4 py-3 text-sm text-white/70">{activeContest.description}</p>
+              )}
+              <Row label="Entries" description={`Across ${categories.length} categories`}>
+                <span className="text-sm font-semibold tabular-nums">{allPhotos.length}</span>
+              </Row>
+              <Row label="Votes">
+                <span className="text-sm font-semibold tabular-nums">{allPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0)}</span>
+              </Row>
+              <Row
+                label="Submissions deadline"
+                description={activeContest.submissions_close_date ? new Date(activeContest.submissions_close_date).toLocaleString() : 'Open'}
               >
-                <Plus size={15} className="mr-1.5" />
-                Create New Contest
-              </Button>
-            </div>
+                <span className="text-sm text-white/80">
+                  {activeContestRemainingSubmissionsMs != null ? formatRemainingTime(activeContestRemainingSubmissionsMs) : 'No deadline'}
+                </span>
+              </Row>
+              <Row
+                label="Voting deadline"
+                description={activeContest.voting_end_date ? new Date(activeContest.voting_end_date).toLocaleString() : 'Pending'}
+              >
+                <span className="text-sm text-white/80">
+                  {activeContestRemainingVotingMs != null ? formatRemainingTime(activeContestRemainingVotingMs) : 'No deadline'}
+                </span>
+              </Row>
+            </Panel>
+          ) : (
+            <Panel>
+              <EmptyState title="No active contest">Restore a saved contest below, or create a new round.</EmptyState>
+            </Panel>
           )}
 
           {/* Saved Contests Quick Preview Section */}
@@ -453,7 +310,7 @@ export function ContestManagementHub({
                   <Pause size={18} className="text-amber-400" />
                   <span>Saved Contests ({savedContests.length})</span>
                 </h3>
-                <p className="text-xs text-white/40">
+                <p className="text-xs text-white/55">
                   Paused contests with preserved entries, votes, and frozen deadlines.
                 </p>
               </div>
@@ -461,7 +318,7 @@ export function ContestManagementHub({
               {savedContests.length > 3 && (
                 <button
                   onClick={() => setActiveSubTab('saved')}
-                  className="text-xs text-fivem-orange hover:text-amber-300 font-mono flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-xs text-fivem-orange hover:text-amber-300 tabular-nums flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <span>View all ({savedContests.length})</span>
                   <ChevronRight size={13} />
@@ -470,9 +327,9 @@ export function ContestManagementHub({
             </div>
 
             {savedContests.length === 0 ? (
-              <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.02] text-center space-y-2">
-                <p className="text-xs text-white/40">No saved or paused contests in storage.</p>
-                <p className="text-[11px] text-white/30">
+              <div className="p-6 rounded-lg border border-white/10 bg-white/[0.02] text-center space-y-2">
+                <p className="text-xs text-white/55">No saved or paused contests in storage.</p>
+                <p className="text-xs text-white/55">
                   When you use "Pause & Create New Contest", the original contest will automatically be saved
                   here with zero data loss.
                 </p>
@@ -498,10 +355,10 @@ export function ContestManagementHub({
       {activeSubTab === 'saved' && (
         <div className="space-y-6">
           {/* Header & Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-lg bg-white/[0.02] border border-white/10">
             <div>
               <h3 className="text-base font-bold text-white font-display">Saved & Paused Contests Vault</h3>
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-white/55">
                 All paused and archived contests. Restore any contest with 1-click while preserving deadlines.
               </p>
             </div>
@@ -509,23 +366,23 @@ export function ContestManagementHub({
             <div className="flex items-center gap-2 flex-wrap">
               {/* Search */}
               <div className="relative min-w-[200px]">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/55" />
                 <input
                   type="text"
                   placeholder="Search contests..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white outline-none focus:border-fivem-orange/50 transition-all font-mono"
+                  className="w-full bg-white/5 border border-white/10 rounded-md pl-9 pr-3 py-1.5 text-xs text-white outline-none focus:border-fivem-orange/50 transition-all tabular-nums"
                 />
               </div>
 
               {/* Status Filter Chips */}
-              <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/10 rounded-xl">
+              <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/10 rounded-md">
                 {(['all', 'paused', 'archived'] as const).map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setStatusFilter(filter)}
-                    className={`px-3 py-1 rounded-lg text-[10px] font-mono font-bold capitalize transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-lg text-xs tabular-nums font-bold capitalize transition-all cursor-pointer ${
                       statusFilter === filter
                         ? 'bg-fivem-orange text-black'
                         : 'text-white/60 hover:text-white'
@@ -540,9 +397,9 @@ export function ContestManagementHub({
 
           {/* Cards Grid */}
           {filteredSavedContests.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl border border-white/10 bg-white/[0.01] space-y-2">
+            <div className="p-12 text-center rounded-lg border border-white/10 bg-white/[0.01] space-y-2">
               <p className="text-sm font-bold text-white/70">No contests match your filters</p>
-              <p className="text-xs text-white/40">Try adjusting your search query or status filter.</p>
+              <p className="text-xs text-white/55">Try adjusting your search query or status filter.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -576,9 +433,9 @@ export function ContestManagementHub({
               }}
             />
           ) : (
-            <div className="p-8 rounded-2xl border border-white/10 bg-white/[0.02] text-center space-y-3">
+            <div className="p-8 rounded-lg border border-white/10 bg-white/[0.02] text-center space-y-3">
               <p className="text-sm font-bold text-white">No active contest round is selected to edit.</p>
-              <p className="text-xs text-white/40">Select a saved contest to restore or launch a new contest.</p>
+              <p className="text-xs text-white/55">Select a saved contest to restore or launch a new contest.</p>
             </div>
           )}
         </div>
@@ -587,16 +444,16 @@ export function ContestManagementHub({
       {/* ── TAB 4: AUDIT TRAIL ── */}
       {activeSubTab === 'audit' && (
         <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between">
+          <div className="p-5 rounded-lg bg-white/[0.02] border border-white/10 flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-white font-display">Contest Audit Trail</h3>
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-white/55">
                 Tamper-evident record of all contest pause, restore, creation, and switch events.
               </p>
             </div>
             <button
               onClick={refreshData}
-              className="text-xs font-mono text-fivem-orange hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+              className="text-xs tabular-nums text-fivem-orange hover:text-amber-300 flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw size={12} />
               <span>Refresh Log</span>
@@ -604,7 +461,7 @@ export function ContestManagementHub({
           </div>
 
           {auditLogs.length === 0 ? (
-            <div className="p-8 rounded-2xl border border-white/10 bg-white/[0.02] text-center text-xs text-white/40">
+            <div className="p-8 rounded-lg border border-white/10 bg-white/[0.02] text-center text-xs text-white/55">
               No audit records logged yet. Actions like pausing, creating, and restoring contests will appear here.
             </div>
           ) : (
@@ -612,11 +469,11 @@ export function ContestManagementHub({
               {auditLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  className="p-4 rounded-lg bg-white/[0.02] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                 >
                   <div className="flex items-start sm:items-center gap-3">
                     <span
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase shrink-0 border ${
+                      className={`px-2.5 py-1 rounded-lg text-xs tabular-nums font-bold  shrink-0 border ${
                         log.action === 'restore'
                           ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                           : log.action === 'pause'
@@ -634,16 +491,16 @@ export function ContestManagementHub({
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-white">{log.contest_name}</span>
-                        <span className="text-white/40">•</span>
-                        <span className="text-white/60 text-[11px]">{log.details}</span>
+                        <span className="text-white/55">•</span>
+                        <span className="text-white/60 text-xs">{log.details}</span>
                       </div>
-                      <span className="text-[10px] font-mono text-white/40 block mt-0.5">
+                      <span className="text-xs tabular-nums text-white/55 block mt-0.5">
                         By <strong className="text-white/70">{log.performed_by_name}</strong>
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-mono text-white/40 shrink-0 self-end sm:self-center">
+                  <span className="text-xs tabular-nums text-white/55 shrink-0 self-end sm:self-center">
                     {new Date(log.timestamp).toLocaleString()}
                   </span>
                 </div>
@@ -701,10 +558,10 @@ export function ContestManagementHub({
          MODAL 3: QUICK PAUSE ACTIVE CONTEST CONFIRMATION
          ═══════════════════════════════════════════════════════════════════════ */}
       {pausingActiveModal && activeContest && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0e0e14] border border-amber-500/30 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80">
+          <div className="w-full max-w-md p-6 rounded-lg bg-[#0e0e14] border border-amber-500/30 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
+              <div className="p-3 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400">
                 <Pause size={24} />
               </div>
               <div>
@@ -713,7 +570,7 @@ export function ContestManagementHub({
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2 text-xs">
+            <div className="p-4 rounded-lg bg-white/[0.03] border border-white/10 space-y-2 text-xs">
               <p className="text-white/80">
                 Contest <strong>"{activeContest.name}"</strong> will be placed in a paused state.
               </p>
@@ -742,7 +599,7 @@ export function ContestManagementHub({
               <Button
                 onClick={handleConfirmPauseActive}
                 disabled={isActionLoading}
-                className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-5 py-2 rounded-xl transition-all cursor-pointer"
+                className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-5 py-2 rounded-md transition-all cursor-pointer"
               >
                 {isActionLoading ? 'Pausing...' : 'Confirm & Pause Contest'}
               </Button>
@@ -755,10 +612,10 @@ export function ContestManagementHub({
          MODAL 4: DELETE CONTEST CONFIRMATION
          ═══════════════════════════════════════════════════════════════════════ */}
       {deletingContest && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0e0e14] border border-red-500/40 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80">
+          <div className="w-full max-w-md p-6 rounded-lg bg-[#0e0e14] border border-red-500/40 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400">
+              <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400">
                 <Trash2 size={24} />
               </div>
               <div>
@@ -796,7 +653,7 @@ export function ContestManagementHub({
                   }
                 }}
                 disabled={isActionLoading}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-5 py-2 rounded-xl transition-all cursor-pointer"
+                className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-5 py-2 rounded-md transition-all cursor-pointer"
               >
                 {isActionLoading ? 'Deleting...' : 'Yes, Delete Permanently'}
               </Button>
@@ -818,6 +675,7 @@ function SavedContestCard({
   onArchive,
   onDelete,
 }: {
+  key?: React.Key;
   contest: Contest;
   onRestore: () => void;
   onEdit: () => void;
@@ -827,12 +685,12 @@ function SavedContestCard({
   const isPaused = contest.status === 'paused';
 
   return (
-    <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 hover:border-fivem-orange/40 transition-all space-y-4 flex flex-col justify-between group shadow-sm">
+    <div className="p-5 rounded-lg bg-white/[0.02] border border-white/10 hover:border-fivem-orange/40 transition-all space-y-4 flex flex-col justify-between group shadow-sm">
       <div className="space-y-3">
         {/* Badges row */}
         <div className="flex items-center justify-between gap-2">
           <span
-            className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
+            className={`px-2.5 py-0.5 rounded-full text-xs tabular-nums font-bold  border ${
               isPaused
                 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                 : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30'
@@ -841,7 +699,7 @@ function SavedContestCard({
             {isPaused ? 'Paused' : 'Archived'}
           </span>
 
-          <span className="text-[10px] font-mono text-white/40">
+          <span className="text-xs tabular-nums text-white/55">
             Phase: <strong className="text-white/70 capitalize">{contest.phase || 'Submissions'}</strong>
           </span>
         </div>
@@ -860,12 +718,12 @@ function SavedContestCard({
 
         {/* Preserved remaining time callout */}
         {isPaused && (contest.paused_remaining_submissions_ms != null || contest.paused_remaining_voting_ms != null) && (
-          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 font-mono space-y-0.5">
+          <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 tabular-nums space-y-0.5">
             <div className="flex items-center gap-1.5 font-bold">
               <Clock size={12} />
               <span>Frozen Time Preserved:</span>
             </div>
-            <div className="text-[10px] text-white/70 pl-4">
+            <div className="text-xs text-white/70 pl-4">
               {contest.paused_remaining_submissions_ms != null && (
                 <span>Submissions: {formatRemainingTime(contest.paused_remaining_submissions_ms)}</span>
               )}
@@ -877,13 +735,13 @@ function SavedContestCard({
         )}
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5 text-[11px]">
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5 text-xs">
           <div>
-            <span className="text-white/40 block text-[10px] font-mono">Entries</span>
+            <span className="text-white/55 block text-xs tabular-nums">Entries</span>
             <strong className="text-white font-bold">{contest.submission_count ?? 0} photos</strong>
           </div>
           <div>
-            <span className="text-white/40 block text-[10px] font-mono">Votes</span>
+            <span className="text-white/55 block text-xs tabular-nums">Votes</span>
             <strong className="text-fivem-orange font-bold">{contest.vote_count ?? 0} votes</strong>
           </div>
         </div>
@@ -893,7 +751,7 @@ function SavedContestCard({
       <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
         <Button
           onClick={onRestore}
-          className="flex-1 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black border border-emerald-500/30 text-xs font-bold py-2 rounded-xl transition-all cursor-pointer"
+          className="flex-1 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black border border-emerald-500/30 text-xs font-bold py-2 rounded-md transition-all cursor-pointer"
         >
           <RotateCcw size={13} className="mr-1.5" />
           Restore Contest
@@ -902,7 +760,7 @@ function SavedContestCard({
         {onDelete && (
           <button
             onClick={onDelete}
-            className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
+            className="p-2 rounded-md bg-white/5 hover:bg-red-500/20 text-white/55 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
             title="Delete permanently"
           >
             <Trash2 size={13} />
@@ -1051,12 +909,12 @@ function PauseAndCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="w-full max-w-3xl my-8 rounded-3xl bg-[#0d0d14] border border-fivem-orange/30 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 overflow-y-auto">
+      <div className="w-full max-w-3xl my-8 rounded-lg bg-[#0d0d14] border border-fivem-orange/30 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/40 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange">
+            <div className="p-2.5 rounded-lg bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange">
               <Sparkles size={20} />
             </div>
             <div>
@@ -1070,45 +928,45 @@ function PauseAndCreateModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white cursor-pointer"
+            className="p-2 rounded-md bg-white/5 hover:bg-white/10 text-white/60 hover:text-white cursor-pointer"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Wizard Step Navigation */}
-        <div className="flex items-center justify-between px-6 py-2.5 bg-white/[0.02] border-b border-white/5 text-xs font-mono shrink-0">
+        <div className="flex items-center justify-between px-6 py-2.5 bg-white/[0.02] border-b border-white/5 text-xs tabular-nums shrink-0">
           <button
             onClick={() => setStep(1)}
             className={`flex items-center gap-1.5 cursor-pointer ${
-              step === 1 ? 'text-fivem-orange font-bold' : 'text-white/40'
+              step === 1 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
             <span>1. Info & Dates</span>
           </button>
-          <span className="text-white/20">→</span>
+          <span className="text-white/55">→</span>
           <button
             onClick={() => setStep(2)}
             className={`flex items-center gap-1.5 cursor-pointer ${
-              step === 2 ? 'text-fivem-orange font-bold' : 'text-white/40'
+              step === 2 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
             <span>2. Categories ({categories.length})</span>
           </button>
-          <span className="text-white/20">→</span>
+          <span className="text-white/55">→</span>
           <button
             onClick={() => setStep(3)}
             className={`flex items-center gap-1.5 cursor-pointer ${
-              step === 3 ? 'text-fivem-orange font-bold' : 'text-white/40'
+              step === 3 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
             <span>3. Rules & Guidelines</span>
           </button>
-          <span className="text-white/20">→</span>
+          <span className="text-white/55">→</span>
           <button
             onClick={() => setStep(4)}
             className={`flex items-center gap-1.5 cursor-pointer ${
-              step === 4 ? 'text-fivem-orange font-bold' : 'text-white/40'
+              step === 4 ? 'text-fivem-orange font-bold' : 'text-white/55'
             }`}
           >
             <span>4. Preview & Publish</span>
@@ -1122,7 +980,7 @@ function PauseAndCreateModal({
             <div className="space-y-5">
               {/* Preserved Banner */}
               {activeContest && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
+                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
                   <Info size={18} className="text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-xs space-y-1">
                     <p className="font-bold text-white">
@@ -1138,7 +996,7 @@ function PauseAndCreateModal({
 
               {/* Title & Description */}
               <div className="space-y-2">
-                <label className="text-xs font-mono text-fivem-orange uppercase font-bold">
+                <label className="text-xs tabular-nums text-fivem-orange font-bold">
                   Contest Title *
                 </label>
                 <Input
@@ -1150,7 +1008,7 @@ function PauseAndCreateModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-mono text-white/60 uppercase font-bold">
+                <label className="text-xs tabular-nums text-white/60 font-bold">
                   Description (Optional)
                 </label>
                 <textarea
@@ -1158,13 +1016,13 @@ function PauseAndCreateModal({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="A short description explaining the theme of this contest round..."
                   rows={2}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white outline-none focus:border-fivem-orange/50 resize-none font-sans"
+                  className="w-full bg-white/5 border border-white/10 rounded-md p-3 text-xs text-white outline-none focus:border-fivem-orange/50 resize-none font-sans"
                 />
               </div>
 
               {/* Quick Preset Buttons */}
               <div className="space-y-2">
-                <label className="text-xs font-mono text-white/60 uppercase font-bold">
+                <label className="text-xs tabular-nums text-white/60 font-bold">
                   Quick Schedule Presets
                 </label>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1198,7 +1056,7 @@ function PauseAndCreateModal({
               {/* Date Inputs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-mono text-white/60 uppercase font-bold flex items-center gap-1.5">
+                  <label className="text-xs tabular-nums text-white/60 font-bold flex items-center gap-1.5">
                     <Calendar size={13} />
                     <span>Submissions Close Date</span>
                   </label>
@@ -1206,12 +1064,12 @@ function PauseAndCreateModal({
                     type="datetime-local"
                     value={submissionsCloseDate}
                     onChange={(e) => setSubmissionsCloseDate(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-fivem-orange font-mono"
+                    className="w-full bg-white/5 border border-white/10 rounded-md p-2.5 text-xs text-white outline-none focus:border-fivem-orange tabular-nums"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-mono text-white/60 uppercase font-bold flex items-center gap-1.5">
+                  <label className="text-xs tabular-nums text-white/60 font-bold flex items-center gap-1.5">
                     <Clock size={13} />
                     <span>Voting End Date</span>
                   </label>
@@ -1219,7 +1077,7 @@ function PauseAndCreateModal({
                     type="datetime-local"
                     value={votingEndDate}
                     onChange={(e) => setVotingEndDate(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-fivem-orange font-mono"
+                    className="w-full bg-white/5 border border-white/10 rounded-md p-2.5 text-xs text-white outline-none focus:border-fivem-orange tabular-nums"
                   />
                 </div>
               </div>
@@ -1232,9 +1090,9 @@ function PauseAndCreateModal({
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-bold text-white font-display">Contest Categories</h4>
-                  <p className="text-xs text-white/40">Add categories players will submit photos to.</p>
+                  <p className="text-xs text-white/55">Add categories players will submit photos to.</p>
                 </div>
-                <span className="text-xs font-mono text-fivem-orange font-bold">
+                <span className="text-xs tabular-nums text-fivem-orange font-bold">
                   {categories.length} Categories
                 </span>
               </div>
@@ -1244,19 +1102,19 @@ function PauseAndCreateModal({
                 {categories.map((cat, idx) => (
                   <div
                     key={cat.id}
-                    className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3"
+                    className="p-3.5 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{cat.emoji || '✨'}</span>
                       <div>
                         <h5 className="text-xs font-bold text-white">{cat.name}</h5>
-                        <p className="text-[11px] text-white/50 line-clamp-1">{cat.desc}</p>
+                        <p className="text-xs text-white/50 line-clamp-1">{cat.desc}</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setCategories((prev) => prev.filter((_, i) => i !== idx))}
-                      className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-white/5 cursor-pointer"
+                      className="p-1.5 rounded-lg text-white/55 hover:text-red-400 hover:bg-white/5 cursor-pointer"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1265,8 +1123,8 @@ function PauseAndCreateModal({
               </div>
 
               {/* Add category box */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
-                <span className="text-xs font-mono text-white/60 font-bold uppercase block">
+              <div className="p-4 rounded-lg bg-white/[0.02] border border-white/10 space-y-3">
+                <span className="text-xs tabular-nums text-white/60 font-bold  block">
                   Add New Category
                 </span>
                 <div className="flex items-center gap-2">
@@ -1274,7 +1132,7 @@ function PauseAndCreateModal({
                     type="text"
                     value={catEmoji}
                     onChange={(e) => setCatEmoji(e.target.value)}
-                    className="w-12 text-center bg-white/5 border border-white/10 rounded-xl py-2 text-base text-white"
+                    className="w-12 text-center bg-white/5 border border-white/10 rounded-md py-2 text-base text-white"
                     placeholder="✨"
                   />
                   <input
@@ -1282,7 +1140,7 @@ function PauseAndCreateModal({
                     value={catName}
                     onChange={(e) => setCatName(e.target.value)}
                     placeholder="Category Name (e.g. Night Photography)"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-fivem-orange font-display"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-xs text-white outline-none focus:border-fivem-orange font-display"
                   />
                 </div>
                 <input
@@ -1290,12 +1148,12 @@ function PauseAndCreateModal({
                   value={catDesc}
                   onChange={(e) => setCatDesc(e.target.value)}
                   placeholder="Category description / instructions for participants..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-fivem-orange font-sans"
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-xs text-white outline-none focus:border-fivem-orange font-sans"
                 />
                 <Button
                   type="button"
                   onClick={handleAddCategory}
-                  className="w-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs py-2 rounded-xl cursor-pointer"
+                  className="w-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs py-2 rounded-md cursor-pointer"
                 >
                   <Plus size={14} className="mr-1.5" />
                   Add to Contest
@@ -1310,7 +1168,7 @@ function PauseAndCreateModal({
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-bold text-white font-display">Contest Rules</h4>
-                  <p className="text-xs text-white/40">Markdown formatted rules visible to participants.</p>
+                  <p className="text-xs text-white/55">Markdown formatted rules visible to participants.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -1336,7 +1194,7 @@ function PauseAndCreateModal({
                 value={rules}
                 onChange={(e) => setRules(e.target.value)}
                 rows={10}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white font-mono leading-relaxed outline-none focus:border-fivem-orange resize-y"
+                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-xs text-white tabular-nums leading-relaxed outline-none focus:border-fivem-orange resize-y"
               />
             </div>
           )}
@@ -1344,7 +1202,7 @@ function PauseAndCreateModal({
           {/* STEP 4: PREVIEW & PUBLISH */}
           {step === 4 && (
             <div className="space-y-6">
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
                 <p className="font-bold text-white flex items-center gap-1.5">
                   <CheckCircle2 size={16} className="text-emerald-400" />
                   <span>Ready to Launch Contest</span>
@@ -1355,22 +1213,22 @@ function PauseAndCreateModal({
               </div>
 
               {/* Summary Card */}
-              <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+              <div className="p-5 rounded-lg bg-white/[0.02] border border-white/10 space-y-4">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-fivem-orange font-bold">
+                  <span className="text-xs tabular-nums text-fivem-orange font-bold">
                     Contest Summary
                   </span>
                   <h3 className="text-lg font-bold text-white font-display">{title || 'Untitled Contest'}</h3>
                   {description && <p className="text-xs text-white/60">{description}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-white/5 font-mono">
+                <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-white/5 tabular-nums">
                   <div>
-                    <span className="text-white/40 text-[10px]">Categories:</span>
+                    <span className="text-white/55 text-xs">Categories:</span>
                     <p className="text-white font-bold">{categories.length} categories</p>
                   </div>
                   <div>
-                    <span className="text-white/40 text-[10px]">Submissions Close:</span>
+                    <span className="text-white/55 text-xs">Submissions Close:</span>
                     <p className="text-white font-bold">
                       {submissionsCloseDate ? new Date(submissionsCloseDate).toLocaleString() : 'Open'}
                     </p>
@@ -1379,12 +1237,12 @@ function PauseAndCreateModal({
 
                 {/* Categories pills */}
                 <div className="space-y-1.5 pt-2 border-t border-white/5">
-                  <span className="text-[10px] font-mono text-white/40 uppercase">Categories:</span>
+                  <span className="text-xs tabular-nums text-white/55">Categories:</span>
                   <div className="flex items-center gap-2 flex-wrap">
                     {categories.map((c) => (
                       <span
                         key={c.id}
-                        className="px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-bold flex items-center gap-1.5"
+                        className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-white font-bold flex items-center gap-1.5"
                       >
                         <span>{c.emoji || '✨'}</span>
                         <span>{c.name}</span>
@@ -1425,7 +1283,7 @@ function PauseAndCreateModal({
             {step < 4 ? (
               <Button
                 onClick={() => setStep((s) => (s + 1) as any)}
-                className="bg-fivem-orange hover:bg-orange-500 text-black font-bold text-xs px-5 py-2 rounded-xl transition-all cursor-pointer"
+                className="bg-fivem-orange hover:bg-orange-500 text-black font-bold text-xs px-5 py-2 rounded-md transition-all cursor-pointer"
               >
                 Next Step
               </Button>
@@ -1434,14 +1292,14 @@ function PauseAndCreateModal({
                 <Button
                   onClick={() => handleLaunch(false)}
                   disabled={loading}
-                  className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-4 py-2 rounded-xl cursor-pointer"
+                  className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-4 py-2 rounded-md cursor-pointer"
                 >
                   Save as Draft
                 </Button>
                 <Button
                   onClick={() => handleLaunch(true)}
                   disabled={loading}
-                  className="bg-gradient-to-r from-amber-500 to-fivem-orange hover:from-amber-400 hover:to-orange-500 text-black font-extrabold text-xs px-6 py-2 rounded-xl shadow-lg transition-all cursor-pointer"
+                  className="bg-fivem-orange text-black font-bold text-xs px-6 py-2 rounded-md transition-all cursor-pointer"
                 >
                   {loading ? 'Deploying...' : 'Publish & Activate'}
                 </Button>
@@ -1536,11 +1394,11 @@ function RestoreContestModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="w-full max-w-lg my-8 rounded-3xl bg-[#0e0e14] border border-emerald-500/30 shadow-2xl p-6 sm:p-7 space-y-6">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 overflow-y-auto">
+      <div className="w-full max-w-lg my-8 rounded-lg bg-[#0e0e14] border border-emerald-500/30 p-6 sm:p-7 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-          <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+          <div className="p-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
             <RotateCcw size={22} />
           </div>
           <div>
@@ -1554,22 +1412,22 @@ function RestoreContestModal({
         </div>
 
         {/* Preserved Stats Box */}
-        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 text-xs">
-          <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
+        <div className="p-4 rounded-lg bg-white/[0.03] border border-white/10 space-y-3 text-xs">
+          <span className="text-xs tabular-nums text-emerald-400 font-bold">
             Preserved Data
           </span>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className="text-white/40 block text-[10px]">Saved Submissions</span>
+              <span className="text-white/55 block text-xs">Saved Submissions</span>
               <strong className="text-white text-sm font-bold">{targetContest.submission_count ?? 0} photos</strong>
             </div>
             <div>
-              <span className="text-white/40 block text-[10px]">Saved Votes</span>
+              <span className="text-white/55 block text-xs">Saved Votes</span>
               <strong className="text-fivem-orange text-sm font-bold">{targetContest.vote_count ?? 0} votes</strong>
             </div>
           </div>
           <div>
-            <span className="text-white/40 block text-[10px]">Preserved Phase</span>
+            <span className="text-white/55 block text-xs">Preserved Phase</span>
             <span className="capitalize font-bold text-white">
               {targetContest.previous_phase || targetContest.phase || 'Submissions'} phase will resume
             </span>
@@ -1577,13 +1435,13 @@ function RestoreContestModal({
         </div>
 
         {/* Deadline Recalculation Engine */}
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
+        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-xs tabular-nums text-emerald-400 font-bold   flex items-center gap-1.5">
               <Clock size={13} />
               <span>Automatic Deadline Recalculation</span>
             </span>
-            <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full">
+            <span className="text-xs tabular-nums text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full">
               No Time Lost
             </span>
           </div>
@@ -1592,14 +1450,14 @@ function RestoreContestModal({
             Deadlines are calculated using the exact remaining time saved when this contest was paused:
           </p>
 
-          <div className="space-y-1.5 text-xs font-mono">
-            <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+          <div className="space-y-1.5 text-xs tabular-nums">
+            <div className="flex items-center justify-between p-2 rounded-md bg-black/40 border border-white/5">
               <span className="text-white/50">Submissions Close:</span>
               <span className="text-white font-bold">
                 {recalculatedSubmissionsClose ? recalculatedSubmissionsClose.toLocaleString() : 'Open'}
               </span>
             </div>
-            <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+            <div className="flex items-center justify-between p-2 rounded-md bg-black/40 border border-white/5">
               <span className="text-white/50">Voting Ends:</span>
               <span className="text-white font-bold">
                 {recalculatedVotingEnd ? recalculatedVotingEnd.toLocaleString() : 'Pending'}
@@ -1611,14 +1469,14 @@ function RestoreContestModal({
         {/* What to do with the current active contest */}
         {activeContest && (
           <div className="space-y-2">
-            <label className="text-xs font-mono text-white/60 uppercase font-bold">
+            <label className="text-xs tabular-nums text-white/60 font-bold">
               Currently Active Contest Action
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setActiveAction('pause')}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
                   activeAction === 'pause'
                     ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
                     : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
@@ -1628,7 +1486,7 @@ function RestoreContestModal({
                   <Pause size={13} />
                   <span>Pause Active Contest</span>
                 </div>
-                <p className="text-[10px] text-white/40 mt-1">
+                <p className="text-xs text-white/55 mt-1">
                   Freeze "{activeContest.name}" into Saved Contests without loss.
                 </p>
               </button>
@@ -1636,7 +1494,7 @@ function RestoreContestModal({
               <button
                 type="button"
                 onClick={() => setActiveAction('archive')}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
                   activeAction === 'archive'
                     ? 'bg-red-500/15 border-red-500/40 text-red-300'
                     : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
@@ -1646,7 +1504,7 @@ function RestoreContestModal({
                   <Archive size={13} />
                   <span>Archive Active</span>
                 </div>
-                <p className="text-[10px] text-white/40 mt-1">
+                <p className="text-xs text-white/55 mt-1">
                   Permanently conclude "{activeContest.name}".
                 </p>
               </button>
@@ -1667,7 +1525,7 @@ function RestoreContestModal({
           <Button
             onClick={handleConfirmRestore}
             disabled={loading}
-            className="bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
+            className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-6 py-2.5 rounded-md transition-all cursor-pointer"
           >
             {loading ? 'Restoring...' : 'Confirm & Restore Live Contest'}
           </Button>

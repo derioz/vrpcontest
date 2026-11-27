@@ -8,6 +8,8 @@ import { collection, query, doc, updateDoc, increment, getDocs, where, writeBatc
 import { db } from '../../lib/firebase';
 import { Category, Photo } from '../../types';
 import LightboxModal from '../LightboxModal';
+import { Button, EmptyState, PageHeader, Panel, SearchField } from './kit';
+import { cn } from '../../lib/utils';
 import { toast } from '../ui/toast';
 import { getProfileAvatar, type DiceBearStyleName } from '../../lib/dicebear';
 import { Skeleton } from '../ui/skeleton';
@@ -327,304 +329,106 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
   }, [activeVoter, photosById]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <UserCheck className="text-cyan-400" size={22} />
-            <h3 className="text-xl font-black font-display text-white">Voter Directory & Vote Audit</h3>
+    <div className="space-y-4">
+      <PageHeader
+        title="Voter audit"
+        description={isLoading ? 'Loading votes' : `${allVotersList.length} voters on record`}
+        actions={
+          <>
+            <Button onClick={fetchVotesAndUsers} disabled={isLoading || isProcessing} title="Fetch the latest votes and players">
+              <RefreshCw size={14} aria-hidden="true" className={isLoading ? 'animate-spin' : undefined} /> Refresh
+            </Button>
+            <Button onClick={handleRecalculateAllVoteCounts} disabled={isProcessing || isLoading} title="Set every photo's vote count to the number of recorded votes">
+              <ShieldCheck size={14} aria-hidden="true" /> Reconcile counts
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid items-start gap-4 lg:grid-cols-[20rem_1fr]">
+        <Panel className="lg:sticky lg:top-4">
+          <div className="border-b border-white/10 p-2">
+            <SearchField
+              value={searchQuery}
+              onChange={(v) => { setSearchQuery(v); setSelectedVoterId(null); }}
+              placeholder="Search Discord name or ID"
+            />
           </div>
-          <p className="text-sm text-white/40">
-            Search for registered voters, inspect voted submissions, and audit vote distribution across contest categories.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={fetchVotesAndUsers}
-            disabled={isLoading || isProcessing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono font-bold text-white/80 transition-all cursor-pointer"
-            title="Re-fetch latest vote and user records from Firestore"
-          >
-            <RefreshCw size={13} className={isLoading ? "animate-spin text-cyan-400" : "text-white/60"} />
-            <span>Refresh Data</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleRecalculateAllVoteCounts}
-            disabled={isProcessing || isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-xs font-mono font-bold text-cyan-300 transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-            title="Reconcile and ensure all photo vote counts exactly equal verified database votes"
-          >
-            <ShieldCheck size={13} className="text-cyan-400" />
-            <span>Reconcile Counts</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Search Input & Directory */}
-      <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
-        <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setSelectedVoterId(null);
-            }}
-            placeholder="Search voters by Discord Name or UID..."
-            className="w-full pl-11 pr-10 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded cursor-pointer"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* Directory Pill List of Active Voters */}
-        {!isLoading && allVotersList.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
-                Voter Directory ({matchingVoters.length} Listed)
-              </p>
+          {isLoading ? (
+            <div className="space-y-2 p-3">
+              {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-8 w-full" />)}
             </div>
-            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+          ) : matchingVoters.length === 0 ? (
+            <EmptyState title="No voters found">{searchQuery ? `Nothing matches "${searchQuery}".` : 'No votes have been cast yet.'}</EmptyState>
+          ) : (
+            <ul className="max-h-72 overflow-y-auto lg:max-h-[calc(100vh-13rem)]">
               {matchingVoters.map((voter) => {
-                const isSelected = activeVoter?.id === voter.id || activeVoter?.voterUid === voter.voterUid || activeVoter?.displayName.toLowerCase() === voter.displayName.toLowerCase();
+                const selected = activeVoter?.id === voter.id;
                 return (
-                  <button
-                    key={voter.id}
-                    type="button"
-                    onClick={() => setSelectedVoterId(voter.id)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
-                      isSelected
-                        ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.25)]'
-                        : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/80 hover:text-white'
-                    }`}
-                  >
-                    <img
-                      src={resolveVoterAvatar(voter.voterUid, voter.displayName)}
-                      alt=""
-                      className="w-4 h-4 rounded-full border border-white/20 object-cover shrink-0"
-                    />
-                    <span>{voter.displayName}</span>
-                    <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[9px] font-mono font-bold text-white/60">
-                      {voter.voteCount}
-                    </span>
-                  </button>
+                  <li key={voter.id} className="border-b border-white/[0.07] last:border-b-0">
+                    <button
+                      type="button"
+                      aria-current={selected ? 'true' : undefined}
+                      onClick={() => setSelectedVoterId(voter.id)}
+                      className={cn(
+                        'flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fivem-orange',
+                        selected ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/[0.05]',
+                      )}
+                    >
+                      <img src={resolveVoterAvatar(voter.voterUid, voter.displayName)} alt="" loading="lazy" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+                      <span className="min-w-0 flex-1 truncate">{voter.displayName}</span>
+                      <span className="text-xs tabular-nums text-white/55">{voter.voteCount}</span>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
-          </div>
+            </ul>
+          )}
+        </Panel>
+
+        {!activeVoter ? (
+          <Panel>
+            <EmptyState title="Select a voter">Their votes and the photos they voted for appear here.</EmptyState>
+          </Panel>
+        ) : (
+          <Panel
+            title={activeVoter.displayName}
+            description={`${activeVoter.voteCount} ${activeVoter.voteCount === 1 ? 'vote' : 'votes'} recorded. ID ${activeVoter.voterUid}`}
+            actions={<Button size="sm" onClick={() => setSelectedVoterId(null)}>Clear</Button>}
+          >
+            {activeVoterPhotos.length === 0 ? (
+              <EmptyState title={activeVoter.voteCount > 0 ? 'Votes from earlier rounds' : 'No votes recorded'}>
+                {activeVoter.voteCount > 0 ? 'The photos from those contests have been archived.' : 'This account has no votes in the database.'}
+              </EmptyState>
+            ) : (
+              <ul className="grid grid-cols-2 gap-x-3 gap-y-4 p-3 xl:grid-cols-3 2xl:grid-cols-4">
+                {activeVoterPhotos.map(({ vote, photo }) => (
+                  <li key={vote.id}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewPhoto(photo!)}
+                      className="block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-fivem-orange"
+                    >
+                      <span className={cn('relative block aspect-video overflow-hidden rounded-md border bg-white/5', photo!.is_disqualified ? 'border-red-500/70' : 'border-white/10')}>
+                        <img src={photo!.image_url} alt={photo!.caption || 'Entry'} loading="lazy" decoding="async" className={cn('h-full w-full object-cover', photo!.is_disqualified && 'opacity-50')} />
+                        {photo!.is_disqualified && <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">Disqualified</span>}
+                      </span>
+                      <span className="mt-1.5 flex items-baseline justify-between gap-2">
+                        <span className="truncate text-sm font-medium text-white">{photo!.player_name || 'Anonymous'}</span>
+                        <span className="shrink-0 text-xs tabular-nums text-white/60">{photo!.vote_count || 0} votes</span>
+                      </span>
+                      <span className="block truncate text-xs text-white/55">
+                        {categoryMap.get(photo!.category_id) || 'Category'}
+                        {vote.timestamp ? `, voted ${new Date(vote.timestamp).toLocaleDateString()}` : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
         )}
       </div>
-
-      {/* Main Results Display */}
-      {isLoading ? (
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl border border-white/10 bg-[#0d0d14]/70 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-12 h-12 rounded-full bg-white/[0.08]" />
-              <div className="space-y-2">
-                <Skeleton className="w-40 h-5 rounded-lg bg-white/[0.08]" />
-                <Skeleton className="w-24 h-3 rounded-md bg-white/[0.05]" />
-              </div>
-            </div>
-            <Skeleton className="w-28 h-8 rounded-xl bg-white/[0.06]" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
-                <Skeleton className="w-full aspect-video rounded-xl bg-white/[0.07]" />
-                <Skeleton className="w-3/4 h-4 rounded-md bg-white/[0.07]" />
-                <Skeleton className="w-1/2 h-3 rounded-md bg-white/[0.05]" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : activeVoter ? (
-        <div className="space-y-4">
-          {/* Active Voter Info Banner */}
-          <div className="p-4 sm:p-5 rounded-2xl border flex flex-wrap items-center justify-between gap-4 backdrop-blur-md bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent border-cyan-500/20">
-            <div className="flex items-center gap-3">
-              <img
-                src={resolveVoterAvatar(activeVoter.voterUid, activeVoter.displayName)}
-                alt=""
-                className="w-12 h-12 rounded-2xl border object-cover shadow-lg border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-              />
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="text-lg font-bold text-white tracking-wide">{activeVoter.displayName}</h4>
-                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold">
-                    {activeVoter.voteCount} Total {activeVoter.voteCount === 1 ? 'Vote' : 'Votes'} Recorded
-                  </span>
-                </div>
-                <p className="text-xs text-white/40 font-mono mt-0.5 truncate">
-                  UID: {activeVoter.voterUid}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedVoterId(null)}
-              className="text-xs font-mono text-white/40 hover:text-white px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
-            >
-              Clear
-            </button>
-          </div>
-
-          {/* Voted Photos Grid or Historical Notice */}
-          {activeVoterPhotos.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeVoterPhotos.map(({ vote, photo }, idx) => (
-                <motion.div
-                  key={vote.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18, delay: idx * 0.03 }}
-                  className="group relative rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] overflow-hidden flex flex-col transition-all hover:border-cyan-500/30 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-                >
-                  {/* Photo Thumbnail */}
-                  <div className="relative aspect-video bg-black/40 overflow-hidden">
-                    {photo ? (
-                      <img
-                        src={photo.image_url}
-                        alt={photo.caption || 'Submission'}
-                        className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                          photo.is_disqualified ? 'grayscale-[40%] opacity-80' : ''
-                        }`}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-white/20">
-                        <ImageIcon size={32} />
-                        <span className="text-xs font-mono mt-1">Photo archived</span>
-                      </div>
-                    )}
-
-                    {/* DISQUALIFIED Permanent Banner */}
-                    {photo?.is_disqualified && (
-                      <div className="absolute top-0 inset-x-0 bg-red-600/95 text-white font-black text-[10px] uppercase tracking-widest py-1 px-2 flex items-center justify-center gap-1 z-20 shadow-md border-b border-red-400/40">
-                        <Ban size={11} className="stroke-[2.5]" />
-                        <span>DISQUALIFIED</span>
-                        {photo.disqualification_reason && (
-                          <span className="font-normal text-[9px] opacity-90 truncate max-w-[100px] font-mono">
-                            ({photo.disqualification_reason})
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Category Pill Badge */}
-                    {photo && (
-                      <div className={`absolute left-2.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/80 flex items-center gap-1 z-10 ${
-                        photo.is_disqualified ? 'top-8' : 'top-2.5'
-                      }`}>
-                        <Tag size={10} className="text-cyan-400" />
-                        <span>{categoryMap.get(photo.category_id) || 'Category'}</span>
-                      </div>
-                    )}
-
-                    {/* Click to Preview Button */}
-                    {photo && (
-                      <button
-                        type="button"
-                        onClick={() => setPreviewPhoto(photo)}
-                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-bold cursor-pointer backdrop-blur-[2px]"
-                      >
-                        <ExternalLink size={16} className="text-cyan-400" />
-                        <span>View Full Image</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Photo Details */}
-                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-white line-clamp-2">
-                        {photo?.caption || 'No caption provided'}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-white/5 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between text-white/60">
-                        <span className="flex items-center gap-1 text-[11px]">
-                          <User size={12} className="text-cyan-400" />
-                          Submitted by:
-                        </span>
-                        <span className="font-bold text-white truncate max-w-[130px]">
-                          {photo?.player_name || 'Anonymous'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-white/60">
-                        <span className="flex items-center gap-1 text-[11px]">
-                          <Heart size={12} className="text-fivem-orange" />
-                          Total Votes:
-                        </span>
-                        <span className="font-mono font-bold text-fivem-orange">
-                          {photo?.vote_count || 0}
-                        </span>
-                      </div>
-
-                      {vote.timestamp && (
-                        <div className="flex items-center justify-between text-white/40 text-[10px] font-mono pt-1">
-                          <span className="flex items-center gap-1">
-                            <Calendar size={10} />
-                            Voted on:
-                          </span>
-                          <span>{new Date(vote.timestamp).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : activeVoter.voteCount > 0 ? (
-            <div className="py-12 px-6 flex flex-col items-center justify-center text-white/50 text-center border border-white/5 rounded-2xl bg-white/[0.01]">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-3 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                <CheckCircle2 size={24} />
-              </div>
-              <p className="text-base font-bold text-white">Historical Contest Voter</p>
-              <p className="text-xs text-white/50 mt-1 max-w-md">
-                This voter has cast <strong>{activeVoter.voteCount}</strong> verified vote{activeVoter.voteCount !== 1 ? 's' : ''} in previous contest rounds. Individual submission image records from concluded contests have been archived.
-              </p>
-            </div>
-          ) : (
-            <div className="py-12 flex flex-col items-center justify-center text-white/40 text-center border border-white/5 rounded-2xl">
-              <p className="text-base font-medium text-white/70">No active votes recorded</p>
-              <p className="text-xs text-white/40 mt-1 max-w-sm">
-                This account has 0 active votes in the database.
-              </p>
-            </div>
-          )}
-        </div>
-      ) : searchQuery ? (
-        <div className="py-16 flex flex-col items-center justify-center text-white/40 text-center border border-white/5 rounded-2xl">
-          <Search size={36} className="mb-2 text-white/20 stroke-[1.5]" />
-          <p className="text-base font-medium text-white/70">No voters found</p>
-          <p className="text-xs text-white/40 mt-1">No active voters match "{searchQuery}"</p>
-        </div>
-      ) : (
-        <div className="py-16 flex flex-col items-center justify-center text-white/40 text-center border border-white/5 rounded-2xl">
-          <Sparkles size={36} className="mb-2 text-cyan-400/40 stroke-[1.5]" />
-          <p className="text-base font-medium text-white/70">Select or search for a voter</p>
-          <p className="text-xs text-white/40 mt-1 max-w-sm">
-            Choose any voter from the directory above to inspect their voted photos and voting distribution.
-          </p>
-        </div>
-      )}
 
       {/* Lightbox Modal for Image Inspection */}
       <LightboxModal photo={previewPhoto} privateKey={null} onClose={() => setPreviewPhoto(null)} />

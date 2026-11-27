@@ -57,7 +57,7 @@ export const SHORT_RULES_TEMPLATE = `## 🏆 Contest Rules
 export function MarkdownLivePreview({ markdown }: { markdown: string }) {
   if (!markdown || !markdown.trim()) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center text-white/30 italic space-y-2">
+      <div className="flex flex-col items-center justify-center py-16 text-center text-white/55 italic space-y-2">
         <FileText size={36} className="text-white/10" />
         <p className="text-xs">Start typing rules on the left to see the live Markdown preview...</p>
       </div>
@@ -106,7 +106,7 @@ function MarkdownToolbar({
   };
 
   return (
-    <div className="flex items-center justify-between gap-1 flex-wrap p-2 bg-white/5 border border-white/10 rounded-t-2xl border-b-0">
+    <div className="flex items-center justify-between gap-1 flex-wrap p-2 bg-white/5 border border-white/10 rounded-t-lg border-b-0">
       <div className="flex items-center gap-1 flex-wrap">
         <button
           type="button"
@@ -160,7 +160,7 @@ function MarkdownToolbar({
         <button
           type="button"
           onClick={() => insertText('1. ', '')}
-          className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer font-mono text-xs font-bold"
+          className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer tabular-nums text-xs font-bold"
           title="Numbered List (1. Item)"
         >
           1.
@@ -184,7 +184,7 @@ function MarkdownToolbar({
         <button
           type="button"
           onClick={() => insertText('\n---\n', '')}
-          className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer font-mono text-xs font-bold"
+          className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer tabular-nums text-xs font-bold"
           title="Divider Line (---)"
         >
           —
@@ -217,7 +217,7 @@ function MarkdownToolbar({
             <Smile size={15} />
           </button>
           {showEmoji && (
-            <div className="absolute top-10 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-xl overflow-hidden p-1 min-w-[320px]">
+            <div className="absolute top-10 left-0 z-[999999] bg-fivem-card border border-white/10 rounded-md overflow-hidden p-1 min-w-[320px]">
               <Picker
                 data={data}
                 theme="dark"
@@ -239,15 +239,15 @@ function MarkdownToolbar({
           <button
             type="button"
             onClick={() => setShowTemplates(!showTemplates)}
-            className="px-2 py-1 text-[11px] font-mono text-fivem-orange hover:text-amber-300 hover:bg-fivem-orange/10 rounded-lg border border-fivem-orange/30 transition-all flex items-center gap-1 cursor-pointer"
+            className="px-2 py-1 text-xs tabular-nums text-fivem-orange hover:text-amber-300 hover:bg-fivem-orange/10 rounded-lg border border-fivem-orange/30 transition-all flex items-center gap-1 cursor-pointer"
             title="Quick Templates"
           >
             <Wand2 size={12} />
             <span>Templates</span>
           </button>
           {showTemplates && (
-            <div className="absolute top-8 right-0 z-[99999] shadow-2xl bg-[#0e0e14] border border-white/15 rounded-xl p-2 min-w-[200px] space-y-1 backdrop-blur-xl">
-              <div className="text-[10px] font-mono text-white/40 uppercase px-2 py-1">Insert Starter Template</div>
+            <div className="absolute top-8 right-0 z-[99999] bg-[#0e0e14] border border-white/15 rounded-md p-2 min-w-[200px] space-y-1">
+              <div className="text-xs tabular-nums text-white/55 px-2 py-1">Insert Starter Template</div>
               <button
                 type="button"
                 onClick={() => {
@@ -258,7 +258,7 @@ function MarkdownToolbar({
                 className="w-full text-left px-2.5 py-1.5 text-xs text-white hover:bg-white/10 rounded-lg transition-colors flex items-center justify-between cursor-pointer"
               >
                 <span>Full Official Rules</span>
-                <span className="text-[10px] text-emerald-400 font-mono">Detailed</span>
+                <span className="text-xs text-emerald-400 tabular-nums">Detailed</span>
               </button>
               <button
                 type="button"
@@ -270,7 +270,7 @@ function MarkdownToolbar({
                 className="w-full text-left px-2.5 py-1.5 text-xs text-white hover:bg-white/10 rounded-lg transition-colors flex items-center justify-between cursor-pointer"
               >
                 <span>Short & Compact</span>
-                <span className="text-[10px] text-amber-400 font-mono">Quick</span>
+                <span className="text-xs text-amber-400 tabular-nums">Quick</span>
               </button>
               <div className="h-px bg-white/10 my-1" />
               <button
@@ -650,38 +650,38 @@ export function EditContestManager({
 
       {/* ── TAB 1: TITLE & STATUS ── */}
       {setupTab === 'general' && (
-        <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl relative overflow-hidden">
+        <div className="p-6 rounded-lg bg-[#09090d]/95 border border-white/10 space-y-6  relative overflow-hidden">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 01 · General Info</span>
+              <span className="text-xs tabular-nums font-bold text-fivem-orange">Step 01 · General Info</span>
               <h3 className="text-lg font-bold text-white font-display">Contest Title & Status</h3>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs tabular-nums font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 " />
               <span>ACTIVE CONTEST</span>
             </div>
           </div>
 
           <div className="space-y-3">
-            <label className="text-xs font-mono text-white/70 uppercase tracking-wider font-bold">Contest Title</label>
+            <label className="text-xs tabular-nums text-white/70 font-bold">Contest Title</label>
             <div className="flex items-center gap-3">
               <Input
                 placeholder="e.g. 🏆 Cyberpunk Nights V2"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-white/5 border-white/15 h-12 text-base font-bold text-white font-display rounded-2xl focus:border-fivem-orange flex-1"
+                className="bg-white/5 border-white/15 h-12 text-base font-bold text-white font-display rounded-lg focus:border-fivem-orange flex-1"
               />
               <div className="relative static-emoji-wrapper">
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 px-4 bg-white/5 hover:bg-white/10 border-white/15 rounded-2xl text-lg flex items-center justify-center cursor-pointer text-white"
+                  className="h-12 px-4 bg-white/5 hover:bg-white/10 border-white/15 rounded-lg text-lg flex items-center justify-center cursor-pointer text-white"
                   onClick={() => setShowTitleEmojiPicker(!showTitleEmojiPicker)}
                 >
                   <Smile size={18} />
                 </Button>
                 {showTitleEmojiPicker && (
-                  <div className="absolute top-14 right-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                  <div className="absolute top-14 right-0 z-[999999] bg-fivem-card border border-white/10 rounded-lg overflow-hidden p-1 min-w-[320px]">
                     <Picker
                       data={data}
                       theme="dark"
@@ -702,20 +702,20 @@ export function EditContestManager({
 
       {/* ── TAB 2: CATEGORIES ── */}
       {setupTab === 'categories' && (
-        <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl">
+        <div className="p-6 rounded-lg bg-[#09090d]/95 border border-white/10 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 02 · Competition Categories</span>
+              <span className="text-xs tabular-nums font-bold text-fivem-orange">Step 02 · Competition Categories</span>
               <h3 className="text-lg font-bold text-white font-display">Manage Categories</h3>
-              <p className="text-xs text-white/40 mt-0.5">Configure, add, or remove competition categories for this contest.</p>
+              <p className="text-xs text-white/55 mt-0.5">Configure, add, or remove competition categories for this contest.</p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              <span className="text-xs font-mono text-white/40">{categories.length} configured</span>
+              <span className="text-xs tabular-nums text-white/55">{categories.length} configured</span>
               <Button
                 type="button"
                 onClick={handleSaveCategoriesOnly}
                 disabled={savingCategoriesOnly}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-md transition-all  flex items-center gap-2 cursor-pointer"
               >
                 {savingCategoriesOnly ? (
                   <RefreshCw size={14} className="animate-spin" />
@@ -729,12 +729,12 @@ export function EditContestManager({
 
           {/* Duplicate Categories Warning & Deduplicate Tool */}
           {duplicateNames.length > 0 && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="text-amber-400 shrink-0 mt-0.5" size={18} />
                 <div>
                   <p className="text-xs font-bold text-amber-300">Duplicate Categories Detected</p>
-                  <p className="text-[11px] text-amber-200/70 mt-0.5">
+                  <p className="text-xs text-amber-200/70 mt-0.5">
                     Found duplicate entries for: <strong className="text-white">{duplicateNames.join(', ')}</strong>. Clean them up into single unique categories.
                   </p>
                 </div>
@@ -743,7 +743,7 @@ export function EditContestManager({
                 type="button"
                 onClick={handleDeduplicateCategories}
                 disabled={isDeduplicating}
-                className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-md active:scale-95"
+                className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-4 py-2 rounded-md transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
               >
                 {isDeduplicating ? <RefreshCw size={13} className="animate-spin" /> : <Sparkles size={13} />}
                 <span>{isDeduplicating ? 'Cleaning Up...' : 'Clean Up Duplicates'}</span>
@@ -753,12 +753,12 @@ export function EditContestManager({
 
           {/* Deleting Category Confirmation Alert */}
           {deletingCat && (
-            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-3 animate-in fade-in duration-200">
+            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 space-y-3 animate-in fade-in duration-200">
               <div className="flex items-start gap-3">
                 <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={18} />
                 <div>
                   <p className="text-xs font-bold text-white">Delete Category: "{deletingCat.name}"?</p>
-                  <p className="text-[11px] text-white/60 mt-0.5 leading-relaxed">
+                  <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
                     This will permanently delete this category from the active contest.
                   </p>
                 </div>
@@ -791,19 +791,19 @@ export function EditContestManager({
           {/* List of active categories */}
           <div className="space-y-3">
             {categories.map((cat, idx) => (
-              <div key={cat.id} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col gap-3 group hover:border-white/20 transition-all">
+              <div key={cat.id} className="p-4 rounded-lg bg-white/[0.03] border border-white/10 flex flex-col gap-3 group hover:border-white/20 transition-all">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1">
                     <div className="relative static-emoji-wrapper">
                       <button
                         type="button"
                         onClick={() => setEditingEmojiIdx(editingEmojiIdx === idx ? null : idx)}
-                        className="text-2xl p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-transform hover:scale-110"
+                        className="text-2xl p-2 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-transform"
                       >
                         {cat.emoji || '✨'}
                       </button>
                       {editingEmojiIdx === idx && (
-                        <div className="absolute top-12 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                        <div className="absolute top-12 left-0 z-[999999] bg-fivem-card border border-white/10 rounded-lg overflow-hidden p-1 min-w-[320px]">
                           <Picker
                             data={data}
                             theme="dark"
@@ -825,7 +825,7 @@ export function EditContestManager({
                         isCategoriesDirtyRef.current = true;
                         setCategories(prev => prev.map((c, i) => i === idx ? { ...c, name: val } : c));
                       }}
-                      className="bg-white/5 border-white/10 h-10 text-sm font-bold text-white rounded-xl focus:border-fivem-orange flex-1"
+                      className="bg-white/5 border-white/10 h-10 text-sm font-bold text-white rounded-md focus:border-fivem-orange flex-1"
                       placeholder="Category Name"
                     />
                   </div>
@@ -834,7 +834,7 @@ export function EditContestManager({
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeletingCat({ id: cat.id, name: cat.name || 'Untitled Category' })}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl p-2 h-auto cursor-pointer transition-colors"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md p-2 h-auto cursor-pointer transition-colors"
                     title="Delete Category"
                   >
                     <Trash2 size={16} />
@@ -849,15 +849,15 @@ export function EditContestManager({
                     setCategories(prev => prev.map((c, i) => i === idx ? { ...c, desc: val } : c));
                   }}
                   placeholder="Category description / criteria..."
-                  className="w-full min-h-[50px] bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white/80 outline-none focus:border-fivem-orange transition-colors placeholder:text-white/30 resize-y"
+                  className="w-full min-h-[50px] bg-white/5 border border-white/10 rounded-md p-2.5 text-xs text-white/80 outline-none focus:border-fivem-orange transition-colors placeholder:text-white/30 resize-y"
                 />
               </div>
             ))}
           </div>
 
           {/* Add Category Card */}
-          <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 space-y-3">
-            <h4 className="text-xs font-mono font-bold text-fivem-orange uppercase tracking-wider flex items-center gap-1.5">
+          <div className="p-4 rounded-lg bg-white/[0.02] border border-dashed border-white/15 space-y-3">
+            <h4 className="text-xs tabular-nums font-bold text-fivem-orange   flex items-center gap-1.5">
               <Plus size={14} /> Add New Category
             </h4>
             <div className="flex items-center gap-3">
@@ -865,13 +865,13 @@ export function EditContestManager({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 px-3 bg-white/5 hover:bg-white/10 border-white/15 rounded-xl text-lg flex items-center justify-center cursor-pointer text-white"
+                  className="h-11 px-3 bg-white/5 hover:bg-white/10 border-white/15 rounded-md text-lg flex items-center justify-center cursor-pointer text-white"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 >
                   {catEmoji}
                 </Button>
                 {showEmojiPicker && (
-                  <div className="absolute top-13 left-0 z-[999999] shadow-2xl bg-fivem-card border border-white/10 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                  <div className="absolute top-13 left-0 z-[999999] bg-fivem-card border border-white/10 rounded-lg overflow-hidden p-1 min-w-[320px]">
                     <Picker
                       data={data}
                       theme="dark"
@@ -889,7 +889,7 @@ export function EditContestManager({
                 placeholder="Category Name (e.g. Wildlife)..."
                 value={catName}
                 onChange={e => setCatName(e.target.value)}
-                className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-xl"
+                className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-md"
               />
             </div>
             <textarea
@@ -897,13 +897,13 @@ export function EditContestManager({
               placeholder="Category Description..."
               value={catDesc}
               onChange={e => setCatDesc(e.target.value)}
-              className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-xl p-3 text-xs text-white outline-none focus:border-fivem-orange transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
+              className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-md p-3 text-xs text-white outline-none focus:border-fivem-orange transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
             />
             <Button
               type="button"
               variant="secondary"
               onClick={addCategory}
-              className="w-full bg-fivem-orange/20 hover:bg-fivem-orange hover:text-black border border-fivem-orange/40 text-fivem-orange h-11 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all"
+              className="w-full bg-fivem-orange/20 hover:bg-fivem-orange hover:text-black border border-fivem-orange/40 text-fivem-orange h-11 font-bold text-xs rounded-md flex items-center justify-center gap-2 cursor-pointer transition-all"
             >
               <Plus size={16} /> Add Category
             </Button>
@@ -913,12 +913,12 @@ export function EditContestManager({
 
       {/* ── TAB 3: RULES & PREVIEW ── */}
       {setupTab === 'rules' && (
-        <div className="p-6 rounded-3xl bg-[#09090d]/95 border border-white/10 space-y-6 shadow-xl">
+        <div className="p-6 rounded-lg bg-[#09090d]/95 border border-white/10 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-fivem-orange">Step 03 · Contest Rules</span>
+              <span className="text-xs tabular-nums font-bold text-fivem-orange">Step 03 · Contest Rules</span>
               <h3 className="text-lg font-bold text-white font-display">Rules Editor & Split Live Markdown Preview</h3>
-              <p className="text-xs text-white/40 mt-0.5">Rules are formatted in standard Markdown and sync across the main website and submissions page.</p>
+              <p className="text-xs text-white/55 mt-0.5">Rules are formatted in standard Markdown and sync across the main website and submissions page.</p>
             </div>
 
             {/* Quick Instant Save Button */}
@@ -927,7 +927,7 @@ export function EditContestManager({
                 type="button"
                 onClick={handleSaveRulesOnly}
                 disabled={savingRulesOnly}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-md transition-all  flex items-center gap-2 cursor-pointer"
               >
                 {savingRulesOnly ? (
                   <RefreshCw size={14} className="animate-spin" />
@@ -944,10 +944,10 @@ export function EditContestManager({
             {/* Editor Side */}
             <div className="flex flex-col h-full space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-mono text-fivem-orange uppercase tracking-wider font-bold">
+                <label className="text-xs tabular-nums text-fivem-orange font-bold">
                   Markdown Source Code
                 </label>
-                <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
+                <div className="flex items-center gap-2 text-xs tabular-nums text-white/55">
                   <span>{wordCount} words</span>
                   <span>·</span>
                   <span>{charCount} chars</span>
@@ -963,12 +963,12 @@ export function EditContestManager({
                 placeholder="Define the rules for this contest in Markdown format..."
                 value={rules}
                 onChange={(e) => setRules(e.target.value)}
-                className="w-full min-h-[340px] flex-1 bg-black/60 border border-white/10 rounded-b-2xl p-4 text-xs font-mono leading-relaxed outline-none focus:border-fivem-orange transition-colors resize-y placeholder:text-white/20 text-white selection:bg-fivem-orange/30"
+                className="w-full min-h-[340px] flex-1 bg-black/60 border border-white/10 rounded-b-lg p-4 text-xs tabular-nums leading-relaxed outline-none focus:border-fivem-orange transition-colors resize-y placeholder:text-white/20 text-white selection:bg-fivem-orange/30"
               />
 
               {/* Formatting Cheat Sheet Chips */}
-              <div className="pt-2 flex items-center gap-1.5 flex-wrap text-[10px] font-mono text-white/40">
-                <span className="text-white/30">Quick syntax:</span>
+              <div className="pt-2 flex items-center gap-1.5 flex-wrap text-xs tabular-nums text-white/55">
+                <span className="text-white/55">Quick syntax:</span>
                 <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70"># Header 1</span>
                 <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70">## Header 2</span>
                 <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70">**Bold**</span>
@@ -983,14 +983,13 @@ export function EditContestManager({
             {/* Live Formatting Preview Side */}
             <div className="flex flex-col h-full space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <label className="text-xs tabular-nums text-emerald-400 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 " />
                   <span>Live Markdown Rendering</span>
                 </label>
-                <span className="text-[10px] font-mono text-white/30">Matches Contest Rules Display</span>
+                <span className="text-xs tabular-nums text-white/55">Matches Contest Rules Display</span>
               </div>
-              <div className="w-full min-h-[340px] flex-1 bg-[#050508] border border-white/10 rounded-2xl p-5 text-xs text-white/80 leading-relaxed font-sans overflow-y-auto max-h-[460px] relative shadow-inner">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-fivem-orange/5 blur-3xl pointer-events-none rounded-full" />
+              <div className="w-full min-h-[340px] flex-1 bg-[#050508] border border-white/10 rounded-lg p-5 text-xs text-white/80 leading-relaxed font-sans overflow-y-auto max-h-[460px] relative">
                 <MarkdownLivePreview markdown={rules} />
               </div>
             </div>
@@ -1000,11 +999,11 @@ export function EditContestManager({
 
       {/* ── SAVE ALL CHANGES PRIMARY ACTION FOOTER ── */}
       <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-4 flex-wrap">
-        <div className="text-xs font-mono text-white/40 flex items-center gap-2">
+        <div className="text-xs tabular-nums text-white/55 flex items-center gap-2">
           <span>Active Contest: </span>
           <strong className="text-white">{title}</strong>
           {isRulesModified && (
-            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
               Unsaved Rules
             </span>
           )}
@@ -1014,7 +1013,7 @@ export function EditContestManager({
           type="button"
           onClick={handleUpdate}
           disabled={loading}
-          className="px-8 h-12 bg-gradient-to-r from-fivem-orange to-amber-600 hover:from-amber-600 hover:to-fivem-orange text-white font-display font-bold text-sm tracking-wide rounded-2xl transition-all shadow-[0_4px_25px_rgba(234,88,12,0.4)] cursor-pointer active:scale-95"
+          className="px-8 h-12 bg-fivem-orange text-white font-display font-bold text-sm tracking-wide rounded-lg transition-all cursor-pointer"
         >
           {loading ? 'Saving All Changes...' : 'Save Contest Setup Changes'}
         </Button>
@@ -1201,7 +1200,7 @@ export function ArchiveContest({
     <div className="space-y-6">
       {/* Archive Modal Alert Confirmation */}
       {confirming === 'archive' && (
-        <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-4">
+        <div className="p-5 rounded-lg bg-red-500/10 border border-red-500/30 space-y-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={20} />
             <div>
@@ -1224,7 +1223,7 @@ export function ArchiveContest({
 
       {/* Destroy Confirmation */}
       {confirming === 'destroy' && (
-        <div className="p-5 rounded-2xl bg-red-900/30 border border-red-500/50 space-y-4">
+        <div className="p-5 rounded-lg bg-red-900/30 border border-red-500/50 space-y-4">
           <div className="flex items-start gap-3">
             <ServerCrash className="text-red-400 shrink-0 mt-0.5" size={20} />
             <div>
@@ -1246,17 +1245,13 @@ export function ArchiveContest({
       )}
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/10">
-        <div>
-          <p className="text-sm font-bold text-white">Safe Contest Archive</p>
-          <p className="text-xs text-white/40">Saves champions to Hall of Fame, increments stats, and prepares clean round.</p>
-        </div>
+      <div className="flex justify-end">
         <Button
           onClick={() => setConfirming('archive')}
           disabled={loading || confirming !== null}
-          className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/40 text-xs font-bold px-5 h-10 rounded-xl transition-all cursor-pointer"
+          className="bg-transparent hover:bg-red-500/15 text-red-300 hover:text-red-200 border border-red-500/40 text-xs font-semibold px-3 h-8 rounded-md transition-colors cursor-pointer"
         >
-          Archive Active Contest
+          Archive contest
         </Button>
       </div>
     </div>
@@ -1362,42 +1357,42 @@ export function CreateContestManager({
   };
 
   return (
-    <div className="space-y-6 p-6 sm:p-8 bg-[#09090d]/95 rounded-3xl border border-white/10 relative overflow-hidden shadow-2xl">
+    <div className="space-y-6 p-6 sm:p-8 bg-[#09090d]/95 rounded-lg border border-white/10 relative overflow-hidden">
       {/* Decorative Top Accent */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10" />
 
       {/* Header */}
       <div className="flex items-center gap-3 pb-2 border-b border-white/10">
-        <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+        <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
           <Rocket size={20} />
         </div>
         <div>
           <h3 className="text-base sm:text-lg font-bold text-white font-display">New Contest Round Setup</h3>
-          <p className="text-xs text-white/40">Deploy a new photo contest round with custom categories and rules.</p>
+          <p className="text-xs text-white/55">Deploy a new photo contest round with custom categories and rules.</p>
         </div>
       </div>
 
       {/* Step 1: Title */}
       <div className="space-y-2">
-        <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+        <label className="text-xs tabular-nums text-emerald-400 font-bold flex items-center gap-1.5">
           <span>1. Contest Title</span>
         </label>
         <Input
           placeholder="e.g. 🏆 Cyberpunk Nights V2"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="bg-white/5 border-white/15 h-12 text-base font-bold text-white font-display rounded-2xl focus:border-emerald-400"
+          className="bg-white/5 border-white/15 h-12 text-base font-bold text-white font-display rounded-lg focus:border-emerald-400"
         />
       </div>
 
       {/* Step 2: Categories (Fully in-place editable!) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+          <label className="text-xs tabular-nums text-emerald-400 font-bold flex items-center gap-1.5">
             <span>2. Contest Categories ({categories.length})</span>
           </label>
           {categories.length > 0 && (
-            <span className="text-[11px] text-emerald-400/80 font-mono flex items-center gap-1">
+            <span className="text-xs text-emerald-400/80 tabular-nums flex items-center gap-1">
               <Edit3 size={12} /> Click any field below to edit
             </span>
           )}
@@ -1407,20 +1402,20 @@ export function CreateContestManager({
         {categories.length > 0 && (
           <div className="space-y-3 mb-4">
             {categories.map((c, i) => (
-              <div key={c.id} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-emerald-500/40 group/cat shadow-sm relative">
+              <div key={c.id} className="p-4 rounded-lg bg-white/[0.03] border border-white/10 space-y-3 transition-all hover:border-emerald-500/40 group/cat shadow-sm relative">
                 <div className="flex items-center gap-3">
                   {/* Category Emoji Selector */}
                   <div className="relative shrink-0 static-emoji-wrapper">
                     <button
                       type="button"
                       onClick={(e) => { e.preventDefault(); setEditingEmojiIdx(editingEmojiIdx === i ? null : i); }}
-                      className="w-11 h-11 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center text-xl transition-all shrink-0 cursor-pointer shadow-md text-white"
+                      className="w-11 h-11 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center text-xl transition-all shrink-0 cursor-pointer text-white"
                       title="Change Category Emoji"
                     >
                       {c.emoji || '✨'}
                     </button>
                     {editingEmojiIdx === i && (
-                      <div className="absolute top-13 left-0 z-[999999] shadow-2xl bg-[#0d0d12] border border-white/20 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                      <div className="absolute top-13 left-0 z-[999999] bg-[#0d0d12] border border-white/20 rounded-lg overflow-hidden p-1 min-w-[320px]">
                         <Picker
                           data={data}
                           theme="dark"
@@ -1437,14 +1432,14 @@ export function CreateContestManager({
 
                   {/* Category Name Input */}
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="text-xs font-mono text-emerald-400 font-bold px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                    <span className="text-xs tabular-nums text-emerald-400 font-bold px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
                       #{i + 1}
                     </span>
                     <input
                       value={c.name}
                       onChange={(e) => setCategories(prev => prev.map((cat, idx) => idx === i ? { ...cat, name: e.target.value } : cat))}
                       placeholder="Category Name (e.g. Action Shots)"
-                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white outline-none focus:border-emerald-400 transition-all font-display"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm font-bold text-white outline-none focus:border-emerald-400 transition-all font-display"
                     />
                   </div>
 
@@ -1452,7 +1447,7 @@ export function CreateContestManager({
                   <button
                     type="button"
                     onClick={() => removeCategory(c.id)}
-                    className="p-2.5 hover:bg-red-500/20 text-white/40 hover:text-red-400 rounded-xl border border-transparent hover:border-red-500/30 transition-all shrink-0 cursor-pointer"
+                    className="p-2.5 hover:bg-red-500/20 text-white/55 hover:text-red-400 rounded-md border border-transparent hover:border-red-500/30 transition-all shrink-0 cursor-pointer"
                     title="Remove Category"
                   >
                     <Trash2 size={16} />
@@ -1471,7 +1466,7 @@ export function CreateContestManager({
                     }}
                     placeholder="Category description..."
                     style={{ fieldSizing: 'content' } as any}
-                    className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white/90 outline-none focus:border-emerald-400 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
+                    className="w-full min-h-[68px] bg-white/5 border border-white/10 rounded-md p-3 text-xs text-white/90 outline-none focus:border-emerald-400 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
                   />
                 </div>
               </div>
@@ -1480,17 +1475,17 @@ export function CreateContestManager({
         )}
 
         {/* Builder Box */}
-        <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 space-y-3">
-          <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest font-bold flex items-center gap-1.5">
+        <div className="p-4 rounded-lg bg-white/[0.02] border border-dashed border-white/15 space-y-3">
+          <p className="text-xs tabular-nums text-white/55 font-bold flex items-center gap-1.5">
             <Plus size={12} className="text-emerald-400" /> Add Category to Round
           </p>
           <div className="flex items-center gap-2.5">
             <div className="relative shrink-0 static-emoji-wrapper">
-              <Button variant="outline" className="h-11 w-12 bg-white/20 hover:bg-white/30 border-white/30 text-xl flex items-center justify-center p-0 rounded-2xl cursor-pointer text-white shadow-md" onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
+              <Button variant="outline" className="h-11 w-12 bg-white/20 hover:bg-white/30 border-white/30 text-xl flex items-center justify-center p-0 rounded-lg cursor-pointer text-white " onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}>
                 {catEmoji}
               </Button>
               {showEmojiPicker && (
-                <div className="absolute top-13 left-0 z-[999999] shadow-2xl bg-[#0d0d12] border border-white/20 rounded-2xl overflow-hidden p-1 min-w-[320px]">
+                <div className="absolute top-13 left-0 z-[999999] bg-[#0d0d12] border border-white/20 rounded-lg overflow-hidden p-1 min-w-[320px]">
                   <Picker
                     data={data}
                     theme="dark"
@@ -1504,7 +1499,7 @@ export function CreateContestManager({
                 </div>
               )}
             </div>
-            <Input placeholder="Category Name (e.g. Wildlife)..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-xl" />
+            <Input placeholder="Category Name (e.g. Wildlife)..." value={catName} onChange={e => setCatName(e.target.value)} className="bg-white/5 border-white/15 flex-1 h-11 text-sm font-bold text-white rounded-md" />
           </div>
           <textarea
             rows={2}
@@ -1516,9 +1511,9 @@ export function CreateContestManager({
               e.target.style.height = `${Math.max(68, e.target.scrollHeight)}px`;
             }}
             style={{ fieldSizing: 'content' } as any}
-            className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-xl p-3 text-xs text-white outline-none focus:border-emerald-400 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
+            className="w-full min-h-[68px] bg-white/5 border border-white/15 rounded-md p-3 text-xs text-white outline-none focus:border-emerald-400 transition-colors placeholder:text-white/30 leading-relaxed font-sans resize-y"
           />
-          <Button variant="secondary" onClick={addCategory} className="w-full bg-emerald-500/20 hover:bg-emerald-500 hover:text-black border border-emerald-500/40 text-emerald-300 h-11 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all">
+          <Button variant="secondary" onClick={addCategory} className="w-full bg-emerald-500/20 hover:bg-emerald-500 hover:text-black border border-emerald-500/40 text-emerald-300 h-11 font-bold text-xs rounded-md flex items-center justify-center gap-2 cursor-pointer transition-all">
             <Plus size={16} /> Add Category
           </Button>
         </div>
@@ -1527,10 +1522,10 @@ export function CreateContestManager({
       {/* Step 3: Rules & Live Preview */}
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <label className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold">
+          <label className="text-xs tabular-nums text-emerald-400 font-bold">
             3. Contest Rules & Live Markdown Preview
           </label>
-          <span className="text-[10px] text-white/40 font-mono">
+          <span className="text-xs text-white/55 tabular-nums">
             Optional · Can be edited anytime after launch
           </span>
         </div>
@@ -1540,8 +1535,8 @@ export function CreateContestManager({
           {/* Editor Side */}
           <div className="flex flex-col h-full space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-white/40 uppercase">Markdown Editor</span>
-              <span className="text-[10px] font-mono text-white/30">{rules.length} chars</span>
+              <span className="text-xs tabular-nums text-white/55">Markdown Editor</span>
+              <span className="text-xs tabular-nums text-white/55">{rules.length} chars</span>
             </div>
             <MarkdownToolbar
               text={rules}
@@ -1553,20 +1548,20 @@ export function CreateContestManager({
               placeholder="Define the rules for this new contest in Markdown format..."
               value={rules}
               onChange={(e) => setRules(e.target.value)}
-              className="w-full min-h-[260px] flex-1 bg-black/60 border border-white/10 rounded-b-2xl p-4 text-xs font-mono leading-relaxed outline-none focus:border-emerald-400 transition-colors resize-y placeholder:text-white/20 text-white selection:bg-emerald-500/30"
+              className="w-full min-h-[260px] flex-1 bg-black/60 border border-white/10 rounded-b-lg p-4 text-xs tabular-nums leading-relaxed outline-none focus:border-emerald-400 transition-colors resize-y placeholder:text-white/20 text-white selection:bg-emerald-500/30"
             />
           </div>
 
           {/* Live Formatting Preview Side */}
           <div className="flex flex-col h-full space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <label className="text-xs tabular-nums text-emerald-400 font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 " />
                 <span>Live Markdown Rendering</span>
               </label>
-              <span className="text-[10px] font-mono text-white/30">Instant Preview</span>
+              <span className="text-xs tabular-nums text-white/55">Instant Preview</span>
             </div>
-            <div className="w-full min-h-[260px] flex-1 bg-[#050508] border border-white/10 rounded-2xl p-5 text-xs text-white/80 leading-relaxed font-sans overflow-y-auto max-h-[380px] relative shadow-inner">
+            <div className="w-full min-h-[260px] flex-1 bg-[#050508] border border-white/10 rounded-lg p-5 text-xs text-white/80 leading-relaxed font-sans overflow-y-auto max-h-[380px] relative">
               <MarkdownLivePreview markdown={rules} />
             </div>
           </div>
@@ -1577,7 +1572,7 @@ export function CreateContestManager({
       <Button
         onClick={handleLaunch}
         disabled={loading}
-        className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-display font-black text-base tracking-wide rounded-2xl mt-4 shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all cursor-pointer active:scale-95"
+        className="w-full h-14 bg-emerald-600 text-black font-display font-bold text-base tracking-wide rounded-lg mt-4 transition-all cursor-pointer"
       >
         {loading ? 'Initializing Core Systems...' : '🚀 Launch New Contest Round'}
       </Button>
@@ -1620,7 +1615,7 @@ export function StandaloneRulesEditor({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
+        <div className="flex items-center gap-2 text-xs tabular-nums text-white/55">
           <span>{wordCount} words</span>
           <span>·</span>
           <span>{charCount} chars</span>
@@ -1629,7 +1624,7 @@ export function StandaloneRulesEditor({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-md transition-all  flex items-center gap-2 cursor-pointer"
         >
           {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
           <span>{saving ? 'Saving Rules...' : 'Save Rules Now'}</span>
@@ -1644,15 +1639,15 @@ export function StandaloneRulesEditor({
             placeholder="Define the rules for this contest in Markdown format..."
             value={rules}
             onChange={(e) => setRules(e.target.value)}
-            className="w-full min-h-[300px] flex-1 bg-black/60 border border-white/10 rounded-b-2xl p-4 text-xs font-mono leading-relaxed outline-none focus:border-fivem-orange transition-colors resize-y placeholder:text-white/20 text-white selection:bg-fivem-orange/30"
+            className="w-full min-h-[300px] flex-1 bg-black/60 border border-white/10 rounded-b-lg p-4 text-xs tabular-nums leading-relaxed outline-none focus:border-fivem-orange transition-colors resize-y placeholder:text-white/20 text-white selection:bg-fivem-orange/30"
           />
         </div>
         <div className="flex flex-col h-full space-y-2">
-          <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <label className="text-xs tabular-nums text-emerald-400 font-bold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 " />
             <span>Live Markdown Preview</span>
           </label>
-          <div className="w-full min-h-[300px] flex-1 bg-[#050508] border border-white/10 rounded-2xl p-5 text-xs text-white/80 leading-relaxed font-sans overflow-y-auto max-h-[420px] relative shadow-inner">
+          <div className="w-full min-h-[300px] flex-1 bg-[#050508] border border-white/10 rounded-lg p-5 text-xs text-white/80 leading-relaxed font-sans overflow-y-auto max-h-[420px] relative">
             <MarkdownLivePreview markdown={rules} />
           </div>
         </div>

@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Download, Trash2, X } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
 import { Category, Photo } from '../../types';
 import { decryptUrl } from '../../lib/crypto';
-import { Eye, EyeOff, X, User, Maximize2, ChevronLeft, ChevronRight, Trash2, Lock, Image as ImageIcon, Layers, Ban, CheckCircle, Download } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { downloadPhoto } from '../../lib/download';
+import { cn } from '../../lib/utils';
 import { toast } from '../ui/toast';
+import { Button, EmptyState, PageHeader, SearchField, Segmented, fieldClass } from './kit';
 
 interface AdminSubmissionsPreviewProps {
   allPhotos: Photo[];
@@ -15,6 +16,53 @@ interface AdminSubmissionsPreviewProps {
   onDeletePhoto?: (photoId: string, discordName: string) => void;
   onToggleDisqualifyPhoto?: (photoId: string, disqualify: boolean, reason?: string) => void;
 }
+
+type Status = 'all' | 'active' | 'disqualified';
+type Sort = 'newest' | 'oldest' | 'votes';
+
+/** Entries drawn at once. More are added on request so large contests stay responsive. */
+const PAGE_SIZE = 48;
+
+const uploadedAt = (p: Photo) => new Date(p.created_at).getTime() || 0;
+
+async function saveCopy(photo: Photo, src: string) {
+  const name = photo.player_name ? photo.player_name.replace(/[^a-z0-9]/gi, '_') : 'photo';
+  const ok = await downloadPhoto(src, `submission-${name}-${photo.id.slice(0, 6)}.jpg`);
+  if (ok) toast.success('Downloaded photo!');
+  else toast.error('Failed to download photo.');
+}
+
+const Tile = memo(function Tile({ photo, src, category, onOpen }: {
+  photo: Photo; src: string; category: string; onOpen: (id: string) => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(photo.id)}
+        className="group block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fivem-orange"
+      >
+        <span className={cn('relative block aspect-video overflow-hidden rounded-md border bg-white/5', photo.is_disqualified ? 'border-red-500/70' : 'border-white/10 group-hover:border-white/35')}>
+          <img
+            src={src}
+            alt={photo.caption || `Entry by ${photo.player_name}`}
+            loading="lazy"
+            decoding="async"
+            className={cn('h-full w-full object-cover', photo.is_disqualified && 'opacity-50')}
+          />
+          {photo.is_disqualified && (
+            <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">Disqualified</span>
+          )}
+        </span>
+        <span className="mt-1.5 flex items-baseline justify-between gap-2">
+          <span className="truncate text-sm font-medium text-white">{photo.player_name}</span>
+          <span className="shrink-0 text-xs tabular-nums text-white/60">{photo.vote_count || 0} votes</span>
+        </span>
+        <span className="block truncate text-xs text-white/50">{category}</span>
+      </button>
+    </li>
+  );
+});
 
 export default function AdminSubmissionsPreview({
   allPhotos,
@@ -24,12 +72,15 @@ export default function AdminSubmissionsPreview({
 }: AdminSubmissionsPreviewProps) {
   const [decryptedPhotos, setDecryptedPhotos] = useState<Map<string, string>>(new Map());
   const [decrypting, setDecrypting] = useState(false);
-  const [decryptionFailedState, setDecryptionFailedState] = useState<'missing' | 'incorrect' | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disqualified'>('all');
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [keyMissing, setKeyMissing] = useState(false);
+  const [categoryId, setCategoryId] = useState('');
+  const [status, setStatus] = useState<Status>('all');
+  const [sort, setSort] = useState<Sort>('newest');
+  const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [openId, setOpenId] = useState<string | null>(null);
   const decryptedCacheRef = useRef<Map<string, string>>(new Map());
+  const query = useDeferredValue(search.trim().toLowerCase());
 
   // Try to decrypt only newly uncached photos using the local or remote private key
   useEffect(() => {
@@ -37,52 +88,46 @@ export default function AdminSubmissionsPreview({
 
     (async () => {
       let localPrivateKey = localStorage.getItem('vrp_private_key');
-      
+
       if (!localPrivateKey) {
         try {
           const secretSnap = await getDoc(doc(db, 'secrets', 'keys'));
           if (secretSnap.exists() && secretSnap.data().privateKey) {
             localPrivateKey = secretSnap.data().privateKey;
-            localStorage.setItem('vrp_private_key', localPrivateKey);
-          } else {
-            setErrorMsg("Secure key document 'secrets/keys' does not exist or is empty.");
+            localStorage.setItem('vrp_private_key', localPrivateKey as string);
           }
-        } catch (error: any) {
-          console.error("Failed to fetch secure keys:", error);
-          setErrorMsg(error.message || "Failed to fetch secure keys due to a permissions or network error.");
+        } catch (error) {
+          console.error('Failed to fetch secure keys:', error);
         }
       }
 
       if (!localPrivateKey || allPhotos.length === 0) {
         if (!cancelled) {
-          setDecryptionFailedState(!localPrivateKey ? 'missing' : null);
+          setKeyMissing(!localPrivateKey);
           setDecrypting(false);
         }
         return;
       }
 
-      const uncachedPhotos = allPhotos.filter(
-        (p) => p.encrypted_image_url && !decryptedCacheRef.current.has(p.id)
-      );
+      const uncached = allPhotos.filter((p) => p.encrypted_image_url && !decryptedCacheRef.current.has(p.id));
 
-      if (uncachedPhotos.length > 0) {
+      if (uncached.length > 0) {
         setDecrypting(true);
         await Promise.all(
-          uncachedPhotos.map(async (photo) => {
-            if (photo.encrypted_image_url && localPrivateKey) {
-              try {
-                const clearUrl = await decryptUrl(photo.encrypted_image_url, localPrivateKey);
-                decryptedCacheRef.current.set(photo.id, clearUrl);
-              } catch {
-                // Fallback
-              }
+          uncached.map(async (photo) => {
+            try {
+              const clearUrl = await decryptUrl(photo.encrypted_image_url as string, localPrivateKey as string);
+              decryptedCacheRef.current.set(photo.id, clearUrl);
+            } catch {
+              // Keep the censored image when an entry cannot be decrypted
             }
-          })
+          }),
         );
       }
 
       if (!cancelled) {
         setDecryptedPhotos(new Map(decryptedCacheRef.current));
+        setKeyMissing(false);
         setDecrypting(false);
       }
     })();
@@ -90,336 +135,212 @@ export default function AdminSubmissionsPreview({
     return () => { cancelled = true; };
   }, [allPhotos]);
 
-  const filteredPhotos = useMemo(() => {
-    return allPhotos.filter((p) => {
-      if (selectedCategoryId && p.category_id !== selectedCategoryId) return false;
-      if (statusFilter === 'active' && p.is_disqualified) return false;
-      if (statusFilter === 'disqualified' && !p.is_disqualified) return false;
+  const categoryName = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
+
+  const counts = useMemo(() => {
+    const byCategory = new Map<string, number>();
+    let disqualified = 0;
+    for (const p of allPhotos) {
+      byCategory.set(p.category_id, (byCategory.get(p.category_id) || 0) + 1);
+      if (p.is_disqualified) disqualified++;
+    }
+    return { byCategory, disqualified };
+  }, [allPhotos]);
+
+  const visible = useMemo(() => {
+    const list = allPhotos.filter((p) => {
+      if (categoryId && p.category_id !== categoryId) return false;
+      if (status === 'active' && p.is_disqualified) return false;
+      if (status === 'disqualified' && !p.is_disqualified) return false;
+      if (query && !`${p.player_name} ${p.discord_name} ${p.caption || ''}`.toLowerCase().includes(query)) return false;
       return true;
     });
-  }, [allPhotos, selectedCategoryId, statusFilter]);
+    return list.sort((a, b) => {
+      if (sort === 'votes') return (b.vote_count || 0) - (a.vote_count || 0) || uploadedAt(b) - uploadedAt(a);
+      return sort === 'oldest' ? uploadedAt(a) - uploadedAt(b) : uploadedAt(b) - uploadedAt(a);
+    });
+  }, [allPhotos, categoryId, status, query, sort]);
 
-  const sortedPhotos = useMemo(() => {
-    return [...filteredPhotos].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [filteredPhotos]);
+  useEffect(() => setLimit(PAGE_SIZE), [categoryId, status, query, sort]);
 
-  const getImageUrl = (photo: Photo) => {
-    return decryptedPhotos.get(photo.id) || photo.image_url;
+  const srcFor = (photo: Photo) => decryptedPhotos.get(photo.id) || photo.image_url;
+  const openIndex = openId ? visible.findIndex((p) => p.id === openId) : -1;
+  const openPhoto = openIndex >= 0 ? visible[openIndex] : null;
+  const open = useCallback((id: string) => setOpenId(id), []);
+
+  const toggleDisqualified = (photo: Photo) => {
+    if (!onToggleDisqualifyPhoto) return;
+    if (photo.is_disqualified) {
+      onToggleDisqualifyPhoto(photo.id, false);
+      return;
+    }
+    const reason = window.prompt('Reason for disqualifying this photo (optional):');
+    if (reason !== null) onToggleDisqualifyPhoto(photo.id, true, reason || undefined);
   };
 
-  const lightboxPhoto = lightboxIndex !== null ? sortedPhotos[lightboxIndex] : null;
-
-  if (allPhotos.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-          <ImageIcon size={24} className="text-white/20" />
-        </div>
-        <p className="text-sm font-medium text-white/40">No submissions yet</p>
-        <p className="text-xs text-white/25 mt-1">Photos will appear here once users upload them.</p>
-      </div>
-    );
-  }
+  const decryption = decrypting ? 'Decrypting entries' : keyMissing ? 'No private key, so images show as the public sees them' : null;
 
   return (
-    <div className="space-y-5">
-      {/* Header with status */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold",
-            decryptionFailedState
-              ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
-              : decrypting
-                ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
-                : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-          )}>
-            {decryptionFailedState ? (
-              <><EyeOff size={12} /> Showing Censored</>
-            ) : decrypting ? (
-              <><div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" /> Decrypting...</>
-            ) : (
-              <><Eye size={12} /> Decrypted View</>
-            )}
+    <div className="space-y-4">
+      <PageHeader
+        title="Submissions"
+        description={
+          allPhotos.length === 0
+            ? 'No entries yet.'
+            : `${visible.length === allPhotos.length ? allPhotos.length : `${visible.length} of ${allPhotos.length}`} ${allPhotos.length === 1 ? 'entry' : 'entries'}${decryption ? `. ${decryption}.` : ''}`
+        }
+      />
+
+      {allPhotos.length === 0 ? (
+        <div className="rounded-lg border border-white/10">
+          <EmptyState title="No submissions yet">Photos appear here as soon as players upload them.</EmptyState>
+        </div>
+      ) : (
+        <>
+          <div className="sticky top-14 z-20 -mx-1 flex flex-wrap items-center gap-2 bg-[#07070a] px-1 py-2 lg:top-0">
+            <SearchField value={search} onChange={setSearch} placeholder="Search player, Discord or caption" className="min-w-52 flex-1 sm:max-w-xs" />
+            <select aria-label="Category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={cn(fieldClass, 'max-w-full cursor-pointer')}>
+              <option value="">All categories ({allPhotos.length})</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} ({counts.byCategory.get(c.id) || 0})</option>
+              ))}
+            </select>
+            <select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} className={cn(fieldClass, 'cursor-pointer')}>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="votes">Most votes</option>
+            </select>
+            <Segmented<Status>
+              label="Status"
+              value={status}
+              onChange={setStatus}
+              options={[
+                { value: 'all', label: 'All', count: allPhotos.length },
+                { value: 'active', label: 'Active', count: allPhotos.length - counts.disqualified },
+                { value: 'disqualified', label: 'Disqualified', count: counts.disqualified },
+              ]}
+            />
           </div>
-          <span className="text-xs text-white/30 font-mono">{sortedPhotos.length} photos</span>
-        </div>
 
-        {/* Status Filter Toggle */}
-        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 text-xs">
-          <button
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            className={cn(
-              "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
-              statusFilter === 'all' ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
-            )}
-          >
-            All ({allPhotos.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('active')}
-            className={cn(
-              "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
-              statusFilter === 'active' ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-white/40 hover:text-white"
-            )}
-          >
-            Active ({allPhotos.filter(p => !p.is_disqualified).length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('disqualified')}
-            className={cn(
-              "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
-              statusFilter === 'disqualified' ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-white/40 hover:text-white"
-            )}
-          >
-            Disqualified ({allPhotos.filter(p => p.is_disqualified).length})
-          </button>
-        </div>
-      </div>
+          {visible.length === 0 ? (
+            <div className="rounded-lg border border-white/10">
+              <EmptyState title="No entries match">
+                <Button size="sm" className="mt-2" onClick={() => { setSearch(''); setCategoryId(''); setStatus('all'); }}>Clear filters</Button>
+              </EmptyState>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {visible.slice(0, limit).map((photo) => (
+                <Tile key={photo.id} photo={photo} src={srcFor(photo)} category={categoryName.get(photo.category_id) || 'No category'} onOpen={open} />
+              ))}
+            </ul>
+          )}
 
-      {/* Category filter pills */}
-      {categories.length > 1 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => setSelectedCategoryId(null)}
-            className={cn(
-              "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 shrink-0",
-              selectedCategoryId === null
-                ? "bg-fivem-orange text-white shadow-lg shadow-fivem-orange/20"
-                : "bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 hover:text-white"
-            )}
-          >
-            <Layers size={12} />
-            All ({allPhotos.length})
-          </button>
-          {categories.map(cat => {
-            const count = allPhotos.filter(p => p.category_id === cat.id).length;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategoryId(cat.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 shrink-0",
-                  selectedCategoryId === cat.id
-                    ? "bg-fivem-orange text-white shadow-lg shadow-fivem-orange/20"
-                    : "bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 hover:text-white"
-                )}
-              >
-                <span>{cat.emoji || '✨'}</span>
-                {cat.name} ({count})
-              </button>
-            );
-          })}
-        </div>
+          {visible.length > limit && (
+            <div className="flex justify-center pt-1">
+              <Button onClick={() => setLimit((n) => n + PAGE_SIZE)}>Show {Math.min(PAGE_SIZE, visible.length - limit)} more</Button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Photo grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <AnimatePresence mode="popLayout">
-          {sortedPhotos.map((photo, index) => (
-            <motion.div
-              key={photo.id}
-              layout
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ delay: Math.min(index * 0.03, 0.3) }}
-              className={cn(
-                "group relative aspect-video rounded-xl overflow-hidden bg-fivem-card border border-white/5 hover:border-fivem-orange/30 transition-all cursor-pointer",
-                photo.is_disqualified && "ring-2 ring-red-500/80 grayscale-[40%] opacity-85"
-              )}
-              onClick={() => setLightboxIndex(index)}
-            >
-              <img
-                src={getImageUrl(photo)}
-                alt={photo.caption}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
-              />
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-              {/* DISQUALIFIED Permanent Banner */}
-              {photo.is_disqualified && (
-                <div className="absolute top-0 inset-x-0 bg-red-600/90 text-white font-black text-[10px] uppercase tracking-widest py-1 px-2 flex items-center justify-center gap-1 z-20 border-b border-red-400/40 shadow-md">
-                  <Ban size={11} className="stroke-[2.5]" />
-                  <span>DISQUALIFIED</span>
-                </div>
-              )}
-
-              {/* Player info on hover */}
-              <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
-                <div className="flex items-center gap-1.5">
-                  <User size={10} className="text-fivem-orange shrink-0" />
-                  <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{photo.player_name}</span>
-                </div>
-                <p className="text-[9px] text-white/50 truncate mt-0.5">{photo.discord_name}</p>
-                {photo.caption && (
-                  <p className="text-[10px] text-white/70 line-clamp-1 mt-1">{photo.caption}</p>
-                )}
-              </div>
-
-              {/* Action buttons on hover */}
-              <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                {onToggleDisqualifyPhoto && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (photo.is_disqualified) {
-                        onToggleDisqualifyPhoto(photo.id, false);
-                      } else {
-                        const reason = window.prompt("Reason for disqualifying this photo (optional):");
-                        if (reason !== null) {
-                          if (statusFilter === 'active') {
-                            setStatusFilter('all');
-                          }
-                          onToggleDisqualifyPhoto(photo.id, true, reason || undefined);
-                        }
-                      }
-                    }}
-                    className={cn(
-                      "bg-black/60 backdrop-blur-md p-1.5 rounded-lg border transition-colors cursor-pointer",
-                      photo.is_disqualified
-                        ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white"
-                        : "border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white"
-                    )}
-                    title={photo.is_disqualified ? "Re-qualify photo" : "Disqualify photo"}
-                  >
-                    {photo.is_disqualified ? <CheckCircle size={12} /> : <Ban size={12} />}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(index); }}
-                  className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
-                  title="View fullsize"
-                >
-                  <Maximize2 size={12} />
-                </button>
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const src = decryptedPhotos.get(photo.id) || photo.image_url;
-                    const name = photo.player_name ? photo.player_name.replace(/[^a-z0-9]/gi, '_') : 'photo';
-                    const filename = `submission-${name}-${photo.id.slice(0, 6)}.jpg`;
-                    const ok = await downloadPhoto(src, filename);
-                    if (ok) toast.success("Downloaded photo!");
-                    else toast.error("Failed to download photo.");
-                  }}
-                  className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors cursor-pointer"
-                  title="Download photo"
-                >
-                  <Download size={12} />
-                </button>
-                {onDeletePhoto && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onDeletePhoto(photo.id, photo.discord_name); }}
-                    className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
-                    title="Delete photo"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                )}
-              </div>
-
-              {/* Category badge */}
-              {!selectedCategoryId && (
-                <div className="absolute top-2 left-2 z-10">
-                  <span className="bg-black/60 backdrop-blur-md text-[9px] text-white/70 font-mono px-2 py-1 rounded-md border border-white/10">
-                    {categories.find(c => c.id === photo.category_id)?.emoji || '✨'} {categories.find(c => c.id === photo.category_id)?.name || ''}
-                  </span>
-                </div>
-              )}
-
-              {/* Decrypted indicator */}
-              {decryptedPhotos.has(photo.id) && (
-                <div className="absolute top-2 right-2 z-[5] group-hover:opacity-0 transition-opacity">
-                  <div className="bg-emerald-500/20 backdrop-blur-md p-1 rounded-md border border-emerald-500/30">
-                    <Eye size={10} className="text-emerald-400" />
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Lightbox overlay */}
-      <AnimatePresence>
-        {lightboxPhoto && lightboxIndex !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-xl flex items-center justify-center"
-            onClick={() => setLightboxIndex(null)}
-          >
-            {/* Close button */}
-            <button
-              className="absolute top-4 right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-              onClick={() => setLightboxIndex(null)}
-            >
-              <X size={20} />
-            </button>
-
-            {/* Navigation */}
-            {lightboxIndex > 0 && (
-              <button
-                className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
-              >
-                <ChevronLeft size={24} />
-              </button>
-            )}
-            {lightboxIndex < sortedPhotos.length - 1 && (
-              <button
-                className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
-              >
-                <ChevronRight size={24} />
-              </button>
-            )}
-
-            {/* Image */}
-            <motion.div
-              key={lightboxPhoto.id}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-[90vw] max-h-[85vh] flex flex-col items-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img
-                src={getImageUrl(lightboxPhoto)}
-                alt={lightboxPhoto.caption}
-                className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl"
-              />
-              {/* Info bar */}
-              <div className="mt-4 flex items-center gap-4 text-white/60">
-                <div className="flex items-center gap-2">
-                  <User size={14} className="text-fivem-orange" />
-                  <span className="text-sm font-bold text-white">{lightboxPhoto.player_name}</span>
-                </div>
-                <span className="text-xs font-mono text-white/30">@{lightboxPhoto.discord_name}</span>
-                <span className="text-xs font-mono text-white/30">
-                  {categories.find(c => c.id === lightboxPhoto.category_id)?.emoji} {categories.find(c => c.id === lightboxPhoto.category_id)?.name}
-                </span>
-                <span className="text-xs font-mono text-white/30">{lightboxPhoto.vote_count} votes</span>
-                <span className="text-xs font-mono text-white/20">{lightboxIndex + 1} / {sortedPhotos.length}</span>
-              </div>
-              {lightboxPhoto.caption && (
-                <p className="text-sm text-white/50 mt-2 text-center max-w-xl">{lightboxPhoto.caption}</p>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {openPhoto && (
+        <Viewer
+          photo={openPhoto}
+          src={srcFor(openPhoto)}
+          category={categoryName.get(openPhoto.category_id) || 'No category'}
+          position={`${openIndex + 1} of ${visible.length}`}
+          onClose={() => setOpenId(null)}
+          onPrevious={openIndex > 0 ? () => setOpenId(visible[openIndex - 1].id) : undefined}
+          onNext={openIndex < visible.length - 1 ? () => setOpenId(visible[openIndex + 1].id) : undefined}
+          onToggleDisqualified={onToggleDisqualifyPhoto ? () => toggleDisqualified(openPhoto) : undefined}
+          onDelete={onDeletePhoto ? () => onDeletePhoto(openPhoto.id, openPhoto.discord_name) : undefined}
+        />
+      )}
     </div>
+  );
+}
+
+function Viewer({ photo, src, category, position, onClose, onPrevious, onNext, onToggleDisqualified, onDelete }: {
+  photo: Photo; src: string; category: string; position: string;
+  onClose: () => void; onPrevious?: () => void; onNext?: () => void; onToggleDisqualified?: () => void; onDelete?: () => void;
+}) {
+  const facts: [string, React.ReactNode][] = [
+    ['Discord', photo.discord_name || 'Unknown'],
+    ['Category', category],
+    ['Votes', photo.vote_count || 0],
+    ['Uploaded', uploadedAt(photo) ? new Date(photo.created_at).toLocaleString() : 'Unknown'],
+  ];
+
+  return (
+    <Dialog.Root open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Content
+          aria-describedby={undefined}
+          // Pressing a notification must not close the viewer
+          onInteractOutside={(e) => { if ((e.target as HTMLElement).closest?.('[data-toast-region]')) e.preventDefault(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') onPrevious?.();
+            if (e.key === 'ArrowRight') onNext?.();
+          }}
+          className="fixed inset-0 z-[220] bg-[#050507] text-white outline-none"
+        >
+      <Dialog.Title className="sr-only">Entry by {photo.player_name}</Dialog.Title>
+      <div className="flex h-full flex-col lg:flex-row">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center p-3 sm:p-6">
+          <img src={src} alt={photo.caption || `Entry by ${photo.player_name}`} className="max-h-full max-w-full object-contain" />
+          <Button variant="secondary" aria-label="Previous entry" disabled={!onPrevious} onClick={onPrevious} className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/70 px-2">
+            <ChevronLeft size={18} aria-hidden="true" />
+          </Button>
+          <Button variant="secondary" aria-label="Next entry" disabled={!onNext} onClick={onNext} className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/70 px-2">
+            <ChevronRight size={18} aria-hidden="true" />
+          </Button>
+        </div>
+
+        <aside className="flex max-h-[45dvh] shrink-0 flex-col gap-4 overflow-y-auto border-t border-white/10 bg-[#0c0c10] p-4 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs tabular-nums text-white/55">{position}</span>
+            <Button size="sm" variant="ghost" onClick={onClose}>
+              <X size={14} aria-hidden="true" /> Close
+            </Button>
+          </div>
+          <div>
+            <h2 className="break-words text-lg font-bold font-display">{photo.player_name}</h2>
+            {photo.caption && <p className="mt-1 break-words text-sm text-white/70">{photo.caption}</p>}
+          </div>
+          <dl className="space-y-2 text-sm">
+            {facts.map(([label, value]) => (
+              <div key={label} className="flex justify-between gap-4">
+                <dt className="text-white/55">{label}</dt>
+                <dd className="min-w-0 break-words text-right text-white/90">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {photo.is_disqualified && (
+            <p className="rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-200">
+              Disqualified: {photo.disqualification_reason || 'no reason given'}
+            </p>
+          )}
+          <div className="mt-auto grid gap-2">
+            {onToggleDisqualified && (
+              <Button variant={photo.is_disqualified ? 'secondary' : 'danger'} onClick={onToggleDisqualified}>
+                {photo.is_disqualified ? <CheckCircle2 size={15} aria-hidden="true" /> : <Ban size={15} aria-hidden="true" />}
+                {photo.is_disqualified ? 'Re-qualify' : 'Disqualify'}
+              </Button>
+            )}
+            <Button onClick={() => saveCopy(photo, src)}>
+              <Download size={15} aria-hidden="true" /> Download
+            </Button>
+            {onDelete && (
+              <Button variant="ghost" className="text-red-300 hover:text-red-200" onClick={onDelete}>
+                <Trash2 size={15} aria-hidden="true" /> Delete entry
+              </Button>
+            )}
+          </div>
+        </aside>
+      </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

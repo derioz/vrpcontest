@@ -53,9 +53,8 @@ import {
 } from '../../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../../lib/dicebear';
 import { AdminHeader } from './AdminHeader';
+import { Button as KitButton, Segmented } from './kit';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
-import { NumberTicker } from '../ui/number-ticker';
-import { TabsFancy } from '../ui/tabs-fancy';
 
 interface AdminSuggestionsTabProps {
   currentUser?: any | null;
@@ -82,7 +81,7 @@ export const FUNCTIONAL_STATUSES: {
     id: 'open',
     label: 'Open for Voting',
     badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    dot: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]',
+    dot: 'bg-emerald-400',
     icon: CheckCircle2,
     description: 'Community members can vote and submit ideas'
   },
@@ -90,7 +89,7 @@ export const FUNCTIONAL_STATUSES: {
     id: 'under_review',
     label: 'Under Review',
     badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    dot: 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]',
+    dot: 'bg-amber-400',
     icon: Clock,
     description: 'Staff is reviewing and discussing this concept'
   },
@@ -98,7 +97,7 @@ export const FUNCTIONAL_STATUSES: {
     id: 'approved',
     label: 'Approved for Contest',
     badge: 'bg-purple-500/15 text-purple-300 border-purple-500/40',
-    dot: 'bg-purple-400 shadow-[0_0_6px_rgba(192,132,252,0.8)]',
+    dot: 'bg-purple-400',
     icon: Award,
     description: 'Selected to be used in an upcoming contest round'
   },
@@ -106,7 +105,7 @@ export const FUNCTIONAL_STATUSES: {
     id: 'implemented',
     label: 'Implemented / Used',
     badge: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    dot: 'bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]',
+    dot: 'bg-blue-400',
     icon: Layers,
     description: 'Featured in an active or archived competition'
   },
@@ -114,7 +113,7 @@ export const FUNCTIONAL_STATUSES: {
     id: 'declined',
     label: 'Declined',
     badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-    dot: 'bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.8)]',
+    dot: 'bg-rose-400',
     icon: X,
     description: 'Rejected, duplicate, or unsuitable'
   },
@@ -669,185 +668,53 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     <div className="space-y-6">
       {/* Admin Header */}
       <AdminHeader
-        title="Category Suggestions Management"
-        icon={<Sparkles size={20} className="text-orange-400" />}
-        iconBg="bg-orange-500/15 border-orange-500/30"
+        title="Category suggestions"
+        subtitle={`${suggestions.length} proposals, ${totalVotes} player votes, ${totalAdminVotes} staff votes.${topSuggestion?.category_name ? ` Leading: ${topSuggestion.category_name} (+${topSuggestion.score}).` : ''}`}
         actions={
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {/* Customize Hero & Countdown Timer Button */}
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider cursor-pointer flex items-center gap-1.5 border bg-white/[0.05] hover:bg-orange-500/15 text-orange-300 hover:text-white border-orange-500/30 hover:border-orange-500/60 shadow-[0_0_15px_rgba(249,115,22,0.15)]"
-              title="Customize Monthly Theme Title & Countdown Clock"
-            >
-              <Sliders size={14} className="text-orange-400" />
-              <span>Customize Hero & Timer</span>
-            </motion.button>
-
-            {/* New Suggestion Button */}
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsCreateModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider cursor-pointer flex items-center gap-1.5 border bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm hover:shadow-orange-500/20"
-            >
-              <Plus size={14} />
-              <span>New Suggestion</span>
-            </motion.button>
-
-            {/* Export CSV Button */}
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleExportCSV}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider cursor-pointer flex items-center gap-1.5 border bg-white/[0.05] hover:bg-white/[0.1] text-white/80 hover:text-white border-white/10"
-              title="Export all proposals to CSV"
-            >
-              <Download size={14} className="text-fivem-orange" />
-              <span>Export CSV</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleManualRefresh()}
-              disabled={refreshing}
-              className={cn(
-                "group relative px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all duration-300 cursor-pointer flex items-center gap-2.5 overflow-hidden select-none border",
-                refreshing
-                  ? "bg-orange-500/20 text-orange-300 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.35)]"
-                  : "bg-white/[0.05] hover:bg-orange-500/10 text-white/80 hover:text-white border-white/10 hover:border-orange-500/40 hover:shadow-[0_0_15px_rgba(249,115,22,0.2)]"
-              )}
-            >
-              {/* Animated subtle sheen on hover */}
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-              {/* Animated Refresh Icon */}
-              <motion.div
-                animate={refreshing ? { rotate: 360 } : {}}
-                transition={refreshing ? { repeat: Infinity, duration: 0.8, ease: "linear" } : {}}
-                className={cn(
-                  "flex items-center justify-center transition-transform duration-500",
-                  !refreshing && "group-hover:rotate-180"
-                )}
-              >
-                <RefreshCw
-                  size={14}
-                  className={cn(
-                    "transition-colors duration-300",
-                    refreshing
-                      ? "text-orange-400 drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]"
-                      : "text-white/60 group-hover:text-orange-400"
-                  )}
-                />
-              </motion.div>
-
-              <span className="relative z-10 font-bold">
-                {refreshing ? 'Refreshing...' : 'Refresh Feed'}
-              </span>
-
-              {/* Status indicator dot */}
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full transition-all duration-300",
-                  refreshing
-                    ? "bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.9)] animate-ping"
-                    : "bg-white/20 group-hover:bg-orange-400 group-hover:shadow-[0_0_6px_rgba(249,115,22,0.8)]"
-                )}
-              />
-            </motion.button>
-          </div>
+          <>
+            <KitButton onClick={() => handleManualRefresh()} disabled={refreshing}>
+              <RefreshCw size={14} aria-hidden="true" className={cn(refreshing && 'animate-spin')} />
+              {refreshing ? 'Refreshing' : 'Refresh'}
+            </KitButton>
+            <KitButton onClick={handleExportCSV} title="Export all proposals to CSV">
+              <Download size={14} aria-hidden="true" /> Export CSV
+            </KitButton>
+            <KitButton onClick={() => setIsSettingsModalOpen(true)} title="Monthly theme title and countdown">
+              <Sliders size={14} aria-hidden="true" /> Page settings
+            </KitButton>
+            <KitButton variant="primary" onClick={() => setIsCreateModalOpen(true)}>
+              <Plus size={15} aria-hidden="true" /> New suggestion
+            </KitButton>
+          </>
         }
       />
 
-      {/* ── Summary Telemetry Metrics ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Total Proposals</span>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black font-display text-white">
-              <NumberTicker value={suggestions.length} />
-            </span>
-            <span className="text-[10px] font-mono text-white/30">topics</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Community Votes</span>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black font-display text-fivem-orange">
-              <NumberTicker value={totalVotes} />
-            </span>
-            <span className="text-[10px] font-mono text-white/30">user votes</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Staff Contest Votes</span>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black font-display text-purple-400">
-              <NumberTicker value={totalAdminVotes} />
-            </span>
-            <span className="text-[10px] font-mono text-purple-400/50">staff picks</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">Top Community Concept</span>
-          <div className="flex items-baseline gap-2 mt-2 truncate">
-            <span className="text-2xl font-black font-display text-amber-300">
-              {topSuggestion ? `+${topSuggestion.score}` : '0'}
-            </span>
-            <span className="text-[10px] font-mono text-white/40 truncate">
-              {topSuggestion ? topSuggestion.category_name : 'None'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Status Filter Tab Bar (SeraUI Tabs View: Fancy) ── */}
-      <TabsFancy
-        tabs={[
-          {
-            id: 'all',
-            name: 'All Ideas',
-            icon: '✨',
-            badge: statusCounts.all,
-          },
-          ...FUNCTIONAL_STATUSES.map((st) => {
-            const Icon = st.icon;
-            return {
-              id: st.id,
-              name: st.label,
-              icon: <Icon size={14} className="shrink-0 text-white/90" />,
-              badge: statusCounts[st.id] || 0,
-            };
-          }),
+      <Segmented
+        label="Status"
+        value={statusFilter as string}
+        onChange={(id) => setStatusFilter(id as typeof statusFilter)}
+        options={[
+          { value: 'all', label: 'All', count: statusCounts.all },
+          ...FUNCTIONAL_STATUSES.map((st) => ({ value: st.id as string, label: st.label, count: statusCounts[st.id] || 0 })),
         ]}
-        activeTab={statusFilter}
-        onChange={(id) => setStatusFilter(id)}
-        variant="horizontal"
-        layoutId="admin-category-fancy-tab"
       />
 
       {/* ── Search & Sort Toolbar + Anti-Jitter Stability Toggle ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 p-3 rounded-2xl bg-black/40 border border-white/10">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 p-3 rounded-lg bg-black/40 border border-white/10">
         {/* Search Input */}
         <div className="relative flex-1 max-w-md">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/55 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search proposals, keywords, submitters, or Discord ID..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder:text-white/30 text-xs font-medium focus:outline-none focus:border-orange-400/50"
+            className="w-full pl-9 pr-4 py-2 rounded-md bg-white/[0.04] border border-white/10 text-white placeholder:text-white/30 text-xs font-medium focus:outline-none focus:border-orange-400/50"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/55 hover:text-white"
             >
               <X size={13} />
             </button>
@@ -865,7 +732,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
             }}
             title={autoReorder ? "Switch to Stable Order (locks positions to prevent cards moving during high voting traffic)" : "Switch to Live Auto-Glide (moves cards as votes change)"}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer select-none shrink-0 border",
+              "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold tabular-nums transition-all cursor-pointer select-none shrink-0 border",
               autoReorder
                 ? "bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-sm"
                 : "bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:bg-white/10"
@@ -873,7 +740,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
           >
             {autoReorder ? (
               <>
-                <Flame size={13} className="text-amber-400 animate-pulse" />
+                <Flame size={13} className="text-amber-400 " />
                 <span>Live Stream</span>
               </>
             ) : (
@@ -887,7 +754,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/50"
+            className="px-3 py-2 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/50"
           >
             <option value="top" className="bg-[#09090d]">Top Score (▲ Net Votes)</option>
             <option value="newest" className="bg-[#09090d]">Newest Proposals</option>
@@ -904,17 +771,17 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
             initial={{ opacity: 0, y: -10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            className="p-3 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 border border-orange-400/40 backdrop-blur-xl flex items-center justify-between gap-3 shadow-[0_8px_24px_rgba(234,88,12,0.2)]"
+            className="p-3 rounded-lg bg-white/[0.03] border border-orange-400/40  flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-fivem-orange animate-ping shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-fivem-orange shrink-0" />
               <span className="text-xs font-bold text-white truncate">
                 Live vote activity: <span className="text-amber-300">{pendingRankShifts} {pendingRankShifts === 1 ? 'idea has' : 'ideas have'} moved rank in the background</span>
               </span>
             </div>
             <button
               onClick={handleApplyRanking}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-fivem-orange to-orange-500 hover:from-orange-500 hover:to-fivem-orange text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-md flex items-center gap-1.5 shrink-0"
+              className="px-3.5 py-1.5 rounded-md bg-fivem-orange text-white text-xs font-bold transition-all cursor-pointer   flex items-center gap-1.5 shrink-0"
             >
               <Sparkles size={12} />
               <span>Update Ranking</span>
@@ -925,15 +792,15 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
       {/* ── Suggestions Feed with Functional Workflow Actions & Dedicated Admin Contest Selection Voting ── */}
       {loading ? (
-        <div className="p-12 text-center text-orange-400/50 font-mono text-xs flex items-center justify-center gap-2">
+        <div className="p-12 text-center text-orange-400/50 tabular-nums text-xs flex items-center justify-center gap-2">
           <RefreshCw className="animate-spin" size={16} />
           <span>Loading Category Proposals...</span>
         </div>
       ) : filteredSuggestions.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl border border-white/10 bg-white/[0.01]">
-          <Sparkles className="w-10 h-10 mx-auto text-white/20 mb-3" />
+        <div className="p-12 text-center rounded-lg border border-white/10 bg-white/[0.01]">
+          <Sparkles className="w-10 h-10 mx-auto text-white/55 mb-3" />
           <p className="text-sm font-bold text-white/70">No category suggestions match your active filter.</p>
-          <p className="text-xs text-white/40 mt-1 font-mono">Try clearing your search or switching status tabs above.</p>
+          <p className="text-xs text-white/55 mt-1 tabular-nums">Try clearing your search or switching status tabs above.</p>
         </div>
       ) : (
         <motion.div layout className="space-y-3.5">
@@ -961,9 +828,9 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   opacity: { duration: 0.25 }
                 }}
                 className={cn(
-                  "p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4",
+                  "p-4 sm:p-5 rounded-lg border transition-all duration-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4",
                   isApproved
-                    ? "bg-purple-500/[0.06] border-purple-400/30 hover:border-purple-400/50 shadow-[0_0_24px_rgba(168,85,247,0.06)]"
+                    ? "bg-purple-500/[0.06] border-purple-400/30 hover:border-purple-400/50"
                     : suggestion.status === 'under_review'
                     ? "bg-amber-500/[0.04] border-amber-400/30 hover:border-amber-400/50"
                     : suggestion.status === 'declined'
@@ -976,23 +843,23 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                 {/* Left: Community Votes Capsule + Info */}
                 <div className="flex items-start gap-4 flex-1 min-w-0">
                   {/* Public Community Vote Pill */}
-                  <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-black/60 border border-white/10 shrink-0 min-w-[70px] text-center shadow-inner">
+                  <div className="flex flex-col items-center justify-center p-2.5 rounded-lg bg-black/60 border border-white/10 shrink-0 min-w-[70px] text-center">
                     <span
                       className={cn(
-                        "text-lg font-black font-display tracking-tight leading-none mb-1",
+                        "text-lg font-bold font-display tracking-tight leading-none mb-1",
                         suggestion.score > 0
-                          ? "text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]"
+                          ? "text-emerald-400"
                           : suggestion.score < 0
-                          ? "text-rose-400 drop-shadow-[0_0_6px_rgba(251,113,133,0.4)]"
+                          ? "text-rose-400"
                           : "text-white/60"
                       )}
                     >
                       {suggestion.score > 0 ? `+${suggestion.score}` : suggestion.score}
                     </span>
-                    <span className="text-[8px] font-mono uppercase text-white/40 tracking-wider block">
+                    <span className="text-xs tabular-nums text-white/55  block">
                       {suggestion.upvotes}▲ {suggestion.downvotes}▼
                     </span>
-                    <span className="text-[7px] font-mono text-fivem-orange/80 uppercase font-bold mt-1 tracking-tighter">
+                    <span className="text-[7px] tabular-nums text-fivem-orange/80 font-bold mt-1 tracking-tighter">
                       Community
                     </span>
                   </div>
@@ -1000,18 +867,18 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   {/* Suggestion Details */}
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <h4 className="text-base font-black font-display text-white truncate">
+                      <h4 className="text-base font-bold font-display text-white truncate">
                         {suggestion.category_name}
                       </h4>
 
                       {/* Status Badge with Icon */}
-                      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border", statusConfig.badge)}>
+                      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs tabular-nums font-bold   border", statusConfig.badge)}>
                         <span className={cn("w-1.5 h-1.5 rounded-full", statusConfig.dot)} />
                         <span>{statusConfig.label}</span>
                       </span>
 
                       {suggestion.is_admin_author && (
-                        <span className="px-2 py-0.5 rounded bg-fivem-orange/20 text-[9px] font-mono text-fivem-orange uppercase font-bold border border-fivem-orange/30">
+                        <span className="px-2 py-0.5 rounded bg-fivem-orange/20 text-xs tabular-nums text-fivem-orange font-bold border border-fivem-orange/30">
                           Admin Idea
                         </span>
                       )}
@@ -1022,7 +889,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                     </p>
 
                     {/* Submitter details & Live Voter Breakdown Hover Triggers */}
-                    <div className="flex items-center gap-3 pt-0.5 text-[10px] font-mono text-white/40 flex-wrap">
+                    <div className="flex items-center gap-3 pt-0.5 text-xs tabular-nums text-white/55 flex-wrap">
                       <div className="flex items-center gap-1.5">
                         <img
                           src={getProfileAvatar(
@@ -1036,7 +903,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                         <span className="text-white/80 font-bold">{suggestion.author_name}</span>
                       </div>
                       {suggestion.discord_id && (
-                        <span className="text-white/30">(ID: {suggestion.discord_id})</span>
+                        <span className="text-white/55">(ID: {suggestion.discord_id})</span>
                       )}
                       <span>•</span>
                       <span>{new Date(suggestion.created_at).toLocaleDateString()}</span>
@@ -1058,18 +925,18 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 4, scale: 0.95 }}
                               transition={{ duration: 0.15 }}
-                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-2xl bg-[#0e0e13]/98 border border-emerald-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none text-left"
+                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-lg bg-[#0e0e13]/98 border border-emerald-500/30 pointer-events-none text-left"
                             >
                               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
-                                <span className="text-[11px] font-bold text-emerald-400">Community Upvoters</span>
-                                <span className="text-[9px] font-mono text-white/40">{suggestion.upvotes}</span>
+                                <span className="text-xs font-bold text-emerald-400">Community Upvoters</span>
+                                <span className="text-xs tabular-nums text-white/55">{suggestion.upvotes}</span>
                               </div>
                               {hoveredVoters.voters.length === 0 ? (
-                                <p className="text-[10px] text-white/40">No upvotes recorded yet.</p>
+                                <p className="text-xs text-white/55">No upvotes recorded yet.</p>
                               ) : (
                                 <div className="max-h-32 overflow-y-auto space-y-1">
                                   {hoveredVoters.voters.map((v) => (
-                                    <div key={v.userId} className="flex items-center gap-1.5 text-[11px]">
+                                    <div key={v.userId} className="flex items-center gap-1.5 text-xs">
                                       <img
                                         src={getProfileAvatar(v.authorAvatarUrl, v.discordId || v.userId, v.avatarStyle)}
                                         alt=""
@@ -1101,18 +968,18 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 4, scale: 0.95 }}
                               transition={{ duration: 0.15 }}
-                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-2xl bg-[#0e0e13]/98 border border-rose-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl pointer-events-none text-left"
+                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-lg bg-[#0e0e13]/98 border border-rose-500/30 pointer-events-none text-left"
                             >
                               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
-                                <span className="text-[11px] font-bold text-rose-400">Community Downvoters</span>
-                                <span className="text-[9px] font-mono text-white/40">{suggestion.downvotes}</span>
+                                <span className="text-xs font-bold text-rose-400">Community Downvoters</span>
+                                <span className="text-xs tabular-nums text-white/55">{suggestion.downvotes}</span>
                               </div>
                               {hoveredVoters.voters.length === 0 ? (
-                                <p className="text-[10px] text-white/40">No downvotes recorded yet.</p>
+                                <p className="text-xs text-white/55">No downvotes recorded yet.</p>
                               ) : (
                                 <div className="max-h-32 overflow-y-auto space-y-1">
                                   {hoveredVoters.voters.map((v) => (
-                                    <div key={v.userId} className="flex items-center gap-1.5 text-[11px]">
+                                    <div key={v.userId} className="flex items-center gap-1.5 text-xs">
                                       <img
                                         src={getProfileAvatar(v.authorAvatarUrl, v.discordId || v.userId, v.avatarStyle)}
                                         alt=""
@@ -1131,13 +998,13 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
                     {/* ── Staff Vote Section (Under Review or Open for Voting) ── */}
                     {isDecisionVotingEligible && (
-                      <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+                      <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap bg-white/[0.02] p-2.5 rounded-md border border-white/5">
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <ShieldCheck size={14} className="text-purple-400 shrink-0" />
                           <span className="text-xs font-bold text-white/90">
                             {suggestion.status === 'under_review' ? 'Review Decision:' : 'Use in Upcoming Contest?'}
                           </span>
-                          <span className="text-xs font-mono font-bold text-purple-300">
+                          <span className="text-xs tabular-nums font-bold text-purple-300">
                             {suggestion.status === 'under_review'
                               ? adminVotes.length === 0
                                 ? 'Waiting for 2 admin votes to move to Open for Voting'
@@ -1180,7 +1047,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                           onClick={() => handleAdminContestVote(suggestion.id)}
                           disabled={votingLocks[suggestion.id]}
                           className={cn(
-                            "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer active:scale-95 shadow-sm border",
+                            "flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-bold tabular-nums transition-all cursor-pointer shadow-sm border",
                             currentAdminHasVoted
                               ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40"
                               : "bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/25 hover:text-white"
@@ -1215,7 +1082,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                       value={suggestion.status || 'open'}
                       disabled={updatingStatusId === suggestion.id}
                       onChange={(e) => handleStatusChange(suggestion.id, e.target.value as SuggestionStatus)}
-                      className="px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/60 disabled:opacity-50"
+                      className="px-3 py-2 rounded-md bg-black/70 border border-white/15 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/60 disabled:opacity-50"
                     >
                       {FUNCTIONAL_STATUSES.map((st) => (
                         <option key={st.id} value={st.id} className="bg-[#0c0c10] text-white">
@@ -1229,7 +1096,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   <button
                     onClick={() => handleOpenEditModal(suggestion)}
                     title="Edit title & description"
-                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-amber-300 hover:text-white transition-colors cursor-pointer"
+                    className="p-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-amber-300 hover:text-white transition-colors cursor-pointer"
                   >
                     <Edit3 size={13} />
                   </button>
@@ -1238,7 +1105,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   <button
                     onClick={() => handleCopyDetails(suggestion)}
                     title="Copy concept details to clipboard"
-                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+                    className="p-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
                   >
                     <Copy size={13} />
                   </button>
@@ -1247,7 +1114,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                   <button
                     onClick={() => setDeletingSuggestion(suggestion)}
                     title="Delete suggestion"
-                    className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors cursor-pointer"
+                    className="p-2.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors cursor-pointer"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -1260,12 +1127,12 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
       {/* Delete Confirmation Modal */}
       <Dialog open={!!deletingSuggestion} onOpenChange={(open) => !open && setDeletingSuggestion(null)}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0c0c10] border-white/15 text-white p-6 rounded-3xl">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md bg-[#0c0c10] border-white/15 text-white p-6 rounded-lg">
           <DialogHeader>
-            <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 mb-2">
+            <div className="w-12 h-12 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 mb-2">
               <Trash2 size={20} />
             </div>
-            <DialogTitle className="text-base font-black font-display">
+            <DialogTitle className="text-base font-bold font-display">
               Delete Suggestion "{deletingSuggestion?.category_name}"?
             </DialogTitle>
             <DialogDescription className="text-xs text-white/50">
@@ -1277,14 +1144,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
             <button
               onClick={() => setDeletingSuggestion(null)}
               disabled={isDeleting}
-              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider"
+              className="px-4 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold"
             >
               Cancel
             </button>
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm"
+              className="px-5 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
             >
               {isDeleting ? (
                 <>
@@ -1301,14 +1168,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
       {/* ── Edit Suggestion Dialog ── */}
       <Dialog open={!!editingSuggestion} onOpenChange={(open) => !open && setEditingSuggestion(null)}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0c0c14] border-white/15 text-white p-6 rounded-3xl">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0c0c14] border-white/15 text-white p-6 rounded-lg">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
                 <Edit3 size={20} />
               </div>
               <div>
-                <DialogTitle className="text-lg font-black font-display">
+                <DialogTitle className="text-lg font-bold font-display">
                   Edit Category Suggestion
                 </DialogTitle>
                 <DialogDescription className="text-xs text-white/50">
@@ -1320,7 +1187,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
           <form onSubmit={handleSaveEdit} className="space-y-4 mt-2">
             <div>
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+              <label className="text-xs tabular-nums font-bold text-white/70 block mb-1">
                 Category Title
               </label>
               <input
@@ -1329,12 +1196,12 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                 onChange={(e) => setEditCategoryName(e.target.value)}
                 required
                 maxLength={100}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-amber-400/60"
+                className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-amber-400/60"
               />
             </div>
 
             <div>
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+              <label className="text-xs tabular-nums font-bold text-white/70 block mb-1">
                 Description
               </label>
               <textarea
@@ -1342,7 +1209,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                 onChange={(e) => setEditDescription(e.target.value)}
                 rows={3}
                 maxLength={1000}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs focus:outline-none focus:border-amber-400/60 resize-none"
+                className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/15 text-white text-xs focus:outline-none focus:border-amber-400/60 resize-none"
               />
             </div>
 
@@ -1350,14 +1217,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
               <button
                 type="button"
                 onClick={() => setEditingSuggestion(null)}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider"
+                className="px-4 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSavingEdit || !editCategoryName.trim()}
-                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-md"
+                className="px-5 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
                 {isSavingEdit ? (
                   <>
@@ -1375,14 +1242,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
       {/* ── Admin Create Suggestion Dialog ── */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0c0c14] border-white/15 text-white p-6 rounded-3xl">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-[#0c0c14] border-white/15 text-white p-6 rounded-lg">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
                 <Plus size={20} />
               </div>
               <div>
-                <DialogTitle className="text-lg font-black font-display">
+                <DialogTitle className="text-lg font-bold font-display">
                   Add Category Suggestion (Staff)
                 </DialogTitle>
                 <DialogDescription className="text-xs text-white/50">
@@ -1394,7 +1261,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
           <form onSubmit={handleCreateSuggestion} className="space-y-4 mt-2">
             <div>
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+              <label className="text-xs tabular-nums font-bold text-white/70 block mb-1">
                 Category Title <span className="text-fivem-orange">*</span>
               </label>
               <input
@@ -1404,12 +1271,12 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                 placeholder="e.g., Nighttime Street Drifting..."
                 required
                 maxLength={100}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-orange-400/60"
+                className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-orange-400/60"
               />
             </div>
 
             <div>
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70 block mb-1">
+              <label className="text-xs tabular-nums font-bold text-white/70 block mb-1">
                 Description (Optional)
               </label>
               <textarea
@@ -1418,7 +1285,7 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                 placeholder="Theme instructions, location guidelines, rules..."
                 rows={3}
                 maxLength={1000}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-xs focus:outline-none focus:border-orange-400/60 resize-none"
+                className="w-full px-3.5 py-2.5 rounded-md bg-white/[0.04] border border-white/15 text-white text-xs focus:outline-none focus:border-orange-400/60 resize-none"
               />
             </div>
 
@@ -1426,14 +1293,14 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold uppercase tracking-wider"
+                className="px-4 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isCreatingSuggestion || !newCategoryName.trim()}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-md"
+                className="px-5 py-2 rounded-md bg-fivem-orange text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
                 {isCreatingSuggestion ? (
                   <>

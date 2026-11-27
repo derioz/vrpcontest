@@ -1,34 +1,19 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import {
-  Settings, Trophy, Layers, Lock, Unlock, AlertCircle,
-  Image as ImageIcon, ChevronRight, ChevronDown, ChevronUp,
-  Eye, EyeOff, Download, Loader2, BarChart3, Shield, ShieldCheck, Zap, LayoutDashboard, UserCheck,
-  Bug, CheckCircle2, Trash2, Clock, Minus, Maximize2, X, Wrench, Sparkles, TrendingUp, MessageSquarePlus
-} from 'lucide-react';
-import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
+import { ChevronDown, Trash2 } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
 import { Category, Photo } from '../../types';
-import { AnimatedShinyText } from '../ui/animated-shiny-text';
-import { ShimmerButton } from '../ui/shimmer-button';
-import { AdminToggle } from '../ui/admin-toggle';
+import { Skeleton } from '../ui/skeleton';
 import { AdminVoterSearch } from './AdminVoterSearch';
-
 import { ChangelogTab } from './ChangelogTab';
-import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
-import { AdminHeader } from './AdminHeader';
-
-import { EditContestManager, ArchiveContest, CreateContestManager, StandaloneRulesEditor } from './ContestManagers';
+import { ArchiveContest } from './ContestManagers';
 import { ContestManagementHub } from './ContestManagementHub';
 import AdminSubmissionsPreview from './AdminSubmissionsPreview';
 import { AdminSuggestionsTab } from './AdminSuggestionsTab';
 import { AdminCountdownTab } from './AdminCountdownTab';
-import { DocTabs } from '../ui/doctabs';
-import { Skeleton } from '../ui/skeleton';
-import { AnimatedControlCard, AnimatedSwitch } from '../ui/animated-switch';
-import { DAMON_AVATAR_URL } from '../../config';
+import { Button, EmptyState, PageHeader, Panel, Row, Switch } from './kit';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 
@@ -64,672 +49,85 @@ interface AdminPanelProps {
   onDeletePhoto: (photoId: string, discordName: string) => void;
   onToggleDisqualifyPhoto?: (photoId: string, disqualify: boolean, reason?: string) => void;
   onResetVotes?: () => void;
-  onOpenAnalytics: () => void;
-  isMinimized?: boolean;
-  onToggleMinimize?: () => void;
-  onClose?: () => void;
-  isFullPage?: boolean;
   initialTab?: AdminTab;
   onTabChange?: (tab: AdminTab) => void;
 }
 
-const TAB_GROUPS: {
-  section: string;
-  tabs: {
-    id: AdminTab;
-    label: string;
-    icon: typeof Settings;
-    color: string;
-    glowColor: string;
-    description: string;
-  }[];
-}[] = [
-  {
-    section: "Core Operations",
-    tabs: [
-      { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, color: 'text-fivem-orange', glowColor: 'from-fivem-orange/20 via-fivem-orange/10 to-transparent', description: 'Metrics & status' },
-      { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-blue-400', glowColor: 'from-blue-500/20 via-blue-500/10 to-transparent', description: 'Charts & telemetry' },
-      { id: 'submissions', label: 'Submissions', icon: ImageIcon, color: 'text-cyan-400', glowColor: 'from-cyan-500/20 via-cyan-500/10 to-transparent', description: 'Photos & decryption' },
-      { id: 'voters', label: 'Voter Audit', icon: UserCheck, color: 'text-emerald-400', glowColor: 'from-emerald-500/20 via-emerald-500/10 to-transparent', description: 'Search & fraud check' },
-    ]
-  },
-  {
-    section: "Category Suggestions",
-    tabs: [
-      { id: 'suggestions', label: 'Category Suggestions', icon: Sparkles, color: 'text-orange-400', glowColor: 'from-orange-500/25 via-amber-500/15 to-transparent', description: 'Proposals, votes & curation' },
-    ]
-  },
-  {
-    section: "Contest Control",
-    tabs: [
-      { id: 'contest', label: 'Contest Setup', icon: Trophy, color: 'text-amber-400', glowColor: 'from-amber-500/20 via-amber-500/10 to-transparent', description: 'Rules & winners' },
-      { id: 'countdown', label: 'Countdown Timer', icon: Clock, color: 'text-emerald-400', glowColor: 'from-emerald-500/20 via-emerald-500/10 to-transparent', description: 'Target date, presets & flip clock' },
-      { id: 'controls', label: 'Controls & Security', icon: Zap, color: 'text-purple-400', glowColor: 'from-purple-500/20 via-purple-500/10 to-transparent', description: 'Lockdown & RSA keys' },
-    ]
-  },
-  {
-    section: "Platform",
-    tabs: [
-      { id: 'changelogs', label: 'Changelog', icon: Layers, color: 'text-fivem-orange', glowColor: 'from-fivem-orange/20 via-fivem-orange/10 to-transparent', description: 'Version history & log' },
-      { id: 'danger', label: 'Danger Zone', icon: AlertCircle, color: 'text-red-400', glowColor: 'from-red-500/20 via-red-500/10 to-transparent', description: 'Reset & archive' },
-    ]
-  }
-];
-
-const ALL_TABS = TAB_GROUPS.flatMap(g => g.tabs);
-
 export default function AdminPanel(props: AdminPanelProps) {
   const {
     isAdmin, user, activeContest, categories = [], allPhotos = [], votingOpen, submissionsOpen,
-    onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false,
-    categorySuggestionMode = false, onToggleCategorySuggestionMode,
-    publicKey, privateKey, rulesMarkdown, winners = [],
-    onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed, onToggleCensorSubmissions,
-    onGenerateKeys, onToggleReveal, onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes, onOpenAnalytics,
-    isMinimized = false, onToggleMinimize, onClose,
-    isFullPage = false, initialTab, onTabChange
+    rulesMarkdown, winners = [], siteClosed = false,
+    onDownloadWinners, onDeletePhoto, onToggleDisqualifyPhoto, onResetVotes,
+    initialTab = 'dashboard', onTabChange,
   } = props;
-
-  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab || 'dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab]);
 
   if (!isAdmin) return null;
 
-  if (isFullPage) {
-    const currentActiveTab = initialTab || activeTab;
-    const handleSwitchTab = (tab: AdminTab) => {
-      setActiveTab(tab);
-      if (onTabChange) onTabChange(tab);
-    };
+  const switchTab = (tab: AdminTab) => onTabChange?.(tab);
 
-    return (
-      <div className="w-full max-w-full 2xl:max-w-[1440px] xl:max-w-[1280px] mx-auto">
-        {currentActiveTab === 'dashboard' && (
-          <OverviewTab
-            activeContest={activeContest}
-            categories={categories}
-            allPhotos={allPhotos}
-            votingOpen={votingOpen}
-            submissionsOpen={submissionsOpen}
-            siteClosed={siteClosed}
-            setActiveTab={handleSwitchTab}
-            onOpenAnalytics={() => (onOpenAnalytics ? onOpenAnalytics() : handleSwitchTab('analytics'))}
-          />
-        )}
-
-        {currentActiveTab === 'analytics' && (
-          <div className="space-y-6">
-            <AdminHeader
-              title="Contest Telemetry & Analytics"
-              icon={<BarChart3 size={20} className="text-blue-400" />}
-              iconBg="bg-blue-500/15 border-blue-500/30"
-              actions={
-                <button
-                  onClick={onOpenAnalytics || (() => handleSwitchTab('dashboard'))}
-                  className="px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
-                >
-                  <Maximize2 size={13} />
-                  <span>Fullscreen Mode</span>
-                </button>
-              }
-            />
-            <Suspense fallback={
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="p-5 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
-                      <Skeleton className="w-20 h-4 rounded-md bg-white/[0.07]" />
-                      <Skeleton className="w-28 h-8 rounded-lg bg-white/[0.08]" />
-                      <Skeleton className="w-36 h-3 rounded-md bg-white/[0.05]" />
-                    </div>
-                  ))}
-                </div>
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-4">
-                  <Skeleton className="w-48 h-6 rounded-lg bg-white/[0.08]" />
-                  <Skeleton className="w-full h-64 rounded-xl bg-white/[0.05]" />
-                </div>
-              </div>
-            }>
-              <AnalyticsDashboard
-                photos={allPhotos}
-                categories={categories}
-                onClose={() => handleSwitchTab('dashboard')}
-                isInline={true}
-              />
-            </Suspense>
-          </div>
-        )}
-
-        {currentActiveTab === 'submissions' && (
-          <div className="space-y-6">
-            <AdminHeader
-              title="Submissions Management"
-              icon={<ImageIcon size={20} className="text-cyan-400" />}
-              iconBg="bg-cyan-500/15 border-cyan-500/30"
-              actions={
-                <span className="px-3.5 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs font-bold">
-                  {allPhotos.length} Total Submissions
-                </span>
-              }
-            />
-            <Suspense fallback={
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
-                    <Skeleton className="w-full aspect-video rounded-xl bg-white/[0.07]" />
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="w-1/2 h-4 rounded-md bg-white/[0.07]" />
-                      <Skeleton className="w-14 h-4 rounded-full bg-white/[0.05]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            }>
-              <AdminSubmissionsPreview
-                allPhotos={allPhotos}
-                categories={categories}
-                onDeletePhoto={onDeletePhoto}
-                onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
-              />
-            </Suspense>
-          </div>
-        )}
-
-        {currentActiveTab === 'voters' && (
-          <div className="space-y-6">
-            <AdminHeader
-              title="Voter Audit & Fraud Check"
-              icon={<UserCheck size={20} className="text-emerald-400" />}
-              iconBg="bg-emerald-500/15 border-emerald-500/30"
-            />
-            <AdminVoterSearch
-              allPhotos={allPhotos}
-              categories={categories}
-            />
-          </div>
-        )}
-
-        {currentActiveTab === 'suggestions' && (
-          <AdminSuggestionsTab
-            currentUser={user}
-            isAdmin={isAdmin}
-          />
-        )}
-
-        {currentActiveTab === 'contest' && (
-          <ContestSetupTab
-            activeContest={activeContest}
-            categories={categories}
-            rulesMarkdown={rulesMarkdown}
-            winners={winners}
-            onDownloadWinners={onDownloadWinners}
-            allPhotos={allPhotos}
-            user={user}
-            isAdmin={isAdmin}
-            votingOpen={votingOpen}
-            submissionsOpen={submissionsOpen}
-          />
-        )}
-
-        {currentActiveTab === 'countdown' && (
-          <AdminCountdownTab
-            activeContest={activeContest}
-          />
-        )}
-
-        {currentActiveTab === 'controls' && (
-          <ControlsAndSecurityTab
-            votingOpen={votingOpen}
-            submissionsOpen={submissionsOpen}
-            onePhotoPerUser={onePhotoPerUser}
-            showWinnersToggle={showWinnersToggle}
-            siteClosed={siteClosed}
-            censorSubmissions={censorSubmissions}
-            categorySuggestionMode={categorySuggestionMode}
-            publicKey={publicKey}
-            privateKey={privateKey}
-            onToggleVoting={onToggleVoting}
-            onToggleSubmissions={onToggleSubmissions}
-            onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
-            onToggleShowWinners={onToggleShowWinners}
-            onToggleSiteClosed={onToggleSiteClosed}
-            onToggleCensorSubmissions={onToggleCensorSubmissions}
-            onToggleCategorySuggestionMode={onToggleCategorySuggestionMode}
-            onGenerateKeys={onGenerateKeys}
-            onToggleReveal={onToggleReveal}
-          />
-        )}
-
-        {currentActiveTab === 'changelogs' && (
-          <ChangelogTab />
-        )}
-
-        {currentActiveTab === 'danger' && (
-          <DangerTab
-            activeContest={activeContest}
-            categories={categories}
-            allPhotos={allPhotos}
-            onResetVotes={onResetVotes}
-          />
-        )}
-      </div>
-    );
+  switch (initialTab) {
+    case 'analytics':
+      return (
+        <div className="space-y-5">
+          <PageHeader title="Analytics" />
+          <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
+            <AnalyticsDashboard photos={allPhotos} categories={categories} onClose={() => switchTab('dashboard')} isInline />
+          </Suspense>
+        </div>
+      );
+    case 'submissions':
+      return (
+        <AdminSubmissionsPreview
+          allPhotos={allPhotos}
+          categories={categories}
+          onDeletePhoto={onDeletePhoto}
+          onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
+        />
+      );
+    case 'voters':
+      return <AdminVoterSearch allPhotos={allPhotos} categories={categories} />;
+    case 'suggestions':
+      return <AdminSuggestionsTab currentUser={user} isAdmin={isAdmin} />;
+    case 'contest':
+      return (
+        <ContestManagementHub
+          activeContest={activeContest}
+          categories={categories}
+          allPhotos={allPhotos}
+          rulesMarkdown={rulesMarkdown}
+          winners={winners}
+          user={user}
+          isAdmin={isAdmin}
+          votingOpen={votingOpen}
+          submissionsOpen={submissionsOpen}
+          onDownloadWinners={onDownloadWinners}
+        />
+      );
+    case 'countdown':
+      return <AdminCountdownTab activeContest={activeContest} />;
+    case 'controls':
+      return <ControlsTab {...props} />;
+    case 'changelogs':
+      return <ChangelogTab />;
+    case 'danger':
+      return <DangerTab activeContest={activeContest} categories={categories} allPhotos={allPhotos} onResetVotes={onResetVotes} />;
+    default:
+      return (
+        <OverviewTab
+          activeContest={activeContest}
+          categories={categories}
+          allPhotos={allPhotos}
+          votingOpen={votingOpen}
+          submissionsOpen={submissionsOpen}
+          siteClosed={siteClosed}
+          setActiveTab={switchTab}
+        />
+      );
   }
-
-  if (isMinimized) {
-    return (
-      <motion.div
-        layoutId="admin-console-dock"
-        initial={{ opacity: 0, y: 40, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 40, scale: 0.9 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
-        className="fixed bottom-4 right-4 sm:right-6 z-[170] flex items-center gap-3 p-3 px-4 rounded-2xl bg-[#09090d]/95 backdrop-blur-2xl border border-fivem-orange/40 shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_25px_rgba(234,88,12,0.25)] text-white group pointer-events-auto select-none"
-      >
-        <div
-          onClick={onToggleMinimize}
-          className="flex items-center gap-3 cursor-pointer flex-1"
-        >
-          {/* Icon & Pulse Indicator */}
-          <div className="relative shrink-0">
-            <div className="p-2.5 rounded-xl bg-fivem-orange/20 border border-fivem-orange/40 text-fivem-orange flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-              <Settings size={18} />
-            </div>
-            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#09090d] animate-pulse" />
-          </div>
-
-          {/* Info details */}
-          <div className="flex flex-col min-w-[140px] max-w-[200px]">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black font-display text-white truncate">Admin Console</span>
-              <span className="text-[9px] font-mono font-bold text-fivem-orange bg-fivem-orange/15 px-1.5 py-0.2 rounded border border-fivem-orange/30 uppercase">
-                Active
-              </span>
-            </div>
-            <span className="text-[10px] text-white/50 font-mono truncate mt-0.5 capitalize">
-              Domain: <strong className="text-white/90">{activeTab}</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* Actions: Expand & Close */}
-        <div className="flex items-center gap-1.5 pl-2 border-l border-white/10 shrink-0">
-          <button
-            type="button"
-            onClick={onToggleMinimize}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-all border border-white/10 cursor-pointer"
-            title="Expand Admin Console"
-          >
-            <Maximize2 size={14} />
-          </button>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-all border border-white/10 cursor-pointer"
-              title="Close Admin Panel"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
-      <div className="relative z-10 flex flex-col md:flex-row h-full w-full overflow-hidden bg-[#060609]">
-        
-        {/* ── ACETERNITY ENHANCED SIDEBAR DOCK ── */}
-        <SidebarBody>
-          <div className="flex flex-col flex-1 min-h-0 justify-between space-y-4">
-            
-            {/* Header & Categorized Navigation */}
-            <div className="space-y-4 pt-1">
-              <div className="flex items-center gap-3 px-2 py-1">
-                <div className="p-2.5 bg-gradient-to-br from-fivem-orange/25 to-fivem-orange/10 border border-fivem-orange/40 rounded-2xl text-fivem-orange shrink-0 shadow-[0_0_15px_rgba(234,88,12,0.25)]">
-                  <Settings size={18} />
-                </div>
-                {sidebarOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex flex-col min-w-0"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <h2 className="text-sm font-black font-display text-white leading-none">
-                        <AnimatedShinyText shimmerWidth={120}>Admin Console</AnimatedShinyText>
-                      </h2>
-                    </div>
-                    <span className="text-[10px] text-white/40 font-mono mt-0.5">Vital RP Operations</span>
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Categorized Navigation Groups */}
-              <div className="space-y-3.5">
-                {TAB_GROUPS.map((group) => (
-                  <div key={group.section} className="space-y-0.5">
-                    {sidebarOpen && (
-                      <p className="px-3 text-[9px] font-mono uppercase tracking-[0.2em] text-white/30 font-bold mb-1">
-                        {group.section}
-                      </p>
-                    )}
-                    {group.tabs.map((tab) => {
-                      const Icon = tab.icon;
-                      const isActive = activeTab === tab.id;
-                      const isDanger = tab.id === 'danger';
-                      const badge = tab.id === 'submissions' && allPhotos.length > 0
-                        ? allPhotos.length
-                        : tab.id === 'controls' && siteClosed
-                          ? 'Locked'
-                          : undefined;
-                      const badgeColor = tab.id === 'controls' && siteClosed
-                        ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                        : undefined;
-
-                      return (
-                        <SidebarLink
-                          key={tab.id}
-                          label={tab.label}
-                          icon={<Icon size={16} />}
-                          active={isActive}
-                          color={tab.color}
-                          glowColor={tab.glowColor}
-                          description={tab.description}
-                          badge={badge}
-                          badgeColor={badgeColor}
-                          isDanger={isDanger}
-                          onClick={() => setActiveTab(tab.id)}
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Admin Creator Footer Card inside Sidebar */}
-            <div className="border-t border-white/10 pt-3 pb-1 px-1">
-              <div className="flex items-center gap-3">
-                <img
-                  src={DAMON_AVATAR_URL}
-                  alt="Damon"
-                  className="w-9 h-9 rounded-xl object-cover border border-fivem-orange/60 p-0.5 bg-black/60 shrink-0 shadow-[0_0_10px_rgba(234,88,12,0.2)]"
-                />
-                {sidebarOpen && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col min-w-0 flex-1 leading-tight"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-white font-display truncate">Damon</span>
-                      <ShieldCheck size={11} className="text-fivem-orange shrink-0" />
-                    </div>
-                    <span className="text-[10px] text-white/40 font-mono truncate">@mcspace</span>
-                  </motion.div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </SidebarBody>
-
-        {/* Mobile Horizontal Tabs Header (< md screens) using SeraUI DocTabs */}
-        <div className="md:hidden relative shrink-0 border-b border-white/10 bg-[#08080b] p-2 overflow-x-auto no-scrollbar">
-          <DocTabs
-            tabs={ALL_TABS.map((tab) => ({
-              id: tab.id,
-              title: tab.label,
-              icon: tab.icon as any,
-            }))}
-            activeTab={activeTab}
-            onChange={(id) => setActiveTab(id as any)}
-            variant="dock"
-            layoutId="admin-mobile-doctab"
-          />
-        </div>
-
-        {/* ── MAIN CONTENT STAGE ── */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#09090d]/95">
-          {/* Top Bar Header */}
-          <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/10 bg-black/40">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-white/40 uppercase tracking-widest">Console Domain</span>
-              <span className="text-white/20">•</span>
-              <span className="text-sm font-black font-display text-fivem-orange capitalize">{activeTab}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-[10px] font-bold text-emerald-400 font-mono">Authenticated</span>
-              </div>
-
-              {onToggleMinimize && (
-                <button
-                  type="button"
-                  onClick={onToggleMinimize}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-colors cursor-pointer"
-                  title="Minimize Admin Console to Bottom Dock"
-                >
-                  <Minus size={15} />
-                </button>
-              )}
-
-              {onClose && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
-                  title="Close Admin Panel"
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Tab Content Stage with Cool Motion Physics */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 h-full bg-[#08080c]/90">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 14, filter: "blur(6px)", scale: 0.992 }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
-                exit={{ opacity: 0, y: -10, filter: "blur(6px)", scale: 0.992 }}
-                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full max-w-full 2xl:max-w-[1440px] xl:max-w-[1280px] lg:max-w-[1100px] mx-auto"
-              >
-                {activeTab === 'dashboard' && (
-                  <OverviewTab
-                    activeContest={activeContest}
-                    categories={categories}
-                    allPhotos={allPhotos}
-                    votingOpen={votingOpen}
-                    submissionsOpen={submissionsOpen}
-                    siteClosed={siteClosed}
-                    setActiveTab={setActiveTab}
-                    onOpenAnalytics={() => setActiveTab('analytics')}
-                  />
-                )}
-
-                {activeTab === 'analytics' && (
-                  <div className="space-y-6">
-                    <AdminHeader
-                      title="Contest Telemetry & Analytics"
-                      icon={<BarChart3 size={20} className="text-blue-400" />}
-                      iconBg="bg-blue-500/15 border-blue-500/30"
-                      actions={
-                        <button
-                          onClick={onOpenAnalytics}
-                          className="px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-center active:scale-95"
-                        >
-                          <Maximize2 size={13} />
-                          <span>Fullscreen Mode</span>
-                        </button>
-                      }
-                    />
-                    <Suspense fallback={
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                          {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="p-5 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
-                              <Skeleton className="w-20 h-4 rounded-md bg-white/[0.07]" />
-                              <Skeleton className="w-28 h-8 rounded-lg bg-white/[0.08]" />
-                              <Skeleton className="w-36 h-3 rounded-md bg-white/[0.05]" />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="p-6 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-4">
-                          <Skeleton className="w-48 h-6 rounded-lg bg-white/[0.08]" />
-                          <Skeleton className="w-full h-64 rounded-xl bg-white/[0.05]" />
-                        </div>
-                      </div>
-                    }>
-                      <AnalyticsDashboard
-                        photos={allPhotos}
-                        categories={categories}
-                        onClose={() => setActiveTab('dashboard')}
-                        isInline={true}
-                      />
-                    </Suspense>
-                  </div>
-                )}
-
-                {activeTab === 'submissions' && (
-                  <div className="space-y-6">
-                    <AdminHeader
-                      title="Submissions Management"
-                      icon={<ImageIcon size={20} className="text-cyan-400" />}
-                      iconBg="bg-cyan-500/15 border-cyan-500/30"
-                      actions={
-                        <span className="px-3.5 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs font-bold">
-                          {allPhotos.length} Total Submissions
-                        </span>
-                      }
-                    />
-                    <Suspense fallback={
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <div key={i} className="p-4 rounded-2xl border border-white/10 bg-[#0d0d14]/70 space-y-3">
-                            <Skeleton className="w-full aspect-video rounded-xl bg-white/[0.07]" />
-                            <div className="flex items-center justify-between">
-                              <Skeleton className="w-1/2 h-4 rounded-md bg-white/[0.07]" />
-                              <Skeleton className="w-14 h-4 rounded-full bg-white/[0.05]" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    }>
-                      <AdminSubmissionsPreview
-                        allPhotos={allPhotos}
-                        categories={categories}
-                        onDeletePhoto={onDeletePhoto}
-                        onToggleDisqualifyPhoto={onToggleDisqualifyPhoto}
-                      />
-                    </Suspense>
-                  </div>
-                )}
-
-                {activeTab === 'voters' && (
-                  <div className="space-y-6">
-                    <AdminHeader
-                      title="Voter Audit & Fraud Check"
-                      icon={<UserCheck size={20} className="text-emerald-400" />}
-                      iconBg="bg-emerald-500/15 border-emerald-500/30"
-                    />
-                    <AdminVoterSearch
-                      allPhotos={allPhotos}
-                      categories={categories}
-                    />
-                  </div>
-                )}
-
-                {activeTab === 'suggestions' && (
-                  <AdminSuggestionsTab
-                    currentUser={user}
-                    isAdmin={isAdmin}
-                  />
-                )}
-
-                {activeTab === 'contest' && (
-                  <ContestSetupTab
-                    activeContest={activeContest}
-                    categories={categories}
-                    rulesMarkdown={rulesMarkdown}
-                    winners={winners}
-                    onDownloadWinners={onDownloadWinners}
-                    allPhotos={allPhotos}
-                    user={user}
-                    isAdmin={isAdmin}
-                    votingOpen={votingOpen}
-                    submissionsOpen={submissionsOpen}
-                  />
-                )}
-
-                {activeTab === 'countdown' && (
-                  <AdminCountdownTab
-                    activeContest={activeContest}
-                  />
-                )}
-
-                {activeTab === 'controls' && (
-                  <ControlsAndSecurityTab
-                    votingOpen={votingOpen}
-                    submissionsOpen={submissionsOpen}
-                    onePhotoPerUser={onePhotoPerUser}
-                    showWinnersToggle={showWinnersToggle}
-                    siteClosed={siteClosed}
-                    censorSubmissions={censorSubmissions}
-                    categorySuggestionMode={categorySuggestionMode}
-                    publicKey={publicKey}
-                    privateKey={privateKey}
-                    onToggleVoting={onToggleVoting}
-                    onToggleSubmissions={onToggleSubmissions}
-                    onToggleOnePhotoPerUser={onToggleOnePhotoPerUser}
-                    onToggleShowWinners={onToggleShowWinners}
-                    onToggleSiteClosed={onToggleSiteClosed}
-                    onToggleCensorSubmissions={onToggleCensorSubmissions}
-                    onToggleCategorySuggestionMode={onToggleCategorySuggestionMode}
-                    onGenerateKeys={onGenerateKeys}
-                    onToggleReveal={onToggleReveal}
-                  />
-                )}
-
-                {activeTab === 'changelogs' && (
-                  <ChangelogTab />
-                )}
-
-                {activeTab === 'danger' && (
-                  <DangerTab
-                    activeContest={activeContest}
-                    categories={categories}
-                    allPhotos={allPhotos}
-                    onResetVotes={onResetVotes}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
-    </Sidebar>
-  );
 }
 
+/* ── Overview ──────────────────────────────────────────────────────────────── */
 
-/* ═══════════════════════════════════════════════════════════════════════
-   TAB: Overview — Elevated Dashboard with Live Bug Reports Inbox
-   ═══════════════════════════════════════════════════════════════════════ */
 interface BugReport {
   id: string;
   title: string;
@@ -741,9 +139,17 @@ interface BugReport {
   dateStr?: string;
 }
 
-function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submissionsOpen, siteClosed = false, setActiveTab, onOpenAnalytics }: {
-  activeContest: any; categories: Category[]; allPhotos: Photo[]; votingOpen: boolean; submissionsOpen: boolean; siteClosed?: boolean;
-  setActiveTab: (tab: AdminTab) => void; onOpenAnalytics: () => void;
+function formatDeadline(iso?: string) {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+}
+
+function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submissionsOpen, siteClosed, setActiveTab }: {
+  activeContest: AdminPanelProps['activeContest']; categories: Category[]; allPhotos: Photo[];
+  votingOpen: boolean; submissionsOpen: boolean; siteClosed: boolean;
+  setActiveTab: (tab: AdminTab) => void;
 }) {
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
   const [loadingBugs, setLoadingBugs] = useState(true);
@@ -786,9 +192,6 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
     }
   }, []);
 
-  const totalVotes = allPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0);
-  const openBugsCount = bugReports.filter(b => b.status === 'Open').length;
-
   const handleToggleBugStatus = async (bug: BugReport) => {
     const nextStatus = bug.status === 'Open' ? 'Resolved' : 'Open';
     try {
@@ -809,710 +212,238 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
     }
   };
 
+  const totalVotes = useMemo(() => allPhotos.reduce((sum, p) => sum + (p.vote_count || 0), 0), [allPhotos]);
+  const perCategory = useMemo(
+    () => categories.map((c) => {
+      const entries = allPhotos.filter((p) => p.category_id === c.id);
+      return { ...c, entries: entries.length, votes: entries.reduce((s, p) => s + (p.vote_count || 0), 0) };
+    }),
+    [categories, allPhotos],
+  );
+  const recent = useMemo(
+    () => [...allPhotos].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8),
+    [allPhotos],
+  );
+  const openBugs = bugReports.filter((b) => b.status === 'Open').length;
+  const submissionsClose = formatDeadline(activeContest?.submissions_close_date);
+  const votingEnds = formatDeadline(activeContest?.voting_end_date);
+
+  const state = (on: boolean, yes: string, no: string, alert = false) => (
+    <span className={cn('text-sm font-semibold', alert ? 'text-red-300' : on ? 'text-emerald-300' : 'text-white/60')}>{on ? yes : no}</span>
+  );
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <AdminHeader
-        title="Contest Control Center"
-        subtitle={activeContest ? `Active contest: "${activeContest.name}"` : 'No active contest round configured.'}
-        icon={<LayoutDashboard size={20} className="text-fivem-orange" />}
-        iconBg="bg-fivem-orange/15 border-fivem-orange/30"
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab('contest')}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
-            >
-              <Trophy size={14} />
-              <span>Manage & Switch Contests</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('controls')}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-fivem-orange/20 hover:bg-fivem-orange/30 border border-fivem-orange/40 text-fivem-orange font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
-            >
-              <Zap size={14} />
-              <span>Fast Switches</span>
-            </button>
-          </div>
-        }
+    <div className="space-y-5">
+      <PageHeader
+        title="Overview"
+        description={activeContest ? activeContest.name : 'No active contest.'}
+        actions={<Button variant="primary" onClick={() => setActiveTab('submissions')}>Review submissions</Button>}
       />
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        {/* Total Submissions */}
-        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider">Submissions</span>
-            <ImageIcon size={16} className="text-cyan-400" />
+      <dl className="grid grid-cols-3 divide-x divide-white/10 rounded-lg border border-white/10 bg-[#0c0c10]">
+        {[
+          ['Entries', allPhotos.length],
+          ['Votes', totalVotes],
+          ['Open bug reports', openBugs],
+        ].map(([label, value]) => (
+          <div key={label} className="px-4 py-3">
+            <dt className="text-xs text-white/60">{label}</dt>
+            <dd className="mt-0.5 text-2xl font-bold tabular-nums text-white">{value}</dd>
           </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black font-display text-white">{allPhotos.length}</div>
-            <div className="text-[10px] text-white/40 font-mono mt-1">Across {categories.length} categories</div>
-          </div>
-        </div>
+        ))}
+      </dl>
 
-        {/* Total Votes */}
-        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider">Total Votes</span>
-            <Trophy size={16} className="text-amber-400" />
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black font-display text-white">{totalVotes}</div>
-            <div className="text-[10px] text-white/40 font-mono mt-1">Verified community votes</div>
-          </div>
-        </div>
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Panel title="Contest status" actions={<Button size="sm" onClick={() => setActiveTab('controls')}>Change</Button>}>
+          <Row label="Submissions" description={submissionsClose ? `Deadline ${submissionsClose}` : 'No deadline set'}>
+            {state(submissionsOpen, 'Open', 'Closed')}
+          </Row>
+          <Row label="Voting" description={votingEnds ? `Ends ${votingEnds}` : 'No end date set'}>
+            {state(votingOpen, 'Open', 'Closed')}
+          </Row>
+          <Row label="Public site">{state(!siteClosed, 'Open', 'Locked', siteClosed)}</Row>
+        </Panel>
 
-        {/* Submissions Status */}
-        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider">Uploads</span>
-            <div className={cn("w-2 h-2 rounded-full", submissionsOpen ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
-          </div>
-          <div>
-            <div className={cn("text-xl sm:text-2xl font-black font-display", submissionsOpen ? "text-emerald-400" : "text-red-400")}>
-              {submissionsOpen ? 'Open' : 'Closed'}
-            </div>
-            <div className="text-[10px] text-white/40 font-mono mt-1">Submission gate</div>
-          </div>
-        </div>
-
-        {/* Voting Status */}
-        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider">Voting</span>
-            <div className={cn("w-2 h-2 rounded-full", votingOpen ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
-          </div>
-          <div>
-            <div className={cn("text-xl sm:text-2xl font-black font-display", votingOpen ? "text-emerald-400" : "text-red-400")}>
-              {votingOpen ? 'Open' : 'Closed'}
-            </div>
-            <div className="text-[10px] text-white/40 font-mono mt-1">Ballot collection</div>
-          </div>
-        </div>
-
-        {/* Site Closed / Access Status */}
-        <div className="col-span-2 lg:col-span-1 p-5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider">Site Access</span>
-            <Lock size={16} className={siteClosed ? "text-red-400" : "text-emerald-400"} />
-          </div>
-          <div>
-            <div className={cn("text-xl sm:text-2xl font-black font-display", siteClosed ? "text-red-400" : "text-emerald-400")}>
-              {siteClosed ? 'Locked' : 'Open'}
-            </div>
-            <div className="text-[10px] text-white/40 font-mono mt-1">{siteClosed ? 'Modal active' : 'Live access'}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── LIVE BUG REPORTS & FEEDBACK INBOX ── */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400">
-              <Bug size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-black font-display text-white">Community Bug Reports</h3>
-                {openBugsCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-red-500/20 border border-red-500/40 text-red-400">
-                    {openBugsCount} Pending
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-white/40 mt-0.5">Direct reports submitted from the floating Bug Report modal on the live site.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Bug Reports List */}
-        <div className="mt-4 space-y-3">
-          {loadingBugs ? (
-            <div className="flex items-center justify-center p-8 text-white/40 text-xs font-mono">
-              <Loader2 size={16} className="animate-spin text-fivem-orange mr-2" />
-              Loading bug reports...
-            </div>
-          ) : bugReports.length === 0 ? (
-            <div className="p-8 text-center rounded-2xl bg-white/[0.01] border border-dashed border-white/10">
-              <CheckCircle2 size={24} className="mx-auto text-emerald-400 mb-2 opacity-60" />
-              <p className="text-xs font-bold text-white/70">No Bug Reports Submitted</p>
-              <p className="text-[11px] text-white/40 mt-1">Platform is healthy and no issues have been filed by users.</p>
-            </div>
+        <Panel title="Entries by category">
+          {perCategory.length === 0 ? (
+            <EmptyState title="No categories yet">Add categories in contest setup.</EmptyState>
           ) : (
-            bugReports.map((bug) => {
-              const isOpen = bug.status === 'Open';
-              const isExpanded = expandedBugId === bug.id;
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-white/55">
+                  <th scope="col" className="px-4 py-2 font-medium">Category</th>
+                  <th scope="col" className="w-20 px-4 py-2 text-right font-medium">Entries</th>
+                  <th scope="col" className="w-20 px-4 py-2 text-right font-medium">Votes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perCategory.map((c) => (
+                  <tr key={c.id} className="border-t border-white/[0.07]">
+                    <td className="max-w-0 truncate px-4 py-2 text-white">{c.name}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-white/80">{c.entries}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-white/80">{c.votes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Panel>
+      </div>
 
+      {recent.length > 0 && (
+        <Panel title="Latest entries" actions={<Button size="sm" onClick={() => setActiveTab('submissions')}>View all</Button>}>
+          <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 2xl:grid-cols-8">
+            {recent.map((p) => (
+              <li key={p.id}>
+                <button type="button" onClick={() => setActiveTab('submissions')} className="block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-fivem-orange">
+                  <img src={p.image_url} alt={p.caption || 'Entry'} loading="lazy" decoding="async" className="aspect-video w-full rounded-md bg-white/5 object-cover" />
+                  <span className="mt-1 block truncate text-xs text-white/70">{p.player_name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
+      <Panel title="Bug reports">
+        {loadingBugs ? (
+          <div className="space-y-2 p-4"><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-2/3" /></div>
+        ) : bugReports.length === 0 ? (
+          <EmptyState title="No bug reports">Reports sent from the public site appear here.</EmptyState>
+        ) : (
+          <ul>
+            {bugReports.map((bug) => {
+              const open = expandedBugId === bug.id;
               return (
-                <div
-                  key={bug.id}
-                  className={cn(
-                    "rounded-2xl border transition-all overflow-hidden",
-                    isOpen
-                      ? "bg-red-500/[0.03] border-red-500/20 hover:border-red-500/40"
-                      : "bg-white/[0.01] border-white/5 opacity-70"
-                  )}
-                >
-                  <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div
-                      onClick={() => setExpandedBugId(isExpanded ? null : bug.id)}
-                      className="flex items-start gap-3 cursor-pointer flex-1 min-w-0"
+                <li key={bug.id} className="border-b border-white/[0.07] last:border-b-0">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() => setExpandedBugId(open ? null : bug.id)}
+                      className="flex min-w-0 flex-1 basis-52 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-fivem-orange"
                     >
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleBugStatus(bug);
-                        }}
-                        className={cn(
-                          "mt-0.5 p-1.5 rounded-lg border transition-all cursor-pointer shrink-0",
-                          isOpen
-                            ? "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/40"
-                            : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/40"
-                        )}
-                        title={isOpen ? "Click to mark as Resolved" : "Click to reopen"}
-                      >
-                        {isOpen ? <Clock size={14} /> : <CheckCircle2 size={14} />}
-                      </button>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-white font-display truncate">
-                            {bug.title}
-                          </span>
-                          <span className={cn(
-                            "px-2 py-0.2 rounded text-[10px] font-mono font-bold uppercase",
-                            isOpen ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          )}>
-                            {bug.status}
-                          </span>
-                          <span className="text-[10px] text-white/40 font-mono">
-                            {bug.dateStr}
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-white/60 mt-1 line-clamp-1">
-                          {bug.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      <button
-                        onClick={() => handleToggleBugStatus(bug)}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-white/80 transition-colors cursor-pointer"
-                      >
-                        {isOpen ? 'Mark Resolved' : 'Reopen'}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteBug(bug.id)}
-                        className="p-1.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors cursor-pointer"
-                        title="Delete report"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => setExpandedBugId(isExpanded ? null : bug.id)}
-                        className="p-1.5 rounded-xl bg-white/5 text-white/40 hover:text-white transition-colors cursor-pointer"
-                      >
-                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </button>
-                    </div>
+                      <ChevronDown size={14} aria-hidden="true" className={cn('shrink-0 text-white/45 transition-transform', open && 'rotate-180')} />
+                      <span className={cn('truncate text-sm font-medium', bug.status === 'Open' ? 'text-white' : 'text-white/55')}>{bug.title}</span>
+                    </button>
+                    <span className="text-xs text-white/50">{bug.reportedBy || 'Anonymous'}, {bug.dateStr}</span>
+                    <span className={cn('w-16 text-xs font-semibold', bug.status === 'Open' ? 'text-red-300' : 'text-emerald-300')}>{bug.status}</span>
+                    <Button size="sm" onClick={() => handleToggleBugStatus(bug)}>{bug.status === 'Open' ? 'Resolve' : 'Reopen'}</Button>
+                    <Button size="sm" variant="ghost" aria-label={`Delete report: ${bug.title}`} onClick={() => handleDeleteBug(bug.id)}>
+                      <Trash2 size={14} aria-hidden="true" />
+                    </Button>
                   </div>
-
-                  {/* Expanded Details View */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4 pt-2 border-t border-white/5 bg-black/30 space-y-3">
-                      <div>
-                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider block mb-1">Full Description</span>
-                        <p className="text-xs sm:text-sm text-white/80 leading-relaxed whitespace-pre-wrap bg-black/40 p-3 rounded-xl border border-white/5 font-sans">
-                          {bug.description}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 text-xs font-mono text-white/40 pt-1">
-                        {bug.contactEmail && (
-                          <div>
-                            <span className="text-white/25 mr-1">Contact:</span>
-                            <span className="text-white/70">{bug.contactEmail}</span>
-                          </div>
-                        )}
-                        {bug.reportedBy && (
-                          <div>
-                            <span className="text-white/25 mr-1">Reported By:</span>
-                            <span className="text-white/70">{bug.reportedBy}</span>
-                          </div>
-                        )}
-                        <div>
-                          <span className="text-white/25 mr-1">Report ID:</span>
-                          <span className="text-white/40">{bug.id}</span>
-                        </div>
-                      </div>
+                  {open && (
+                    <div className="space-y-1 px-4 pb-3 pl-10 text-sm text-white/75">
+                      <p className="max-w-prose whitespace-pre-wrap">{bug.description || 'No description.'}</p>
+                      {bug.contactEmail && <p className="text-xs text-white/55">Contact: {bug.contactEmail}</p>}
                     </div>
                   )}
-                </div>
+                </li>
               );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Quick Launch Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <button
-          type="button"
-          onClick={() => setActiveTab('submissions')}
-          className="p-5 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-cyan-500/40 transition-all text-left group cursor-pointer"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-              <ImageIcon size={18} />
-            </div>
-            <ChevronRight size={16} className="text-cyan-500/50 group-hover:translate-x-1 transition-transform" />
-          </div>
-          <p className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">Submissions Hub</p>
-          <p className="text-xs text-white/40 mt-1">Review photos, inspect decrypted files, and manage submissions.</p>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('voters')}
-          className="p-5 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-emerald-500/40 transition-all text-left group cursor-pointer"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-              <UserCheck size={18} />
-            </div>
-            <ChevronRight size={16} className="text-emerald-500/50 group-hover:translate-x-1 transition-transform" />
-          </div>
-          <p className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Voter Audit</p>
-          <p className="text-xs text-white/40 mt-1">Audit voter logs and revoke suspicious votes.</p>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('changelogs')}
-          className="p-5 rounded-2xl border border-fivem-orange/20 bg-fivem-orange/[0.04] hover:bg-fivem-orange/[0.08] transition-all text-left group cursor-pointer relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange">
-              <Layers size={18} />
-            </div>
-            <ChevronRight size={16} className="text-fivem-orange/50 group-hover:translate-x-1 transition-transform" />
-          </div>
-          <p className="text-sm font-bold text-white group-hover:text-fivem-orange transition-colors">Platform Changelog</p>
-          <p className="text-xs text-white/40 mt-1">View release history and publishing tools.</p>
-        </button>
-      </div>
-
-      {/* Analytics Launcher */}
-      <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 bg-blue-500/[0.03]">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
-        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none" />
-        <div className="px-6 pt-5 pb-4 border-b border-blue-500/[0.12] flex items-center gap-2">
-          <div className="w-1 h-4 bg-blue-500/70 rounded-full" />
-          <BarChart3 size={13} className="text-blue-500/80" />
-          <h4 className="text-[11px] font-mono text-blue-500/80 uppercase tracking-[0.2em]">Analytics & Telemetry</h4>
-        </div>
-        <div className="p-6 flex flex-col items-center">
-          <ShimmerButton
-            onClick={onOpenAnalytics}
-            shimmerColor="#3b82f6"
-            className="w-full text-sm cursor-pointer"
-          >
-            Launch Live Analytics Dashboard
-            <ChevronRight size={16} className="text-blue-400/60" />
-          </ShimmerButton>
-          <p className="text-xs text-white/40 mt-3 text-center">Interactive charts, voting velocity, and submission trends across all categories.</p>
-        </div>
-      </div>
+            })}
+          </ul>
+        )}
+      </Panel>
     </div>
   );
 }
 
+/* ── Controls ──────────────────────────────────────────────────────────────── */
 
-/* ═══════════════════════════════════════════════════════════════════════
-   TAB: Contest Setup & Management (Lifecycle, Pause, Restore & Vault)
-   ═══════════════════════════════════════════════════════════════════════ */
-function ContestSetupTab({
-  activeContest,
-  categories,
-  rulesMarkdown,
-  winners,
-  onDownloadWinners,
-  allPhotos = [],
-  user,
-  isAdmin = true,
-  votingOpen = false,
-  submissionsOpen = false,
-}: {
-  activeContest: any;
-  categories: Category[];
-  rulesMarkdown: string;
-  winners: any[];
-  onDownloadWinners: () => void;
-  allPhotos?: Photo[];
-  user?: any;
-  isAdmin?: boolean;
-  votingOpen?: boolean;
-  submissionsOpen?: boolean;
-}) {
-  return (
-    <ContestManagementHub
-      activeContest={activeContest}
-      categories={categories}
-      allPhotos={allPhotos}
-      rulesMarkdown={rulesMarkdown}
-      winners={winners}
-      user={user}
-      isAdmin={isAdmin}
-      votingOpen={votingOpen}
-      submissionsOpen={submissionsOpen}
-      onDownloadWinners={onDownloadWinners}
-    />
-  );
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   TAB: Controls & Security (Real-Time Toggles & RSA Key Management)
-   ═══════════════════════════════════════════════════════════════════════ */
-function ControlsAndSecurityTab({
+function ControlsTab({
   votingOpen, submissionsOpen, onePhotoPerUser, showWinnersToggle, siteClosed = false, censorSubmissions = false,
-  categorySuggestionMode = false,
-  publicKey, privateKey,
-  onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed, onToggleCensorSubmissions,
-  onToggleCategorySuggestionMode,
-  onGenerateKeys, onToggleReveal
-}: {
-  votingOpen: boolean; submissionsOpen: boolean; onePhotoPerUser: boolean; showWinnersToggle: boolean; siteClosed?: boolean; censorSubmissions?: boolean;
-  categorySuggestionMode?: boolean;
-  publicKey: string | null; privateKey: string | null;
-  onToggleVoting: (open: boolean) => void; onToggleSubmissions: (open: boolean) => void;
-  onToggleOnePhotoPerUser: (enabled: boolean) => void; onToggleShowWinners: (enabled: boolean) => void;
-  onToggleSiteClosed?: (closed: boolean) => void;
-  onToggleCensorSubmissions?: (enabled: boolean) => void;
-  onToggleCategorySuggestionMode?: (enabled: boolean) => void;
-  onGenerateKeys: () => void; onToggleReveal: (reveal: boolean) => void;
-}) {
+  categorySuggestionMode = false, publicKey, privateKey,
+  onToggleVoting, onToggleSubmissions, onToggleOnePhotoPerUser, onToggleShowWinners, onToggleSiteClosed,
+  onToggleCensorSubmissions, onToggleCategorySuggestionMode, onGenerateKeys, onToggleReveal,
+}: AdminPanelProps) {
+  const control = (label: string, description: string, checked: boolean, onChange: (v: boolean) => void, extra?: { disabled?: boolean; tone?: 'accent' | 'danger' }) => (
+    <Row label={label} description={description}>
+      <Switch label={label} checked={checked} onChange={onChange} {...extra} />
+    </Row>
+  );
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <AdminHeader
-        title="Controls & Security"
-        icon={<Zap size={20} className="text-purple-400" />}
-        iconBg="bg-purple-500/15 border-purple-500/30"
-      />
+    <div className="max-w-3xl space-y-5">
+      <PageHeader title="Controls" description="Changes apply to the public site immediately." />
 
-      {/* ── Live Telemetry Telemetry Strip ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-3.5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl">
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
-          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", submissionsOpen ? "bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse" : "bg-zinc-600")} />
-          <div className="min-w-0">
-            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Submissions</p>
-            <p className="text-xs font-bold font-display text-white truncate">{submissionsOpen ? "OPEN" : "CLOSED"}</p>
-          </div>
-        </div>
+      <Panel title="Contest">
+        {control('Submissions', 'Players can upload entries.', submissionsOpen, onToggleSubmissions)}
+        {control('Voting', 'Signed-in players can vote.', votingOpen, onToggleVoting)}
+        {onToggleCensorSubmissions &&
+          control('Pixelate until voting', 'Entry photos stay pixelated until voting opens.', censorSubmissions, onToggleCensorSubmissions)}
+        {control('One entry per player', 'Each Discord account can have one active entry.', onePhotoPerUser, onToggleOnePhotoPerUser)}
+        {control('Winners announcement', 'Shows the winners banner on the public site.', showWinnersToggle, onToggleShowWinners)}
+      </Panel>
 
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
-          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", votingOpen ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" : "bg-zinc-600")} />
-          <div className="min-w-0">
-            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Voting Gate</p>
-            <p className="text-xs font-bold font-display text-white truncate">{votingOpen ? "ACTIVE" : "PAUSED"}</p>
-          </div>
-        </div>
+      <Panel title="Entry encryption" description={publicKey ? 'Keys are set up.' : 'No keys yet.'}>
+        <Row label="Encryption keys" description="Creates the key pair used to encrypt entries. Replacing keys breaks entries already encrypted.">
+          <Button size="sm" onClick={onGenerateKeys}>{publicKey ? 'Replace keys' : 'Generate keys'}</Button>
+        </Row>
+        {control(
+          'Reveal entries',
+          'Publishes the private key, so anyone can see who submitted each photo and open the full image.',
+          !!privateKey,
+          (next) => {
+            if (!next || window.confirm('Reveal all entries? Names and full images become visible to anyone.')) onToggleReveal(next);
+          },
+          { disabled: !publicKey },
+        )}
+      </Panel>
 
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
-          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", onePhotoPerUser ? "bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]" : "bg-zinc-600")} />
-          <div className="min-w-0">
-            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">1-Photo Limit</p>
-            <p className="text-xs font-bold font-display text-white truncate">{onePhotoPerUser ? "STRICT" : "OFF"}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
-          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", publicKey ? "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-zinc-600")} />
-          <div className="min-w-0">
-            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">RSA Encryption</p>
-            <p className="text-xs font-bold font-display text-white truncate">{publicKey ? "ACTIVE (2048b)" : "MISSING"}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
-          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", categorySuggestionMode ? "bg-fivem-orange shadow-[0_0_10px_rgba(234,88,12,0.9)] animate-pulse" : "bg-zinc-600")} />
-          <div className="min-w-0">
-            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Suggestion Mode</p>
-            <p className="text-xs font-bold font-display text-white truncate">{categorySuggestionMode ? "ENABLED" : "DISABLED"}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02]">
-          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", siteClosed ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,1)] animate-ping" : "bg-emerald-500")} />
-          <div className="min-w-0">
-            <p className="text-[9px] font-mono uppercase tracking-wider text-white/40">Lockdown Mode</p>
-            <p className="text-xs font-bold font-display text-white truncate">{siteClosed ? "LOCKED DOWN" : "NORMAL OPS"}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Section 1: Contest Lifecycle & Public Gates ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-4 bg-cyan-400 rounded-full" />
-            <h3 className="text-xs font-mono text-cyan-300 uppercase tracking-[0.2em] font-bold">
-              Contest Lifecycle & Visibility Gates
-            </h3>
-          </div>
-          <span className="text-[10px] font-mono text-white/40">Real-time state sync</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AnimatedControlCard
-            title="Submissions Gate"
-            description="Allow participants to upload and submit high-resolution contest entries."
-            checked={submissionsOpen}
-            onToggle={(checked) => onToggleSubmissions(checked)}
-            icon={<ImageIcon size={18} />}
-            variant="cyan"
-            badgeActiveText="OPEN"
-            badgeInactiveText="CLOSED"
-          />
-
-          <AnimatedControlCard
-            title="Voting Gate"
-            description="Enable verified community members to cast official votes across categories."
-            checked={votingOpen}
-            onToggle={(checked) => onToggleVoting(checked)}
-            icon={<Trophy size={18} />}
-            variant="warning"
-            badgeActiveText="VOTING LIVE"
-            badgeInactiveText="PAUSED"
-          />
-
-          {onToggleCensorSubmissions && (
-            <AnimatedControlCard
-              title="Censor Submissions Until Voting"
-              description="Pixelates all entry photos publicly during the upload phase. Unpixelates automatically when voting opens."
-              checked={censorSubmissions}
-              onToggle={(checked) => onToggleCensorSubmissions(checked)}
-              icon={<EyeOff size={18} />}
-              variant="warning"
-              badgeActiveText="CENSORED"
-              badgeInactiveText="VISIBLE"
-            />
+      <Panel title="Site">
+        {onToggleCategorySuggestionMode &&
+          control('Category suggestion mode', 'The suggestion page replaces the public home page. Admin stays available.', categorySuggestionMode, onToggleCategorySuggestionMode)}
+        {onToggleSiteClosed &&
+          control(
+            'Lock the public site',
+            'Visitors see a closed notice. Only admins can browse.',
+            siteClosed,
+            (next) => {
+              if (!next || window.confirm('Lock the public site? Visitors will not be able to browse until you unlock it.')) onToggleSiteClosed(next);
+            },
+            { tone: 'danger' },
           )}
-
-          {onToggleCategorySuggestionMode && (
-            <AnimatedControlCard
-              title="Category Suggestion Mode"
-              description="Temporarily make the Category Suggestion feature the main homepage experience. Standard contest pages redirect to suggestions while admin tools remain available."
-              checked={categorySuggestionMode}
-              onToggle={(checked) => onToggleCategorySuggestionMode(checked)}
-              icon={<MessageSquarePlus size={18} />}
-              variant="warning"
-              badgeActiveText="ENABLED"
-              badgeInactiveText="DISABLED"
-            />
-          )}
-
-          <AnimatedControlCard
-            title="Winners Celebration Podium"
-            description="Display the celebratory winner announcement banner, champion awards, and confetti."
-            checked={showWinnersToggle}
-            onToggle={(checked) => onToggleShowWinners(checked)}
-            icon={<Sparkles size={18} />}
-            variant="default"
-            badgeActiveText="BROADCASTING"
-            badgeInactiveText="HIDDEN"
-          />
-        </div>
-      </div>
-
-      {/* ── Section 2: Security & Platform Access ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-4 bg-purple-400 rounded-full" />
-            <h3 className="text-xs font-mono text-purple-300 uppercase tracking-[0.2em] font-bold">
-              Access Governance & Fraud Controls
-            </h3>
-          </div>
-          <span className="text-[10px] font-mono text-white/40">Anti-fraud protocols</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AnimatedControlCard
-            title="1 Photo Per User Enforcement"
-            description="Strictly limit each Discord account to exactly 1 active submission across active categories."
-            checked={onePhotoPerUser}
-            onToggle={(checked) => onToggleOnePhotoPerUser(checked)}
-            icon={<ShieldCheck size={18} />}
-            variant="purple"
-            badgeActiveText="STRICT LIMIT"
-            badgeInactiveText="UNRESTRICTED"
-          />
-
-          {onToggleSiteClosed && (
-            <AnimatedControlCard
-              title="Emergency Site Lockdown"
-              description="Restrict general public access with an impassable 'Contest is Closed' overlay. Only verified administrators may browse."
-              checked={siteClosed}
-              onToggle={(checked) => onToggleSiteClosed(checked)}
-              icon={<Lock size={18} />}
-              variant="danger"
-              badgeActiveText="LOCKED DOWN"
-              badgeInactiveText="OPEN ACCESS"
-            />
-          )}
-        </div>
-      </div>
-
-      {/* ── Section 3: Cryptographic RSA 2048-Bit Vault ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-4 bg-emerald-400 rounded-full" />
-            <h3 className="text-xs font-mono text-emerald-300 uppercase tracking-[0.2em] font-bold">
-              Encryption keys
-            </h3>
-          </div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-400">
-            {publicKey ? "Keys active" : "Keys not set up"}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Key Generation Card */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#09090d]/80 border border-white/[0.08] hover:border-emerald-500/30 transition-all flex flex-col justify-between space-y-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
-                <Shield size={20} />
-              </div>
-              <div>
-                <h4 className="text-base font-bold font-display text-white mb-1">Generate encryption keys</h4>
-                <p className="text-xs text-white/50 leading-relaxed">
-                  Creates the key pair that encrypts submissions before they are stored.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between gap-3">
-              <span className="text-[10px] font-mono text-white/40">
-                {publicKey ? "Public key installed" : "No key generated"}
-              </span>
-              <button
-                type="button"
-                onClick={onGenerateKeys}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs font-display rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center gap-2 shrink-0"
-              >
-                <Shield size={13} />
-                <span>Generate Keys</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Instant Reveal Switch */}
-          <AnimatedControlCard
-            title="Instant Submission Decryption"
-            description="Decrypt all encrypted entries automatically to reveal photographer identities and full resolution assets."
-            checked={!!privateKey}
-            onToggle={(checked) => onToggleReveal(checked)}
-            icon={<Eye size={18} />}
-            variant="emerald"
-            badgeActiveText="DECRYPTED"
-            badgeInactiveText="ENCRYPTED"
-            disabled={!publicKey}
-          />
-        </div>
-      </div>
+      </Panel>
     </div>
   );
 }
 
+/* ── Danger zone ───────────────────────────────────────────────────────────── */
 
-/* ═══════════════════════════════════════════════════════════════════════
-   TAB: Danger Zone
-   ═══════════════════════════════════════════════════════════════════════ */
 function DangerTab({ activeContest, categories, allPhotos, onResetVotes }: {
   activeContest: any; categories: Category[]; allPhotos: Photo[]; onResetVotes?: () => void;
 }) {
   return (
-    <div className="space-y-6">
-      <AdminHeader
-        title="Danger Zone"
-        subtitle="These actions cannot be undone."
-        icon={<AlertCircle size={20} className="text-red-400" />}
-        iconBg="bg-red-500/15 border-red-500/30"
-      />
+    <div className="max-w-3xl space-y-5">
+      <PageHeader title="Danger zone" description="These actions cannot be undone." />
 
-      {/* Warning banner */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-        <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-bold text-red-400 mb-1">Irreversible Actions</p>
-          <p className="text-xs text-red-400/60 leading-relaxed">
-            Archiving will save winners and user stats, then permanently delete all current photos and votes. 
-            Resetting votes will clear all cast votes and set all photo counts to 0.
-          </p>
-        </div>
-      </div>
-
-      {/* Reset Votes Section */}
-      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.03]">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
-        <div className="px-6 pt-5 pb-4 border-b border-amber-500/[0.12] flex items-center gap-2">
-          <div className="w-1 h-4 bg-amber-500/70 rounded-full" />
-          <AlertCircle size={13} className="text-amber-500/80" />
-          <h4 className="text-[11px] font-mono text-amber-500/80 uppercase tracking-[0.2em]">Vote Management</h4>
-        </div>
-        <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h5 className="text-sm font-bold text-white mb-0.5">Reset All Votes</h5>
-            <p className="text-xs text-white/40">
-              Clear all cast vote records and set vote_count back to 0 on every photo in the current contest.
-            </p>
-          </div>
-          <button
+      <Panel className="border-red-500/30">
+        <Row label="Reset all votes" description="Deletes every vote record and sets each photo in the current contest back to 0.">
+          <Button
+            variant="danger"
+            size="sm"
             onClick={() => {
               if (window.confirm('Are you sure you want to reset ALL votes to 0? This cannot be undone.')) {
                 onResetVotes?.();
               }
             }}
-            className="px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-2 cursor-pointer"
           >
-            <AlertCircle size={14} />
-            Reset All Votes
-          </button>
-        </div>
-      </div>
+            Reset votes
+          </Button>
+        </Row>
+      </Panel>
 
-      {/* Archive / Destroy Controls */}
-      <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/[0.03]">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
-        <div className="px-6 pt-5 pb-4 border-b border-red-500/[0.12] flex items-center gap-2">
-          <div className="w-1 h-4 bg-red-500/70 rounded-full" />
-          <AlertCircle size={13} className="text-red-500/80" />
-          <h4 className="text-[11px] font-mono text-red-500/80 uppercase tracking-[0.2em]">Contest Lifecycle</h4>
+      <Panel title="Archive the contest" description="Saves winners and player stats, then permanently deletes the current photos and votes." className="border-red-500/30">
+        <div className="p-4">
+          <ArchiveContest
+            onArchived={() => window.location.reload()}
+            activeContest={activeContest}
+            categories={categories}
+            allPhotos={allPhotos}
+          />
         </div>
-        <div className="p-6">
-          <Suspense fallback={
-            <div className="space-y-3 p-2">
-              <Skeleton className="w-1/2 h-5 rounded-lg bg-white/[0.08]" />
-              <Skeleton className="w-full h-12 rounded-xl bg-white/[0.05]" />
-            </div>
-          }>
-            <ArchiveContest
-              onArchived={() => window.location.reload()}
-              activeContest={activeContest}
-              categories={categories}
-              allPhotos={allPhotos}
-            />
-          </Suspense>
-        </div>
-      </div>
+      </Panel>
     </div>
   );
 }
