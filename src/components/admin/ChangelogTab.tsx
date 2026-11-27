@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, History, Plus, Tag, Calendar, User, CheckCircle,
   ShieldCheck, Zap, Wrench, Bug, Trash2, Search,
@@ -10,7 +9,7 @@ import { collection, query, orderBy, getDocs, addDoc, setDoc, deleteDoc, doc, se
 import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { cn } from '../../lib/utils';
-import { Button, EmptyState, PageHeader, Panel, SearchField, fieldClass } from './kit';
+import { Button, EmptyState, Modal, PageHeader, Panel, SearchField, fieldClass } from './kit';
 import { useConfirm } from './confirm';
 
 export type ChangelogLabel = 'UI' | 'FIX' | 'ENHANCE' | 'NEW' | 'PERFORMANCE' | 'MOBILE' | 'ADMIN' | 'SECURITY' | 'BACKEND';
@@ -1089,11 +1088,11 @@ export function ChangelogTab() {
         description={`${filteredEntries.length} updates across ${groupedByDate.length} release dates`}
         actions={
           <>
-            <Button data-btn="primary" onClick={handleSyncAllToFirestore} disabled={isSyncing} title="Copy the built-in entries to the database">
+            <Button onClick={handleSyncAllToFirestore} disabled={isSyncing} title="Copy the built-in entries to the database">
               <RefreshCw size={14} aria-hidden="true" className={cn(isSyncing && 'animate-spin')} />
               {isSyncing ? 'Syncing' : 'Sync to database'}
             </Button>
-            <Button data-btn="primary" variant="primary" onClick={() => setShowAddModal(true)}>
+            <Button variant="primary" onClick={() => setShowAddModal(true)}>
               <Plus size={15} aria-hidden="true" /> Publish update
             </Button>
           </>
@@ -1113,7 +1112,7 @@ export function ChangelogTab() {
             <option key={lbl} value={lbl}>{lbl.charAt(0) + lbl.slice(1).toLowerCase()}</option>
           ))}
         </select>
-        <Button data-btn="primary" onClick={handleToggleAll}>{isAllExpanded ? 'Collapse all' : 'Expand all'}</Button>
+        <Button onClick={handleToggleAll}>{isAllExpanded ? 'Collapse all' : 'Expand all'}</Button>
       </div>
 
       {groupedByDate.length === 0 ? (
@@ -1143,7 +1142,7 @@ export function ChangelogTab() {
                       </span>
                     </button>
                     {entry.id && (
-                      <Button data-btn="primary" size="sm" variant="ghost" aria-label={`Delete entry: ${entry.title}`} onClick={() => handleDeleteEntry(entry.id!)}>
+                      <Button size="sm" variant="ghost" className="text-white/55 hover:!text-red-400" aria-label={`Delete entry: ${entry.title}`} onClick={() => handleDeleteEntry(entry.id!)}>
                         <Trash2 size={13} aria-hidden="true" />
                       </Button>
                     )}
@@ -1164,19 +1163,15 @@ export function ChangelogTab() {
 
       {groupedByDate.length > visibleDates && (
         <div className="flex justify-center">
-          <Button data-btn="primary" onClick={() => setVisibleDates((n) => n + 10)}>Show older updates</Button>
+          <Button onClick={() => setVisibleDates((n) => n + 10)}>Show older updates</Button>
         </div>
       )}
 
       {/* ── NEW ENTRY MODAL FORM ── */}
-      <AnimatePresence>
-        {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-lg rounded-lg border border-white/15 bg-[#0d0d10] p-6 space-y-4"
+      {showAddModal && (
+          <Modal label="Publish an update" onClose={() => { if (!isSubmitting) setShowAddModal(false); }} className="max-w-lg">
+            <div
+              className="relative w-full rounded-lg border border-white/15 bg-[#0d0d10] p-6 space-y-4"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
@@ -1186,6 +1181,7 @@ export function ChangelogTab() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
+                  aria-label="Close"
                   className="p-1 text-white/55 hover:text-white rounded-lg cursor-pointer"
                 >
                   ✕
@@ -1276,10 +1272,9 @@ export function ChangelogTab() {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
+          </Modal>
+      )}
 
       {/* ── FOOTER: Website Created & Designed by Damon Banner ── */}
       <div className="pt-8 border-t border-white/10 text-center flex flex-col items-center justify-center gap-2">

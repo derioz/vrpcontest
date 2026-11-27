@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Trophy,
   Pause,
-  Play,
   RotateCcw,
   Plus,
   Edit3,
@@ -11,28 +9,17 @@ import {
   Trash2,
   Calendar,
   Clock,
-  Layers,
   Sparkles,
   Download,
-  AlertTriangle,
-  AlertCircle,
   CheckCircle2,
-  ExternalLink,
-  ChevronRight,
-  Eye,
-  FileText,
   Search,
   Filter,
   RefreshCw,
-  Zap,
-  ShieldAlert,
-  ArrowRight,
   Info,
-  HelpCircle,
   X,
   History,
 } from 'lucide-react';
-import { Button as KitButton, EmptyState, PageHeader, Panel, Row, Segmented } from './kit';
+import { Button as KitButton, EmptyState, Modal, PageHeader, Panel, Row, SearchField, Segmented } from './kit';
 import { db } from '../../lib/firebase';
 import { toast } from '../ui/toast';
 import { Button } from '../ui/button';
@@ -45,7 +32,6 @@ import {
   pauseAndCreateNewContest,
   restoreSavedContest,
   pauseActiveContest,
-  archiveContestDirectly,
   deleteContest,
   updateContestDetails,
   formatRemainingTime,
@@ -118,7 +104,6 @@ export function ContestManagementHub({
   const [showPauseWizard, setShowPauseWizard] = useState(false);
   const [restoringContest, setRestoringContest] = useState<Contest | null>(null);
   const [pausingActiveModal, setPausingActiveModal] = useState(false);
-  const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [deletingContest, setDeletingContest] = useState<Contest | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -303,118 +288,67 @@ export function ContestManagementHub({
           )}
 
           {/* Saved Contests Quick Preview Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-white font-display flex items-center gap-2">
-                  <Pause size={18} className="text-amber-400" />
-                  <span>Saved Contests ({savedContests.length})</span>
-                </h3>
-                <p className="text-xs text-white/55">
-                  Paused contests with preserved entries, votes, and frozen deadlines.
-                </p>
-              </div>
-
-              {savedContests.length > 3 && (
-                <button
-                  onClick={() => setActiveSubTab('saved')}
-                  className="text-xs text-fivem-orange hover:text-amber-300 tabular-nums flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <span>View all ({savedContests.length})</span>
-                  <ChevronRight size={13} />
-                </button>
-              )}
-            </div>
-
+          <Panel
+            title="Saved contests"
+            description="Paused and archived rounds keep their entries, votes and deadlines."
+            actions={
+              savedContests.length > 3 ? (
+                <KitButton size="sm" onClick={() => setActiveSubTab('saved')}>
+                  View all {savedContests.length}
+                </KitButton>
+              ) : undefined
+            }
+          >
             {savedContests.length === 0 ? (
-              <div className="p-6 rounded-lg border border-white/10 bg-white/[0.02] text-center space-y-2">
-                <p className="text-xs text-white/55">No saved or paused contests in storage.</p>
-                <p className="text-xs text-white/55">
-                  When you use "Pause & Create New Contest", the original contest will automatically be saved
-                  here with zero data loss.
-                </p>
-              </div>
+              <EmptyState title="Nothing saved yet">When you pause a contest to start a new one, it is kept here.</EmptyState>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ul>
                 {savedContests.slice(0, 3).map((contest) => (
-                  <SavedContestCard
+                  <SavedContestRow
                     key={contest.id}
                     contest={contest}
                     onRestore={() => setRestoringContest(contest)}
-                    onEdit={() => setEditingContest(contest)}
-                    onArchive={() => archiveContestDirectly(contest.id, contest.name, adminActor).then(refreshData)}
                   />
                 ))}
-              </div>
+              </ul>
             )}
-          </div>
+          </Panel>
         </div>
       )}
 
       {/* ── TAB 2: SAVED CONTESTS DIRECTORY ── */}
       {activeSubTab === 'saved' && (
-        <div className="space-y-6">
-          {/* Header & Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-lg bg-white/[0.02] border border-white/10">
-            <div>
-              <h3 className="text-base font-bold text-white font-display">Saved & Paused Contests Vault</h3>
-              <p className="text-xs text-white/55">
-                All paused and archived contests. Restore any contest with 1-click while preserving deadlines.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Search */}
-              <div className="relative min-w-[200px]">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/55" />
-                <input
-                  type="text"
-                  placeholder="Search contests..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-md pl-9 pr-3 py-1.5 text-xs text-white outline-none focus:border-fivem-orange/50 transition-all tabular-nums"
-                />
-              </div>
-
-              {/* Status Filter Chips */}
-              <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/10 rounded-md">
-                {(['all', 'paused', 'archived'] as const).map((filter) => (
-                  <button data-choice aria-pressed={statusFilter === filter}
-                    key={filter}
-                    onClick={() => setStatusFilter(filter)}
-                    className={`px-3 py-1 rounded-lg text-xs tabular-nums font-bold capitalize transition-all cursor-pointer ${
-                      statusFilter === filter
-                        ? 'bg-fivem-orange text-black'
-                        : 'text-white/60 hover:text-white'
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search contests" className="min-w-52 flex-1 sm:max-w-xs" />
+            <Segmented
+              label="Contest status"
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v)}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'paused', label: 'Paused' },
+                { value: 'archived', label: 'Archived' },
+              ]}
+            />
           </div>
 
-          {/* Cards Grid */}
-          {filteredSavedContests.length === 0 ? (
-            <div className="p-12 text-center rounded-lg border border-white/10 bg-white/[0.01] space-y-2">
-              <p className="text-sm font-bold text-white/70">No contests match your filters</p>
-              <p className="text-xs text-white/55">Try adjusting your search query or status filter.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredSavedContests.map((contest) => (
-                <SavedContestCard
-                  key={contest.id}
-                  contest={contest}
-                  onRestore={() => setRestoringContest(contest)}
-                  onEdit={() => setEditingContest(contest)}
-                  onArchive={() => archiveContestDirectly(contest.id, contest.name, adminActor).then(refreshData)}
-                  onDelete={() => setDeletingContest(contest)}
-                />
-              ))}
-            </div>
-          )}
+          <Panel>
+            {filteredSavedContests.length === 0 ? (
+              <EmptyState title="No contests match">Clear the search or choose another status.</EmptyState>
+            ) : (
+              <ul>
+                {filteredSavedContests.map((contest) => (
+                  <SavedContestRow
+                    key={contest.id}
+                    contest={contest}
+                    onRestore={() => setRestoringContest(contest)}
+                    onDelete={() => setDeletingContest(contest)}
+                  />
+                ))}
+              </ul>
+            )}
+          </Panel>
         </div>
       )}
 
@@ -558,7 +492,7 @@ export function ContestManagementHub({
          MODAL 3: QUICK PAUSE ACTIVE CONTEST CONFIRMATION
          ═══════════════════════════════════════════════════════════════════════ */}
       {pausingActiveModal && activeContest && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80">
+        <Modal label="Pause the active contest" onClose={() => { if (!isActionLoading) setPausingActiveModal(false); }} className="max-w-md">
           <div className="w-full max-w-md p-6 rounded-lg bg-[#0e0e14] border border-amber-500/30 space-y-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400">
@@ -605,14 +539,14 @@ export function ContestManagementHub({
               </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
          MODAL 4: DELETE CONTEST CONFIRMATION
          ═══════════════════════════════════════════════════════════════════════ */}
       {deletingContest && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80">
+        <Modal label="Delete contest record" onClose={() => { if (!isActionLoading) setDeletingContest(null); }} className="max-w-md">
           <div className="w-full max-w-md p-6 rounded-lg bg-[#0e0e14] border border-red-500/40 space-y-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400">
@@ -659,115 +593,64 @@ export function ContestManagementHub({
               </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SUB-COMPONENT: SAVED CONTEST CARD
+   SUB-COMPONENT: SAVED CONTEST ROW
    ═══════════════════════════════════════════════════════════════════════════ */
-function SavedContestCard({
+function SavedContestRow({
   contest,
   onRestore,
-  onEdit,
-  onArchive,
   onDelete,
 }: {
   key?: React.Key;
   contest: Contest;
   onRestore: () => void;
-  onEdit: () => void;
-  onArchive: () => void;
   onDelete?: () => void;
 }) {
   const isPaused = contest.status === 'paused';
+  const frozen = [
+    contest.paused_remaining_submissions_ms != null && `submissions ${formatRemainingTime(contest.paused_remaining_submissions_ms)}`,
+    contest.paused_remaining_voting_ms != null && `voting ${formatRemainingTime(contest.paused_remaining_voting_ms)}`,
+  ].filter(Boolean);
 
   return (
-    <div className="p-5 rounded-lg bg-white/[0.02] border border-white/10 hover:border-fivem-orange/40 transition-all space-y-4 flex flex-col justify-between group shadow-sm">
-      <div className="space-y-3">
-        {/* Badges row */}
-        <div className="flex items-center justify-between gap-2">
+    <li className="flex flex-col gap-3 border-b border-white/[0.07] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="min-w-0 break-words text-sm font-semibold text-white">{contest.name}</h3>
           <span
-            className={`px-2.5 py-0.5 rounded-full text-xs tabular-nums font-bold  border ${
-              isPaused
-                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30'
+            className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${
+              isPaused ? 'border-amber-500/30 bg-amber-500/15 text-amber-300' : 'border-white/15 bg-white/[0.06] text-white/70'
             }`}
           >
             {isPaused ? 'Paused' : 'Archived'}
           </span>
-
-          <span className="text-xs tabular-nums text-white/55">
-            Phase: <strong className="text-white/70 capitalize">{contest.phase || 'Submissions'}</strong>
-          </span>
         </div>
-
-        {/* Title & Desc */}
-        <div>
-          <h4 className="text-base font-bold text-white font-display group-hover:text-fivem-orange transition-colors">
-            {contest.name}
-          </h4>
-          {contest.description && (
-            <p className="text-xs text-white/50 line-clamp-2 mt-1 leading-relaxed">
-              {contest.description}
-            </p>
-          )}
-        </div>
-
-        {/* Preserved remaining time callout */}
-        {isPaused && (contest.paused_remaining_submissions_ms != null || contest.paused_remaining_voting_ms != null) && (
-          <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 tabular-nums space-y-0.5">
-            <div className="flex items-center gap-1.5 font-bold">
-              <Clock size={12} />
-              <span>Frozen Time Preserved:</span>
-            </div>
-            <div className="text-xs text-white/70 pl-4">
-              {contest.paused_remaining_submissions_ms != null && (
-                <span>Submissions: {formatRemainingTime(contest.paused_remaining_submissions_ms)}</span>
-              )}
-              {contest.paused_remaining_voting_ms != null && (
-                <span className="ml-2">• Voting: {formatRemainingTime(contest.paused_remaining_voting_ms)}</span>
-              )}
-            </div>
-          </div>
+        {contest.description && <p className="mt-0.5 line-clamp-1 max-w-prose text-xs text-white/60">{contest.description}</p>}
+        <p className="mt-0.5 text-xs tabular-nums text-white/55">
+          {contest.submission_count ?? 0} photos, {contest.vote_count ?? 0} votes, <span className="capitalize">{contest.phase || 'submissions'}</span> phase
+        </p>
+        {isPaused && frozen.length > 0 && (
+          <p className="mt-0.5 text-xs tabular-nums text-amber-300">Time held: {frozen.join(', ')}</p>
         )}
-
-        {/* Stats row */}
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5 text-xs">
-          <div>
-            <span className="text-white/55 block text-xs tabular-nums">Entries</span>
-            <strong className="text-white font-bold">{contest.submission_count ?? 0} photos</strong>
-          </div>
-          <div>
-            <span className="text-white/55 block text-xs tabular-nums">Votes</span>
-            <strong className="text-fivem-orange font-bold">{contest.vote_count ?? 0} votes</strong>
-          </div>
-        </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-        <Button data-btn="secondary"
-          onClick={onRestore}
-          className="flex-1 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black border border-emerald-500/30 text-xs font-bold py-2 rounded-md transition-all cursor-pointer"
-        >
-          <RotateCcw size={13} className="mr-1.5" />
-          Restore Contest
-        </Button>
-
+      <div className="flex shrink-0 items-center gap-1.5">
+        <KitButton size="sm" onClick={onRestore}>
+          <RotateCcw size={13} aria-hidden="true" /> Restore Contest
+        </KitButton>
         {onDelete && (
-          <button data-btn="secondary"
-            onClick={onDelete}
-            className="p-2 rounded-md bg-white/5 hover:bg-red-500/20 text-white/55 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
-            title="Delete permanently"
-          >
-            <Trash2 size={13} />
-          </button>
+          <KitButton size="sm" variant="ghost" onClick={onDelete} title="Delete permanently" aria-label={`Delete ${contest.name} permanently`} className="text-white/55 hover:!text-red-400">
+            <Trash2 size={14} aria-hidden="true" />
+          </KitButton>
         )}
       </div>
-    </div>
+    </li>
   );
 }
 
@@ -909,8 +792,8 @@ function PauseAndCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 overflow-y-auto">
-      <div className="w-full max-w-3xl my-8 rounded-lg bg-[#0d0d14] border border-fivem-orange/30 overflow-hidden flex flex-col max-h-[90vh]">
+    <Modal label="Pause and create a new contest" onClose={() => { if (!loading) onClose(); }} className="max-w-3xl">
+      <div className="w-full rounded-lg bg-[#0d0d14] border border-fivem-orange/30 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* Header */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/40 shrink-0">
           <div className="flex items-center gap-3">
@@ -935,7 +818,7 @@ function PauseAndCreateModal({
         </div>
 
         {/* Wizard Step Navigation */}
-        <div className="flex items-center justify-between px-6 py-2.5 bg-white/[0.02] border-b border-white/5 text-xs tabular-nums shrink-0">
+        <div className="flex shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-white/5 bg-white/[0.02] px-4 py-2.5 text-xs tabular-nums sm:px-6 [scrollbar-width:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap">
           <button data-choice aria-pressed={step === 1}
             onClick={() => setStep(1)}
             className={`px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
@@ -1308,7 +1191,7 @@ function PauseAndCreateModal({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -1394,8 +1277,8 @@ function RestoreContestModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 overflow-y-auto">
-      <div className="w-full max-w-lg my-8 rounded-lg bg-[#0e0e14] border border-emerald-500/30 p-6 sm:p-7 space-y-6">
+    <Modal label={`Restore ${targetContest.name}`} onClose={() => { if (!loading) onClose(); }} className="max-w-lg">
+      <div className="w-full rounded-lg bg-[#0e0e14] border border-emerald-500/30 p-6 sm:p-7 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3 pb-3 border-b border-white/10">
           <div className="p-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
@@ -1531,6 +1414,6 @@ function RestoreContestModal({
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

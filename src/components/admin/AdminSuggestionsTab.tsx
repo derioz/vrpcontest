@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { CategorySuggestionsSettingsModal } from './CategorySuggestionsSettingsModal';
 import { toast } from '../ui/toast';
+import { Skeleton } from '../ui/skeleton';
 import { cn } from '../../lib/utils';
 import { CategorySuggestion, SuggestionStatus, SuggestionSortOption, SuggestionAdminVote } from '../../types';
 import {
@@ -53,7 +54,7 @@ import {
 } from '../../lib/suggestionsService';
 import { getProfileAvatar, getDiceBearAvatarUrl } from '../../lib/dicebear';
 import { AdminHeader } from './AdminHeader';
-import { Button as KitButton, Segmented } from './kit';
+import { Button as KitButton, EmptyState, Panel, SearchField, Segmented, fieldClass } from './kit';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 
 interface AdminSuggestionsTabProps {
@@ -659,13 +660,8 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
     return orderedList;
   }, [suggestions, orderedIds, autoReorder, statusFilter, searchQuery, sortBy]);
 
-  const getStatusDetails = (status?: string) => {
-    const normalized = (!status || status === 'active') ? 'open' : status;
-    return FUNCTIONAL_STATUSES.find((s) => s.id === normalized) || FUNCTIONAL_STATUSES[0];
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Admin Header */}
       <AdminHeader
         title="Category suggestions"
@@ -700,68 +696,47 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
       />
 
       {/* ── Search & Sort Toolbar + Anti-Jitter Stability Toggle ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 p-3 rounded-lg bg-black/40 border border-white/10">
-        {/* Search Input */}
-        <div className="relative flex-1 max-w-md">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/55 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search proposals, keywords, submitters, or Discord ID..."
-            className="w-full pl-9 pr-4 py-2 rounded-md bg-white/[0.04] border border-white/10 text-white placeholder:text-white/30 text-xs font-medium focus:outline-none focus:border-orange-400/50"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/55 hover:text-white"
-            >
-              <X size={13} />
-            </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search proposals, submitters or Discord ID"
+          className="min-w-52 flex-1 sm:max-w-sm"
+        />
+        <select
+          aria-label="Sort proposals"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          className={cn(fieldClass, 'cursor-pointer')}
+        >
+          <option value="top">Top score</option>
+          <option value="newest">Newest first</option>
+          <option value="lowest">Lowest score</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+        <button
+          type="button"
+          data-choice
+          aria-pressed={autoReorder}
+          onClick={() => {
+            if (!autoReorder) {
+              handleApplyRanking();
+            }
+            setAutoReorder(!autoReorder);
+          }}
+          title={autoReorder ? 'Rows move as votes change. Click to lock their positions.' : 'Rows stay put while votes come in. Click to reorder them live.'}
+          className="flex h-9 shrink-0 cursor-pointer select-none items-center gap-1.5 px-3 text-xs font-semibold"
+        >
+          {autoReorder ? (
+            <>
+              <Flame size={13} aria-hidden="true" /> Live order
+            </>
+          ) : (
+            <>
+              <ShieldCheck size={13} aria-hidden="true" /> Stable order
+            </>
           )}
-        </div>
-
-        {/* Stable vs Live Stream Toggle & Sort */}
-        <div className="flex items-center gap-2 self-end sm:self-auto overflow-x-auto pb-1 sm:pb-0">
-          <button data-choice aria-pressed={autoReorder}
-            onClick={() => {
-              if (!autoReorder) {
-                handleApplyRanking();
-              }
-              setAutoReorder(!autoReorder);
-            }}
-            title={autoReorder ? "Switch to Stable Order (locks positions to prevent cards moving during high voting traffic)" : "Switch to Live Auto-Glide (moves cards as votes change)"}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold tabular-nums transition-all cursor-pointer select-none shrink-0 border",
-              autoReorder
-                ? "bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-sm"
-                : "bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:bg-white/10"
-            )}
-          >
-            {autoReorder ? (
-              <>
-                <Flame size={13} className="text-amber-400 " />
-                <span>Live Stream</span>
-              </>
-            ) : (
-              <>
-                <ShieldCheck size={13} className="text-emerald-400" />
-                <span>Stable View</span>
-              </>
-            )}
-          </button>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-2 rounded-md bg-white/[0.04] border border-white/10 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/50"
-          >
-            <option value="top" className="bg-[#09090d]">Top Score (▲ Net Votes)</option>
-            <option value="newest" className="bg-[#09090d]">Newest Proposals</option>
-            <option value="lowest" className="bg-[#09090d]">Lowest Score</option>
-            <option value="oldest" className="bg-[#09090d]">Oldest Proposals</option>
-          </select>
-        </div>
+        </button>
       </div>
 
       {/* ── Live Inbound Activity Banner ── */}
@@ -792,20 +767,18 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
 
       {/* ── Suggestions Feed with Functional Workflow Actions & Dedicated Admin Contest Selection Voting ── */}
       {loading ? (
-        <div className="p-12 text-center text-orange-400/50 tabular-nums text-xs flex items-center justify-center gap-2">
-          <RefreshCw className="animate-spin" size={16} />
-          <span>Loading Category Proposals...</span>
-        </div>
+        <Panel>
+          <div className="space-y-4 p-4" role="status" aria-label="Loading proposals">
+            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
+          </div>
+        </Panel>
       ) : filteredSuggestions.length === 0 ? (
-        <div className="p-12 text-center rounded-lg border border-white/10 bg-white/[0.01]">
-          <Sparkles className="w-10 h-10 mx-auto text-white/55 mb-3" />
-          <p className="text-sm font-bold text-white/70">No category suggestions match your active filter.</p>
-          <p className="text-xs text-white/55 mt-1 tabular-nums">Try clearing your search or switching status tabs above.</p>
-        </div>
+        <Panel>
+          <EmptyState title="No proposals match">Clear the search or choose another status.</EmptyState>
+        </Panel>
       ) : (
-        <motion.div layout className="space-y-3.5">
+        <motion.div layout className="rounded-lg border border-white/10 bg-[#0c0c10]">
           {filteredSuggestions.map((suggestion) => {
-            const statusConfig = getStatusDetails(suggestion.status);
             const isApproved = suggestion.status === 'approved';
             const isDecisionVotingEligible = !suggestion.status || suggestion.status === 'open' || suggestion.status === 'active' || suggestion.status === 'under_review';
 
@@ -819,78 +792,48 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
             );
 
             return (
-              <motion.div
+              <motion.article
                 layout
                 layoutId={`admin-suggestion-${suggestion.id}`}
                 key={suggestion.id}
                 transition={{
-                  layout: { duration: 0.65, ease: [0.16, 1, 0.3, 1] },
+                  layout: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
                   opacity: { duration: 0.25 }
                 }}
                 className={cn(
-                  "p-4 sm:p-5 rounded-lg border transition-all duration-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4",
-                  isApproved
-                    ? "bg-purple-500/[0.06] border-purple-400/30 hover:border-purple-400/50"
-                    : suggestion.status === 'under_review'
-                    ? "bg-amber-500/[0.04] border-amber-400/30 hover:border-amber-400/50"
-                    : suggestion.status === 'declined'
-                    ? "bg-rose-500/[0.03] border-rose-500/20 opacity-75"
-                    : suggestion.status === 'archived'
-                    ? "bg-white/[0.01] border-white/5 opacity-60"
-                    : "bg-[#0c0c10] border-white/10 hover:border-white/20"
+                  'flex flex-col gap-3 border-b border-white/[0.07] p-4 first:rounded-t-lg last:rounded-b-lg last:border-b-0 xl:flex-row xl:items-start xl:gap-4',
+                  isApproved && 'bg-purple-500/[0.07]',
+                  suggestion.status === 'under_review' && 'bg-amber-500/[0.05]',
                 )}
               >
-                {/* Left: Community Votes Capsule + Info */}
-                <div className="flex items-start gap-4 flex-1 min-w-0">
-                  {/* Public Community Vote Pill */}
-                  <div className="flex flex-col items-center justify-center p-2.5 rounded-lg bg-black/60 border border-white/10 shrink-0 min-w-[70px] text-center">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  {/* Community score */}
+                  <div className="w-12 shrink-0 pt-0.5 text-center" title="Community score: upvotes minus downvotes">
                     <span
                       className={cn(
-                        "text-lg font-bold font-display tracking-tight leading-none mb-1",
-                        suggestion.score > 0
-                          ? "text-emerald-400"
-                          : suggestion.score < 0
-                          ? "text-rose-400"
-                          : "text-white/60"
+                        'block font-display text-xl font-bold leading-none tabular-nums',
+                        suggestion.score > 0 ? 'text-emerald-400' : suggestion.score < 0 ? 'text-rose-400' : 'text-white/60'
                       )}
                     >
                       {suggestion.score > 0 ? `+${suggestion.score}` : suggestion.score}
                     </span>
-                    <span className="text-xs tabular-nums text-white/55  block">
-                      {suggestion.upvotes}▲ {suggestion.downvotes}▼
-                    </span>
-                    <span className="text-[7px] tabular-nums text-fivem-orange/80 font-bold mt-1 tracking-tighter">
-                      Community
-                    </span>
+                    <span className="mt-1 block text-xs text-white/55">score</span>
                   </div>
 
                   {/* Suggestion Details */}
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <h4 className="text-base font-bold font-display text-white truncate">
-                        {suggestion.category_name}
-                      </h4>
-
-                      {/* Status Badge with Icon */}
-                      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs tabular-nums font-bold   border", statusConfig.badge)}>
-                        <span className={cn("w-1.5 h-1.5 rounded-full", statusConfig.dot)} />
-                        <span>{statusConfig.label}</span>
-                      </span>
-
-                      {suggestion.is_admin_author && (
-                        <span className="px-2 py-0.5 rounded bg-fivem-orange/20 text-xs tabular-nums text-fivem-orange font-bold border border-fivem-orange/30">
-                          Admin Idea
-                        </span>
-                      )}
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                      <h2 className="min-w-0 break-words text-sm font-semibold text-white">{suggestion.category_name}</h2>
+                      {suggestion.is_admin_author && <span className="text-xs font-semibold text-fivem-orange">Admin idea</span>}
                     </div>
 
-                    <p className="text-xs text-white/70 line-clamp-2 leading-relaxed">
-                      {suggestion.description}
-                    </p>
+                    {suggestion.description && (
+                      <p className="line-clamp-2 max-w-prose text-sm leading-relaxed text-white/70">{suggestion.description}</p>
+                    )}
 
                     {/* Submitter details & Live Voter Breakdown Hover Triggers */}
-                    <div className="flex items-center gap-3 pt-0.5 text-xs tabular-nums text-white/55 flex-wrap">
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tabular-nums text-white/55">
+                      <span className="flex items-center gap-1.5">
                         <img
                           src={getProfileAvatar(
                             suggestion.author_avatar_url,
@@ -898,228 +841,161 @@ export function AdminSuggestionsTab({ currentUser, isAdmin = true, onAddCategory
                             'botttsNeutral'
                           )}
                           alt=""
-                          className="w-4 h-4 rounded-full object-cover border border-white/10"
+                          className="h-4 w-4 rounded-full object-cover"
                         />
-                        <span className="text-white/80 font-bold">{suggestion.author_name}</span>
-                      </div>
-                      {suggestion.discord_id && (
-                        <span className="text-white/55">(ID: {suggestion.discord_id})</span>
-                      )}
-                      <span>•</span>
+                        <span className="font-semibold text-white/80">{suggestion.author_name}</span>
+                      </span>
+                      {suggestion.discord_id && <span>ID {suggestion.discord_id}</span>}
                       <span>{new Date(suggestion.created_at).toLocaleDateString()}</span>
-                      <span>•</span>
 
-                      {/* Upvote Hover Breakdown */}
-                      <div
-                        className="relative"
-                        onMouseEnter={() => handleHoverVoters(suggestion.id, 'up')}
-                        onMouseLeave={handleLeaveVoters}
-                      >
-                        <span className="text-emerald-400 font-bold hover:underline cursor-pointer">
-                          {suggestion.upvotes}▲ Upvotes
-                        </span>
-                        <AnimatePresence>
-                          {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.type === 'up' && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                              transition={{ duration: 0.15 }}
-                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-lg bg-[#0e0e13]/98 border border-emerald-500/30 pointer-events-none text-left"
-                            >
-                              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
-                                <span className="text-xs font-bold text-emerald-400">Community Upvoters</span>
-                                <span className="text-xs tabular-nums text-white/55">{suggestion.upvotes}</span>
-                              </div>
-                              {hoveredVoters.voters.length === 0 ? (
-                                <p className="text-xs text-white/55">No upvotes recorded yet.</p>
-                              ) : (
-                                <div className="max-h-32 overflow-y-auto space-y-1">
-                                  {hoveredVoters.voters.map((v) => (
-                                    <div key={v.userId} className="flex items-center gap-1.5 text-xs">
-                                      <img
-                                        src={getProfileAvatar(v.authorAvatarUrl, v.discordId || v.userId, v.avatarStyle)}
-                                        alt=""
-                                        className="w-3.5 h-3.5 rounded-full object-cover border border-white/10 shrink-0"
-                                      />
-                                      <span className="font-bold text-white/90 truncate flex-1">{v.discordName}</span>
-                                    </div>
-                                  ))}
-                                </div>
+                      {(['up', 'down'] as const).map((type) => {
+                        const total = type === 'up' ? suggestion.upvotes : suggestion.downvotes;
+                        const noun = type === 'up' ? 'upvotes' : 'downvotes';
+                        const open = hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.type === type;
+                        return (
+                          <div
+                            key={type}
+                            className="relative"
+                            onMouseEnter={() => handleHoverVoters(suggestion.id, type)}
+                            onMouseLeave={handleLeaveVoters}
+                          >
+                            <button
+                              type="button"
+                              onFocus={() => handleHoverVoters(suggestion.id, type)}
+                              onBlur={handleLeaveVoters}
+                              onClick={() => handleHoverVoters(suggestion.id, type)}
+                              className={cn(
+                                '-my-1 cursor-pointer py-1 font-semibold underline decoration-dotted underline-offset-2 focus-visible:outline-2 focus-visible:outline-fivem-orange',
+                                type === 'up' ? 'text-emerald-400' : 'text-rose-400'
                               )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* Downvote Hover Breakdown */}
-                      <div
-                        className="relative"
-                        onMouseEnter={() => handleHoverVoters(suggestion.id, 'down')}
-                        onMouseLeave={handleLeaveVoters}
-                      >
-                        <span className="text-rose-400 font-bold hover:underline cursor-pointer">
-                          {suggestion.downvotes}▼ Downvotes
-                        </span>
-                        <AnimatePresence>
-                          {hoveredVoters?.suggestionId === suggestion.id && hoveredVoters.type === 'down' && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                              transition={{ duration: 0.15 }}
-                              className="absolute bottom-full left-0 mb-2 z-50 w-60 p-3 rounded-lg bg-[#0e0e13]/98 border border-rose-500/30 pointer-events-none text-left"
                             >
-                              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
-                                <span className="text-xs font-bold text-rose-400">Community Downvoters</span>
-                                <span className="text-xs tabular-nums text-white/55">{suggestion.downvotes}</span>
-                              </div>
-                              {hoveredVoters.voters.length === 0 ? (
-                                <p className="text-xs text-white/55">No downvotes recorded yet.</p>
-                              ) : (
-                                <div className="max-h-32 overflow-y-auto space-y-1">
-                                  {hoveredVoters.voters.map((v) => (
-                                    <div key={v.userId} className="flex items-center gap-1.5 text-xs">
-                                      <img
-                                        src={getProfileAvatar(v.authorAvatarUrl, v.discordId || v.userId, v.avatarStyle)}
-                                        alt=""
-                                        className="w-3.5 h-3.5 rounded-full object-cover border border-white/10 shrink-0"
-                                      />
-                                      <span className="font-bold text-white/90 truncate flex-1">{v.discordName}</span>
-                                    </div>
-                                  ))}
-                                </div>
+                              {total} {total === 1 ? noun.slice(0, -1) : noun}
+                            </button>
+                            <AnimatePresence>
+                              {open && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: 4 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-56 rounded-lg border border-white/15 bg-[#14141b] p-3 text-left shadow-xl"
+                                >
+                                  <p className="mb-1.5 border-b border-white/10 pb-1.5 text-xs font-semibold text-white">Who left {noun}</p>
+                                  {hoveredVoters.voters.length === 0 ? (
+                                    <p className="text-xs text-white/55">No {noun} recorded yet.</p>
+                                  ) : (
+                                    <ul className="max-h-32 space-y-1 overflow-y-auto">
+                                      {hoveredVoters.voters.map((v) => (
+                                        <li key={v.userId} className="flex items-center gap-1.5 text-xs">
+                                          <img
+                                            src={getProfileAvatar(v.authorAvatarUrl, v.discordId || v.userId, v.avatarStyle)}
+                                            alt=""
+                                            className="h-3.5 w-3.5 shrink-0 rounded-full object-cover"
+                                          />
+                                          <span className="flex-1 truncate font-semibold text-white/90">{v.discordName}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </motion.div>
                               )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* ── Staff Vote Section (Under Review or Open for Voting) ── */}
                     {isDecisionVotingEligible && (
-                      <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap bg-white/[0.02] p-2.5 rounded-md border border-white/5">
-                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <ShieldCheck size={14} className="text-purple-400 shrink-0" />
-                          <span className="text-xs font-bold text-white/90">
-                            {suggestion.status === 'under_review' ? 'Review Decision:' : 'Use in Upcoming Contest?'}
-                          </span>
-                          <span className="text-xs tabular-nums font-bold text-purple-300">
-                            {suggestion.status === 'under_review'
-                              ? adminVotes.length === 0
-                                ? 'Waiting for 2 admin votes to move to Open for Voting'
-                                : adminVotes.length === 1
-                                ? 'Waiting for 1 more vote to move to Open for Voting'
-                                : 'Quorum reached'
-                              : adminVotes.length === 0
-                              ? 'Waiting for 2 admin votes to approve for contest'
-                              : adminVotes.length === 1
-                              ? 'Waiting for 1 more vote to approve for contest'
-                              : 'Approved for contest'}
-                          </span>
-
-                          {/* Mini admin voter avatars */}
-                          {adminVotes.length > 0 && (
-                            <div className="flex items-center -space-x-1.5 ml-1">
-                              {adminVotes.map((av, idx) => {
-                                const isMe =
-                                  av.adminId === currentAdminId ||
-                                  av.adminId === currentUser?.uid ||
-                                  av.adminId === currentUser?.discordId ||
-                                  (av.adminName && currentUser?.displayName && av.adminName.toLowerCase() === currentUser.displayName.toLowerCase());
-                                const resolvedAvatar = isMe ? (currentUser?.photoURL || av.adminAvatarUrl) : av.adminAvatarUrl;
-                                return (
-                                  <img
-                                    key={av.adminId || idx}
-                                    src={getProfileAvatar(resolvedAvatar, av.adminId || av.adminName, 'botttsNeutral')}
-                                    title={`Voted Yes: ${av.adminName}${isMe ? ' (You)' : ''}`}
-                                    alt=""
-                                    className="w-5 h-5 rounded-full object-cover border border-purple-400/60 shadow-sm"
-                                  />
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1.5">
                         {/* Admin Vote Toggle Button */}
-                        <button data-btn={currentAdminHasVoted ? 'success' : 'secondary'}
+                        <button
+                          type="button"
+                          data-btn={currentAdminHasVoted ? 'success' : 'secondary'}
                           onClick={() => handleAdminContestVote(suggestion.id)}
                           disabled={votingLocks[suggestion.id]}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-bold tabular-nums transition-all cursor-pointer shadow-sm border",
-                            currentAdminHasVoted
-                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40"
-                              : "bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/25 hover:text-white"
-                          )}
+                          className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-xs font-semibold"
                           title={
                             currentAdminHasVoted
-                              ? "Click to remove your vote"
+                              ? 'Click to remove your vote'
                               : suggestion.status === 'under_review'
-                              ? "Vote to move this category to Open for Voting"
-                              : "Vote to approve this category for an upcoming contest round"
+                              ? 'Vote to move this category to Open for Voting'
+                              : 'Vote to approve this category for an upcoming contest round'
                           }
                         >
-                          <ThumbsUp size={13} className={cn(currentAdminHasVoted && "fill-current")} />
-                          <span>
-                            {currentAdminHasVoted
-                              ? "✓ You Voted Yes (Undo)"
-                              : suggestion.status === 'under_review'
-                              ? "+ Vote to Open for Voting"
-                              : "+ Vote to Use for Contest"}
-                          </span>
+                          <ThumbsUp size={13} aria-hidden="true" className={cn(currentAdminHasVoted && 'fill-current')} />
+                          {currentAdminHasVoted
+                            ? 'You voted yes (undo)'
+                            : suggestion.status === 'under_review'
+                            ? 'Vote to open voting'
+                            : 'Vote to use in a contest'}
                         </button>
+
+                        {/* Admin voter avatars */}
+                        {adminVotes.length > 0 && (
+                          <div className="flex items-center -space-x-1.5">
+                            {adminVotes.map((av, idx) => {
+                              const isMe =
+                                av.adminId === currentAdminId ||
+                                av.adminId === currentUser?.uid ||
+                                av.adminId === currentUser?.discordId ||
+                                (av.adminName && currentUser?.displayName && av.adminName.toLowerCase() === currentUser.displayName.toLowerCase());
+                              const resolvedAvatar = isMe ? (currentUser?.photoURL || av.adminAvatarUrl) : av.adminAvatarUrl;
+                              return (
+                                <img
+                                  key={av.adminId || idx}
+                                  src={getProfileAvatar(resolvedAvatar, av.adminId || av.adminName, 'botttsNeutral')}
+                                  title={`Voted yes: ${av.adminName}${isMe ? ' (you)' : ''}`}
+                                  alt={av.adminName}
+                                  className="h-6 w-6 rounded-full border border-white/30 object-cover"
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <span className="text-xs text-white/60">
+                          {suggestion.status === 'under_review'
+                            ? adminVotes.length === 0
+                              ? 'Needs 2 staff votes to open voting'
+                              : adminVotes.length === 1
+                              ? 'Needs 1 more staff vote to open voting'
+                              : 'Both staff votes are in'
+                            : adminVotes.length === 0
+                            ? 'Needs 2 staff votes to approve'
+                            : adminVotes.length === 1
+                            ? 'Needs 1 more staff vote to approve'
+                            : 'Approved for a contest'}
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Right: Functional Admin Workflow Controls */}
-                <div className="flex items-center gap-2 shrink-0 self-end xl:self-center flex-wrap pt-2 xl:pt-0">
-                  {/* Functional Status Selector Dropdown */}
-                  <div className="relative">
-                    <select
-                      value={suggestion.status || 'open'}
-                      disabled={updatingStatusId === suggestion.id}
-                      onChange={(e) => handleStatusChange(suggestion.id, e.target.value as SuggestionStatus)}
-                      className="px-3 py-2 rounded-md bg-black/70 border border-white/15 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-orange-400/60 disabled:opacity-50"
-                    >
-                      {FUNCTIONAL_STATUSES.map((st) => (
-                        <option key={st.id} value={st.id} className="bg-[#0c0c10] text-white">
-                          Status: {st.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Edit Title & Description */}
-                  <button data-btn="secondary"
-                    onClick={() => handleOpenEditModal(suggestion)}
-                    title="Edit title & description"
-                    className="p-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-amber-300 hover:text-white transition-colors cursor-pointer"
+                <div className="flex shrink-0 items-center gap-1 pl-[3.75rem] xl:pl-0">
+                  <select
+                    aria-label={`Status of ${suggestion.category_name}`}
+                    value={suggestion.status || 'open'}
+                    disabled={updatingStatusId === suggestion.id}
+                    onChange={(e) => handleStatusChange(suggestion.id, e.target.value as SuggestionStatus)}
+                    className={cn(fieldClass, 'mr-1 h-8 min-w-0 cursor-pointer px-2 text-xs font-semibold disabled:opacity-50')}
                   >
-                    <Edit3 size={13} />
-                  </button>
-
-                  {/* Copy Details */}
-                  <button data-btn="secondary"
-                    onClick={() => handleCopyDetails(suggestion)}
-                    title="Copy concept details to clipboard"
-                    className="p-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <Copy size={13} />
-                  </button>
-
-                  {/* Delete */}
-                  <button data-btn="danger"
-                    onClick={() => setDeletingSuggestion(suggestion)}
-                    title="Delete suggestion"
-                    className="p-2.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 transition-colors cursor-pointer"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                    {FUNCTIONAL_STATUSES.map((st) => (
+                      <option key={st.id} value={st.id}>{st.label}</option>
+                    ))}
+                  </select>
+                  <KitButton variant="ghost" size="sm" onClick={() => handleOpenEditModal(suggestion)} title="Edit title and description" aria-label={`Edit ${suggestion.category_name}`}>
+                    <Edit3 size={14} aria-hidden="true" />
+                  </KitButton>
+                  <KitButton variant="ghost" size="sm" onClick={() => handleCopyDetails(suggestion)} title="Copy details" aria-label={`Copy details of ${suggestion.category_name}`}>
+                    <Copy size={14} aria-hidden="true" />
+                  </KitButton>
+                  <KitButton variant="ghost" size="sm" onClick={() => setDeletingSuggestion(suggestion)} title="Delete suggestion" aria-label={`Delete ${suggestion.category_name}`} className="text-white/55 hover:!text-red-400">
+                    <Trash2 size={14} aria-hidden="true" />
+                  </KitButton>
                 </div>
-              </motion.div>
+              </motion.article>
             );
           })}
         </motion.div>

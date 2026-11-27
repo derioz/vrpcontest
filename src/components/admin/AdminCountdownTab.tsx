@@ -12,29 +12,14 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Clock,
-  Calendar,
-  Sparkles,
   Save,
   RotateCcw,
   Check,
   AlertCircle,
   Timer,
-  ChevronRight,
-  Flame,
-  ShieldAlert,
-  Volume2,
   RefreshCw,
   Sliders,
-  Settings2,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Zap,
-  Radio,
-  CalendarClock,
   CheckCircle2,
-  Copy,
-  Info,
 } from 'lucide-react';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -43,7 +28,7 @@ import { CountdownClock } from '../ui/countdown-clock';
 import { AdminHeader } from './AdminHeader';
 import { useConfirm } from './confirm';
 import { toast } from '../ui/toast';
-import { Button as KitButton, Panel, Segmented } from './kit';
+import { Button as KitButton, Panel, Row, Segmented, fieldClass } from './kit';
 import { AnimatedSwitch } from '../ui/animated-switch';
 import { CategorySuggestionsSettingsModal } from './CategorySuggestionsSettingsModal';
 import { setDynamicCategorySuggestionDeadline } from '../../config';
@@ -571,55 +556,15 @@ export function AdminCountdownTab({
     : targetIsoString;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* ── HEADER ── */}
       <AdminHeader
         title="Countdown"
         subtitle={!enabled ? 'Hidden on the public site.' : timeRemaining.isPast ? 'The target time has passed.' : `${timeRemaining.days}d ${timeRemaining.hours}h ${timeRemaining.minutes}m remaining.`}
-        icon={<Clock size={20} className="text-emerald-400" />}
-        iconBg="bg-emerald-500/15 border-emerald-500/30"
         actions={
-          <div className="flex items-center gap-2.5">
-            <button data-btn="secondary"
-              type="button"
-              onClick={handleResetDefaults}
-              disabled={saving}
-              className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 text-xs tabular-nums transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              title="Reset countdown clock to contest phase defaults"
-            >
-              <RotateCcw size={13} />
-              <span>Reset Defaults</span>
-            </button>
-            <button data-btn={saveSuccess ? 'success' : 'primary'}
-              type="button"
-              onClick={handleSaveSettings}
-              disabled={saving || !targetIsoString}
-              className={cn(
-                "px-5 py-2.5 rounded-md font-bold text-xs flex items-center gap-2 transition-all cursor-pointer",
-                saveSuccess
-                  ? "bg-emerald-500 text-black"
-                  : "bg-fivem-orange hover:bg-orange-500 text-white",
-                saving && "opacity-60 cursor-wait"
-              )}
-            >
-              {saving ? (
-                <>
-                  <RefreshCw size={14} className="animate-spin" />
-                  <span>Publishing...</span>
-                </>
-              ) : saveSuccess ? (
-                <>
-                  <CheckCircle2 size={14} />
-                  <span>Published to Live!</span>
-                </>
-              ) : (
-                <>
-                  <Save size={14} />
-                  <span>Save & Publish Countdown</span>
-                </>
-              )}
-            </button>
-          </div>
+          <KitButton variant="ghost" onClick={handleResetDefaults} disabled={saving} title="Reset the countdown to the contest phase defaults">
+            <RotateCcw size={14} aria-hidden="true" /> Reset Defaults
+          </KitButton>
         }
       />
 
@@ -699,345 +644,137 @@ export function AdminCountdownTab({
       </div>
       </Panel>
 
-      {/* ── SECTION 1: MASTER CONTROLS & MODE SELECTOR ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Enable Hero Clock Toggle Card */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-md bg-orange-500/10 border border-orange-500/20 text-fivem-orange">
-                {enabled ? <Eye size={16} /> : <EyeOff size={16} />}
-              </div>
-              <div>
-                <h4 className="text-xs tabular-nums font-bold text-white">
-                  Hero Clock Visibility
-                </h4>
-                <p className="text-xs text-white/55">Toggle public display on the main page</p>
-              </div>
-            </div>
-            <AnimatedSwitch
-              ariaLabel="Show the countdown on the public site"
-              checked={enabled}
-              onCheckedChange={setEnabled}
-              size="md"
-            />
-          </div>
-          <p className="text-xs text-white/60 leading-relaxed bg-black/30 p-3 rounded-md border border-white/5">
-            {enabled
-              ? "🟢 The countdown flip clock is actively rendered on the homepage hero banner."
-              : "⚪ The countdown flip clock is hidden from public view."}
-          </p>
-        </div>
+      {/* ── SECTION 1: VISIBILITY & SOURCE ── */}
+      <Panel>
+        <Row
+          label="Show on the public site"
+          description={enabled ? 'The flip clock appears in the homepage banner.' : 'The flip clock is hidden from visitors.'}
+        >
+          <AnimatedSwitch
+            ariaLabel="Show the countdown on the public site"
+            checked={enabled}
+            onCheckedChange={setEnabled}
+            size="md"
+          />
+        </Row>
 
-        {/* Operating Target Mode Card */}
-        <div className="lg:col-span-2 rounded-lg border border-white/10 bg-white/[0.02] p-5 space-y-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400">
-              <Radio size={16} />
-            </div>
-            <div>
-              <h4 className="text-xs tabular-nums font-bold text-white">
-                Countdown Mode & Target Source
-              </h4>
-              <p className="text-xs text-white/55">Choose whether the deadline is custom or contest-linked</p>
-            </div>
-          </div>
-
-          <div role="radiogroup" aria-label="Countdown source" className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-            <button data-radio-card role="radio" aria-checked={mode === 'custom'}
+        <div role="radiogroup" aria-label="Countdown source" className="grid grid-cols-1 gap-2.5 p-4 sm:grid-cols-3">
+          {([
+            { id: 'custom', label: 'Custom deadline', help: 'Pick any date and time below.', choose: () => { setMode('custom'); setPreviewExpired(false); } },
+            { id: 'submissions', label: 'Submissions close', help: "Follow the active contest's submission deadline.", choose: handleImportSubmissionsClose },
+            { id: 'voting', label: 'Voting closes', help: "Follow the active contest's voting deadline.", choose: handleImportVotingEnd },
+          ] as const).map((source) => (
+            <button
+              key={source.id}
               type="button"
-              onClick={() => {
-                setMode('custom');
+              data-radio-card
+              role="radio"
+              aria-checked={mode === source.id}
+              onClick={source.choose}
+              className="p-3 text-left"
+            >
+              <span className="block text-sm font-semibold text-white">{source.label}</span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-white/60">{source.help}</span>
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      {/* ── SECTION 2: TARGET DATE, TIMEZONE & QUICK PRESETS ── */}
+      <Panel title="Target time">
+        <div className="grid gap-4 p-4 md:grid-cols-2">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold text-white/70">Date and time</span>
+            <input
+              type="datetime-local"
+              value={datetimeLocal}
+              onChange={(e) => {
+                setDatetimeLocal(e.target.value);
                 setPreviewExpired(false);
               }}
-              className={cn(
-                "p-3 rounded-md border text-left transition-all cursor-pointer",
-                mode === 'custom'
-                  ? "bg-purple-500/15 border-purple-500/40"
-                  : "bg-white/[0.01] border-white/10 hover:border-white/20 text-white/60"
-              )}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className={cn("text-xs font-bold", mode === 'custom' ? "text-purple-300" : "text-white")}>
-                  Custom Deadline
-                </span>
-              </div>
-              <p className="text-xs text-white/55 leading-normal">
-                Set any arbitrary future date, hour, and minute via manual controls.
-              </p>
-            </button>
+              className={cn(fieldClass, 'w-full tabular-nums [color-scheme:dark]')}
+            />
+            <span className="block text-xs text-white/55">Read in the timezone beside it.</span>
+          </label>
 
-            <button data-radio-card role="radio" aria-checked={mode === 'submissions'}
-              type="button"
-              onClick={handleImportSubmissionsClose}
-              className={cn(
-                "p-3 rounded-md border text-left transition-all cursor-pointer",
-                mode === 'submissions'
-                  ? "bg-cyan-500/15 border-cyan-500/40"
-                  : "bg-white/[0.01] border-white/10 hover:border-white/20 text-white/60"
-              )}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className={cn("text-xs font-bold", mode === 'submissions' ? "text-cyan-300" : "text-white")}>
-                  Submissions Close
-                </span>
-              </div>
-              <p className="text-xs text-white/55 leading-normal">
-                Synchronize directly with active contest submissions deadline.
-              </p>
-            </button>
-
-            <button data-radio-card role="radio" aria-checked={mode === 'voting'}
-              type="button"
-              onClick={handleImportVotingEnd}
-              className={cn(
-                "p-3 rounded-md border text-left transition-all cursor-pointer",
-                mode === 'voting'
-                  ? "bg-amber-500/15 border-amber-500/40"
-                  : "bg-white/[0.01] border-white/10 hover:border-white/20 text-white/60"
-              )}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className={cn("text-xs font-bold", mode === 'voting' ? "text-amber-300" : "text-white")}>
-                  Voting Closes
-                </span>
-              </div>
-              <p className="text-xs text-white/55 leading-normal">
-                Synchronize directly with active contest community voting deadline.
-              </p>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── SECTION 2: QUICK JUMP DURATION PRESETS ── */}
-      <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <Zap size={16} />
-            </div>
-            <div>
-              <h4 className="text-xs tabular-nums font-bold text-white">
-                Quick Duration Jumpers (1-Click Presets)
-              </h4>
-              <p className="text-xs text-white/55">
-                Immediately schedule the countdown timer relative to the current moment
-              </p>
-            </div>
-          </div>
-          <span className="text-xs tabular-nums text-emerald-400/80">
-            Offset from Now
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(1)}
-            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
-          >
-            +1 Hour
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(3)}
-            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
-          >
-            +3 Hours
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(6)}
-            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
-          >
-            +6 Hours
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(12)}
-            className="px-3 py-2 rounded-md bg-white/5 hover:bg-emerald-500/20 text-white/80 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs tabular-nums transition-all cursor-pointer"
-          >
-            +12 Hours
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(24)}
-            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
-          >
-            +24 Hours (Tomorrow)
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(48)}
-            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
-          >
-            +48 Hours (2 Days)
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(72)}
-            className="px-3 py-2 rounded-md bg-white/5 hover:bg-cyan-500/20 text-white/80 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 text-xs tabular-nums transition-all cursor-pointer"
-          >
-            +3 Days
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(168)}
-            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
-          >
-            +1 Week (7 Days)
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={() => handleAddDuration(336)}
-            className="px-3.5 py-2 rounded-md bg-white/5 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
-          >
-            +2 Weeks (14 Days)
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={handleSetThisFriday}
-            className="px-3.5 py-2 rounded-md bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
-          >
-            Next Friday (5:59 PM)
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={handleSetThisSunday}
-            className="px-3.5 py-2 rounded-md bg-fivem-orange/10 hover:bg-fivem-orange/20 text-fivem-orange border border-fivem-orange/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
-          >
-            Next Sunday (11:59 PM)
-          </button>
-          <button data-btn="secondary"
-            type="button"
-            onClick={handleSetEndOfMonth}
-            className="px-3.5 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs tabular-nums font-bold transition-all cursor-pointer"
-          >
-            End of Month (11:59 PM)
-          </button>
-        </div>
-      </div>
-
-      {/* ── SECTION 3: PRECISION DATE, TIME & TIMEZONE PICKER ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Date & Time Input */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400">
-              <CalendarClock size={16} />
-            </div>
-            <div>
-              <h4 className="text-xs tabular-nums font-bold text-white">
-                Target Date & Time
-              </h4>
-              <p className="text-xs text-white/55">Select the exact target deadline</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs tabular-nums text-white/50 block">
-              Deadline Date & Time Picker
-            </label>
-            <div className="relative">
-              <input
-                type="datetime-local"
-                value={datetimeLocal}
-                onChange={(e) => {
-                  setDatetimeLocal(e.target.value);
-                  setPreviewExpired(false);
-                }}
-                className="w-full px-4 py-3 bg-black/60 border border-white/15 rounded-md text-white tabular-nums text-sm focus:outline-none focus:border-fivem-orange transition-all [color-scheme:dark]"
-              />
-            </div>
-            <p className="text-xs text-white/55">
-              Selected: <span className="text-emerald-400 tabular-nums font-bold">{datetimeLocal || 'None'}</span> (in {timeZone})
-            </p>
-          </div>
-        </div>
-
-        {/* Timezone Selector */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <Settings2 size={16} />
-            </div>
-            <div>
-              <h4 className="text-xs tabular-nums font-bold text-white">
-                Target Timezone
-              </h4>
-              <p className="text-xs text-white/55">
-                Determines offset and public display abbreviation
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs tabular-nums text-white/50 block">
-              Timezone Region
-            </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold text-white/70">Timezone</span>
             <select
               value={timeZone}
               onChange={(e) => {
                 setTimeZone(e.target.value);
                 setPreviewExpired(false);
               }}
-              className="w-full px-4 py-3 bg-black/60 border border-white/15 rounded-md text-white tabular-nums text-xs focus:outline-none focus:border-fivem-orange transition-all cursor-pointer"
+              className={cn(fieldClass, 'w-full cursor-pointer')}
             >
               {TIMEZONE_OPTIONS.map((tz) => (
-                <option key={tz.value} value={tz.value} className="bg-zinc-900 text-white">
+                <option key={tz.value} value={tz.value}>
                   {tz.label}
                 </option>
               ))}
             </select>
-            <p className="text-xs text-white/55">
-              Offset: <span className="text-purple-300 tabular-nums font-bold">{getTimezoneOffsetForDate(datetimeLocal, timeZone)}</span> • Standard: <span className="text-white/70">{TIMEZONE_OPTIONS.find(t => t.value === timeZone)?.description}</span>
-            </p>
-          </div>
+            <span className="block text-xs text-white/55">
+              {getTimezoneOffsetForDate(datetimeLocal, timeZone)}, {TIMEZONE_OPTIONS.find(t => t.value === timeZone)?.description}
+            </span>
+          </label>
         </div>
-      </div>
+
+        <div className="space-y-3 border-t border-white/[0.07] p-4">
+          {([
+            {
+              title: 'From now',
+              presets: [1, 3, 6, 12, 24, 48, 72, 168, 336].map((hours) => ({
+                label: hours < 24 ? `+${hours} ${hours === 1 ? 'hour' : 'hours'}` : hours < 168 ? `+${hours / 24} ${hours === 24 ? 'day' : 'days'}` : `+${hours / 168} ${hours === 168 ? 'week' : 'weeks'}`,
+                apply: () => handleAddDuration(hours),
+              })),
+            },
+            {
+              title: 'Jump to',
+              presets: [
+                { label: 'Next Friday, 5:59 PM', apply: handleSetThisFriday },
+                { label: 'Next Sunday, 11:59 PM', apply: handleSetThisSunday },
+                { label: 'End of month, 11:59 PM', apply: handleSetEndOfMonth },
+              ],
+            },
+          ]).map((group) => (
+            <div key={group.title} role="group" aria-label={group.title} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+              <span className="w-20 shrink-0 text-xs font-semibold text-white/70 sm:pt-2">{group.title}</span>
+              <div className="flex flex-wrap gap-2">
+                {group.presets.map((preset) => (
+                  <KitButton key={preset.label} size="sm" onClick={preset.apply}>
+                    {preset.label}
+                  </KitButton>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
 
       {/* ── SECTION 4: LABELS, HEADERS & FINISHED MESSAGES ── */}
-      <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-6">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400">
-            <Sliders size={16} />
-          </div>
-          <div>
-            <h4 className="text-xs tabular-nums font-bold text-white">
-              Clock Labels, Header & Finished Banner
-            </h4>
-            <p className="text-xs text-white/55">
-              Customize text badges, auto-formatted dates, and completion messages
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Panel title="Clock text">
+        <div className="grid gap-5 p-4 md:grid-cols-2">
           {/* Header Badge Label */}
-          <div className="space-y-3">
-            <label className="text-xs tabular-nums text-white/50 block">
-              Header Badge Text (Above Clock)
+          <div className="space-y-2">
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold text-white/70">Heading above the clock</span>
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="e.g. Submissions Close In"
+                className={cn(fieldClass, 'w-full')}
+              />
             </label>
-            <input
-              type="text"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Submissions Close In"
-              className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-md text-white text-sm focus:outline-none focus:border-fivem-orange transition-all"
-            />
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="flex flex-wrap gap-1.5">
               {LABEL_PRESETS.map((lp) => (
-                <button data-choice aria-pressed={label === lp}
+                <button
                   key={lp}
                   type="button"
+                  data-choice
+                  aria-pressed={label === lp}
                   onClick={() => setLabel(lp)}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg text-xs tabular-nums border transition-all cursor-pointer",
-                    label === lp
-                      ? "bg-fivem-orange/20 border-fivem-orange/40 text-fivem-orange font-bold"
-                      : "bg-white/5 border-white/10 text-white/60 hover:text-white"
-                  )}
+                  className="cursor-pointer px-2.5 py-1 text-xs font-medium"
                 >
                   {lp}
                 </button>
@@ -1046,51 +783,51 @@ export function AdminCountdownTab({
           </div>
 
           {/* Auto Format vs Manual Sub-Labels */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs tabular-nums text-white/50 block">
-                Date & Time Sub-Labels
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-white/55 tabular-nums">Auto-Compute:</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-white/70">Date and time line</span>
+              <span className="flex items-center gap-2">
+                <span className="text-xs text-white/60" aria-hidden="true">Auto-Compute</span>
                 <AnimatedSwitch
                   checked={autoGenerateLabels}
                   onCheckedChange={setAutoGenerateLabels}
                   ariaLabel="Compute date and time labels automatically"
                   size="sm"
                 />
-              </div>
+              </span>
             </div>
 
             {autoGenerateLabels ? (
-              <div className="p-3 bg-black/40 rounded-md border border-white/10 space-y-1 text-xs">
-                <p className="text-white/50 text-xs tabular-nums">Automatically Generated From Target:</p>
-                <p className="text-white tabular-nums font-bold text-xs">{effectiveEventDateLabel || 'Loading...'}</p>
-                <p className="text-emerald-400 tabular-nums text-xs">{effectiveEventTimeLabel} {effectiveEventTzLabel}</p>
+              <div className="rounded-md border border-white/10 bg-black/30 px-3 py-2">
+                <p className="text-sm font-semibold text-white">{effectiveEventDateLabel || 'Loading'}</p>
+                <p className="text-xs tabular-nums text-white/60">{effectiveEventTimeLabel} {effectiveEventTzLabel}</p>
               </div>
             ) : (
               <div className="space-y-2">
                 <input
                   type="text"
+                  aria-label="Date line"
                   value={customDateLabel}
                   onChange={(e) => setCustomDateLabel(e.target.value)}
-                  placeholder="Custom Date (e.g. FRIDAY, OCTOBER 31, 2026)"
-                  className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-md text-white text-xs tabular-nums focus:outline-none focus:border-fivem-orange"
+                  placeholder="Date, e.g. FRIDAY, OCTOBER 31, 2026"
+                  className={cn(fieldClass, 'w-full')}
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
+                    aria-label="Time line"
                     value={customTimeLabel}
                     onChange={(e) => setCustomTimeLabel(e.target.value)}
-                    placeholder="Time (e.g. 5:59 PM)"
-                    className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-md text-white text-xs tabular-nums focus:outline-none focus:border-fivem-orange"
+                    placeholder="Time, e.g. 5:59 PM"
+                    className={cn(fieldClass, 'w-full min-w-0')}
                   />
                   <input
                     type="text"
+                    aria-label="Timezone line"
                     value={customTzLabel}
                     onChange={(e) => setCustomTzLabel(e.target.value)}
-                    placeholder="TZ (e.g. EST)"
-                    className="w-full px-3.5 py-2 bg-black/60 border border-white/15 rounded-md text-white text-xs tabular-nums focus:outline-none focus:border-fivem-orange"
+                    placeholder="Zone, e.g. EST"
+                    className={cn(fieldClass, 'w-full min-w-0')}
                   />
                 </div>
               </div>
@@ -1099,24 +836,26 @@ export function AdminCountdownTab({
         </div>
 
         {/* Completion Message Banner */}
-        <div className="space-y-2 pt-2 border-t border-white/10">
-          <label className="text-xs tabular-nums text-white/50 block">
-            Completed / Expired Message (Displays when clock reaches 00:00:00)
+        <div className="space-y-2 border-t border-white/[0.07] p-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold text-white/70">Message when the clock reaches zero</span>
+            <textarea
+              value={completedMessage}
+              onChange={(e) => setCompletedMessage(e.target.value)}
+              rows={2}
+              placeholder="Shown once the countdown ends"
+              className={cn(fieldClass, 'h-auto w-full py-2 leading-relaxed')}
+            />
           </label>
-          <textarea
-            value={completedMessage}
-            onChange={(e) => setCompletedMessage(e.target.value)}
-            rows={2}
-            placeholder="Banner message displayed when countdown expires..."
-            className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-md text-white text-xs leading-relaxed focus:outline-none focus:border-fivem-orange transition-all"
-          />
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-1.5">
             {COMPLETED_MESSAGE_PRESETS.map((cmp, idx) => (
-              <button data-choice aria-pressed={completedMessage === cmp}
+              <button
                 key={idx}
                 type="button"
+                data-choice
+                aria-pressed={completedMessage === cmp}
                 onClick={() => setCompletedMessage(cmp)}
-                className="px-2.5 py-1 rounded-lg text-xs tabular-nums border bg-white/5 border-white/10 text-white/60 hover:text-white transition-all cursor-pointer truncate max-w-xs text-left"
+                className="max-w-xs cursor-pointer truncate px-2.5 py-1 text-left text-xs font-medium"
                 title={cmp}
               >
                 Template {idx + 1}
@@ -1124,99 +863,53 @@ export function AdminCountdownTab({
             ))}
           </div>
         </div>
-      </div>
+      </Panel>
 
       {/* ── SECTION 5: CONTEST LINKAGE & AUTOMATION OPTIONS ── */}
       {activeContest && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 space-y-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <h4 className="text-xs tabular-nums font-bold text-white">
-                Active Contest Synchronization: {activeContest.name}
-              </h4>
-              <p className="text-xs text-white/55">
-                Optionally sync this custom target date into the active contest round document
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <label className="flex items-start gap-3 p-3.5 rounded-md border border-white/10 bg-black/30 hover:border-white/20 transition-all cursor-pointer">
+        <Panel title="Also update the contest" description={`Writes this time into ${activeContest.name} when you save.`}>
+          {([
+            { id: 'submissions', label: 'Submissions close date', field: 'submissions_close_date', checked: syncToSubmissionsClose, set: setSyncToSubmissionsClose },
+            { id: 'voting', label: 'Voting end date', field: 'voting_end_date', checked: syncToVotingEnd, set: setSyncToVotingEnd },
+          ]).map((option) => (
+            <label key={option.id} className="flex cursor-pointer items-start gap-3 border-b border-white/[0.07] px-4 py-3 last:border-b-0 hover:bg-white/[0.03]">
               <input
                 type="checkbox"
-                checked={syncToSubmissionsClose}
-                onChange={(e) => setSyncToSubmissionsClose(e.target.checked)}
+                checked={option.checked}
+                onChange={(e) => option.set(e.target.checked)}
                 className="pretty-check mt-0.5"
               />
-              <div className="text-xs">
-                <span className="font-bold text-white block">Sync Submissions Close Date</span>
-                <span className="text-xs text-white/55 block mt-0.5">
-                  Update <code className="text-cyan-400">submissions_close_date</code> on <code className="text-white/60">{activeContest.id}</code>
-                </span>
-              </div>
+              <span>
+                <span className="block text-sm font-medium text-white">{option.label}</span>
+                <span className="block text-xs text-white/55">Sets <code className="text-white/75">{option.field}</code> on the contest.</span>
+              </span>
             </label>
-
-            <label className="flex items-start gap-3 p-3.5 rounded-md border border-white/10 bg-black/30 hover:border-white/20 transition-all cursor-pointer">
-              <input
-                type="checkbox"
-                checked={syncToVotingEnd}
-                onChange={(e) => setSyncToVotingEnd(e.target.checked)}
-                className="pretty-check mt-0.5"
-              />
-              <div className="text-xs">
-                <span className="font-bold text-white block">Sync Voting End Date</span>
-                <span className="text-xs text-white/55 block mt-0.5">
-                  Update <code className="text-amber-400">voting_end_date</code> on <code className="text-white/60">{activeContest.id}</code>
-                </span>
-              </div>
-            </label>
-          </div>
-        </div>
+          ))}
+        </Panel>
       )}
 
-      {/* ── BOTTOM STICKY ACTION BAR ── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-lg bg-white/[0.03] border border-white/10">
-        <div className="flex items-center gap-2 text-xs text-white/50">
-          <Info size={14} className="text-fivem-orange shrink-0" />
-          <span>
-            Changes to the countdown settings update immediately across all active client sessions via Firestore listeners.
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button data-btn={saveSuccess ? 'success' : 'primary'}
-            type="button"
-            onClick={handleSaveSettings}
-            disabled={saving || !targetIsoString}
-            className={cn(
-              "w-full sm:w-auto px-6 py-3 rounded-md font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer",
-              saveSuccess
-                ? "bg-emerald-500 text-black"
-                : "bg-fivem-orange text-white",
-              saving && "opacity-60 cursor-wait"
-            )}
-          >
-            {saving ? (
-              <>
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Publishing Changes...</span>
-              </>
-            ) : saveSuccess ? (
-              <>
-                <CheckCircle2 size={15} />
-                <span>Published to Live!</span>
-              </>
-            ) : (
-              <>
-                <Save size={15} />
-                <span>Save & Publish Countdown</span>
-              </>
-            )}
-          </button>
-        </div>
+      {/* ── SAVE BAR: stays in view while editing ── */}
+      <div className="sticky bottom-0 z-20 flex flex-col items-stretch gap-3 rounded-lg border border-white/15 bg-[#0c0c10] p-3 shadow-[0_-12px_24px_rgb(0_0_0/0.45)] sm:flex-row sm:items-center">
+        <KitButton
+          variant={saveSuccess ? 'success' : 'primary'}
+          onClick={handleSaveSettings}
+          disabled={saving || !targetIsoString}
+        >
+          {saving ? (
+            <>
+              <RefreshCw size={14} aria-hidden="true" className="animate-spin" /> Publishing
+            </>
+          ) : saveSuccess ? (
+            <>
+              <CheckCircle2 size={14} aria-hidden="true" /> Published
+            </>
+          ) : (
+            <>
+              <Save size={14} aria-hidden="true" /> Save & Publish Countdown
+            </>
+          )}
+        </KitButton>
+        <p className="hidden text-xs text-white/60 sm:block">Saving updates the public countdown straight away.</p>
       </div>
 
       {/* Hero & Month Customizer Modal */}

@@ -332,6 +332,20 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
       .filter((item) => item.photo !== undefined);
   }, [activeVoter, photosById]);
 
+  // The newest votes whose photo is still in this contest and whose voter is listed.
+  const latestVotes = useMemo(() => {
+    const listed = new Set(allVotersList.map((v) => v.id));
+    const time = (v: VoteRecord) => Date.parse(v.timestamp || '') || 0;
+    const rows: { vote: VoteRecord; photo: Photo; voterId: string }[] = [];
+    for (const vote of [...votes].sort((a, b) => time(b) - time(a))) {
+      const photo = photosById.get(vote.photoId);
+      const voterId = (vote.voterDiscord || vote.voterName || vote.voterUid || '').trim().toLowerCase();
+      if (photo && listed.has(voterId)) rows.push({ vote, photo, voterId });
+      if (rows.length === 12) break;
+    }
+    return rows;
+  }, [votes, allVotersList, photosById]);
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -391,8 +405,41 @@ export function AdminVoterSearch({ allPhotos, categories }: AdminVoterSearchProp
         </Panel>
 
         {!activeVoter ? (
-          <Panel>
-            <EmptyState title="Select a voter">Their votes and the photos they voted for appear here.</EmptyState>
+          <Panel title="Latest votes" description="Newest first. Pick a vote to see everything that person voted for.">
+            {isLoading ? (
+              <div className="space-y-2 p-4">
+                {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : latestVotes.length === 0 ? (
+              <EmptyState title="No votes to show">Votes appear here as players cast them.</EmptyState>
+            ) : (
+              <ul>
+                {latestVotes.map(({ vote, photo, voterId }) => (
+                  <li key={vote.id} className="border-b border-white/[0.07] last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => { setSearchQuery(''); setSelectedVoterId(voterId); }}
+                      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fivem-orange"
+                    >
+                      <img src={photo.image_url} alt="" loading="lazy" decoding="async" className="aspect-video w-16 shrink-0 rounded border border-white/10 bg-white/5 object-cover sm:w-24" />
+                      <span className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-white">{vote.voterDiscord || vote.voterName}</span>
+                          <span className="block truncate text-xs text-white/60">
+                            Voted for {photo.player_name || 'Anonymous'}, {categoryMap.get(photo.category_id) || 'Category'}
+                          </span>
+                        </span>
+                        {vote.timestamp && (
+                          <time dateTime={vote.timestamp} className="shrink-0 text-xs tabular-nums text-white/55">
+                            {new Date(vote.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </time>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Panel>
         ) : (
           <Panel

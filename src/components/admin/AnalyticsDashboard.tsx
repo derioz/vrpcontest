@@ -1,32 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import {
-    BarChart3,
-    TrendingUp,
-    Users,
-    Image as ImageIcon,
-    Heart,
-    ChevronLeft,
-    Activity,
-    Award,
-    Maximize2,
-    Layers,
-    Sparkles
-} from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Photo, Category } from '../../types';
-import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    BarChart,
-    Bar,
-    Cell
-} from 'recharts';
-import { cn } from '../../lib/utils';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { EmptyState, Panel } from './kit';
+import { RankBars } from './RankBars';
 
 interface AnalyticsDashboardProps {
     photos: Photo[];
@@ -43,19 +21,26 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
     const totalSubmissions = photos.length;
     const totalVotes = photos.reduce((sum, photo) => sum + (photo.vote_count || 0), 0);
 
-    // 2. Submission Velocity (By Day)
+    // 2. Uploads per day, with quiet days kept as zero so gaps stay visible
     const submissionsPerDay = useMemo(() => {
-        const counts: Record<string, number> = {};
-        const sorted = [...photos].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-        sorted.forEach(photo => {
-            const date = new Date(photo.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-            counts[date] = (counts[date] || 0) + 1;
+        const counts = new Map<number, number>();
+        photos.forEach(photo => {
+            const day = new Date(photo.created_at).setHours(0, 0, 0, 0);
+            if (!Number.isNaN(day)) counts.set(day, (counts.get(day) || 0) + 1);
         });
 
-        return Object.entries(counts).map(([date, count]) => ({
-            date,
-            submissions: count
+        let days = [...counts.keys()].sort((a, b) => a - b);
+        if (days.length > 1 && days[days.length - 1] - days[0] < 120 * 86_400_000) {
+            const filled: number[] = [];
+            for (const d = new Date(days[0]); d.getTime() <= days[days.length - 1]; d.setDate(d.getDate() + 1)) {
+                filled.push(d.getTime());
+            }
+            days = filled;
+        }
+
+        return days.map(day => ({
+            date: new Date(day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            submissions: counts.get(day) || 0
         }));
     }, [photos]);
 
@@ -95,25 +80,8 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
 
     const topContributor = playerStats[0];
 
-    // --- Animation Variants --- //
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 15 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }
-    };
-
     const content = (
-        <motion.div
-            variants={containerVariants}
-            initial={false}
-            animate="visible"
-            className="w-full space-y-6"
-        >
-            {/* --- Summary --- */}
+        <div className="w-full space-y-4">
             <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 lg:grid-cols-4">
                 {[
                     { label: 'Entries', value: totalSubmissions, note: '' },
@@ -129,161 +97,64 @@ export default function AnalyticsDashboard({ photos, categories, onClose, isInli
                 ))}
             </dl>
 
-            {/* --- MIDDLE ROW: MAIN CHART --- */}
-            <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 sm:p-7 relative overflow-hidden">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-base sm:text-lg font-bold text-white tracking-wide font-display">Submission Velocity</h2>
-                        </div>
-                        <p className="text-xs text-white/55 mt-0.5">Volume of photo uploads recorded across contest timeline dates.</p>
-                    </div>
-                </div>
-
-                <div className="w-full h-[280px] sm:h-[340px]">
-                    {submissionsPerDay.length > 0 ? (
+            <Panel title="Uploads per day">
+                {submissionsPerDay.length > 0 ? (
+                    <div className="h-56 w-full px-2 pb-2 pt-4 sm:h-64">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={submissionsPerDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorVelocity" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#ea580c" stopOpacity={0.4} />
-                                        <stop offset="95%" stopColor="#ea580c" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                                <XAxis
-                                    dataKey="date"
-                                    stroke="rgba(255,255,255,0.3)"
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    dy={8}
-                                />
-                                <YAxis allowDecimals={false}
-                                    stroke="rgba(255,255,255,0.3)"
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(value) => Math.floor(value).toString()}
-                                />
+                            <BarChart data={submissionsPerDay} margin={{ top: 0, right: 8, left: -28, bottom: 0 }}>
+                                <CartesianGrid stroke="rgba(255,255,255,0.07)" vertical={false} />
+                                <XAxis dataKey="date" stroke="rgba(255,255,255,0.55)" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.15)' }} minTickGap={16} />
+                                <YAxis allowDecimals={false} stroke="rgba(255,255,255,0.55)" fontSize={11} tickLine={false} axisLine={false} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#09090e', borderColor: 'rgba(255,255,255,0.15)', borderRadius: '14px', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
-                                    itemStyle={{ color: '#ea580c', fontWeight: 'bold' }}
-                                    labelStyle={{ color: 'rgba(255,255,255,0.7)', marginBottom: '4px', fontFamily: 'monospace' }}
+                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                    contentStyle={{ backgroundColor: '#14141b', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontSize: 12 }}
+                                    itemStyle={{ color: '#fff' }}
+                                    labelStyle={{ color: 'rgba(255,255,255,0.7)' }}
+                                    formatter={(value) => [value as number, 'Uploads']}
                                 />
-                                <Area isAnimationActive={false}
-                                    type="monotone"
-                                    dataKey="submissions"
-                                    stroke="#ea580c"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorVelocity)"
-                                    activeDot={{ r: 6, fill: '#ea580c', stroke: '#fff', strokeWidth: 2 }}
-                                />
-                            </AreaChart>
+                                <Bar isAnimationActive={false} dataKey="submissions" fill="#ea580c" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                            </BarChart>
                         </ResponsiveContainer>
+                    </div>
+                ) : (
+                    <EmptyState title="No uploads yet">Each day with entries appears here.</EmptyState>
+                )}
+            </Panel>
+
+            <div className="grid items-start gap-4 xl:grid-cols-2">
+                <Panel title="Most voted players" description="Votes across all of a player's entries.">
+                    {playerStats.length > 0 ? (
+                        <RankBars
+                            unit="votes"
+                            items={playerStats.slice(0, 8).map((player) => ({
+                                id: player.name,
+                                label: player.name,
+                                value: player.votes,
+                                sub: `${player.submissions} ${player.submissions === 1 ? 'entry' : 'entries'}`,
+                            }))}
+                        />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/55 text-xs tabular-nums italic">
-                            No submission telemetry recorded yet.
-                        </div>
+                        <EmptyState title="No players yet">Players appear once entries arrive.</EmptyState>
                     )}
-                </div>
-            </motion.div>
+                </Panel>
 
-            {/* --- BOTTOM ROW: BREAKDOWNS --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-
-                {/* Top Players Table */}
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 sm:p-7">
-                    <div className="flex items-center gap-3 mb-5">
-                        <div className="p-2 rounded-md bg-fivem-orange/15 border border-fivem-orange/30 text-fivem-orange">
-                            <Users size={18} />
-                        </div>
-                        <div>
-                            <h2 className="text-base font-bold text-white tracking-wide font-display">Top Ranked Participants</h2>
-                            <p className="text-xs text-white/55">Photographers with the highest total vote accumulation.</p>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2.5">
-                        {playerStats.slice(0, 5).map((player, idx) => (
-                            <div key={player.name} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className={cn(
-                                        "w-6 h-6 rounded-full flex items-center justify-center text-xs tabular-nums font-bold shrink-0",
-                                        idx === 0 ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 " :
-                                            idx === 1 ? "bg-slate-300/20 text-slate-200 border border-slate-300/40" :
-                                                idx === 2 ? "bg-amber-700/20 text-amber-500 border border-amber-700/40" :
-                                                    "bg-white/5 text-white/55 border border-white/10"
-                                    )}>
-                                        {idx + 1}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-xs sm:text-sm font-bold text-white truncate">{player.name}</p>
-                                        <p className="text-xs text-white/55 tabular-nums">{player.submissions} {player.submissions === 1 ? 'entry' : 'entries'}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right shrink-0">
-                                    <p className="text-sm font-bold font-display text-fivem-orange">{player.votes}</p>
-                                    <p className="text-xs text-white/55 tabular-nums">Votes</p>
-                                </div>
-                            </div>
-                        ))}
-                        {playerStats.length === 0 && (
-                            <p className="text-xs text-white/55 text-center py-6 tabular-nums">No participant votes logged yet.</p>
-                        )}
-                    </div>
-                </motion.div>
-
-                {/* Category Distribution Bar Chart */}
-                <motion.div variants={itemVariants} className="bg-white/[0.02] border border-white/10 rounded-lg p-5 sm:p-7">
-                    <div className="flex items-center gap-3 mb-5">
-                        <div className="p-2 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-400">
-                            <BarChart3 size={18} />
-                        </div>
-                        <div>
-                            <h2 className="text-base font-bold text-white tracking-wide font-display">Category Distribution</h2>
-                            <p className="text-xs text-white/55">Submissions distribution per category.</p>
-                        </div>
-                    </div>
-
-                    <div className="w-full h-[240px]">
-                        {categoryStats.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={categoryStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
-                                    <XAxis type="number" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
-                                    <YAxis
-                                        dataKey="name"
-                                        type="category"
-                                        stroke="rgba(255,255,255,0.6)"
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        width={110}
-                                        tickFormatter={(val) => val.length > 14 ? val.substring(0, 12) + '...' : val}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#09090e', borderColor: 'rgba(255,255,255,0.15)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
-                                        itemStyle={{ color: '#60a5fa' }}
-                                    />
-                                    <Bar isAnimationActive={false} dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={24}>
-                                        {categoryStats.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : 'rgba(59, 130, 246, 0.45)'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white/55 text-xs tabular-nums italic">
-                                No categories configured.
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
-
+                <Panel title="Entries by category" description="Ranked by number of entries.">
+                    {categoryStats.length > 0 ? (
+                        <RankBars
+                            unit="entries"
+                            items={categoryStats.map((c) => ({
+                                id: c.name,
+                                label: c.name,
+                                value: c.count,
+                                sub: `${c.votes} ${c.votes === 1 ? 'vote' : 'votes'}`,
+                            }))}
+                        />
+                    ) : (
+                        <EmptyState title="No categories">Add categories in Contest setup.</EmptyState>
+                    )}
+                </Panel>
             </div>
-        </motion.div>
+        </div>
     );
 
     if (isInline) {

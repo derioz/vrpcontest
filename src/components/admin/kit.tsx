@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { Search } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '../../lib/utils';
 import { AnimatedSwitch } from '../ui/animated-switch';
 
@@ -186,5 +187,41 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
       <p className="text-sm font-medium text-white/80">{title}</p>
       {children && <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-white/55">{children}</p>}
     </div>
+  );
+}
+
+/**
+ * Frame for the longer admin windows: focus stays inside, Escape closes, and a
+ * click outside does nothing so typed work is not lost.
+ */
+export function Modal({
+  label,
+  onClose,
+  className,
+  children,
+}: {
+  /** Names the window for screen readers. */
+  label: string;
+  onClose: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="admin-fade fixed inset-0 z-[220] bg-black/80" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          onInteractOutside={(e) => e.preventDefault()}
+          className={cn(
+            'admin-pop fixed left-1/2 top-1/2 z-[221] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto text-white outline-none',
+            className,
+          )}
+        >
+          <Dialog.Title className="sr-only">{label}</Dialog.Title>
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

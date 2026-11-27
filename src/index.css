@@ -640,6 +640,9 @@ body,
 .admin-fade[data-state="open"] { animation: admin-fade 140ms ease-out; }
 @keyframes admin-pop { from { opacity: 0; scale: 0.97; } }
 @keyframes admin-fade { from { opacity: 0; } }
+/* Ranked bars grow from zero once, one row after another. */
+.admin-bar { transform-origin: left; animation: admin-bar 600ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes admin-bar { from { transform: scaleX(0); } }
 @media (prefers-reduced-motion: reduce) {
-  .admin-pop[data-state="open"], .admin-fade[data-state="open"] { animation: none; }
+  .admin-pop[data-state="open"], .admin-fade[data-state="open"], .admin-bar { animation: none; }
 }

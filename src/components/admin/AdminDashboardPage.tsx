@@ -194,7 +194,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
   const brand = (
     <div className="flex items-center gap-2.5">
       <img src={VITAL_RP_LOGO_URL} alt="Vital RP" className="h-7 w-7 object-contain" />
-      <span className="text-sm font-bold font-display text-white">Contest admin</span>
+      <span className="whitespace-nowrap text-sm font-bold font-display text-white">Contest admin</span>
     </div>
   );
 
@@ -296,7 +296,7 @@ export function AdminDashboardPage(props: AdminDashboardPageProps) {
           className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-white/15 px-3 text-sm font-medium text-white/85"
         >
           <Menu size={16} aria-hidden="true" />
-          <span className="max-w-28 truncate">{current?.label || 'Menu'}</span>
+          <span className="max-w-24 truncate sm:max-w-48">{current?.label || 'Menu'}</span>
         </button>
         </div>
       </header>

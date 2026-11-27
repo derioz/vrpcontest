@@ -152,6 +152,23 @@ function formatDeadline(iso?: string) {
   return date.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
 }
 
+/**
+ * One status line: how long is left, or a warning once the time has passed and
+ * the switch is still on. Nothing closes submissions or voting automatically.
+ */
+function deadlineNote(iso: string | undefined, open: boolean, now: number, formatted: string | null, verb: string, what: string) {
+  if (!formatted) return verb === 'Ends' ? 'No end date set' : 'No deadline set';
+  const left = new Date(iso!).getTime() - now;
+  if (left <= 0) {
+    return open
+      ? <span className="font-semibold text-amber-300">{formatted} has passed. {what} stays open until you switch it off.</span>
+      : `${verb} ${formatted}`;
+  }
+  const minutes = Math.ceil(left / 60_000);
+  const [d, h, m] = [Math.floor(minutes / 1440), Math.floor(minutes / 60) % 24, minutes % 60];
+  return `${verb} ${formatted}, in ${d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`}`;
+}
+
 function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submissionsOpen, siteClosed, setActiveTab }: {
   activeContest: AdminPanelProps['activeContest']; categories: Category[]; allPhotos: Photo[];
   votingOpen: boolean; submissionsOpen: boolean; siteClosed: boolean;
@@ -161,6 +178,13 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
   const [loadingBugs, setLoadingBugs] = useState(true);
   const [expandedBugId, setExpandedBugId] = useState<string | null>(null);
   const confirm = useConfirm();
+  const [now, setNow] = useState(Date.now);
+
+  // Keeps the time left, and the overdue warning, current on an open tab
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Subscribe to bug reports collection
   useEffect(() => {
@@ -262,10 +286,10 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
 
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Contest status" actions={<Button size="sm" onClick={() => setActiveTab('controls')}>Change</Button>}>
-          <Row label="Submissions" description={submissionsClose ? `Deadline ${submissionsClose}` : 'No deadline set'}>
+          <Row label="Submissions" description={deadlineNote(activeContest?.submissions_close_date, submissionsOpen, now, submissionsClose, 'Deadline', 'Uploading')}>
             {state(submissionsOpen, 'Open', 'Closed')}
           </Row>
-          <Row label="Voting" description={votingEnds ? `Ends ${votingEnds}` : 'No end date set'}>
+          <Row label="Voting" description={deadlineNote(activeContest?.voting_end_date, votingOpen, now, votingEnds, 'Ends', 'Voting')}>
             {state(votingOpen, 'Open', 'Closed')}
           </Row>
           <Row label="Public site">{state(!siteClosed, 'Open', 'Locked', siteClosed)}</Row>
@@ -328,7 +352,7 @@ function OverviewTab({ activeContest, categories, allPhotos, votingOpen, submiss
                       type="button"
                       aria-expanded={open}
                       onClick={() => setExpandedBugId(open ? null : bug.id)}
-                      className="flex min-w-0 flex-1 basis-52 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-fivem-orange"
+                      className="flex min-h-8 min-w-0 flex-1 basis-52 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-fivem-orange"
                     >
                       <ChevronDown size={14} aria-hidden="true" className={cn('shrink-0 text-white/45 transition-transform', open && 'rotate-180')} />
                       <span className={cn('truncate text-sm font-medium', bug.status === 'Open' ? 'text-white' : 'text-white/55')}>{bug.title}</span>
