@@ -85,6 +85,22 @@ export const LABEL_CONFIG: Record<ChangelogLabel, { bg: string; text: string; bo
 
 export const INITIAL_CHANGELOG_ENTRIES: ChangelogItem[] = [
   {
+    id: 'entry-20261126-2120',
+    dateKey: 'November 26, 2026',
+    timeStr: '9:20 PM',
+    fullTimestamp: 'November 26, 2026 at 9:20 PM',
+    labels: ['NEW', 'ADMIN', 'PERFORMANCE'],
+    title: 'Faster contest page and a rebuilt admin console',
+    bullets: [
+      'The contest page loads faster, shifts around less and has a bigger headline.',
+      'Uploading a photo is simpler, with fixes for two problems that could hide or lose your work.',
+      'Staff have a new admin console with a side menu, quick search and clearer photo review.',
+      'Staff can see voting results, recent votes and approaching deadlines more easily.',
+      'The admin screens work better on phones and with a keyboard.',
+    ],
+    author: 'Damon',
+  },
+  {
     id: 'entry-20261016-1925',
     dateKey: 'October 16, 2026',
     timeStr: '7:25 PM',
