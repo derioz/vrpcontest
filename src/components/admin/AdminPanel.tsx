@@ -28,6 +28,7 @@ import { AdminCountdownTab } from './AdminCountdownTab';
 import { DocTabs } from '../ui/doctabs';
 import { Skeleton } from '../ui/skeleton';
 import { AnimatedControlCard, AnimatedSwitch } from '../ui/animated-switch';
+import { DAMON_AVATAR_URL } from '../../config';
 
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 
@@ -459,7 +460,7 @@ export default function AdminPanel(props: AdminPanelProps) {
             <div className="border-t border-white/10 pt-3 pb-1 px-1">
               <div className="flex items-center gap-3">
                 <img
-                  src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
+                  src={DAMON_AVATAR_URL}
                   alt="Damon"
                   className="w-9 h-9 rounded-xl object-cover border border-fivem-orange/60 p-0.5 bg-black/60 shrink-0 shadow-[0_0_10px_rgba(234,88,12,0.2)]"
                 />

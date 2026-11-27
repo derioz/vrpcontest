@@ -102,7 +102,8 @@ html[data-season="christmas"] .seasonal-hero::before {
   background-repeat: no-repeat;
   background-position: left -22px top 132px, right -22px top 132px;
   background-size: min(300px, 40vw) auto, min(300px, 40vw) auto;
-  opacity: 0.4;
+  /* Faint, because the boughs pass behind the poster headline. */
+  opacity: 0.22;
 }
 
 /* snow, moved by transform only */

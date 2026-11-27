@@ -71,8 +71,8 @@ export const MAX_CATEGORY_SUGGESTIONS_PER_USER: number = SITE_CONFIG.categorySug
 /**
  * Official Site Assets
  */
-export const VITAL_RP_LOGO_URL = 'https://r2.fivemanage.com/image/qlWrCeXTQdqx.png';
-export const DAMON_AVATAR_URL = 'https://r2.fivemanage.com/image/qePVNvTsc65p.png';
+export const VITAL_RP_LOGO_URL = '/logo-256.webp';
+export const DAMON_AVATAR_URL = '/creator-192.webp';
 
 /**
  * Authoritative Category Suggestion Phase Schedule & Deadline:

@@ -5,6 +5,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from './ui/toast';
 import { cn } from '../lib/utils';
+import { DAMON_AVATAR_URL } from '../config';
 
 interface BugReportModalProps {
   isOpen: boolean;
@@ -143,7 +144,7 @@ export function BugReportModal({ isOpen, onClose, user }: BugReportModalProps) {
                 <div className="flex items-center gap-4">
                   <div className="relative shrink-0">
                     <img
-                      src="https://r2.fivemanage.com/image/qePVNvTsc65p.png"
+                      src={DAMON_AVATAR_URL}
                       alt="Damon"
                       className="w-16 h-16 rounded-2xl object-cover border-2 border-fivem-orange/70 bg-black/90 p-0.5 shadow-xl"
                     />

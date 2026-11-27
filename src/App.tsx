@@ -52,10 +52,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from './components/ui/toast';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import { cn, pixelateImage } from './lib/utils';
 import { encryptUrl, decryptUrl, generateRSAKeyPair } from './lib/crypto';
 import { downloadPhoto } from './lib/download';
@@ -68,7 +64,6 @@ import { ProfileSheet } from './components/ProfileSheet';
 import { PhotoCard } from './components/PhotoCard';
 import { ShaderBackground } from './components/ui/shader-background';
 import { ShimmeringText } from './components/ui/shimmering-text';
-import { Orb } from './components/ui/orb';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
@@ -105,9 +100,11 @@ import { CATEGORY_SUGGESTION_MODE, VITAL_RP_LOGO_URL, CONTEST_PRIZE_LINES, DEFAU
 import { CreatorPill } from './components/ui/CreatorPill';
 const LightboxModal = lazy(() => import('./components/LightboxModal'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard'));
-import AdminPanel from './components/admin/AdminPanel';
-import { AdminDashboardPage, AdminRouteTab } from './components/admin/AdminDashboardPage';
-import { AdminRouteGuard } from './components/admin/AdminRouteGuard';
+// Admin screens are a large share of the code, so players never download them.
+const AdminDashboardPage = lazy(() => import('./components/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const AdminRouteGuard = lazy(() => import('./components/admin/AdminRouteGuard').then(m => ({ default: m.AdminRouteGuard })));
+import type { AdminRouteTab } from './components/admin/AdminDashboardPage';
+import { HeroSkeleton } from './components/HeroSkeleton';
 import { ContestClosedModal } from './components/ContestClosedModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ContestRulesSection } from './components/ContestRulesSection';
@@ -123,6 +120,12 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeNavId, setActiveNavId] = useState<string | null>('categories');
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+  // Counts the switches a visitor makes; the gallery animates its layout only then
+  const [categorySwitches, setCategorySwitches] = useState(0);
+  // First answers from the database, so the first screen does not guess before it knows
+  const [isContestResolved, setIsContestResolved] = useState(false);
+  const [areSettingsResolved, setAreSettingsResolved] = useState(false);
+  const [photosResolvedFor, setPhotosResolvedFor] = useState<string | null>(null);
   const categoryCacheRef = useRef<Map<string, { photos: Photo[]; timestamp: number }>>(new Map());
   const topNavContainerRef = useRef<HTMLDivElement>(null);
   const categoryHeaderRef = useRef<HTMLElement>(null);
@@ -168,6 +171,7 @@ export default function App() {
   // - Triggers scroll in post-render lifecycle so category header is guaranteed to be rendered
   const handleCategorySelect = useCallback((category: Category, forceScroll = false) => {
     setSelectedCategory(category);
+    setCategorySwitches((n) => n + 1);
     pendingScrollCategoryRef.current = category.id;
 
     // Synchronize category in URL query params without full page reload
@@ -209,6 +213,7 @@ export default function App() {
         );
         if (match) {
           setSelectedCategory(match);
+          setCategorySwitches((n) => n + 1);
         }
       }
     };
@@ -1130,8 +1135,10 @@ export default function App() {
           setCountdownSettings(null);
         }
       }
+      setAreSettingsResolved(true);
     }, (err) => {
       console.error("Settings listener error:", err);
+      setAreSettingsResolved(true);
     });
 
     // 2. Listen to Active Contest
@@ -1207,6 +1214,10 @@ export default function App() {
         setCategories([]);
         setSelectedCategory(null);
       }
+      setIsContestResolved(true);
+    }, (err) => {
+      console.error("Active contest listener error:", err);
+      setIsContestResolved(true);
     });
 
     return () => {
@@ -1298,17 +1309,20 @@ export default function App() {
         if (!isCancelled) {
           setAllPhotos(processed);
           setIsCategoryLoading(false);
+          setPhotosResolvedFor(activeContestId);
         }
       } catch (err) {
         console.error("Photos listener processing error:", err);
         if (!isCancelled) {
           setIsCategoryLoading(false);
+          setPhotosResolvedFor(activeContestId);
         }
       }
     }, (err) => {
       console.error("Photos listener error:", err);
       if (!isCancelled) {
         setIsCategoryLoading(false);
+        setPhotosResolvedFor(activeContestId);
       }
     });
 
@@ -2222,6 +2236,7 @@ export default function App() {
 
 
   const isSiteLocked = siteClosed && (!isAdmin || !adminBypassClosedModal);
+  const isHeroLoading = !isContestResolved || !areSettingsResolved || (!!activeContest && photosResolvedFor !== activeContest.id);
 
   // Below the `sm` breakpoint the category bar is placed in the page flow instead of the fixed header,
   // where its wrapped rows would cover the contest title.
@@ -2236,28 +2251,31 @@ export default function App() {
 
   // ── Router Check: If URL starts with /admin, render Dedicated AdminCN Dashboard ──
   if (isAdminRoute) {
-    if (isAuthLoading) {
-      return (
-        <div className="min-h-screen w-full bg-[#07070a] text-white flex flex-col items-center justify-center p-4">
-          <Loader2 className="w-8 h-8 animate-spin text-fivem-orange mb-3" />
-          <span className="text-xs font-mono text-white/50 uppercase tracking-widest">
-            Verifying Admin Session...
-          </span>
-        </div>
-      );
-    }
+    const adminLoading = (message: string) => (
+      <div className="min-h-screen w-full bg-[#07070a] text-white flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-8 h-8 animate-spin text-fivem-orange mb-3" />
+        <span className="text-xs font-mono text-white/50 uppercase tracking-widest">
+          {message}
+        </span>
+      </div>
+    );
+
+    if (isAuthLoading) return adminLoading('Verifying Admin Session...');
 
     if (!isAdmin) {
       return (
-        <AdminRouteGuard
-          user={user}
-          onNavigateHome={() => navigateTo('/')}
-          onOpenSignIn={() => setShowSignInModal(true)}
-        />
+        <Suspense fallback={adminLoading('Loading...')}>
+          <AdminRouteGuard
+            user={user}
+            onNavigateHome={() => navigateTo('/')}
+            onOpenSignIn={() => setShowSignInModal(true)}
+          />
+        </Suspense>
       );
     }
 
     return (
+      <Suspense fallback={adminLoading('Loading Admin...')}>
       <AdminDashboardPage
         currentTab={adminSubTab}
         onNavigateTab={(tab) => navigateTo(tab === 'dashboard' ? '/admin' : `/admin/${tab}`)}
@@ -2294,6 +2312,7 @@ export default function App() {
         onResetVotes={handleResetVotes}
         onOpenAnalytics={() => navigateTo('/admin/analytics')}
       />
+      </Suspense>
     );
   }
 
@@ -2686,7 +2705,9 @@ export default function App() {
       )}
 
       {/* Hero Banner — SeraUI Award-Winning Hero Stage */}
-      {activeContest ? (() => {
+      {isHeroLoading ? (
+        <HeroSkeleton />
+      ) : activeContest ? (() => {
         const heroContainerVariants = {
           hidden: { opacity: 0 },
           visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.05 } },
@@ -2715,45 +2736,44 @@ export default function App() {
 
         return (
           <section
-            className="seasonal-hero relative overflow-hidden border-b border-white/10 pt-20 sm:pt-48 pb-16 sm:pb-24"
+            className="seasonal-hero relative overflow-hidden border-b border-white/10 pt-20 sm:pt-48 lg:pt-40 pb-16 sm:pb-24"
             style={{ minHeight: '540px' }}
           >
             {/* ── Deep luxury base ── */}
             <div className="absolute inset-0 bg-[#050508]" />
 
             {/* ── Main Hero Layout ── */}
-            <div className={cn(
-              "relative z-10 max-w-7xl mx-auto px-4 sm:px-6 items-center",
-              hasHeroItems ? "grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16" : "flex flex-col items-center text-center max-w-3xl"
-            )}>
+            <motion.div
+              variants={heroContainerVariants}
+              initial="hidden"
+              animate="visible"
+              className={cn("relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6", !hasHeroItems && "text-center")}
+            >
+              {/* The contest name at poster size, across the whole page */}
+              <motion.div variants={heroItemVariants} className="mb-6">
+                <h1 className="text-[length:clamp(2.875rem,4.8vw_+_1.75rem,6rem)] font-black font-display tracking-[-0.035em] leading-[0.95] text-white text-balance">
+                  {primaryTitle}
+                </h1>
+                {themeSubtitle && (
+                  <p className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-bold font-display tracking-tight leading-tight text-white/75 text-balance">
+                    {themeSubtitle}
+                  </p>
+                )}
+              </motion.div>
 
-              {/* LEFT — Text, CTAs & Telemetry */}
-              <motion.div
-                variants={heroContainerVariants}
-                initial="hidden"
-                animate="visible"
-                className={cn("flex flex-col", !hasHeroItems && "items-center")}
-              >
-                {/* Main Headline with SparklesText and Dual-Tone Hierarchy */}
-                <motion.div variants={heroItemVariants} className={cn("mb-4 space-y-1.5", !hasHeroItems && "text-center")}>
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black font-display tracking-tight leading-[1.08] text-white text-balance">
-                    {primaryTitle}
-                  </h1>
-                  {themeSubtitle && (
-                    <div className={cn("pt-1", !hasHeroItems && "flex justify-center")}>
-                      <span className="text-xl sm:text-2xl lg:text-3xl font-bold font-display tracking-tight text-white/80">
-                        {themeSubtitle}
-                      </span>
-                    </div>
-                  )}
-                </motion.div>
+              <div className={cn(hasHeroItems ? "grid grid-cols-1 lg:grid-cols-2 items-center gap-12 lg:gap-16" : "mx-auto flex max-w-3xl flex-col items-center")}>
 
+              {/* LEFT — Prize, action, deadline */}
+              <div className={cn("flex min-w-0 flex-col", !hasHeroItems && "items-center")}>
                 {/* Prize */}
                 <motion.p variants={heroItemVariants} className={cn(
-                  "mb-5 max-w-lg text-base sm:text-lg font-semibold leading-snug text-white/90 text-balance",
+                  "mb-6 max-w-xl text-lg sm:text-xl xl:text-2xl font-medium leading-snug text-white/80 text-balance",
                   !hasHeroItems && "text-center mx-auto"
                 )}>
-                  {CONTEST_PRIZE_LINES[activeContest.id] || DEFAULT_PRIZE_LINE}
+                  {/* A Vitcoin amount, when the staff line has one, carries the weight */}
+                  {(CONTEST_PRIZE_LINES[activeContest.id] || DEFAULT_PRIZE_LINE)
+                    .split(/(\d[\d,]*\s+Vitcoins?)/i)
+                    .map((part, i) => (i % 2 ? <strong key={i} className="font-black text-white whitespace-nowrap">{part}</strong> : part))}
                 </motion.p>
 
                 {/* Actions */}
@@ -2765,18 +2785,18 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleUploadClick}
-                      className="flex min-h-12 w-full sm:w-auto items-center justify-center gap-2.5 rounded-xl bg-fivem-orange px-7 py-3.5 text-xs font-black uppercase tracking-wider text-white transition-colors hover:bg-orange-500 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                      className="flex min-h-16 w-full sm:w-auto sm:min-w-[22rem] items-center justify-center gap-3 rounded-xl bg-fivem-orange px-5 sm:px-10 py-4 text-[13px] sm:text-base font-black uppercase tracking-wide text-white transition-colors hover:bg-orange-500 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
-                      <Upload size={16} aria-hidden="true" />
+                      <Upload size={20} className="shrink-0" aria-hidden="true" />
                       {submitLabel}
                     </button>
                   ) : (
                     <button
                       type="button"
                       disabled
-                      className="flex min-h-12 w-full sm:w-auto items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white/10 px-7 py-3.5 text-xs font-bold uppercase tracking-wider text-white/60 cursor-not-allowed"
+                      className="flex min-h-16 w-full sm:w-auto sm:min-w-[22rem] items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/10 px-5 sm:px-10 py-4 text-[13px] sm:text-base font-bold uppercase tracking-wide text-white/60 cursor-not-allowed"
                     >
-                      <Lock size={15} aria-hidden="true" />
+                      <Lock size={18} className="shrink-0" aria-hidden="true" />
                       {(activeContest as any).status === 'paused' ? 'Contest paused' : 'Submissions closed'}
                     </button>
                   )}
@@ -2830,9 +2850,9 @@ export default function App() {
                       e.preventDefault();
                       document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="flex items-center gap-2 bg-[#0c0c14]/80 hover:bg-white/[0.08] border border-white/15 hover:border-white/25 text-white/80 hover:text-white font-bold px-6 py-3.5 rounded-2xl transition-colors text-xs uppercase tracking-wider cursor-pointer"
+                    className="flex min-h-11 items-center gap-2 text-sm font-semibold text-white/70 underline underline-offset-4 decoration-white/30 transition-colors hover:text-white hover:decoration-white cursor-pointer"
                   >
-                    <FileText size={14} className="text-fivem-orange" />
+                    <FileText size={15} aria-hidden="true" />
                     Rules & Guidelines
                   </a>
 
@@ -2849,7 +2869,7 @@ export default function App() {
                   )}
                 </motion.div>
 
-              </motion.div>
+              </div>
 
               {/* RIGHT — 16:9 Radial Carousel (All Categories) */}
               {hasHeroItems && (
@@ -2875,7 +2895,8 @@ export default function App() {
                 </motion.div>
               )}
 
-            </div>
+              </div>
+            </motion.div>
           </section>
         );
       })() : (
@@ -2894,7 +2915,7 @@ export default function App() {
 
 
       {/* Phones: the category bar scrolls with the page */}
-      {isPhone && activeContest && categories.length > 0 && (
+      {isPhone && !isHeroLoading && activeContest && categories.length > 0 && (
         <div className="px-3 pt-4">
           <CategoryNav
             className="scroll-mt-20"
@@ -2914,6 +2935,8 @@ export default function App() {
           <section ref={categoryHeaderRef} id="category-header-anchor" className="scroll-mt-36 sm:scroll-mt-44">
             <motion.div
               layout
+              /* Animate only when a visitor switches category, never while the page loads */
+              layoutDependency={categorySwitches}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 min-h-[76px]"
             >
@@ -2962,6 +2985,8 @@ export default function App() {
 
             <motion.div
               layout
+              /* Animate only when a visitor switches category, never while the page loads */
+              layoutDependency={categorySwitches}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             >
             {isCategoryLoading ? (

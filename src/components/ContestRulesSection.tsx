@@ -6,9 +6,7 @@
  * and an animated "scroll to top" action.
  */
 
-import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import React, { lazy, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Camera,
@@ -22,6 +20,10 @@ import {
 } from 'lucide-react';
 import { MagicCard } from './ui/magic-card';
 import { cn } from '../lib/utils';
+import { Skeleton } from './ui/skeleton';
+
+// The markdown parser is only needed below the first screen, so it loads on its own.
+const Markdown = lazy(() => import('./ui/markdown'));
 
 interface ContestRulesSectionProps {
   rulesMarkdown: string;
@@ -234,9 +236,18 @@ export function ContestRulesSection({ rulesMarkdown, onePhotoPerUser = false }: 
                 prose-td:border prose-td:border-white/[0.06] prose-td:p-3 prose-td:text-white/70
                 prose-hr:border-white/[0.08] prose-hr:my-8"
               >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {rulesMarkdown}
-                </ReactMarkdown>
+                <Suspense
+                  fallback={
+                    <div className="min-h-[320px] space-y-3">
+                      <Skeleton className="h-6 w-1/2" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  }
+                >
+                  <Markdown>{rulesMarkdown}</Markdown>
+                </Suspense>
               </div>
             </div>
 

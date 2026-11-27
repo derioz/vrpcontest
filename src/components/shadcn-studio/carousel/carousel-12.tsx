@@ -97,6 +97,8 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
   const total = slides.length
   const [active, setActive] = React.useState(0)
   const isDragging = React.useRef(false)
+  // Slides that have been near the front. Only these download their photo.
+  const requested = React.useRef(new Set<string | number>())
   const lastWheelTime = React.useRef(0)
 
   // Keep active index in bounds if slides length changes
@@ -175,6 +177,11 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
           const { y, rotateX, scale, opacity, zIndex } = arcStyle(offset)
           const isCenter = offset === 0
 
+          // Two slides each side are visible; fetch one further so rotating never shows a gap.
+          const key = slide.id || i
+          if (Math.abs(offset) <= 3) requested.current.add(key)
+          const source = requested.current.has(key) ? slide.image : undefined
+
           const isPixelated = slide.isPixelated ?? (censorSubmissions && !isVotingOpen)
 
           return (
@@ -220,7 +227,7 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
               >
                 {/* 16:9 Image */}
                 <img
-                  src={slide.image || MINIMAL_PLACEHOLDER_IMAGE}
+                  src={source || MINIMAL_PLACEHOLDER_IMAGE}
                   alt={slide.title}
                   className={cn(
                     'size-full object-cover transition-transform duration-700 select-none',
@@ -228,7 +235,8 @@ const RadialCarousel: React.FC<RadialCarouselProps> = ({
                     slide.isDisqualified && 'grayscale-[50%] opacity-70'
                   )}
                   draggable={false}
-                  loading="lazy"
+                  loading={isCenter ? 'eager' : 'lazy'}
+                  decoding="async"
                 />
 
                 {/* DISQUALIFIED Permanent Banner */}
